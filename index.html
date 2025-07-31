@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>営業タスク管理システム</title>
-    <meta name="description" content="直感的な営業タスク管理システム - ドラッグ&ドロップで効率的な営業フロー管理">
+    <title>🚀 営業タスク管理システム</title>
+    <meta name="description" content="直感的な営業タスク管理システム - モバイル完全対応">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#667eea">
     <style>
@@ -15,161 +15,308 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 1rem;
+            line-height: 1.6;
         }
         
         .container {
-            text-align: center;
+            max-width: 100%;
+            margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
-            padding: 3rem;
-            border-radius: 20px;
+            border-radius: 24px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            max-width: 600px;
-            margin: 2rem;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
         }
         
-        h1 {
-            color: #2d3748;
-            margin-bottom: 1rem;
-            font-size: 2.5rem;
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 1.5rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
             font-weight: 700;
         }
         
-        .subtitle {
-            color: #4a5568;
-            margin-bottom: 2rem;
-            font-size: 1.2rem;
+        .header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
         }
         
+        /* コンテンツ */
+        .content {
+            padding: 2rem 1.5rem;
+        }
+        
+        .intro {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .intro h2 {
+            color: #2d3748;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .intro p {
+            color: #4a5568;
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+        
+        /* 機能グリッド */
         .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: 1fr;
             gap: 1.5rem;
-            margin: 2rem 0;
+            margin-top: 2rem;
         }
         
         .feature-card {
             background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: pointer;
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
             text-decoration: none;
             color: inherit;
+            transition: all 0.3s ease;
+            border: 2px solid #f7fafc;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             display: block;
+            min-height: 120px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
         }
         
         .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(102, 126, 234, 0.15);
+            border-color: #667eea;
+        }
+        
+        .feature-card:active {
+            transform: translateY(-2px);
         }
         
         .feature-icon {
-            font-size: 3rem;
+            font-size: 2.5rem;
             margin-bottom: 1rem;
+            display: block;
         }
         
         .feature-title {
+            color: #2d3748;
             font-size: 1.3rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #2d3748;
+            margin-bottom: 0.8rem;
         }
         
         .feature-desc {
             color: #4a5568;
-            font-size: 0.95rem;
-            line-height: 1.5;
+            font-size: 1rem;
+            line-height: 1.6;
         }
         
-        .status {
-            background: #48bb78;
+        /* PWA情報 */
+        .pwa-info {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 25px;
-            font-size: 0.9rem;
-            margin-top: 2rem;
-            display: inline-block;
+            padding: 1.5rem;
+            border-radius: 20px;
+            text-align: center;
+            margin: 2rem 0;
         }
         
-        @media (max-width: 768px) {
+        .pwa-info h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .pwa-info p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        /* フッター */
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: #718096;
+            font-size: 0.9rem;
+        }
+        
+        /* タブレット以上 */
+        @media (min-width: 768px) {
             .container {
-                margin: 1rem;
-                padding: 2rem;
-            }
-            
-            h1 {
-                font-size: 2rem;
+                max-width: 800px;
             }
             
             .feature-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
+            }
+            
+            .header {
+                padding: 3rem 2rem;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .content {
+                padding: 3rem 2rem;
             }
         }
+        
+        /* デスクトップ */
+        @media (min-width: 1024px) {
+            .container {
+                max-width: 1000px;
+            }
+            
+            .feature-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2.5rem;
+            }
+            
+            .feature-card {
+                padding: 2.5rem 2rem;
+            }
+        }
+        
+        /* ダークモード対応 */
+        @media (prefers-color-scheme: dark) {
+            .container {
+                background: rgba(26, 32, 44, 0.95);
+            }
+            
+            .feature-card {
+                background: rgba(45, 55, 72, 0.8);
+                border-color: rgba(74, 85, 104, 0.3);
+            }
+            
+            .feature-title {
+                color: #e2e8f0;
+            }
+            
+            .feature-desc {
+                color: #a0aec0;
+            }
+        }
+        
+        /* アニメーション */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .feature-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+        
+        .feature-card:nth-child(1) { animation-delay: 0.1s; }
+        .feature-card:nth-child(2) { animation-delay: 0.2s; }
+        .feature-card:nth-child(3) { animation-delay: 0.3s; }
+        .feature-card:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 営業タスク管理システム</h1>
-        <p class="subtitle">ドラッグ&ドロップで直感的な営業フロー管理を実現</p>
-        
-        <div class="feature-grid">
-            <a href="./enhanced-task-manager.html" class="feature-card">
-                <div class="feature-icon">📋</div>
-                <div class="feature-title">高機能タスク管理</div>
-                <div class="feature-desc">ドラッグ優先度設定、ファイル添付、書類提出管理</div>
-            </a>
-            
-            <a href="./sales-workflow-builder.html" class="feature-card">
-                <div class="feature-icon">🔧</div>
-                <div class="feature-title">営業フロー構築</div>
-                <div class="feature-desc">テンプレートベースのワークフロー作成</div>
-            </a>
-            
-            <a href="./mobile-app.html" class="feature-card">
-                <div class="feature-icon">📱</div>
-                <div class="feature-title">モバイル対応</div>
-                <div class="feature-desc">スマートフォン最適化インターface</div>
-            </a>
-            
-            <a href="./admin-dashboard.html" class="feature-card">
-                <div class="feature-icon">⚙️</div>
-                <div class="feature-title">管理ダッシュボード</div>
-                <div class="feature-desc">チーム管理・権限設定・統計表示</div>
-            </a>
+        <div class="header">
+            <h1>🚀 営業タスク管理システム</h1>
+            <p class="subtitle">PC・スマホ完全対応の最強営業ツール</p>
         </div>
         
-        <div class="status">
-            ✅ 安定版デプロイ完了 - PC・スマホ対応
+        <div class="content">
+            <div class="intro">
+                <h2>直感的で効率的な営業管理</h2>
+                <p>ドラッグ&ドロップで簡単操作。外出先でもスマホで完全管理。</p>
+            </div>
+            
+            <div class="feature-grid">
+                <a href="./enhanced-task-manager.html" class="feature-card">
+                    <span class="feature-icon">📊</span>
+                    <h3 class="feature-title">高機能タスク管理</h3>
+                    <p class="feature-desc">優先度設定、ファイル添付、進捗管理など充実の機能で効率的な営業活動を実現</p>
+                </a>
+                
+                <a href="./sales-workflow-builder.html" class="feature-card">
+                    <span class="feature-icon">🔄</span>
+                    <h3 class="feature-title">営業フロー構築</h3>
+                    <p class="feature-desc">カスタムワークフローでチーム全体の営業プロセスを標準化・最適化</p>
+                </a>
+                
+                <a href="./mobile-app.html" class="feature-card">
+                    <span class="feature-icon">📱</span>
+                    <h3 class="feature-title">モバイルアプリ</h3>
+                    <p class="feature-desc">PWA対応でスマホにインストール可能。オフラインでも基本機能を利用</p>
+                </a>
+                
+                <a href="./admin-dashboard.html" class="feature-card">
+                    <span class="feature-icon">⚙️</span>
+                    <h3 class="feature-title">管理ダッシュボード</h3>
+                    <p class="feature-desc">チーム管理、権限設定、分析レポートで組織全体のパフォーマンス向上</p>
+                </a>
+            </div>
+            
+            <div class="pwa-info">
+                <h3>📲 アプリとしてインストール可能</h3>
+                <p>ブラウザのメニューから「ホーム画面に追加」でアプリのように使用できます</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>🌟 PC・スマホ対応 | ⚡ 高速動作 | 🔒 安全性重視</p>
         </div>
     </div>
     
     <script>
-        // PWA登録
+        // PWA インストールプロンプト
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // インストールボタンを表示する場合のロジック
+            console.log('PWA install prompt ready');
+        });
+        
+        // Service Worker 登録
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(function(registration) {
-                        console.log('SW registered: ', registration);
-                    })
-                    .catch(function(registrationError) {
-                        console.log('SW registration failed: ', registrationError);
-                    });
-            });
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed'));
         }
         
-        // インストールプロンプト
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            deferredPrompt = e;
-            console.log('インストール可能');
-        });
+        // タッチ操作の最適化
+        document.addEventListener('touchstart', function() {}, {passive: true});
     </script>
 </body>
 </html>
