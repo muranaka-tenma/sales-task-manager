@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>営業タスク管理システム</title>
+    <meta name="description" content="直感的な営業タスク管理システム - ドラッグ&ドロップで効率的な営業フロー管理">
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 2rem;
+        }
+        
+        h1 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            color: #4a5568;
+            margin-bottom: 2rem;
+            font-size: 1.2rem;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+        
+        .feature-desc {
+            color: #4a5568;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .status {
+            background: #48bb78;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            margin-top: 2rem;
+            display: inline-block;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem;
+                padding: 2rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 営業タスク管理システム</h1>
+        <p class="subtitle">ドラッグ&ドロップで直感的な営業フロー管理を実現</p>
+        
+        <div class="feature-grid">
+            <a href="./enhanced-task-manager.html" class="feature-card">
+                <div class="feature-icon">📋</div>
+                <div class="feature-title">高機能タスク管理</div>
+                <div class="feature-desc">ドラッグ優先度設定、ファイル添付、書類提出管理</div>
+            </a>
+            
+            <a href="./sales-workflow-builder.html" class="feature-card">
+                <div class="feature-icon">🔧</div>
+                <div class="feature-title">営業フロー構築</div>
+                <div class="feature-desc">テンプレートベースのワークフロー作成</div>
+            </a>
+            
+            <a href="./mobile-app.html" class="feature-card">
+                <div class="feature-icon">📱</div>
+                <div class="feature-title">モバイル対応</div>
+                <div class="feature-desc">スマートフォン最適化インターface</div>
+            </a>
+            
+            <a href="./admin-dashboard.html" class="feature-card">
+                <div class="feature-icon">⚙️</div>
+                <div class="feature-title">管理ダッシュボード</div>
+                <div class="feature-desc">チーム管理・権限設定・統計表示</div>
+            </a>
+        </div>
+        
+        <div class="status">
+            ✅ 安定版デプロイ完了 - PC・スマホ対応
+        </div>
+    </div>
+    
+    <script>
+        // PWA登録
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(registration) {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+        
+        // インストールプロンプト
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            deferredPrompt = e;
+            console.log('インストール可能');
+        });
+    </script>
+</body>
+</html>
