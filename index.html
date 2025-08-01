@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚀 営業タスク管理システム - 改善版</title>
-    <meta name="description" content="直感的な営業タスク管理システム - モバイル完全対応">
+    <title>🚀 営業タスク管理 - メイン画面</title>
+    <meta name="description" content="営業タスクを一画面で完全管理">
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#667eea">
     <style>
@@ -16,331 +16,386 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f8f9fa;
             min-height: 100vh;
-            padding: 1rem;
             line-height: 1.6;
         }
         
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            backdrop-filter: blur(10px);
-            overflow: hidden;
-        }
-        
-        /* ヘッダー */
-        .header {
+        /* ヘッダーバー */
+        .header-bar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 2rem 1.5rem;
-            text-align: center;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
-        .header h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         
-        .header .subtitle {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            font-weight: 300;
-        }
-        
-        /* コンテンツ */
-        .content {
-            padding: 2rem 1.5rem;
-        }
-        
-        .intro {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .intro h2 {
-            color: #1a202c;
-            font-size: 1.6rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-        
-        .intro p {
-            color: #2d3748;
+        .header-title {
             font-size: 1.2rem;
-            line-height: 1.7;
-            font-weight: 500;
+            font-weight: 700;
         }
         
-        /* 機能グリッド */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-            margin-top: 2rem;
+        .header-date {
+            font-size: 0.9rem;
+            opacity: 0.9;
         }
         
-        .feature-card {
+        /* メインコンテンツ */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        /* 今日のタスク */
+        .task-section {
             background: white;
-            border-radius: 20px;
-            padding: 2.5rem 2rem;
-            text-decoration: none;
-            color: inherit;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .section-title {
+            color: #1a202c;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .task-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
             transition: all 0.2s ease;
-            border: 3px solid #e2e8f0;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            display: block;
-            min-height: 140px;
-            position: relative;
-            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .task-item:hover,
+        .task-item:active {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+        
+        .task-title {
+            color: #1a202c;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.3rem;
+        }
+        
+        .task-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+        
+        .task-priority {
+            background: #667eea;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .task-priority.high { background: #e53e3e; }
+        .task-priority.medium { background: #d69e2e; }
+        .task-priority.low { background: #38a169; }
+        
+        /* クイックアクション */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .action-button {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            text-decoration: none;
+            color: #2d3748;
+            font-weight: 600;
+            transition: all 0.2s ease;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent;
         }
         
-        .feature-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.2);
+        .action-button:hover,
+        .action-button:active {
             border-color: #667eea;
+            background: #f7fafc;
+            transform: translateY(-2px);
         }
         
-        .feature-card:active {
-            transform: translateY(-2px) scale(0.98);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-        }
-        
-        .feature-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
+        .action-icon {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
             display: block;
         }
         
-        .feature-title {
-            color: #1a202c;
-            font-size: 1.4rem;
-            font-weight: 700;
-            margin-bottom: 0.8rem;
-        }
-        
-        .feature-desc {
-            color: #2d3748;
-            font-size: 1.1rem;
-            line-height: 1.7;
-            font-weight: 500;
-        }
-        
-        /* PWA情報 */
-        .pwa-info {
+        /* 新規タスク追加 */
+        .add-task {
             background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
             color: white;
-            padding: 1.5rem;
-            border-radius: 20px;
-            text-align: center;
-            margin: 2rem 0;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem;
+            width: 100%;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
         }
         
-        .pwa-info h3 {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
+        .add-task:hover,
+        .add-task:active {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(72, 187, 120, 0.3);
         }
         
-        .pwa-info p {
-            font-size: 1rem;
-            opacity: 0.9;
-        }
-        
-        /* フッター */
-        .footer {
-            text-align: center;
-            padding: 1.5rem;
-            color: #718096;
-            font-size: 0.9rem;
-        }
-        
-        /* タブレット以上 */
+        /* レスポンシブ */
         @media (min-width: 768px) {
-            .container {
-                max-width: 800px;
+            .main-content {
+                padding: 2rem;
             }
             
-            .feature-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 2rem;
+            .header-title {
+                font-size: 1.4rem;
             }
             
-            .header {
-                padding: 3rem 2rem;
-            }
-            
-            .header h1 {
-                font-size: 2.5rem;
-            }
-            
-            .content {
-                padding: 3rem 2rem;
+            .quick-actions {
+                grid-template-columns: repeat(4, 1fr);
             }
         }
         
-        /* デスクトップ */
-        @media (min-width: 1024px) {
-            .container {
-                max-width: 1000px;
-            }
-            
-            .feature-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 2.5rem;
-            }
-            
-            .feature-card {
-                padding: 2.5rem 2rem;
-            }
+        /* プログレスバー */
+        .progress-section {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
         
-        /* ダークモード対応 */
-        @media (prefers-color-scheme: dark) {
-            .container {
-                background: rgba(26, 32, 44, 0.95);
-            }
-            
-            .feature-card {
-                background: rgba(45, 55, 72, 0.8);
-                border-color: rgba(74, 85, 104, 0.3);
-            }
-            
-            .feature-title {
-                color: #e2e8f0;
-            }
-            
-            .feature-desc {
-                color: #a0aec0;
-            }
+        .progress-bar {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 0.5rem;
         }
         
-        /* アニメーション */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .progress-fill {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            height: 100%;
+            border-radius: 10px;
+            width: 65%;
+            transition: width 0.3s ease;
         }
         
-        .feature-card {
-            animation: fadeInUp 0.6s ease forwards;
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #4a5568;
         }
-        
-        .feature-card:nth-child(1) { animation-delay: 0.1s; }
-        .feature-card:nth-child(2) { animation-delay: 0.2s; }
-        .feature-card:nth-child(3) { animation-delay: 0.3s; }
-        .feature-card:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚀 営業タスク管理システム</h1>
-            <p class="subtitle">PC・スマホ完全対応の最強営業ツール</p>
+    <div class="header-bar">
+        <div class="header-content">
+            <div class="header-title">🚀 営業タスク管理</div>
+            <div class="header-date" id="current-date"></div>
         </div>
-        
-        <div class="content">
-            <div class="intro">
-                <h2>直感的で効率的な営業管理</h2>
-                <p>ドラッグ&ドロップで簡単操作。外出先でもスマホで完全管理。</p>
+    </div>
+    
+    <div class="main-content">
+        <!-- 今日の進捗 -->
+        <div class="progress-section">
+            <div class="section-title">
+                📊 今日の進捗
             </div>
-            
-            <div class="feature-grid">
-                <a href="./enhanced-task-manager.html" class="feature-card">
-                    <span class="feature-icon">✅</span>
-                    <h3 class="feature-title">営業タスク管理</h3>
-                    <p class="feature-desc">今日やるべき営業活動を一目で把握。ドラッグで優先度変更、進捗を即座に更新</p>
-                </a>
-                
-                <a href="./sales-workflow-builder.html" class="feature-card">
-                    <span class="feature-icon">💼</span>
-                    <h3 class="feature-title">顧客営業管理</h3>
-                    <p class="feature-desc">見込み客から成約まで。営業プロセスをステップごとに管理して成約率アップ</p>
-                </a>
-                
-                <a href="./mobile-app.html" class="feature-card">
-                    <span class="feature-icon">📱</span>
-                    <h3 class="feature-title">外出先でも管理</h3>
-                    <p class="feature-desc">営業先でもスマホで即座に更新。オフラインでも基本機能を利用可能</p>
-                </a>
-                
-                <a href="./admin-dashboard.html" class="feature-card">
-                    <span class="feature-icon">📊</span>
-                    <h3 class="feature-title">営業成果分析</h3>
-                    <p class="feature-desc">営業成績・売上推移を視覚化。チーム全体のパフォーマンス向上をサポート</p>
-                </a>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
             </div>
-            
-            <div class="pwa-info">
-                <h3>📲 アプリとしてインストール可能</h3>
-                <p>ブラウザのメニューから「ホーム画面に追加」でアプリのように使用できます</p>
+            <div class="progress-text">
+                <span>完了: 7件</span>
+                <span>残り: 4件</span>
+                <span>進捗: 65%</span>
             </div>
         </div>
         
-        <div class="footer">
-            <p>🌟 PC・スマホ対応 | ⚡ 高速動作 | 🔒 安全性重視</p>
+        <!-- クイックアクション -->
+        <div class="quick-actions">
+            <a href="./enhanced-task-manager.html" class="action-button">
+                <span class="action-icon">📝</span>
+                新規タスク
+            </a>
+            <a href="./sales-workflow-builder.html" class="action-button">
+                <span class="action-icon">👥</span>
+                顧客管理
+            </a>
+            <a href="./mobile-app.html" class="action-button">
+                <span class="action-icon">📱</span>
+                外出先記録
+            </a>
+            <a href="./admin-dashboard.html" class="action-button">
+                <span class="action-icon">📊</span>
+                成果分析
+            </a>
+        </div>
+        
+        <!-- 今日のタスク -->
+        <div class="task-section">
+            <div class="section-title">
+                ✅ 今日のタスク
+            </div>
+            
+            <div class="task-item" onclick="toggleTask(this)">
+                <div class="task-title">A社への提案書作成・送付</div>
+                <div class="task-meta">
+                    <span class="task-priority high">最重要</span>
+                    <span>⏰ 15:00まで</span>
+                    <span>👤 田中営業部長</span>
+                </div>
+            </div>
+            
+            <div class="task-item" onclick="toggleTask(this)">
+                <div class="task-title">B社との契約書確認・修正対応</div>
+                <div class="task-meta">
+                    <span class="task-priority medium">重要</span>
+                    <span>⏰ 17:00まで</span>
+                    <span>👤 山田部長</span>
+                </div>
+            </div>
+            
+            <div class="task-item" onclick="toggleTask(this)">
+                <div class="task-title">新規見込み客10件へのフォローアップ電話</div>
+                <div class="task-meta">
+                    <span class="task-priority medium">重要</span>
+                    <span>⏰ 終日</span>
+                    <span>📞 電話営業</span>
+                </div>
+            </div>
+            
+            <div class="task-item" onclick="toggleTask(this)">
+                <div class="task-title">来週のプレゼン資料準備</div>
+                <div class="task-meta">
+                    <span class="task-priority low">通常</span>
+                    <span>⏰ 今週中</span>
+                    <span>📄 資料作成</span>
+                </div>
+            </div>
+            
+            <button class="add-task" onclick="addNewTask()">
+                ➕ 新しいタスクを追加
+            </button>
+        </div>
+        
+        <!-- 緊急対応 -->
+        <div class="task-section">
+            <div class="section-title">
+                🚨 緊急対応が必要
+            </div>
+            
+            <div class="task-item" style="border-left-color: #e53e3e;">
+                <div class="task-title">C社からのクレーム対応</div>
+                <div class="task-meta">
+                    <span class="task-priority high">緊急</span>
+                    <span>⏰ 即座に</span>
+                    <span>📞 顧客対応</span>
+                </div>
+            </div>
         </div>
     </div>
     
     <script>
-        // PWA インストールプロンプト
-        let deferredPrompt;
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            
-            // インストールボタンを表示する場合のロジック
-            console.log('PWA install prompt ready');
-        });
-        
-        // Service Worker 登録
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('Service Worker registered'))
-                .catch(err => console.log('Service Worker registration failed'));
+        // 現在の日付を表示
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric', 
+                weekday: 'long' 
+            };
+            document.getElementById('current-date').textContent = 
+                now.toLocaleDateString('ja-JP', options);
         }
         
-        // タッチ操作の最適化とフィードバック
-        document.addEventListener('touchstart', function() {}, {passive: true});
+        // タスクの完了切り替え
+        function toggleTask(taskElement) {
+            taskElement.style.opacity = taskElement.style.opacity === '0.5' ? '1' : '0.5';
+            taskElement.style.textDecoration = 
+                taskElement.style.textDecoration === 'line-through' ? 'none' : 'line-through';
+        }
+        
+        // 新規タスク追加
+        function addNewTask() {
+            const taskTitle = prompt('新しいタスクを入力してください:');
+            if (taskTitle) {
+                const taskSection = document.querySelector('.task-section');
+                const newTask = document.createElement('div');
+                newTask.className = 'task-item';
+                newTask.onclick = () => toggleTask(newTask);
+                newTask.innerHTML = `
+                    <div class="task-title">${taskTitle}</div>
+                    <div class="task-meta">
+                        <span class="task-priority medium">重要</span>
+                        <span>⏰ 今日中</span>
+                        <span>📝 新規</span>
+                    </div>
+                `;
+                taskSection.insertBefore(newTask, taskSection.querySelector('.add-task'));
+            }
+        }
         
         // タッチフィードバック強化
-        document.querySelectorAll('.feature-card').forEach(card => {
-            card.addEventListener('touchstart', function() {
+        document.querySelectorAll('.task-item, .action-button').forEach(element => {
+            element.addEventListener('touchstart', function() {
                 this.style.transform = 'translateY(-2px) scale(0.98)';
-                this.style.boxShadow = '0 8px 20px rgba(102, 126, 234, 0.3)';
             }, {passive: true});
             
-            card.addEventListener('touchend', function() {
-                this.style.transform = 'translateY(-6px)';
-                this.style.boxShadow = '0 15px 35px rgba(102, 126, 234, 0.2)';
-                
+            element.addEventListener('touchend', function() {
                 setTimeout(() => {
                     this.style.transform = '';
-                    this.style.boxShadow = '';
                 }, 150);
             }, {passive: true});
         });
+        
+        // PWA対応
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+        
+        // 初期化
+        updateCurrentDate();
+        setInterval(updateCurrentDate, 60000); // 1分ごとに更新
     </script>
 </body>
 </html>
