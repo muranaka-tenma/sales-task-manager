@@ -353,12 +353,14 @@
             return new Date();
         }
         
-        // 日付を比較
-        function isOverdue(deadline) {
+        // 日付を比較（完了済みタスクは期限切れ扱いしない）
+        function isOverdue(deadline, completed = false) {
+            if (completed) return false;  // 完了済みは期限切れ扱いしない
             return new Date(deadline) < getCurrentDateTime();
         }
         
-        function isToday(deadline) {
+        function isToday(deadline, completed = false) {
+            if (completed) return false;  // 完了済みは今日期限扱いしない
             const today = new Date();
             const deadlineDate = new Date(deadline);
             return today.toDateString() === deadlineDate.toDateString();
@@ -418,9 +420,14 @@
             const task = tasks.find(t => t.id === taskId);
             if (task) {
                 task.completed = !task.completed;
+                console.log(`タスク "${task.title}" を${task.completed ? '完了' : '未完了'}に変更`);
                 saveTasks();
                 renderTasks();
                 updateStats();
+                
+                // 視覚的フィードバック
+                const statusText = task.completed ? '完了しました！' : '未完了に戻しました';
+                alert(statusText);
             }
         }
         
@@ -443,19 +450,27 @@
                 return;
             }
             
-            // タスクを期限切れ → 今日期限 → その他の順で並び替え
+            // タスクを期限切れ → 今日期限 → その他の順で並び替え（完了済みは最後）
             const sortedTasks = tasks.sort((a, b) => {
-                if (isOverdue(a.deadline) && !isOverdue(b.deadline)) return -1;
-                if (!isOverdue(a.deadline) && isOverdue(b.deadline)) return 1;
-                if (isToday(a.deadline) && !isToday(b.deadline)) return -1;
-                if (!isToday(a.deadline) && isToday(b.deadline)) return 1;
+                // 完了済みは最後に
+                if (a.completed && !b.completed) return 1;
+                if (!a.completed && b.completed) return -1;
+                
+                // 未完了同士の比較
+                if (!a.completed && !b.completed) {
+                    if (isOverdue(a.deadline, a.completed) && !isOverdue(b.deadline, b.completed)) return -1;
+                    if (!isOverdue(a.deadline, a.completed) && isOverdue(b.deadline, b.completed)) return 1;
+                    if (isToday(a.deadline, a.completed) && !isToday(b.deadline, b.completed)) return -1;
+                    if (!isToday(a.deadline, a.completed) && isToday(b.deadline, b.completed)) return 1;
+                }
+                
                 return new Date(a.deadline) - new Date(b.deadline);
             });
             
             taskList.innerHTML = sortedTasks.map(task => {
                 const deadline = new Date(task.deadline);
-                const isOverdueTask = isOverdue(task.deadline) && !task.completed;
-                const isTodayTask = isToday(task.deadline) && !task.completed;
+                const isOverdueTask = isOverdue(task.deadline, task.completed);
+                const isTodayTask = isToday(task.deadline, task.completed);
                 
                 let cardClass = 'task-card';
                 if (task.completed) cardClass += ' completed';
@@ -492,14 +507,15 @@
         
         // 統計を更新
         function updateStats() {
-            const now = getCurrentDateTime();
-            const overdueCount = tasks.filter(t => !t.completed && isOverdue(t.deadline)).length;
-            const todayCount = tasks.filter(t => !t.completed && isToday(t.deadline)).length;
+            const overdueCount = tasks.filter(t => !t.completed && isOverdue(t.deadline, t.completed)).length;
+            const todayCount = tasks.filter(t => !t.completed && isToday(t.deadline, t.completed)).length;
             const completedCount = tasks.filter(t => t.completed).length;
             
             document.getElementById('overdue-count').textContent = overdueCount;
             document.getElementById('today-count').textContent = todayCount;
             document.getElementById('completed-count').textContent = completedCount;
+            
+            console.log(`統計更新: 期限切れ${overdueCount}件, 今日期限${todayCount}件, 完了${completedCount}件`);
         }
         
         // 初期化
