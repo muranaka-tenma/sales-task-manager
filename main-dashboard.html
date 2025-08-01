@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>営業タスク管理 - 新UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+        }
+        
+        .header {
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .progress-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .progress-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1a202c;
+        }
+        
+        .progress-bar {
+            background: #e2e8f0;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-fill {
+            background: #667eea;
+            height: 100%;
+            width: 70%;
+            border-radius: 6px;
+        }
+        
+        .progress-text {
+            font-size: 0.9rem;
+            color: #4a5568;
+            text-align: center;
+        }
+        
+        .task-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .task-card:active {
+            transform: scale(0.98);
+            background: #f7fafc;
+        }
+        
+        .task-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: #1a202c;
+        }
+        
+        .task-meta {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: #4a5568;
+        }
+        
+        .priority {
+            background: #667eea;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .priority.high { background: #e53e3e; }
+        .priority.medium { background: #d69e2e; }
+        
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 1.5rem 0 1rem 0;
+            color: #1a202c;
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+            margin: 1rem 0;
+        }
+        
+        .action-btn {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            text-decoration: none;
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        
+        .action-btn:active {
+            transform: scale(0.95);
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+        
+        .action-icon {
+            font-size: 1.5rem;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        
+        .add-task-btn {
+            background: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem;
+            width: 100%;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        
+        .add-task-btn:active {
+            transform: scale(0.98);
+            background: #38a169;
+        }
+        
+        .urgent-task {
+            border-left-color: #e53e3e;
+            background: #fed7d7;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        🚀 営業タスク管理 - 今日の作業
+    </div>
+    
+    <div class="container">
+        <!-- 進捗表示 -->
+        <div class="progress-card">
+            <div class="progress-title">📊 今日の進捗</div>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="progress-text">完了: 8件 / 残り: 3件 (70%完了)</div>
+        </div>
+        
+        <!-- クイックアクション -->
+        <div class="quick-actions">
+            <a href="./enhanced-task-manager.html" class="action-btn">
+                <span class="action-icon">📝</span>
+                新規タスク
+            </a>
+            <a href="./sales-workflow-builder.html" class="action-btn">
+                <span class="action-icon">👥</span>
+                顧客管理
+            </a>
+            <a href="./mobile-app.html" class="action-btn">
+                <span class="action-icon">📱</span>
+                外出記録
+            </a>
+            <a href="./admin-dashboard.html" class="action-btn">
+                <span class="action-icon">📊</span>
+                成果確認
+            </a>
+        </div>
+        
+        <!-- 緊急タスク -->
+        <div class="section-title">🚨 緊急対応</div>
+        <div class="task-card urgent-task" onclick="completeTask(this)">
+            <div class="task-title">C社クレーム対応</div>
+            <div class="task-meta">
+                <span class="priority high">緊急</span>
+                <span>⏰ 即座に</span>
+                <span>📞 電話対応</span>
+            </div>
+        </div>
+        
+        <!-- 今日のタスク -->
+        <div class="section-title">✅ 今日のタスク</div>
+        
+        <div class="task-card" onclick="completeTask(this)">
+            <div class="task-title">A社への提案書作成・送付</div>
+            <div class="task-meta">
+                <span class="priority high">最重要</span>
+                <span>⏰ 15:00まで</span>
+                <span>👤 田中部長</span>
+            </div>
+        </div>
+        
+        <div class="task-card" onclick="completeTask(this)">
+            <div class="task-title">B社契約書確認・修正</div>
+            <div class="task-meta">
+                <span class="priority medium">重要</span>
+                <span>⏰ 17:00まで</span>
+                <span>📄 書類確認</span>
+            </div>
+        </div>
+        
+        <div class="task-card" onclick="completeTask(this)">
+            <div class="task-title">新規見込み客10件フォロー電話</div>
+            <div class="task-meta">
+                <span class="priority medium">重要</span>
+                <span>⏰ 終日</span>
+                <span>📞 営業電話</span>
+            </div>
+        </div>
+        
+        <button class="add-task-btn" onclick="addTask()">
+            ➕ 新しいタスクを追加
+        </button>
+    </div>
+    
+    <script>
+        function completeTask(element) {
+            if (element.style.opacity === '0.5') {
+                element.style.opacity = '1';
+                element.style.textDecoration = 'none';
+            } else {
+                element.style.opacity = '0.5';
+                element.style.textDecoration = 'line-through';
+            }
+        }
+        
+        function addTask() {
+            const title = prompt('新しいタスクを入力:');
+            if (title) {
+                const container = document.querySelector('.container');
+                const newTask = document.createElement('div');
+                newTask.className = 'task-card';
+                newTask.onclick = () => completeTask(newTask);
+                newTask.innerHTML = `
+                    <div class="task-title">${title}</div>
+                    <div class="task-meta">
+                        <span class="priority medium">重要</span>
+                        <span>⏰ 今日中</span>
+                        <span>📝 新規</span>
+                    </div>
+                `;
+                container.insertBefore(newTask, container.querySelector('.add-task-btn'));
+            }
+        }
+        
+        // PWA対応
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+</body>
+</html>
