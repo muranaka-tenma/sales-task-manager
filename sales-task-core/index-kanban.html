@@ -895,18 +895,34 @@
             <span class="stat-number" id="today-count">0</span>
             <span>今日期限</span>
         </div>
-        <div class="stat-item stat-completed">
-            <span class="stat-number" id="completed-count">0</span>
-            <span>完了済み</span>
+        <div class="stat-item" style="color: #e77600;" onclick="showStaleTasksDetail()" title="3日以上同じステータスのタスク">
+            <span style="cursor: pointer;">🚨</span>
+            <span class="stat-number" id="stale-count">0</span>
+            <span style="cursor: pointer;">停滞中</span>
+        </div>
+        <div class="stat-item" style="color: #0052cc;" onclick="showWorkloadDetail()" title="チーム平均の1.2倍以上のタスクを担当">
+            <span style="cursor: pointer;">👥</span>
+            <span class="stat-number" id="overload-count">0</span>
+            <span style="cursor: pointer;">要調整</span>
         </div>
     </div>
     
-    <!-- ボトルネック分析バー -->
-    <div class="bottleneck-bar" style="background: #f8f9fa; padding: 0.75rem 1rem; border-bottom: 1px solid #dfe1e6; display: flex; align-items: center; gap: 1rem; font-size: 0.85rem;">
-        <div style="display: flex; align-items: center; gap: 0.5rem; color: #5e6c84;">
-            <span style="font-weight: 600;">📊 ワークフロー:</span>
+    <!-- 分析サマリーバー -->
+    <div class="analytics-summary" id="analytics-summary">
+        <div class="analytics-left">
+            <div class="analytics-metric">
+                <span style="font-weight: 600;">完了率:</span>
+                <span class="analytics-value" id="completion-rate-summary">0%</span>
+            </div>
+            <div class="analytics-metric">
+                <span style="font-weight: 600;">期限遵守率:</span>
+                <span class="analytics-value" id="compliance-rate-summary">0%</span>
+            </div>
         </div>
-        <!-- ワークフロー表示を削除: カラムで既に表示されているため不要 -->
+        <button class="analytics-btn" onclick="showAnalytics()"
+                style="padding: 0.5rem 1rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+            📊 詳細分析
+        </button>
     </div>
         
         <!-- カラム追加機能 -->
@@ -2566,9 +2582,65 @@
             const todayCount = filteredTasks.filter(t => t.columnId !== 'done' && isToday(t.deadline, t.columnId)).length;
             const completedCount = filteredTasks.filter(t => t.columnId === 'done').length;
             
+            // 3日以上停滞しているタスクを検出
+            const now = new Date();
+            const staleTasks = filteredTasks.filter(t => {
+                if (t.columnId === 'done') return false;
+                if (!t.createdAt) return false;
+                
+                const createdDate = new Date(t.createdAt);
+                const daysDiff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+                return daysDiff >= 3;
+            });
+            
+            // チーム平均の1.2倍以上のタスクを持つ担当者を検出
+            const assigneeCounts = {};
+            let totalAssignedTasks = 0;
+            let assigneeCount = 0;
+            
+            // 全タスクで担当者別カウント（フィルタ前の全体から計算）
+            tasks.forEach(task => {
+                if (task.columnId !== 'done') {
+                    // 新しいassigneesフィールドの処理
+                    if (task.assignees && Array.isArray(task.assignees)) {
+                        task.assignees.forEach(assignee => {
+                            if (!assigneeCounts[assignee]) {
+                                assigneeCounts[assignee] = 0;
+                                assigneeCount++;
+                            }
+                            assigneeCounts[assignee]++;
+                            totalAssignedTasks++;
+                        });
+                    } else if (task.assignee && task.assignee !== '未設定') {
+                        // 旧assigneeフィールドの処理
+                        if (!assigneeCounts[task.assignee]) {
+                            assigneeCounts[task.assignee] = 0;
+                            assigneeCount++;
+                        }
+                        assigneeCounts[task.assignee]++;
+                        totalAssignedTasks++;
+                    }
+                }
+            });
+            
+            // チーム平均を計算
+            const avgTasksPerPerson = assigneeCount > 0 ? totalAssignedTasks / assigneeCount : 0;
+            const overloadThreshold = avgTasksPerPerson * 1.2;
+            
+            // 過負荷の担当者数をカウント
+            const overloadedAssignees = Object.entries(assigneeCounts)
+                .filter(([assignee, count]) => count > overloadThreshold)
+                .map(([assignee, count]) => ({ assignee, count }));
+            
             document.getElementById('overdue-count').textContent = overdueCount;
             document.getElementById('today-count').textContent = todayCount;
-            document.getElementById('completed-count').textContent = completedCount;
+            document.getElementById('stale-count').textContent = staleTasks.length;
+            document.getElementById('overload-count').textContent = overloadedAssignees.length;
+            
+            // グローバル変数に保存（詳細表示用）
+            window.staleTasks = staleTasks;
+            window.overloadedAssignees = overloadedAssignees;
+            window.avgTasksPerPerson = avgTasksPerPerson;
             
             // ワークフロー表示を削除: 管理者にとって用途が不明確なため
             
@@ -2651,6 +2723,109 @@
             }).join('');
             
             workflowContainer.innerHTML = workflowHtml;
+        }
+        
+        // 3日以上停滞しているタスクの詳細表示
+        function showStaleTasksDetail() {
+            if (!window.staleTasks || window.staleTasks.length === 0) {
+                alert('現在、3日以上停滞しているタスクはありません。');
+                return;
+            }
+            
+            const now = new Date();
+            const taskListHtml = window.staleTasks.map(task => {
+                const createdDate = new Date(task.createdAt);
+                const daysDiff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+                const column = columns.find(c => c.id === task.columnId);
+                const assigneesText = task.assignees?.join(', ') || task.assignee || '未設定';
+                
+                return `
+                    <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">${task.title}</div>
+                        <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #5e6c84;">
+                            <span>👤 ${assigneesText}</span>
+                            <span>📍 ${column?.title || 'ー'}</span>
+                            <span>⏱️ ${daysDiff}日経過</span>
+                            ${task.deadline ? `<span>📅 期限: ${new Date(task.deadline).toLocaleDateString('ja-JP')}</span>` : ''}
+                        </div>
+                        ${task.memo ? `<div style="margin-top: 0.5rem; font-size: 0.85rem; color: #6b7280;">📝 ${task.memo.substring(0, 50)}...</div>` : ''}
+                        <button onclick="editTask(${task.id})" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                            確認・編集
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            
+            const modal = document.createElement('div');
+            modal.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                            <h2 style="margin: 0; font-size: 1.25rem;">🚨 3日以上停滞しているタスク（${window.staleTasks.length}件）</h2>
+                            <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">進捗確認が必要なタスクです</p>
+                        </div>
+                        <div>${taskListHtml}</div>
+                        <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
+                            <button onclick="this.closest('div[style*=\\"position: fixed\\"]').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                                閉じる
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal.firstElementChild);
+        }
+        
+        // チーム平均1.2倍以上の負荷担当者の詳細表示
+        function showWorkloadDetail() {
+            if (!window.overloadedAssignees || window.overloadedAssignees.length === 0) {
+                alert('現在、過負荷の担当者はいません。');
+                return;
+            }
+            
+            const avgTasks = Math.round(window.avgTasksPerPerson * 10) / 10;
+            const threshold = Math.round(avgTasks * 1.2 * 10) / 10;
+            
+            const assigneeListHtml = window.overloadedAssignees.map(({ assignee, count }) => {
+                const overloadPercentage = Math.round((count / avgTasks - 1) * 100);
+                return `
+                    <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${assignee}</div>
+                                <div style="font-size: 0.85rem; color: #5e6c84;">
+                                    担当タスク数: ${count}件（平均の${100 + overloadPercentage}%）
+                                </div>
+                            </div>
+                            <button onclick="document.getElementById('assignee-filter').value='${assignee}'; filterTasks(); this.closest('div[style*=\\"position: fixed\\"]').remove();" 
+                                    style="padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                                タスク確認
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            const modal = document.createElement('div');
+            modal.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; border-radius: 8px; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                            <h2 style="margin: 0; font-size: 1.25rem;">👥 負荷調整が必要な担当者（${window.overloadedAssignees.length}名）</h2>
+                            <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">
+                                チーム平均: ${avgTasks}件 / 人　｜　要調整基準: ${threshold}件以上
+                            </p>
+                        </div>
+                        <div>${assigneeListHtml}</div>
+                        <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
+                            <button onclick="this.closest('div[style*=\\"position: fixed\\"]').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                                閉じる
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal.firstElementChild);
         }
         
         function showStatusDetails(columnId) {
@@ -7077,17 +7252,18 @@
             const completedTasks = tasks.filter(task => task.columnId === 'done').length;
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             
-            // 期限遵守率
-            const completedTasksWithDeadline = tasks.filter(task => 
-                task.columnId === 'done' && task.deadline && task.completedAt
-            );
-            const onTimeCompleted = completedTasksWithDeadline.filter(task => {
-                const deadline = new Date(task.deadline);
-                const completedDate = new Date(task.completedAt);
-                return completedDate <= deadline;
+            // 期限遵守率（全タスクのうち期限内に完了したタスクの割合）
+            const completedOnTime = tasks.filter(task => {
+                if (task.columnId === 'done' && task.deadline && task.completedAt) {
+                    const deadline = new Date(task.deadline);
+                    const completedDate = new Date(task.completedAt);
+                    return completedDate <= deadline;
+                }
+                return false;
             }).length;
-            const deadlineCompliance = completedTasksWithDeadline.length > 0 
-                ? Math.round((onTimeCompleted / completedTasksWithDeadline.length) * 100) 
+            
+            const deadlineCompliance = totalTasks > 0 
+                ? Math.round((completedOnTime / totalTasks) * 100) 
                 : 100;
             
             // 平均完了時間
