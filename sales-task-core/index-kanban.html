@@ -1470,14 +1470,7 @@
         
         function isOverdue(deadline, columnId) {
             if (columnId === 'done') return false;
-            const deadlineDate = new Date(deadline);
-            const currentTime = getCurrentDateTime();
-            const isOverdueResult = deadlineDate < currentTime;
-            
-            // デバッグログ（必要に応じてコメントアウト）
-            console.log(`🔍 [OVERDUE] Task deadline: ${deadline}, current: ${currentTime.toISOString()}, isOverdue: ${isOverdueResult}`);
-            
-            return isOverdueResult;
+            return new Date(deadline) < getCurrentDateTime();
         }
         
         function isToday(deadline, columnId) {
@@ -1495,7 +1488,7 @@
             // 現在時刻+3時間をデフォルト期限として設定
             const now = new Date();
             now.setHours(now.getHours() + 3);
-            return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm形式で返す
+            return now.toISOString().split('T')[0];
         }
         
         // 統一カード作成関数（画面上部のボタン用）
@@ -2142,8 +2135,6 @@
                 console.log(`🔍 [DEADLINE] Old deadline: ${editingTask.deadline}, wasOverdue: ${wasOverdue}`);
                 console.log(`🔍 [DEADLINE] New deadline: ${newDeadline.toISOString()}, willBeOverdue: ${willBeOverdue}`);
                 console.log(`🔍 [DEADLINE] Task column: ${editingTask.columnId}`);
-                console.log(`🔍 [DEADLINE] Current time: ${getCurrentDateTime().toISOString()}`);
-                console.log(`🔍 [DEADLINE] Conditions for dialog: wasOverdue=${wasOverdue} && !willBeOverdue=${!willBeOverdue} = ${wasOverdue && !willBeOverdue}`);
                 
                 // 期限切れタスクの期限が延長された場合の確認
                 if (wasOverdue && !willBeOverdue) {
