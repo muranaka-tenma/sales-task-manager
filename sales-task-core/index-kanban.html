@@ -1547,6 +1547,7 @@
             
             // カラム選択フィールドを非表示
             document.getElementById('column-selection-group').style.display = 'none';
+            document.getElementById('task-column-input').removeAttribute('required');
             
             // 担当者選択肢を更新
             updateAssigneeOptions();
@@ -1667,6 +1668,7 @@
             
             // カラム選択フィールドを非表示（編集時は不要）
             document.getElementById('column-selection-group').style.display = 'none';
+            document.getElementById('task-column-input').removeAttribute('required');
             
             // 担当者選択肢を更新してから値を設定
             updateAssigneeOptions();
@@ -2448,6 +2450,9 @@
             const deadline = new Date(task.deadline);
             const isOverdueTask = isOverdue(task.deadline, task.columnId);
             const isTodayTask = isToday(task.deadline, task.columnId);
+            const now = new Date();
+            console.log(`🎴 [CARD] Task ${task.id} - deadline: ${task.deadline}, columnId: ${task.columnId}`);
+            console.log(`🎴 [CARD] Task ${task.id} - Current time: ${now.toISOString()}, deadline < now: ${deadline < now}`);
             console.log(`🎴 [CARD] Task ${task.id} - isOverdueTask: ${isOverdueTask}, draggable: ${!isBulkMode}`);
             
             // 経過日数を計算
