@@ -2176,9 +2176,11 @@
         
         // ドラッグ&ドロップ
         function handleDragStart(e, taskId) {
+            console.log(`Drag start: taskId=${taskId}, isBulkMode=${isBulkMode}`);
             draggedTask = tasks.find(t => t.id === taskId);
             e.target.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
+            console.log(`Dragged task:`, draggedTask);
         }
         
         function handleDragEnd(e) {
@@ -2196,7 +2198,11 @@
             const dropZone = e.currentTarget;
             dropZone.classList.remove('drag-over');
             
+            console.log(`Drop event: draggedTask=${draggedTask?.id}, target column=${columnId}, isBulkMode=${isBulkMode}`);
+            
             if (draggedTask && draggedTask.columnId !== columnId) {
+                console.log(`Moving task "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
+                
                 // Doneカラムに移動する場合、completedAtを記録
                 if (columnId === 'done' && !draggedTask.completedAt) {
                     draggedTask.completedAt = new Date().toISOString();
@@ -2210,6 +2216,7 @@
                 draggedTask.completed = (columnId === 'done');
                 saveTasks();
                 render();
+                updateStats(); // 統計も更新
             }
         }
         
@@ -2372,11 +2379,11 @@
             
             return `
                 <div class="${cardClass}" 
-                     draggable="true"
-                     ondragstart="handleDragStart(event, ${task.id})"
-                     ondragend="handleDragEnd(event)"
+                     draggable="${!isBulkMode}"
+                     ondragstart="${!isBulkMode ? `handleDragStart(event, ${task.id})` : ''}"
+                     ondragend="${!isBulkMode ? `handleDragEnd(event)` : ''}"
                      onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
-                     style="position: relative; ${isBulkMode ? 'cursor: pointer;' : ''}">
+                     style="position: relative; ${isBulkMode ? 'cursor: pointer;' : 'cursor: move;'}">
                     ${checkboxHtml}
                     <div class="task-title">${task.title}</div>
                     <div class="task-meta">
