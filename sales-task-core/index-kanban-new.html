@@ -1049,33 +1049,19 @@
                             </div>
                         </div>
                         
-                        <!-- 画像プレビューと領域選択（横並びレイアウト） -->
+                        <!-- 画像プレビューと領域選択 -->
                         <div id="image-preview-container" style="display: none; margin-top: 1rem; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
                             <div style="padding: 1rem; border-bottom: 1px solid #ddd; background: #e8f5e8;">
-                                <h5 style="margin: 0; color: #172b4d;">🖼️ 画像プレビュー - 期限設定時の参考用</h5>
+                                <h5 style="margin: 0; color: #172b4d;">🖼️ 画像プレビュー - 領域を選択してOCR</h5>
                                 <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-                                    スクリーンショットを見ながら下のタスク入力エリアで期限を設定してください
+                                    マウスでドラッグして選択領域を作成し、「OCR実行」でテキスト化
                                 </div>
                             </div>
-                            <div style="display: flex; gap: 1rem; height: 400px;">
-                                <!-- 左側：画像表示エリア -->
-                                <div id="image-preview-scroll-container" style="flex: 1; padding: 1rem; overflow: auto; position: relative; background: white; border-right: 1px solid #ddd;">
-                                    <div id="image-canvas-container" style="position: relative; display: inline-block; border: 1px solid #ccc; transform-origin: top left;">
-                                        <canvas id="image-canvas" style="cursor: crosshair;"></canvas>
-                                        <!-- 選択領域を表示するオーバーレイ -->
-                                        <div id="selection-overlay" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
-                                    </div>
-                                </div>
-                                <!-- 右側：タスク入力エリアのスクロール表示 -->
-                                <div style="flex: 1; padding: 1rem; background: #f8f9fa; overflow-y: auto;">
-                                    <h6 style="margin: 0 0 1rem 0; color: #495057;">📝 認識されたタスク</h6>
-                                    <iframe src="#task-input-area" style="width: 100%; height: 300px; border: 1px solid #ddd; border-radius: 4px;" 
-                                            onload="this.contentDocument.body.scrollTop = document.getElementById('import-text').offsetTop;"></iframe>
-                                    <div style="margin-top: 1rem; text-align: center;">
-                                        <button onclick="scrollToTaskArea()" style="padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                            📝 タスク入力エリアに移動
-                                        </button>
-                                    </div>
+                            <div id="image-preview-scroll-container" style="padding: 1rem; max-height: 600px; overflow: auto; position: relative;">
+                                <div id="image-canvas-container" style="position: relative; display: inline-block; border: 1px solid #ccc; transform-origin: top left;">
+                                    <canvas id="image-canvas" style="cursor: crosshair;"></canvas>
+                                    <!-- 選択領域を表示するオーバーレイ -->
+                                    <div id="selection-overlay" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
                                 </div>
                             </div>
                             <div style="padding: 1rem; border-top: 1px solid #ddd;">
@@ -2798,6 +2784,20 @@
                     ${modeInfo}
                 </div>
                 
+                ${originalImageDataUrl ? `
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <h6 style="margin: 0; color: #495057;">🖼️ スクリーンショット参考</h6>
+                        <button onclick="toggleScreenshot()" id="screenshot-toggle" style="padding: 0.25rem 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                            非表示
+                        </button>
+                    </div>
+                    <div id="screenshot-preview" style="max-height: 300px; overflow: auto; text-align: center;">
+                        <img src="${originalImageDataUrl}" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                </div>
+                ` : ''}
+                
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; padding: 1rem; background: #f0f2f5; border-radius: 12px;" id="preview-container" class="preview-grid">
             `;
             
@@ -3598,11 +3598,15 @@
         let isSelecting = false;
         let startX, startY, endX, endY;
         let imageScale = 1;
+        let originalImageDataUrl = null; // スクリーンショット表示用
         
         async function displayImagePreview(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    // 元の画像データを保存（プレビュー用）
+                    originalImageDataUrl = e.target.result;
+                    
                     const img = new Image();
                     img.onload = function() {
                         currentImage = img;
@@ -3895,6 +3899,7 @@
             document.getElementById('image-preview-container').style.display = 'none';
             selectedAreas = [];
             currentImage = null;
+            // 注意：originalImageDataUrlはプレビュー用に保持
         }
         
         // タスク入力エリアにスクロール
@@ -3905,6 +3910,20 @@
             });
             // テキストエリアをフォーカス
             document.getElementById('import-text').focus();
+        }
+        
+        // スクリーンショット表示切り替え
+        function toggleScreenshot() {
+            const preview = document.getElementById('screenshot-preview');
+            const button = document.getElementById('screenshot-toggle');
+            
+            if (preview.style.display === 'none') {
+                preview.style.display = 'block';
+                button.textContent = '非表示';
+            } else {
+                preview.style.display = 'none';
+                button.textContent = '表示';
+            }
         }
         
         async function processSelectedAreas() {
@@ -4012,10 +4031,15 @@
                 
                 if (tasks.length > 0) {
                     // 成功メッセージ
-                    alert(`✅ OCR完了！\n📋 ${tasks.length}個のタスクを認識しました\n\n🖼️ スクリーンショットを参考に期限を手動で設定してください。\n\n※ 画像は「閉じる」ボタンで非表示にできます。`);
+                    alert(`✅ OCR完了！\n📋 ${tasks.length}個のタスクを認識しました\n\n📝 インポートプレビューで期限を設定してください。`);
                     
-                    // スクリーンショットは表示したまま（手動期限設定用）
-                    // hideImagePreview(); ← コメントアウト
+                    // 画像プレビューを閉じる
+                    hideImagePreview();
+                    
+                    // 自動でインポートプレビューを実行
+                    setTimeout(() => {
+                        previewImport();
+                    }, 500);
                 } else {
                     alert('有効なタスクを認識できませんでした。文字がはっきり見える領域を選択してください。');
                 }
