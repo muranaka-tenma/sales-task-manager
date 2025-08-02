@@ -933,6 +933,7 @@
             </div>
         </div>
         <div class="analytics-actions">
+            <button onclick="createTaskUnified()" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-right: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">✨ 新規タスク</button>
             <span style="font-size: 0.8rem; color: #718096;">期間レポート:</span>
             <button class="period-btn" onclick="showPeriodReport('today')">今日</button>
             <button class="period-btn active" onclick="showPeriodReport('week')">今週</button>
@@ -985,6 +986,15 @@
                                     <option value="low">🟢 通常</option>
                                 </select>
                             </div>
+                            <div class="form-group" id="column-selection-group" style="display: none;">
+                                <label class="form-label">配置先カラム *</label>
+                                <select class="form-select" id="task-column-input" required>
+                                    <!-- カラム選択肢がここに動的に追加される -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">担当者（複数選択可）</label>
                                 <div class="assignees-container" id="assignees-container">
@@ -1332,6 +1342,56 @@
             return new Date().toISOString().split('T')[0];
         }
         
+        // 統一カード作成関数（画面上部のボタン用）
+        function createTaskUnified() {
+            editingTask = null;
+            document.getElementById('modal-title').textContent = '新しいタスク';
+            document.getElementById('task-title-input').value = '';
+            document.getElementById('task-date-input').value = getTodayString();
+            document.getElementById('task-time-input').value = '17:00';
+            document.getElementById('task-priority-input').value = 'medium';
+            document.getElementById('task-memo-input').value = '';
+            document.getElementById('task-files-input').value = '';
+            document.getElementById('attached-files-list').innerHTML = '';
+            
+            // カラム選択フィールドを表示し、初期化
+            const columnSelectionGroup = document.getElementById('column-selection-group');
+            const columnSelect = document.getElementById('task-column-input');
+            columnSelectionGroup.style.display = 'block';
+            
+            // カラム選択肢を更新
+            columnSelect.innerHTML = '';
+            columns.forEach(column => {
+                const option = document.createElement('option');
+                option.value = column.id;
+                option.textContent = column.title;
+                columnSelect.appendChild(option);
+            });
+            
+            // デフォルトで最初のカラムを選択
+            if (columns.length > 0) {
+                columnSelect.value = columns[0].id;
+            }
+            
+            // 担当者選択肢を更新
+            updateAssigneeOptions();
+            clearSelectedAssignees();
+            
+            // コメント表示をクリア
+            displayComments([]);
+            
+            // コメント入力を無効化（新規タスクの場合）
+            document.getElementById('comment-input').disabled = true;
+            document.getElementById('comments-section').innerHTML = '<div style="text-align: center; color: #5e6c84; padding: 2rem;">新しいタスクです。保存後にコメントを追加できます。</div>';
+            
+            // 統一作成モードを設定
+            document.getElementById('task-modal').dataset.unifiedMode = 'true';
+            document.getElementById('task-modal').classList.add('show');
+            
+            // メンション機能を初期化
+            setTimeout(() => initMentionListeners(), 100);
+        }
+        
         // タスク作成・編集
         function createTask(columnId) {
             editingTask = null;
@@ -1343,6 +1403,9 @@
             document.getElementById('task-memo-input').value = '';
             document.getElementById('task-files-input').value = '';
             document.getElementById('attached-files-list').innerHTML = '';
+            
+            // カラム選択フィールドを非表示
+            document.getElementById('column-selection-group').style.display = 'none';
             
             // 担当者選択肢を更新
             updateAssigneeOptions();
@@ -1357,9 +1420,10 @@
             
             // カラム情報を保存
             document.getElementById('task-modal').dataset.targetColumn = columnId;
+            document.getElementById('task-modal').dataset.unifiedMode = 'false';
             document.getElementById('task-modal').classList.add('show');
             
-            // メンション機能を初期化（無効状態でも初期化はしておく）
+            // メンション機能を初期化
             setTimeout(() => initMentionListeners(), 100);
         }
         
@@ -1459,6 +1523,9 @@
             document.getElementById('task-time-input').value = editingTask.deadline.split('T')[1].substring(0, 5);
             document.getElementById('task-priority-input').value = editingTask.priority;
             document.getElementById('task-memo-input').value = editingTask.memo || '';
+            
+            // カラム選択フィールドを非表示（編集時は不要）
+            document.getElementById('column-selection-group').style.display = 'none';
             
             // 担当者選択肢を更新してから値を設定
             updateAssigneeOptions();
@@ -1909,7 +1976,10 @@
                 }
             } else {
                 // 新規作成
-                const targetColumn = document.getElementById('task-modal').dataset.targetColumn;
+                const isUnifiedMode = document.getElementById('task-modal').dataset.unifiedMode === 'true';
+                const targetColumn = isUnifiedMode 
+                    ? document.getElementById('task-column-input').value 
+                    : document.getElementById('task-modal').dataset.targetColumn;
                 const newTask = {
                     id: Date.now(),
                     title: title,
@@ -2101,9 +2171,6 @@
                          ondragleave="handleDragLeave(event)">
                         ${columnTasks.map(task => createTaskCard(task)).join('')}
                     </div>
-                    <button class="add-task-btn" onclick="createTask('${column.id}')">
-                        ＋ カードを追加
-                    </button>
                 `;
                 
                 board.appendChild(columnEl);
