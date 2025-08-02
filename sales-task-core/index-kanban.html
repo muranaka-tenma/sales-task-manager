@@ -1470,7 +1470,14 @@
         
         function isOverdue(deadline, columnId) {
             if (columnId === 'done') return false;
-            return new Date(deadline) < getCurrentDateTime();
+            const deadlineDate = new Date(deadline);
+            const currentTime = getCurrentDateTime();
+            const isOverdueResult = deadlineDate < currentTime;
+            
+            // デバッグログ（必要に応じてコメントアウト）
+            console.log(`🔍 [OVERDUE] Task deadline: ${deadline}, current: ${currentTime.toISOString()}, isOverdue: ${isOverdueResult}`);
+            
+            return isOverdueResult;
         }
         
         function isToday(deadline, columnId) {
@@ -1488,7 +1495,7 @@
             // 現在時刻+3時間をデフォルト期限として設定
             const now = new Date();
             now.setHours(now.getHours() + 3);
-            return now.toISOString().split('T')[0];
+            return now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm形式で返す
         }
         
         // 統一カード作成関数（画面上部のボタン用）
@@ -2135,6 +2142,8 @@
                 console.log(`🔍 [DEADLINE] Old deadline: ${editingTask.deadline}, wasOverdue: ${wasOverdue}`);
                 console.log(`🔍 [DEADLINE] New deadline: ${newDeadline.toISOString()}, willBeOverdue: ${willBeOverdue}`);
                 console.log(`🔍 [DEADLINE] Task column: ${editingTask.columnId}`);
+                console.log(`🔍 [DEADLINE] Current time: ${getCurrentDateTime().toISOString()}`);
+                console.log(`🔍 [DEADLINE] Conditions for dialog: wasOverdue=${wasOverdue} && !willBeOverdue=${!willBeOverdue} = ${wasOverdue && !willBeOverdue}`);
                 
                 // 期限切れタスクの期限が延長された場合の確認
                 if (wasOverdue && !willBeOverdue) {
@@ -6845,20 +6854,32 @@
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             document.getElementById('completion-rate').textContent = completionRate + '%';
             
-            // 期限遵守率を計算（完了タスクのうち、期限内に完了したタスクの割合）
-            const completedTasksWithDeadline = tasks.filter(task => 
-                task.columnId === 'done' && task.deadline && task.completedAt
-            );
+            // 期限遵守率を計算（全タスクのうち、期限を守っているタスクの割合）
+            const tasksWithDeadline = tasks.filter(task => task.deadline);
+            const currentTime = getCurrentDateTime();
             
-            const onTimeCompleted = completedTasksWithDeadline.filter(task => {
+            // 期限を守っているタスク = 完了済みで期限内に完了 OR 未完了だが期限前
+            const compliantTasks = tasksWithDeadline.filter(task => {
                 const deadline = new Date(task.deadline);
-                const completedDate = new Date(task.completedAt);
-                return completedDate <= deadline;
+                
+                if (task.columnId === 'done') {
+                    // 完了タスク: 完了日が期限以内
+                    const completedDate = task.completedAt ? new Date(task.completedAt) : currentTime;
+                    return completedDate <= deadline;
+                } else {
+                    // 未完了タスク: 現在時刻が期限前
+                    return currentTime <= deadline;
+                }
             }).length;
             
-            const deadlineCompliance = completedTasksWithDeadline.length > 0 
-                ? Math.round((onTimeCompleted / completedTasksWithDeadline.length) * 100) 
+            const deadlineCompliance = tasksWithDeadline.length > 0 
+                ? Math.round((compliantTasks / tasksWithDeadline.length) * 100) 
                 : 100;
+                
+            console.log(`📊 [COMPLIANCE] Total tasks with deadline: ${tasksWithDeadline.length}`);
+            console.log(`📊 [COMPLIANCE] Compliant tasks: ${compliantTasks}`);
+            console.log(`📊 [COMPLIANCE] Compliance rate: ${deadlineCompliance}%`);
+            
             document.getElementById('deadline-compliance').textContent = deadlineCompliance + '%';
             
             // 平均完了時間を計算
