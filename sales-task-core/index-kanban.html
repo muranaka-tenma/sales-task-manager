@@ -1103,7 +1103,6 @@
                                         <button onclick="testOCRDirectly()" style="margin-left: 0.5rem; padding: 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔍 OCRテスト</button>
                                         <button onclick="testHandwritingOCR()" style="padding: 0.5rem; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✍️ 手書きテスト</button>
                                         <button onclick="testComplexLayoutOCR()" style="padding: 0.5rem; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🧩 レイアウトテスト</button>
-                                        <button onclick="deepDeadlineDebug()" style="padding: 0.5rem; background: #e11d48; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔬 期限詳細Debug</button>
                                         </div>
                                         <div style="margin-top: 0.5rem; padding: 0.5rem; background: #d1ecf1; border-radius: 4px; font-size: 0.8rem; color: #0c5460;">
                                             💡 ヒント: ①→ 1, ○→ 0 などの誤認識がある場合は「数字記号修正」を有効に
@@ -3835,14 +3834,10 @@
             `;
             
             selectorDiv.innerHTML = `
-                <span style="font-weight: bold; color: #495057;">この領域は：</span>
+                <span style="font-weight: bold; color: #495057;">タスク名として認識：</span>
                 <button onclick="setAreaTag(${areaIndex}, 'task')" 
                         style="padding: 0.4rem 0.8rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
                     📋 タスク名
-                </button>
-                <button onclick="setAreaTag(${areaIndex}, 'deadline')" 
-                        style="padding: 0.4rem 0.8rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
-                    📅 期限
                 </button>
                 <button onclick="setAreaTag(${areaIndex}, null)" 
                         style="padding: 0.4rem 0.8rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
@@ -3863,7 +3858,7 @@
         // 領域にタグを設定
         function setAreaTag(areaIndex, tag) {
             if (selectedAreas[areaIndex]) {
-                selectedAreas[areaIndex].tag = tag;
+                selectedAreas[areaIndex].tag = 'task'; // 常にタスクとして設定
                 updateSelectionDisplay();
                 redrawCanvas(document.getElementById('image-canvas'));
                 
@@ -3992,26 +3987,18 @@
                 updateOCRProgress(85, '🔗 タスクと期限をペア化中...');
                 
                 // タグ付きの領域を自動ペア化
-                const pairedTasks = pairTasksAndDeadlines();
+                const tasks = generateSimpleTaskList();
                 
                 updateOCRProgress(95, '📝 結果を整理中...');
                 
-                if (pairedTasks.length > 0) {
-                    // 結果をテキストエリアに追加
-                    const formattedText = formatPairedTasks(pairedTasks);
-                    const currentText = document.getElementById('import-text').value;
-                    const separator = currentText ? '\n\n' : '';
-                    document.getElementById('import-text').value = currentText + separator + formattedText;
-                    
+                if (tasks.length > 0) {
                     // 成功メッセージ
-                    const taskCount = pairedTasks.filter(t => t.type === 'task').length;
-                    const pairedCount = pairedTasks.filter(t => t.deadline).length;
-                    alert(`✅ OCR完了！\n📋 ${taskCount}個のタスクを認識\n📅 ${pairedCount}個のタスクに期限を自動設定`);
+                    alert(`✅ OCR完了！\n📋 ${tasks.length}個のタスクを認識しました\n\n期限は手動で設定してください。`);
                     
                     // 画像プレビューを閉じる
                     hideImagePreview();
                 } else {
-                    alert('有効なタスクを認識できませんでした。タグ設定を確認してください。');
+                    alert('有効なタスクを認識できませんでした。文字がはっきり見える領域を選択してください。');
                 }
                 
                 hideOCRProgress();
@@ -4043,7 +4030,21 @@
             }
         }
         
-        // タスクと期限をペア化
+        // シンプルなタスクリスト生成
+        function generateSimpleTaskList() {
+            const tasks = selectedAreas
+                .filter(area => area.text && area.text.trim().length > 1)
+                .map(area => area.text.trim());
+            
+            // インポート用テキストを生成
+            const importText = tasks.join('\n');
+            document.getElementById('import-text').value = importText;
+            
+            console.log('認識されたタスク:', tasks);
+            return tasks;
+        }
+
+        // タスクと期限をペア化（削除予定）
         function pairTasksAndDeadlines() {
             const taskAreas = selectedAreas.filter(area => area.tag === 'task' && area.text);
             const deadlineAreas = selectedAreas.filter(area => area.tag === 'deadline' && area.text);
