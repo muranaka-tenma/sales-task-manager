@@ -902,8 +902,8 @@
         
         <!-- カラム追加機能 -->
         <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
-            <input type="text" id="quick-column-name" placeholder="新カラム名" style="padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; width: 120px;">
-            <button onclick="quickAddColumn()" style="padding: 0.4rem 0.8rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">＋カラム</button>
+            <input type="text" id="quick-column-name" placeholder="新ステータス名" style="padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; width: 120px;">
+            <button onclick="quickAddColumn()" style="padding: 0.4rem 0.8rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">＋ステータス</button>
             
             <span style="font-size: 0.75rem; color: #5e6c84; margin-left: 1rem;">👥 担当者:</span>
             <div id="assignee-filter-container" style="position: relative;">
@@ -1022,7 +1022,7 @@
                                 </select>
                             </div>
                             <div class="form-group" id="column-selection-group" style="display: none;">
-                                <label class="form-label">配置先カラム *</label>
+                                <label class="form-label">配置先ステータス *</label>
                                 <select class="form-select" id="task-column-input" required>
                                     <!-- カラム選択肢がここに動的に追加される -->
                                 </select>
@@ -1095,7 +1095,7 @@
                 <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #026aa7;">
                     <p style="margin: 0; color: #172b4d; font-size: 0.9rem;">
                         💡 <strong>設定画面の使い方：</strong><br>
-                        • カラム管理：ワークフローのフェーズを追加・編集・削除できます<br>
+                        • ステータス管理：ワークフローの段階を追加・編集・削除できます<br>
                         • カラー変更：各フェーズの色を変更してチーム識別を向上<br>
                         • アラート設定：期限通知のタイミングをカスタマイズ
                     </p>
@@ -1103,7 +1103,7 @@
                 
                 <!-- カラム・フェーズ管理 -->
                 <div class="setting-section">
-                    <h4 style="margin-bottom: 1rem; color: #172b4d;">📋 カラム・フェーズ管理</h4>
+                    <h4 style="margin-bottom: 1rem; color: #172b4d;">📋 ステータス・フェーズ管理</h4>
                     <div id="column-manager">
                         <div id="column-list" style="margin-bottom: 1rem;">
                             <!-- 既存のカラムリストがここに表示される -->
@@ -2101,6 +2101,35 @@
             }
             
             if (editingTask) {
+                // 期限変更の確認処理
+                const oldDeadline = new Date(editingTask.deadline);
+                const newDeadline = deadline;
+                const wasOverdue = isOverdue(editingTask.deadline, editingTask.columnId);
+                const willBeOverdue = isOverdue(newDeadline.toISOString(), editingTask.columnId);
+                
+                // 期限切れタスクの期限が延長された場合の確認
+                if (wasOverdue && !willBeOverdue) {
+                    const columnTitle = getColumnTitle(editingTask.columnId);
+                    const shouldMoveBack = confirm(
+                        `📅 期限が延長されました\n\n` +
+                        `"${editingTask.title}" の期限が延長され、期限切れではなくなります。\n\n` +
+                        `元の進捗状況「${columnTitle}」に戻しますか？\n\n` +
+                        `• OK: ${columnTitle}に戻す\n` +
+                        `• キャンセル: 期限切れエリアに残す`
+                    );
+                    
+                    if (!shouldMoveBack) {
+                        // ユーザーが期限切れエリアに残すことを選択した場合、
+                        // 期限を元に戻して期限切れのままにする
+                        if (confirm('期限変更をキャンセルして、元の期限のままにしますか？')) {
+                            console.log(`⚠️ User chose to cancel deadline change for task ${editingTask.id}`);
+                            closeModal();
+                            return;
+                        }
+                    }
+                    console.log(`📅 Deadline extended for overdue task ${editingTask.id}, moving back: ${shouldMoveBack}`);
+                }
+                
                 // 編集
                 editingTask.title = title;
                 editingTask.deadline = deadline.toISOString();
@@ -2226,8 +2255,8 @@
                         const shouldMove = confirm(
                             `⚠️ 期限切れタスクの移動\n\n` +
                             `"${draggedTask.title}" は期限切れです。\n` +
-                            `${getColumnTitle(columnId)}カラムに移動しますか？\n\n` +
-                            `移動後は期限切れカラムには表示されなくなります。`
+                            `${getColumnTitle(columnId)}ステータスに移動しますか？\n\n` +
+                            `移動後は期限切れエリアには表示されなくなります。`
                         );
                         
                         if (!shouldMove) {
@@ -2286,9 +2315,9 @@
                 
                 // 期限切れではないタスクを期限切れカラムにドロップしようとした場合
                 const shouldMove = confirm(
-                    `⚠️ 期限切れカラムへの移動\n\n` +
-                    `"${draggedTask.title}" は期限切れではありませんが、期限切れカラムに移動しますか？\n\n` +
-                    `※ 移動後も元のカラム（${getColumnTitle(draggedTask.columnId)}）に表示されます。`
+                    `⚠️ 期限切れエリアへの移動\n\n` +
+                    `"${draggedTask.title}" は期限切れではありませんが、期限切れエリアに移動しますか？\n\n` +
+                    `※ 移動後も元のステータス（${getColumnTitle(draggedTask.columnId)}）に表示されます。`
                 );
                 
                 if (!shouldMove) {
@@ -7274,7 +7303,7 @@
                 
                 // 移動先カラム選択肢を更新
                 const moveSelect = document.getElementById('bulk-move-column');
-                moveSelect.innerHTML = '<option value="">移動先を選択</option>';
+                moveSelect.innerHTML = '<option value="">移動先ステータスを選択</option>';
                 columns.forEach(column => {
                     const option = document.createElement('option');
                     option.value = column.id;
@@ -7337,7 +7366,7 @@
         function bulkMoveSelected() {
             const targetColumn = document.getElementById('bulk-move-column').value;
             if (!targetColumn) {
-                alert('移動先のカラムを選択してください');
+                alert('移動先のステータスを選択してください');
                 return;
             }
             
