@@ -2176,11 +2176,10 @@
         
         // ドラッグ&ドロップ
         function handleDragStart(e, taskId) {
-            console.log(`Drag start: taskId=${taskId}, isBulkMode=${isBulkMode}`);
             draggedTask = tasks.find(t => t.id === taskId);
             e.target.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
-            console.log(`Dragged task:`, draggedTask);
+            console.log(`Dragging task: ${draggedTask?.title}`);
         }
         
         function handleDragEnd(e) {
@@ -2198,10 +2197,8 @@
             const dropZone = e.currentTarget;
             dropZone.classList.remove('drag-over');
             
-            console.log(`Drop event: draggedTask=${draggedTask?.id}, target column=${columnId}, isBulkMode=${isBulkMode}`);
-            
             if (draggedTask && draggedTask.columnId !== columnId) {
-                console.log(`Moving task "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
+                console.log(`Moving "${draggedTask.title}" to ${columnId}`);
                 
                 // Doneカラムに移動する場合、completedAtを記録
                 if (columnId === 'done' && !draggedTask.completedAt) {
@@ -2216,7 +2213,9 @@
                 draggedTask.completed = (columnId === 'done');
                 saveTasks();
                 render();
-                updateStats(); // 統計も更新
+                updateStats();
+                
+                console.log(`Task moved successfully`);
             }
         }
         
@@ -2379,11 +2378,11 @@
             
             return `
                 <div class="${cardClass}" 
-                     draggable="${!isBulkMode}"
-                     ondragstart="${!isBulkMode ? `handleDragStart(event, ${task.id})` : ''}"
-                     ondragend="${!isBulkMode ? `handleDragEnd(event)` : ''}"
+                     draggable="true"
+                     ondragstart="handleDragStart(event, ${task.id})"
+                     ondragend="handleDragEnd(event)"
                      onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
-                     style="position: relative; ${isBulkMode ? 'cursor: pointer;' : 'cursor: move;'}">
+                     style="position: relative; cursor: move;">
                     ${checkboxHtml}
                     <div class="task-title">${task.title}</div>
                     <div class="task-meta">
@@ -7275,15 +7274,17 @@
                 }
             });
             
-            console.log(`Total moved: ${movedCount} tasks`);
-            
-            saveTasks();
-            render(); // 先に画面を更新
-            updateStats();
-            clearSelection(); // その後で選択をクリア
-            
-            const targetColumnTitle = columns.find(c => c.id === targetColumn)?.title || targetColumn;
-            alert(`${movedCount}件のタスクを「${targetColumnTitle}」に移動しました`);
+            if (movedCount > 0) {
+                saveTasks();
+                render();
+                updateStats();
+                clearSelection();
+                
+                const targetColumnTitle = columns.find(c => c.id === targetColumn)?.title || targetColumn;
+                alert(`${movedCount}件のタスクを「${targetColumnTitle}」に移動しました`);
+            } else {
+                alert('移動できるタスクがありませんでした');
+            }
         }
         
         function bulkDeleteSelected() {
