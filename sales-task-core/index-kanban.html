@@ -2407,10 +2407,11 @@
         }
         
         function createTaskCard(task, isFromOverdueColumn = false) {
-            console.log(`🎴 [CARD] Creating card for task ${task.id}, isBulkMode: ${isBulkMode}`);
+            console.log(`🎴 [CARD] Creating card for task ${task.id}, isBulkMode: ${isBulkMode}, isFromOverdueColumn: ${isFromOverdueColumn}`);
             const deadline = new Date(task.deadline);
             const isOverdueTask = isOverdue(task.deadline, task.columnId);
             const isTodayTask = isToday(task.deadline, task.columnId);
+            console.log(`🎴 [CARD] Task ${task.id} - isOverdueTask: ${isOverdueTask}, draggable: ${!isBulkMode}`);
             
             // 経過日数を計算
             let daysSinceCreated = 0;
