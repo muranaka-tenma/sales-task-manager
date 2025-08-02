@@ -941,31 +941,11 @@
         </div>
         <div class="analytics-actions">
             <button onclick="createTaskUnified()" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-right: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">✨ 新規タスク</button>
-            <button onclick="toggleBulkMode()" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-right: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">☑️ 複数選択</button>
             <span style="font-size: 0.8rem; color: #718096;">期間レポート:</span>
             <button class="period-btn" onclick="showPeriodReport('today')">今日</button>
             <button class="period-btn active" onclick="showPeriodReport('week')">今週</button>
             <button class="period-btn" onclick="showPeriodReport('month')">今月</button>
             <button onclick="showAnalytics()" style="padding: 0.4rem 0.8rem; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-left: 0.5rem;">📊 詳細分析</button>
-        </div>
-    </div>
-    
-    <!-- バルク操作バー -->
-    <div id="bulk-actions-bar" style="display: none; background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); color: white; padding: 0.75rem 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-bottom: 1px solid #e2e8f0;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <span id="selected-count" style="font-weight: 600;">0件選択</span>
-                <button onclick="selectAllTasks()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">全選択</button>
-                <button onclick="clearSelection()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">選択解除</button>
-            </div>
-            <div style="display: flex; gap: 0.5rem;">
-                <select id="bulk-move-column" style="padding: 0.4rem; border: none; border-radius: 4px; font-size: 0.8rem;">
-                    <option value="">移動先を選択</option>
-                </select>
-                <button onclick="bulkMoveSelected()" style="background: #38a169; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">📦 移動</button>
-                <button onclick="bulkDeleteSelected()" style="background: #e53e3e; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🗑️ 削除</button>
-                <button onclick="toggleBulkMode()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✕ 終了</button>
-            </div>
         </div>
     </div>
     
@@ -1363,7 +1343,7 @@
     <div id="templateModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 20px;">
         <div style="background: white; border-radius: 8px; width: 100%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
             <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid #dfe1e6; flex-shrink: 0;">
-                <h3 class="modal-title" id="template-modal-title">📋 テンプレート作成</h3>
+                <h3 class="modal-title">📋 テンプレート作成</h3>
                 <button class="close-btn" onclick="closeTemplateModal()">&times;</button>
             </div>
             
@@ -1422,7 +1402,7 @@
                         <button type="button" onclick="closeTemplateModal()" style="padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
                             キャンセル
                         </button>
-                        <button type="submit" id="save-template-btn" style="padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        <button type="submit" style="padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
                             保存
                         </button>
                     </div>
@@ -1446,11 +1426,6 @@
         
         // テンプレート管理
         let taskTemplates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
-        let editingTemplateId = null;
-        
-        // バルク操作管理
-        let isBulkMode = false;
-        let selectedTasks = new Set();
         
         // 日付・時間ユーティリティ
         function getCurrentDateTime() {
@@ -2360,24 +2335,12 @@
                 low: '🟢 通常'
             }[task.priority];
             
-            const checkboxHtml = isBulkMode ? `
-                <div style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 10;">
-                    <input type="checkbox" 
-                           onchange="toggleTaskSelection(${task.id})" 
-                           onclick="event.stopPropagation()"
-                           ${selectedTasks.has(task.id) ? 'checked' : ''}
-                           style="width: 16px; height: 16px; cursor: pointer;">
-                </div>
-            ` : '';
-            
             return `
                 <div class="${cardClass}" 
                      draggable="true"
                      ondragstart="handleDragStart(event, ${task.id})"
                      ondragend="handleDragEnd(event)"
-                     onclick="editTask(${task.id})"
-                     style="position: relative;">
-                    ${checkboxHtml}
+                     onclick="editTask(${task.id})">
                     <div class="task-title">${task.title}</div>
                     <div class="task-meta">
                         <div style="margin-bottom: 0.25rem;">
@@ -6920,11 +6883,6 @@
             // 担当者チェックボックスをリセット
             const checkboxes = document.querySelectorAll('#template-assignees input[type="checkbox"]');
             checkboxes.forEach(cb => cb.checked = false);
-            
-            // 編集モードをリセット
-            document.getElementById('template-modal-title').textContent = '📋 テンプレート作成';
-            document.getElementById('save-template-btn').textContent = '保存';
-            editingTemplateId = null;
         }
         
         function saveTemplate(event) {
@@ -6946,47 +6904,26 @@
                 return;
             }
             
-            if (editingTemplateId) {
-                // 編集モード
-                const templateIndex = taskTemplates.findIndex(t => t.id === editingTemplateId);
-                if (templateIndex !== -1) {
-                    taskTemplates[templateIndex] = {
-                        ...taskTemplates[templateIndex],
-                        name: name,
-                        category: category,
-                        taskTitle: taskTitle,
-                        priority: priority,
-                        columnId: columnId,
-                        assignees: selectedAssignees,
-                        memo: memo,
-                        updatedAt: new Date().toISOString()
-                    };
-                }
-                alert('✅ テンプレートを更新しました！');
-            } else {
-                // 新規作成モード
-                const template = {
-                    id: Date.now(),
-                    name: name,
-                    category: category,
-                    taskTitle: taskTitle,
-                    priority: priority,
-                    columnId: columnId,
-                    assignees: selectedAssignees,
-                    memo: memo,
-                    createdAt: new Date().toISOString()
-                };
-                
-                taskTemplates.push(template);
-                alert('✅ テンプレートを保存しました！');
-            }
+            const template = {
+                id: Date.now(),
+                name: name,
+                category: category,
+                taskTitle: taskTitle,
+                priority: priority,
+                columnId: columnId,
+                assignees: selectedAssignees,
+                memo: memo,
+                createdAt: new Date().toISOString()
+            };
             
+            taskTemplates.push(template);
             localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
             
             // テンプレート一覧を更新
             loadTemplateList();
             
             closeTemplateModal();
+            alert('✅ テンプレートを保存しました！');
         }
         
         function loadTemplateList() {
@@ -7019,10 +6956,7 @@
                         <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; width: 220px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" onmouseover="this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
                             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
                                 <h6 style="margin: 0; font-size: 1rem; font-weight: 600; color: #172b4d; line-height: 1.2;">${template.name}</h6>
-                                <div style="display: flex; gap: 0.25rem;">
-                                    <button onclick="editTemplate(${template.id})" style="background: none; border: none; color: #6c757d; cursor: pointer; font-size: 0.9rem; padding: 0.2rem;" title="編集">✏️</button>
-                                    <button onclick="deleteTemplate(${template.id})" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; padding: 0.2rem;" title="削除">🗑️</button>
-                                </div>
+                                <button onclick="deleteTemplate(${template.id})" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; padding: 0.2rem;" title="削除">🗑️</button>
                             </div>
                             <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.75rem; line-height: 1.3;">${template.taskTitle}</div>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.75rem;">
@@ -7040,38 +6974,6 @@
             });
             
             container.innerHTML = html;
-        }
-        
-        function editTemplate(templateId) {
-            const template = taskTemplates.find(t => t.id === templateId);
-            if (!template) {
-                alert('テンプレートが見つかりません');
-                return;
-            }
-            
-            // 編集モードを設定
-            editingTemplateId = templateId;
-            document.getElementById('template-modal-title').textContent = '✏️ テンプレート編集';
-            document.getElementById('save-template-btn').textContent = '更新';
-            
-            // テンプレート作成モーダルを表示
-            showCreateTemplateModal();
-            
-            // フォームにテンプレートの値を設定
-            setTimeout(() => {
-                document.getElementById('template-name').value = template.name;
-                document.getElementById('template-category').value = template.category;
-                document.getElementById('template-task-title').value = template.taskTitle;
-                document.getElementById('template-priority').value = template.priority;
-                document.getElementById('template-column').value = template.columnId;
-                document.getElementById('template-memo').value = template.memo || '';
-                
-                // 担当者チェックボックスを設定
-                const checkboxes = document.querySelectorAll('#template-assignees input[type="checkbox"]');
-                checkboxes.forEach(cb => {
-                    cb.checked = template.assignees && template.assignees.includes(cb.value);
-                });
-            }, 100);
         }
         
         function deleteTemplate(templateId) {
@@ -7168,118 +7070,6 @@
             
             // テンプレート選択をリセット
             document.getElementById('template-select').value = '';
-        }
-        
-        // バルク操作関数群
-        function toggleBulkMode() {
-            isBulkMode = !isBulkMode;
-            const bulkBar = document.getElementById('bulk-actions-bar');
-            const toggleBtn = document.querySelector('button[onclick="toggleBulkMode()"]');
-            
-            if (isBulkMode) {
-                bulkBar.style.display = 'block';
-                toggleBtn.textContent = '☑️ 選択中';
-                toggleBtn.style.background = 'linear-gradient(135deg, #e53e3e 0%, #c53030 100%)';
-                
-                // 移動先カラム選択肢を更新
-                const moveSelect = document.getElementById('bulk-move-column');
-                moveSelect.innerHTML = '<option value="">移動先を選択</option>';
-                columns.forEach(column => {
-                    const option = document.createElement('option');
-                    option.value = column.id;
-                    option.textContent = column.title;
-                    moveSelect.appendChild(option);
-                });
-            } else {
-                bulkBar.style.display = 'none';
-                toggleBtn.textContent = '☑️ 複数選択';
-                toggleBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                clearSelection();
-            }
-            
-            render(); // チェックボックス表示/非表示を反映
-        }
-        
-        function selectAllTasks() {
-            selectedTasks.clear();
-            tasks.forEach(task => {
-                selectedTasks.add(task.id);
-            });
-            updateSelectedCount();
-            render();
-        }
-        
-        function clearSelection() {
-            selectedTasks.clear();
-            updateSelectedCount();
-            render();
-        }
-        
-        function toggleTaskSelection(taskId) {
-            if (selectedTasks.has(taskId)) {
-                selectedTasks.delete(taskId);
-            } else {
-                selectedTasks.add(taskId);
-            }
-            updateSelectedCount();
-        }
-        
-        function updateSelectedCount() {
-            const countElement = document.getElementById('selected-count');
-            if (countElement) {
-                countElement.textContent = `${selectedTasks.size}件選択`;
-            }
-        }
-        
-        function bulkMoveSelected() {
-            const targetColumn = document.getElementById('bulk-move-column').value;
-            if (!targetColumn) {
-                alert('移動先のカラムを選択してください');
-                return;
-            }
-            
-            if (selectedTasks.size === 0) {
-                alert('移動するタスクを選択してください');
-                return;
-            }
-            
-            const selectedTaskIds = Array.from(selectedTasks);
-            selectedTaskIds.forEach(taskId => {
-                const task = tasks.find(t => t.id === taskId);
-                if (task) {
-                    task.columnId = targetColumn;
-                }
-            });
-            
-            saveTasks();
-            clearSelection();
-            render();
-            updateStats();
-            
-            alert(`${selectedTaskIds.length}件のタスクを移動しました`);
-        }
-        
-        function bulkDeleteSelected() {
-            if (selectedTasks.size === 0) {
-                alert('削除するタスクを選択してください');
-                return;
-            }
-            
-            const selectedTaskIds = Array.from(selectedTasks);
-            const confirmMessage = `選択した${selectedTaskIds.length}件のタスクを削除しますか？`;
-            
-            if (!confirm(confirmMessage)) {
-                return;
-            }
-            
-            tasks = tasks.filter(task => !selectedTasks.has(task.id));
-            
-            saveTasks();
-            clearSelection();
-            render();
-            updateStats();
-            
-            alert(`${selectedTaskIds.length}件のタスクを削除しました`);
         }
         
         // 初期化実行
