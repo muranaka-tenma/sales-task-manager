@@ -1336,13 +1336,13 @@
     
     <!-- テンプレート作成モーダル -->
     <div id="templateModal" class="theme-modal" style="display: none;">
-        <div class="theme-modal-content" style="max-width: 600px; margin: 0 auto; position: relative;">
+        <div class="theme-modal-content" style="max-width: 600px; margin: 0 auto; position: relative; max-height: 80vh; display: flex; flex-direction: column;">
             <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid #dfe1e6; flex-shrink: 0;">
                 <h3 class="modal-title">📋 テンプレート作成</h3>
                 <button class="close-btn" onclick="closeTemplateModal()">&times;</button>
             </div>
             
-            <div style="padding: 1.5rem;">
+            <div style="padding: 1.5rem; overflow-y: auto; flex: 1;">
                 <form onsubmit="saveTemplate(event)">
                     <div style="margin-bottom: 1rem;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">テンプレート名 *</label>
