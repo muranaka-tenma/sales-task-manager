@@ -4018,7 +4018,28 @@
             } catch (error) {
                 hideOCRProgress();
                 console.error('Area OCR Error:', error);
-                alert('OCR処理でエラーが発生しました。');
+                
+                // より詳細なエラー情報を表示
+                let errorMessage = 'OCR処理でエラーが発生しました。\n\n';
+                errorMessage += `エラー詳細: ${error.message || error}\n\n`;
+                
+                if (error.message && error.message.includes('network')) {
+                    errorMessage += '【原因】ネットワーク接続の問題の可能性があります。\n';
+                    errorMessage += '【対策】インターネット接続を確認してください。';
+                } else if (error.message && error.message.includes('memory')) {
+                    errorMessage += '【原因】メモリ不足の可能性があります。\n';
+                    errorMessage += '【対策】画像サイズを小さくしてお試しください。';
+                } else if (error.message && error.message.includes('cors')) {
+                    errorMessage += '【原因】セキュリティ制限の問題です。\n';
+                    errorMessage += '【対策】別のブラウザでお試しください。';
+                } else {
+                    errorMessage += '【対策】\n';
+                    errorMessage += '1. ページを再読み込みしてください\n';
+                    errorMessage += '2. 異なる画像でお試しください\n';
+                    errorMessage += '3. ブラウザを変更してお試しください';
+                }
+                
+                alert(errorMessage);
             }
         }
         
