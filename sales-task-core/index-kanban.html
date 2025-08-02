@@ -899,6 +899,17 @@
             <span class="stat-number" id="completed-count">0</span>
             <span>完了済み</span>
         </div>
+    </div>
+    
+    <!-- ボトルネック分析バー -->
+    <div class="bottleneck-bar" style="background: #f8f9fa; padding: 0.75rem 1rem; border-bottom: 1px solid #dfe1e6; display: flex; align-items: center; gap: 1rem; font-size: 0.85rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; color: #5e6c84;">
+            <span style="font-weight: 600;">📊 ワークフロー:</span>
+        </div>
+        <div id="workflow-status" style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+            <!-- ステータス別統計がここに動的生成される -->
+        </div>
+    </div>
         
         <!-- カラム追加機能 -->
         <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
@@ -2561,8 +2572,205 @@
             document.getElementById('today-count').textContent = todayCount;
             document.getElementById('completed-count').textContent = completedCount;
             
+            // ワークフロー統計を更新
+            updateWorkflowStats(filteredTasks);
+            
             // 分析サマリーも更新
             updateAnalyticsSummary();
+        }
+        
+        function updateWorkflowStats(filteredTasks) {
+            const workflowContainer = document.getElementById('workflow-status');
+            if (!workflowContainer) return;
+            
+            // ステータス別統計を計算
+            const statusStats = {};
+            const now = new Date();
+            
+            columns.forEach(column => {
+                const columnTasks = filteredTasks.filter(t => {
+                    // 期限切れタスクは期限切れエリアに表示されるので除外
+                    if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
+                        return false;
+                    }
+                    return t.columnId === column.id;
+                });
+                
+                // 平均滞留時間を計算
+                let avgDays = 0;
+                if (columnTasks.length > 0) {
+                    const totalDays = columnTasks.reduce((sum, task) => {
+                        if (task.createdAt) {
+                            const createdDate = new Date(task.createdAt);
+                            const days = Math.max(0, (now - createdDate) / (1000 * 60 * 60 * 24));
+                            return sum + days;
+                        }
+                        return sum;
+                    }, 0);
+                    avgDays = Math.round((totalDays / columnTasks.length) * 10) / 10; // 小数点1桁
+                }
+                
+                statusStats[column.id] = {
+                    title: column.title,
+                    count: columnTasks.length,
+                    avgDays: avgDays,
+                    color: column.color || '#026aa7'
+                };
+            });
+            
+            // ワークフロー表示を生成
+            const workflowHtml = columns.map((column, index) => {
+                const stats = statusStats[column.id];
+                const isBottleneck = stats.avgDays > 2.0; // 2日以上でボトルネック判定
+                const statusClass = isBottleneck ? 'bottleneck' : 'normal';
+                const statusIcon = isBottleneck ? '🚨' : '';
+                
+                const arrow = index < columns.length - 1 ? '<span style="margin: 0 0.25rem; color: #5e6c84;">→</span>' : '';
+                
+                return `
+                    <div class="workflow-status-item ${statusClass}" 
+                         onclick="showStatusDetails('${column.id}')"
+                         style="
+                            display: flex; 
+                            align-items: center; 
+                            gap: 0.25rem; 
+                            padding: 0.25rem 0.5rem; 
+                            border-radius: 4px; 
+                            cursor: pointer;
+                            background: ${isBottleneck ? '#fee2e2' : '#f1f5f9'};
+                            border: 1px solid ${isBottleneck ? '#fca5a5' : '#cbd5e1'};
+                            transition: all 0.2s;
+                         "
+                         onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'"
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                         title="${stats.title}: ${stats.count}件、平均${stats.avgDays}日">
+                        ${statusIcon}
+                        <span style="font-weight: 600; color: ${isBottleneck ? '#dc2626' : '#374151'};">${stats.title}</span>
+                        <span style="color: ${isBottleneck ? '#dc2626' : '#6b7280'};">(${stats.count}件)</span>
+                        ${stats.avgDays > 0 ? `<span style="font-size: 0.75rem; color: ${isBottleneck ? '#dc2626' : '#9ca3af'};">${stats.avgDays}日</span>` : ''}
+                    </div>
+                    ${arrow}
+                `;
+            }).join('');
+            
+            workflowContainer.innerHTML = workflowHtml;
+        }
+        
+        function showStatusDetails(columnId) {
+            const column = columns.find(c => c.id === columnId);
+            if (!column) return;
+            
+            const assigneeFilter = document.getElementById('assignee-filter')?.value || '';
+            let filteredTasks = tasks;
+            
+            // 担当者フィルタを適用
+            if (assigneeFilter) {
+                filteredTasks = tasks.filter(t => {
+                    if (t.assignees && Array.isArray(t.assignees)) {
+                        return t.assignees.includes(assigneeFilter);
+                    }
+                    return t.assignee === assigneeFilter;
+                });
+            }
+            
+            // 該当ステータスのタスクを取得
+            const statusTasks = filteredTasks.filter(t => {
+                // 期限切れタスクは期限切れエリアに表示されるので除外
+                if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
+                    return false;
+                }
+                return t.columnId === columnId;
+            });
+            
+            if (statusTasks.length === 0) {
+                alert(`${column.title}ステータスにはタスクがありません。`);
+                return;
+            }
+            
+            // モーダル表示
+            const now = new Date();
+            const taskListHtml = statusTasks.map(task => {
+                const createdDate = new Date(task.createdAt);
+                const daysOld = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+                const deadline = new Date(task.deadline);
+                const isOverdueTask = deadline < now;
+                const assigneeList = Array.isArray(task.assignees) ? task.assignees.join(', ') : (task.assignee || '未設定');
+                
+                return `
+                    <div style="
+                        padding: 0.75rem; 
+                        margin-bottom: 0.5rem; 
+                        background: white; 
+                        border: 1px solid #e5e7eb; 
+                        border-radius: 6px;
+                        ${isOverdueTask ? 'border-left: 4px solid #dc2626;' : ''}
+                    ">
+                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 0.5rem;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 0.25rem; ${isOverdueTask ? 'color: #dc2626;' : ''}">${task.title}</div>
+                                <div style="font-size: 0.8rem; color: #6b7280;">
+                                    👤 ${assigneeList} | 📅 ${deadline.toLocaleDateString('ja-JP')} | ⏰ ${daysOld}日経過
+                                </div>
+                            </div>
+                            <button onclick="editTask(${task.id}); closeStatusModal();" 
+                                    style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                編集
+                            </button>
+                        </div>
+                        ${task.memo ? `<div style="font-size: 0.85rem; color: #4b5563; margin-top: 0.5rem;">${task.memo}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            // モーダルHTML生成
+            const modalHtml = `
+                <div id="status-detail-modal" style="
+                    position: fixed; 
+                    top: 0; left: 0; 
+                    width: 100%; height: 100%; 
+                    background: rgba(0,0,0,0.5); 
+                    z-index: 1000; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center;
+                " onclick="closeStatusModal()">
+                    <div style="
+                        background: white; 
+                        border-radius: 8px; 
+                        padding: 1.5rem; 
+                        max-width: 600px; 
+                        max-height: 80vh; 
+                        overflow-y: auto;
+                        margin: 1rem;
+                    " onclick="event.stopPropagation()">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.75rem;">
+                            <h3 style="margin: 0; color: #111827;">📋 ${column.title} (${statusTasks.length}件)</h3>
+                            <button onclick="closeStatusModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280;">×</button>
+                        </div>
+                        <div style="background: #f9fafb; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem;">
+                            <div style="font-size: 0.9rem; color: #374151;">
+                                平均滞留時間: <strong>${Math.round((statusTasks.reduce((sum, t) => sum + Math.floor((now - new Date(t.createdAt)) / (1000 * 60 * 60 * 24)), 0) / statusTasks.length) * 10) / 10}日</strong>
+                            </div>
+                        </div>
+                        <div>${taskListHtml}</div>
+                    </div>
+                </div>
+            `;
+            
+            // 既存のモーダルを削除してから新しいモーダルを追加
+            const existingModal = document.getElementById('status-detail-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        
+        function closeStatusModal() {
+            const modal = document.getElementById('status-detail-modal');
+            if (modal) {
+                modal.remove();
+            }
         }
         
         function updateAssigneeFilter() {
