@@ -2375,8 +2375,8 @@
                      draggable="true"
                      ondragstart="handleDragStart(event, ${task.id})"
                      ondragend="handleDragEnd(event)"
-                     onclick="editTask(${task.id})"
-                     style="position: relative;">
+                     onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
+                     style="position: relative; ${isBulkMode ? 'cursor: pointer;' : ''}">
                     ${checkboxHtml}
                     <div class="task-title">${task.title}</div>
                     <div class="task-meta">
@@ -7222,6 +7222,12 @@
                 selectedTasks.add(taskId);
             }
             updateSelectedCount();
+            
+            // チェックボックスの状態を更新
+            const checkbox = document.querySelector(`input[onchange="toggleTaskSelection(${taskId})"]`);
+            if (checkbox) {
+                checkbox.checked = selectedTasks.has(taskId);
+            }
         }
         
         function updateSelectedCount() {
