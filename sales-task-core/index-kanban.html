@@ -1063,7 +1063,7 @@
     
     
     <!-- 設定モーダル -->
-    <div id="settingsModal" class="theme-modal">
+    <div id="settingsModal" class="theme-modal" style="display: none;">
         <div class="theme-modal-content">
             <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid #dfe1e6; flex-shrink: 0;">
                 <h3 class="modal-title">⚙️ 設定</h3>
@@ -6844,13 +6844,15 @@
         function showCreateTemplateModal() {
             // カラム選択肢を更新
             const columnSelect = document.getElementById('template-column');
-            columnSelect.innerHTML = '';
-            columns.forEach(column => {
-                const option = document.createElement('option');
-                option.value = column.id;
-                option.textContent = column.title;
-                columnSelect.appendChild(option);
-            });
+            if (columnSelect) {
+                columnSelect.innerHTML = '';
+                columns.forEach(column => {
+                    const option = document.createElement('option');
+                    option.value = column.id;
+                    option.textContent = column.title;
+                    columnSelect.appendChild(option);
+                });
+            }
             
             // 担当者チェックボックスを更新
             const assigneesContainer = document.getElementById('template-assignees');
