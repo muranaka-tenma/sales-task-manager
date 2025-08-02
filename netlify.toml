@@ -1,0 +1,15 @@
+[build]
+  publish = "."
+  
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/"
+  to = "/index-kanban.html"
+  status = 302
+  
+[[redirects]]
+  from = "/app"
+  to = "/index-kanban.html"
+  status = 302
