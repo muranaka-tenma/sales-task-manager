@@ -2161,14 +2161,14 @@
                      ondragstart="handleDragStart(event, ${task.id})"
                      ondragend="handleDragEnd(event)"
                      onclick="editTask(${task.id})">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                        <div class="task-title" style="flex: 1;">${task.title}</div>
-                        ${daysText ? `<div style="font-size: 0.65rem; color: #a0aec0; padding: 0.2rem 0.4rem; background: #f7fafc; border-radius: 3px; white-space: nowrap; margin-left: 0.5rem;">${daysText}</div>` : ''}
-                    </div>
+                    <div class="task-title">${task.title}</div>
                     <div class="task-meta">
-                        <span class="${deadlineClass}">
-                            ${deadlineIcon} ${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
-                        </span>
+                        <div style="margin-bottom: 0.25rem;">
+                            <span class="${deadlineClass}">
+                                ${deadlineIcon} ${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
+                            </span>
+                        </div>
+                        ${daysText ? `<div style="font-size: 0.65rem; color: #a0aec0; margin-bottom: 0.25rem;">📅 ${daysText}</div>` : ''}
                         <span class="task-priority-badge priority-${task.priority}">
                             ${priorityText}
                         </span>
