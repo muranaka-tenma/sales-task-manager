@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 営業タスク管理 - 期限機能付き</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f8f9fa;
+            color: #2d3748;
+            padding-bottom: 100px;
+        }
+        
+        .header {
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        /* タスクカード */
+        .task-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            border-left: 6px solid #667eea;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .task-card:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2);
+        }
+        
+        /* 期限切れタスク */
+        .task-card.overdue {
+            border-left-color: #e53e3e;
+            background: linear-gradient(135deg, #fed7d7 0%, #ffffff 100%);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 2px 12px rgba(229, 62, 62, 0.1); }
+            50% { box-shadow: 0 4px 20px rgba(229, 62, 62, 0.3); }
+            100% { box-shadow: 0 2px 12px rgba(229, 62, 62, 0.1); }
+        }
+        
+        /* 今日期限のタスク */
+        .task-card.today {
+            border-left-color: #d69e2e;
+            background: linear-gradient(135deg, #fef5e7 0%, #ffffff 100%);
+        }
+        
+        /* 完了済みタスク */
+        .task-card.completed {
+            opacity: 0.6;
+            background: #f0f4f8;
+            border-left-color: #38a169;
+        }
+        
+        .task-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            color: #1a202c;
+            line-height: 1.4;
+        }
+        
+        .completed .task-title {
+            text-decoration: line-through;
+        }
+        
+        .task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            font-size: 0.85rem;
+            color: #4a5568;
+            align-items: center;
+        }
+        
+        .deadline {
+            background: #e2e8f0;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .deadline.overdue {
+            background: #e53e3e;
+            color: white;
+            font-weight: 700;
+        }
+        
+        .deadline.today {
+            background: #d69e2e;
+            color: white;
+            font-weight: 700;
+        }
+        
+        .priority {
+            background: #667eea;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .priority.high { background: #e53e3e; }
+        .priority.medium { background: #d69e2e; }
+        .priority.low { background: #38a169; }
+        
+        /* タスク追加フォーム */
+        .add-task-section {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+            font-size: 0.9rem;
+        }
+        
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+            font-family: inherit;
+        }
+        
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .add-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+        
+        .add-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 20px rgba(72, 187, 120, 0.3);
+        }
+        
+        /* 統計表示 */
+        .stats-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            text-align: center;
+        }
+        
+        .stat-item {
+            padding: 1rem;
+            border-radius: 12px;
+            background: #f7fafc;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a202c;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #4a5568;
+            margin-top: 0.3rem;
+        }
+        
+        .stat-item.overdue {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        
+        .stat-item.today {
+            background: #fef5e7;
+            color: #d69e2e;
+        }
+        
+        .stat-item.completed {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+        
+        /* レスポンシブ */
+        @media (max-width: 480px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">🎯 営業タスク管理</div>
+    </div>
+    
+    <div class="container">
+        <!-- 統計表示 -->
+        <div class="stats-card">
+            <div class="section-title">📊 今日の状況</div>
+            <div class="stats-grid">
+                <div class="stat-item overdue">
+                    <span class="stat-number" id="overdue-count">0</span>
+                    <div class="stat-label">期限切れ</div>
+                </div>
+                <div class="stat-item today">
+                    <span class="stat-number" id="today-count">0</span>
+                    <div class="stat-label">今日期限</div>
+                </div>
+                <div class="stat-item completed">
+                    <span class="stat-number" id="completed-count">0</span>
+                    <div class="stat-label">完了済み</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- タスク追加フォーム -->
+        <div class="add-task-section">
+            <div class="section-title">➕ 新しいタスクを追加</div>
+            
+            <div class="form-group">
+                <label class="form-label">タスク名</label>
+                <input type="text" id="task-title" class="form-input" placeholder="例: A社への提案書作成">
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">期限日</label>
+                    <input type="date" id="task-date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">期限時刻</label>
+                    <input type="time" id="task-time" class="form-input">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">優先度</label>
+                    <select id="task-priority" class="form-select">
+                        <option value="high">🔴 最重要</option>
+                        <option value="medium" selected>🟡 重要</option>
+                        <option value="low">🟢 通常</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">担当者</label>
+                    <input type="text" id="task-assignee" class="form-input" placeholder="例: 田中部長">
+                </div>
+            </div>
+            
+            <button class="add-btn" onclick="addTask()">タスクを追加</button>
+        </div>
+        
+        <!-- タスク一覧 -->
+        <div class="section-title">✅ タスク一覧</div>
+        <div id="task-list">
+            <!-- タスクがここに表示される -->
+        </div>
+    </div>
+    
+    <script>
+        // タスクデータを管理
+        let tasks = JSON.parse(localStorage.getItem('salesTasks')) || [];
+        
+        // 現在の日時を取得
+        function getCurrentDateTime() {
+            return new Date();
+        }
+        
+        // 日付を比較（完了済みタスクは期限切れ扱いしない）
+        function isOverdue(deadline, completed = false) {
+            if (completed) return false;  // 完了済みは期限切れ扱いしない
+            return new Date(deadline) < getCurrentDateTime();
+        }
+        
+        function isToday(deadline, completed = false) {
+            if (completed) return false;  // 完了済みは今日期限扱いしない
+            const today = new Date();
+            const deadlineDate = new Date(deadline);
+            return today.toDateString() === deadlineDate.toDateString();
+        }
+        
+        // タスクを追加
+        function addTask() {
+            const title = document.getElementById('task-title').value.trim();
+            const date = document.getElementById('task-date').value;
+            const time = document.getElementById('task-time').value;
+            const priority = document.getElementById('task-priority').value;
+            const assignee = document.getElementById('task-assignee').value.trim();
+            
+            if (!title) {
+                alert('タスク名を入力してください');
+                return;
+            }
+            
+            if (!date) {
+                alert('期限日を設定してください');
+                return;
+            }
+            
+            const deadline = new Date(`${date}T${time || '23:59'}`);
+            
+            const newTask = {
+                id: Date.now(),
+                title: title,
+                deadline: deadline.toISOString(),
+                priority: priority,
+                assignee: assignee || '未設定',
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+            
+            tasks.unshift(newTask); // 新しいタスクを先頭に追加
+            saveTasks();
+            renderTasks();
+            updateStats();
+            
+            // フォームをクリア
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-date').value = '';
+            document.getElementById('task-time').value = '';
+            document.getElementById('task-assignee').value = '';
+            
+            alert('タスクが追加されました！');
+        }
+        
+        // タスクを保存
+        function saveTasks() {
+            localStorage.setItem('salesTasks', JSON.stringify(tasks));
+        }
+        
+        // タスクの完了状態を切り替え
+        function toggleTask(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                task.completed = !task.completed;
+                console.log(`タスク "${task.title}" を${task.completed ? '完了' : '未完了'}に変更`);
+                saveTasks();
+                renderTasks();
+                updateStats();
+                
+                // 視覚的フィードバック
+                const statusText = task.completed ? '完了しました！' : '未完了に戻しました';
+                alert(statusText);
+            }
+        }
+        
+        // タスクを削除
+        function deleteTask(taskId) {
+            if (confirm('このタスクを削除しますか？')) {
+                tasks = tasks.filter(t => t.id !== taskId);
+                saveTasks();
+                renderTasks();
+                updateStats();
+            }
+        }
+        
+        // タスクを表示
+        function renderTasks() {
+            const taskList = document.getElementById('task-list');
+            
+            if (tasks.length === 0) {
+                taskList.innerHTML = '<div style="text-align: center; padding: 2rem; color: #4a5568;">まだタスクがありません。上記のフォームから追加してください。</div>';
+                return;
+            }
+            
+            // タスクを期限切れ → 今日期限 → その他の順で並び替え（完了済みは最後）
+            const sortedTasks = tasks.sort((a, b) => {
+                // 完了済みは最後に
+                if (a.completed && !b.completed) return 1;
+                if (!a.completed && b.completed) return -1;
+                
+                // 未完了同士の比較
+                if (!a.completed && !b.completed) {
+                    if (isOverdue(a.deadline, a.completed) && !isOverdue(b.deadline, b.completed)) return -1;
+                    if (!isOverdue(a.deadline, a.completed) && isOverdue(b.deadline, b.completed)) return 1;
+                    if (isToday(a.deadline, a.completed) && !isToday(b.deadline, b.completed)) return -1;
+                    if (!isToday(a.deadline, a.completed) && isToday(b.deadline, b.completed)) return 1;
+                }
+                
+                return new Date(a.deadline) - new Date(b.deadline);
+            });
+            
+            taskList.innerHTML = sortedTasks.map(task => {
+                const deadline = new Date(task.deadline);
+                const isOverdueTask = isOverdue(task.deadline, task.completed);
+                const isTodayTask = isToday(task.deadline, task.completed);
+                
+                let cardClass = 'task-card';
+                if (task.completed) cardClass += ' completed';
+                else if (isOverdueTask) cardClass += ' overdue';
+                else if (isTodayTask) cardClass += ' today';
+                
+                let deadlineClass = 'deadline';
+                let deadlineIcon = '📅';
+                if (isOverdueTask) {
+                    deadlineClass += ' overdue';
+                    deadlineIcon = '🚨';
+                } else if (isTodayTask) {
+                    deadlineClass += ' today';
+                    deadlineIcon = '⏰';
+                }
+                
+                return `
+                    <div class="${cardClass}" onclick="toggleTask(${task.id})">
+                        <div class="task-title">${task.title}</div>
+                        <div class="task-meta">
+                            <span class="${deadlineClass}">
+                                ${deadlineIcon} ${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
+                            </span>
+                            <span class="priority ${task.priority}">
+                                ${task.priority === 'high' ? '🔴 最重要' : task.priority === 'medium' ? '🟡 重要' : '🟢 通常'}
+                            </span>
+                            <span>👤 ${task.assignee}</span>
+                            <button onclick="event.stopPropagation(); deleteTask(${task.id})" style="background: #e53e3e; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 8px; font-size: 0.7rem; cursor: pointer;">削除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 統計を更新
+        function updateStats() {
+            const overdueCount = tasks.filter(t => !t.completed && isOverdue(t.deadline, t.completed)).length;
+            const todayCount = tasks.filter(t => !t.completed && isToday(t.deadline, t.completed)).length;
+            const completedCount = tasks.filter(t => t.completed).length;
+            
+            document.getElementById('overdue-count').textContent = overdueCount;
+            document.getElementById('today-count').textContent = todayCount;
+            document.getElementById('completed-count').textContent = completedCount;
+            
+            console.log(`統計更新: 期限切れ${overdueCount}件, 今日期限${todayCount}件, 完了${completedCount}件`);
+        }
+        
+        // 初期化
+        function init() {
+            // 今日の日付をデフォルトに設定
+            const today = new Date();
+            document.getElementById('task-date').value = today.toISOString().split('T')[0];
+            
+            renderTasks();
+            updateStats();
+            
+            // 1分ごとに統計と表示を更新
+            setInterval(() => {
+                renderTasks();
+                updateStats();
+            }, 60000);
+        }
+        
+        // Enter キーでタスク追加
+        document.getElementById('task-title').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+        
+        init();
+    </script>
+</body>
+</html>
