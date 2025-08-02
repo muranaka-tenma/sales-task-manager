@@ -1360,7 +1360,7 @@
     </div>
     
     <!-- テンプレート作成モーダル -->
-    <div id="templateModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div id="templateModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
         <div style="background: white; border-radius: 8px; width: 100%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
             <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid #dfe1e6; flex-shrink: 0;">
                 <h3 class="modal-title" id="template-modal-title">📋 テンプレート作成</h3>
@@ -6905,7 +6905,8 @@
             });
             
             // モーダル表示
-            document.getElementById('templateModal').style.display = 'block';
+            const templateModal = document.getElementById('templateModal');
+            templateModal.style.display = 'flex';
         }
         
         function closeTemplateModal() {
@@ -7250,19 +7251,26 @@
             }
             
             const selectedTaskIds = Array.from(selectedTasks);
+            let movedCount = 0;
+            
             selectedTaskIds.forEach(taskId => {
                 const task = tasks.find(t => t.id === taskId);
                 if (task) {
+                    console.log(`Moving task ${task.title} from ${task.columnId} to ${targetColumn}`);
                     task.columnId = targetColumn;
+                    movedCount++;
                 }
             });
+            
+            console.log(`Total moved: ${movedCount} tasks`);
             
             saveTasks();
             clearSelection();
             render();
             updateStats();
             
-            alert(`${selectedTaskIds.length}件のタスクを移動しました`);
+            const targetColumnTitle = columns.find(c => c.id === targetColumn)?.title || targetColumn;
+            alert(`${movedCount}件のタスクを「${targetColumnTitle}」に移動しました`);
         }
         
         function bulkDeleteSelected() {
