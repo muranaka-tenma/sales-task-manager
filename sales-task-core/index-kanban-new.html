@@ -961,6 +961,14 @@
                 <!-- 左側: タスク詳細 -->
                 <div class="modal-left">
                     <form onsubmit="saveTask(event)">
+                        <!-- テンプレート選択 -->
+                        <div class="form-group" style="background: #f8f9fa; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
+                            <label class="form-label" style="color: #495057;">📋 テンプレートから作成（任意）</label>
+                            <select id="template-select" onchange="handleTemplateSelection(this.value)" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
+                                <option value="">-- テンプレートを選択 --</option>
+                            </select>
+                        </div>
+                        
                         <div class="form-group">
                             <label class="form-label">タスク名 *</label>
                             <input type="text" class="form-input" id="task-title-input" required>
@@ -1108,6 +1116,22 @@
                         </button>
                         <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #666; text-align: center;">
                             タスク完了率・担当者パフォーマンス・期限遵守率を分析
+                        </div>
+                    </div>
+                </div>
+
+                <!-- タスクテンプレート管理 -->
+                <div class="setting-section" style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem; color: #172b4d;">📋 タスクテンプレート</h4>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <span style="font-weight: 500;">保存済みテンプレート</span>
+                            <button onclick="showCreateTemplateModal()" style="padding: 0.5rem 1rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
+                                ➕ 新規テンプレート
+                            </button>
+                        </div>
+                        <div id="template-list" style="min-height: 100px;">
+                            <!-- テンプレート一覧がここに表示される -->
                         </div>
                     </div>
                 </div>
@@ -1308,6 +1332,78 @@
         </div>
     </div>
     
+    <!-- テンプレート作成モーダル -->
+    <div id="templateModal" class="theme-modal" style="display: none;">
+        <div class="theme-modal-content" style="max-width: 600px;">
+            <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid #dfe1e6; flex-shrink: 0;">
+                <h3 class="modal-title">📋 テンプレート作成</h3>
+                <button class="close-btn" onclick="closeTemplateModal()">&times;</button>
+            </div>
+            
+            <div style="padding: 1.5rem;">
+                <form onsubmit="saveTemplate(event)">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">テンプレート名 *</label>
+                        <input type="text" id="template-name" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;" placeholder="例: 営業レポート作成" required>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">カテゴリ</label>
+                        <select id="template-category" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="営業">営業</option>
+                            <option value="企画">企画</option>
+                            <option value="管理">管理</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">タスク名 *</label>
+                        <input type="text" id="template-task-title" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;" placeholder="例: 月次営業レポート作成" required>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">優先度</label>
+                            <select id="template-priority" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="high">🔴 最重要</option>
+                                <option value="medium" selected>🟡 重要</option>
+                                <option value="low">🟢 通常</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">デフォルトカラム</label>
+                            <select id="template-column" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                                <!-- カラム選択肢がここに動的追加される -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">担当者（複数選択可）</label>
+                        <div id="template-assignees" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            <!-- 担当者チェックボックスがここに動的追加される -->
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">メモ・備考</label>
+                        <textarea id="template-memo" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;" rows="3" placeholder="テンプレートの詳細や使用場面"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                        <button type="button" onclick="closeTemplateModal()" style="padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            キャンセル
+                        </button>
+                        <button type="submit" style="padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // グローバル変数
         let tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
@@ -1320,6 +1416,9 @@
         
         // カラム定義
         let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"📋 TODO","color":"#667eea"},{"id":"inprogress","title":"⚡ 進行中","color":"#f59e0b"},{"id":"waiting","title":"⏳ 連絡待ち","color":"#8b5cf6"},{"id":"done","title":"✅ Done","color":"#10b981"}]');
+        
+        // テンプレート管理
+        let taskTemplates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
         
         // 日付・時間ユーティリティ
         function getCurrentDateTime() {
@@ -1353,6 +1452,9 @@
             document.getElementById('task-memo-input').value = '';
             document.getElementById('task-files-input').value = '';
             document.getElementById('attached-files-list').innerHTML = '';
+            
+            // テンプレート選択を初期化
+            initializeTemplateSelector();
             
             // カラム選択フィールドを表示し、初期化
             const columnSelectionGroup = document.getElementById('column-selection-group');
@@ -2483,6 +2585,7 @@
             loadAlertSettings();
             loadColumnManager();
             loadImportDefaults();
+            loadTemplateList(); // テンプレート一覧を読み込み
         }
         
         // インポート設定の初期化
@@ -6728,6 +6831,236 @@
             `;
             
             document.body.insertAdjacentHTML('beforeend', reportHTML);
+        }
+        
+        // テンプレート管理機能
+        function showCreateTemplateModal() {
+            // カラム選択肢を更新
+            const columnSelect = document.getElementById('template-column');
+            columnSelect.innerHTML = '';
+            columns.forEach(column => {
+                const option = document.createElement('option');
+                option.value = column.id;
+                option.textContent = column.title;
+                columnSelect.appendChild(option);
+            });
+            
+            // 担当者チェックボックスを更新
+            const assigneesContainer = document.getElementById('template-assignees');
+            assigneesContainer.innerHTML = '';
+            assignees.forEach(assignee => {
+                const label = document.createElement('label');
+                label.style.cssText = 'display: flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.9rem;';
+                label.innerHTML = `
+                    <input type="checkbox" value="${assignee}" style="margin: 0;">
+                    <span>${assignee}</span>
+                `;
+                assigneesContainer.appendChild(label);
+            });
+            
+            // モーダル表示
+            document.getElementById('templateModal').style.display = 'block';
+        }
+        
+        function closeTemplateModal() {
+            document.getElementById('templateModal').style.display = 'none';
+            // フォームリセット
+            document.getElementById('template-name').value = '';
+            document.getElementById('template-task-title').value = '';
+            document.getElementById('template-memo').value = '';
+            document.getElementById('template-category').value = '営業';
+            document.getElementById('template-priority').value = 'medium';
+            
+            // 担当者チェックボックスをリセット
+            const checkboxes = document.querySelectorAll('#template-assignees input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+        
+        function saveTemplate(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('template-name').value.trim();
+            const category = document.getElementById('template-category').value;
+            const taskTitle = document.getElementById('template-task-title').value.trim();
+            const priority = document.getElementById('template-priority').value;
+            const columnId = document.getElementById('template-column').value;
+            const memo = document.getElementById('template-memo').value.trim();
+            
+            // 選択された担当者を取得
+            const selectedAssignees = Array.from(document.querySelectorAll('#template-assignees input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            
+            if (!name || !taskTitle) {
+                alert('テンプレート名とタスク名は必須です');
+                return;
+            }
+            
+            const template = {
+                id: Date.now(),
+                name: name,
+                category: category,
+                taskTitle: taskTitle,
+                priority: priority,
+                columnId: columnId,
+                assignees: selectedAssignees,
+                memo: memo,
+                createdAt: new Date().toISOString()
+            };
+            
+            taskTemplates.push(template);
+            localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
+            
+            // テンプレート一覧を更新
+            loadTemplateList();
+            
+            closeTemplateModal();
+            alert('✅ テンプレートを保存しました！');
+        }
+        
+        function loadTemplateList() {
+            const container = document.getElementById('template-list');
+            
+            if (taskTemplates.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 2rem;">テンプレートがありません</div>';
+                return;
+            }
+            
+            // カテゴリ別にグループ化
+            const groupedTemplates = {};
+            taskTemplates.forEach(template => {
+                if (!groupedTemplates[template.category]) {
+                    groupedTemplates[template.category] = [];
+                }
+                groupedTemplates[template.category].push(template);
+            });
+            
+            let html = '';
+            Object.keys(groupedTemplates).forEach(category => {
+                html += `
+                    <div style="margin-bottom: 1rem;">
+                        <h5 style="margin: 0 0 0.5rem 0; color: #495057; font-size: 0.9rem;">${category}</h5>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                `;
+                
+                groupedTemplates[category].forEach(template => {
+                    html += `
+                        <div style="background: white; border: 1px solid #dee2e6; border-radius: 6px; padding: 0.75rem; min-width: 200px; flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                                <h6 style="margin: 0; font-size: 0.9rem; font-weight: 600;">${template.name}</h6>
+                                <button onclick="deleteTemplate(${template.id})" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 0.8rem;" title="削除">🗑️</button>
+                            </div>
+                            <div style="font-size: 0.8rem; color: #6c757d; margin-bottom: 0.5rem;">${template.taskTitle}</div>
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <span style="background: #e9ecef; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.7rem;">${template.priority === 'high' ? '🔴 最重要' : template.priority === 'medium' ? '🟡 重要' : '🟢 通常'}</span>
+                                <span style="background: #e9ecef; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.7rem;">${columns.find(c => c.id === template.columnId)?.title || template.columnId}</span>
+                            </div>
+                            <button onclick="applyTemplate(${template.id})" style="width: 100%; padding: 0.4rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                                ⚡ 適用
+                            </button>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function deleteTemplate(templateId) {
+            if (!confirm('このテンプレートを削除しますか？')) {
+                return;
+            }
+            
+            taskTemplates = taskTemplates.filter(t => t.id !== templateId);
+            localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
+            loadTemplateList();
+        }
+        
+        function applyTemplate(templateId) {
+            const template = taskTemplates.find(t => t.id === templateId);
+            if (!template) {
+                alert('テンプレートが見つかりません');
+                return;
+            }
+            
+            // 新規タスク作成モーダルを開いてテンプレートの値を適用
+            createTaskUnified();
+            
+            // テンプレートの値を設定
+            setTimeout(() => {
+                document.getElementById('task-title-input').value = template.taskTitle;
+                document.getElementById('task-priority-input').value = template.priority;
+                document.getElementById('task-column-input').value = template.columnId;
+                document.getElementById('task-memo-input').value = template.memo || '';
+                
+                // 担当者を設定
+                if (template.assignees && template.assignees.length > 0) {
+                    setSelectedAssignees(template.assignees);
+                }
+            }, 100);
+            
+            // 設定モーダルを閉じる
+            closeSettingsModal();
+        }
+        
+        // テンプレート選択関連関数
+        function initializeTemplateSelector() {
+            const templateSelect = document.getElementById('template-select');
+            templateSelect.innerHTML = '<option value="">-- テンプレートを選択 --</option>';
+            
+            if (taskTemplates.length === 0) {
+                return;
+            }
+            
+            // カテゴリ別にグループ化
+            const groupedTemplates = {};
+            taskTemplates.forEach(template => {
+                if (!groupedTemplates[template.category]) {
+                    groupedTemplates[template.category] = [];
+                }
+                groupedTemplates[template.category].push(template);
+            });
+            
+            // カテゴリ別にオプションを追加
+            Object.keys(groupedTemplates).forEach(category => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category;
+                
+                groupedTemplates[category].forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = template.name;
+                    optgroup.appendChild(option);
+                });
+                
+                templateSelect.appendChild(optgroup);
+            });
+        }
+        
+        function handleTemplateSelection(templateId) {
+            if (!templateId) {
+                return;
+            }
+            
+            const template = taskTemplates.find(t => t.id == templateId);
+            if (!template) {
+                return;
+            }
+            
+            // テンプレートの値を設定
+            document.getElementById('task-title-input').value = template.taskTitle;
+            document.getElementById('task-priority-input').value = template.priority;
+            document.getElementById('task-column-input').value = template.columnId;
+            document.getElementById('task-memo-input').value = template.memo || '';
+            
+            // 担当者を設定
+            if (template.assignees && template.assignees.length > 0) {
+                setSelectedAssignees(template.assignees);
+            }
+            
+            // テンプレート選択をリセット
+            document.getElementById('template-select').value = '';
         }
         
         // 初期化実行
