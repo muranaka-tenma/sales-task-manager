@@ -1009,7 +1009,20 @@
                     </div>
                 </div>
                 
-                <!-- 追加の設定項目を将来追加する場合はここに -->
+                <!-- 分析・レポート機能 -->
+                <div class="setting-section" style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem; color: #172b4d;">📊 分析・レポート</h4>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <button onclick="showAnalytics()" style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold;">
+                            📈 分析レポートを表示
+                        </button>
+                        <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #666; text-align: center;">
+                            タスク完了率・担当者パフォーマンス・期限遵守率を分析
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 表示設定 -->
                 <div class="setting-section" style="margin-top: 2rem;">
                     <h4 style="margin-bottom: 1rem; color: #172b4d;">🎯 表示設定</h4>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -1099,11 +1112,9 @@
                                         <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
                                             <button onclick="previewProcessing()" style="padding: 0.5rem; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔍 処理プレビュー</button>
                                             <button onclick="resetOCRSettings()" style="padding: 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔄 リセット</button>
-                                            <button onclick="testDeadlineParsing()" style="padding: 0.5rem; background: #ffc107; color: black; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🧪 期限テスト</button>
                                         <button onclick="testOCRDirectly()" style="margin-left: 0.5rem; padding: 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔍 OCRテスト</button>
                                         <button onclick="testHandwritingOCR()" style="padding: 0.5rem; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✍️ 手書きテスト</button>
                                         <button onclick="testComplexLayoutOCR()" style="padding: 0.5rem; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🧩 レイアウトテスト</button>
-                                        <button onclick="deepDeadlineDebug()" style="padding: 0.5rem; background: #e11d48; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔬 期限詳細Debug</button>
                                         </div>
                                         <div style="margin-top: 0.5rem; padding: 0.5rem; background: #d1ecf1; border-radius: 4px; font-size: 0.8rem; color: #0c5460;">
                                             💡 ヒント: ①→ 1, ○→ 0 などの誤認識がある場合は「数字記号修正」を有効に
@@ -1142,6 +1153,65 @@
                     <h4 style="margin-bottom: 1rem; color: #172b4d;">🔄 データ管理</h4>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
                         <button onclick="clearAllData()" style="padding: 0.75rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ 全データを削除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 分析・レポートモーダル -->
+    <div id="analyticsModal" class="theme-modal" style="display: none;">
+        <div class="theme-modal-content" style="max-width: 1000px;">
+            <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid #dfe1e6; flex-shrink: 0;">
+                <h3 class="modal-title">📊 分析・レポート</h3>
+                <button class="close-btn" onclick="closeAnalyticsModal()">&times;</button>
+            </div>
+            
+            <div style="padding: 1.5rem; overflow-y: auto; max-height: 80vh;">
+                <!-- 概要統計 -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold;" id="total-tasks">-</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">総タスク数</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold;" id="completion-rate">-</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">完了率</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%); color: white; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold;" id="deadline-compliance">-</div>
+                        <div style="font-size: 0.9rem; opacity: 0.9;">期限遵守率</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold;" id="avg-completion-time">-</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">平均完了時間</div>
+                    </div>
+                </div>
+                
+                <!-- グラフエリア -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                    <!-- タスク完了率チャート -->
+                    <div style="background: white; border: 1px solid #ddd; border-radius: 12px; padding: 1.5rem;">
+                        <h4 style="margin: 0 0 1rem 0; color: #172b4d;">📈 タスク完了状況</h4>
+                        <div id="completion-chart" style="height: 200px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px;">
+                            グラフを読み込み中...
+                        </div>
+                    </div>
+                    
+                    <!-- 期限遵守状況チャート -->
+                    <div style="background: white; border: 1px solid #ddd; border-radius: 12px; padding: 1.5rem;">
+                        <h4 style="margin: 0 0 1rem 0; color: #172b4d;">⏰ 期限遵守状況</h4>
+                        <div id="deadline-chart" style="height: 200px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px;">
+                            グラフを読み込み中...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 担当者別パフォーマンス -->
+                <div style="background: white; border: 1px solid #ddd; border-radius: 12px; padding: 1.5rem;">
+                    <h4 style="margin: 0 0 1rem 0; color: #172b4d;">👥 担当者別パフォーマンス</h4>
+                    <div id="assignee-performance" style="min-height: 200px;">
+                        データを読み込み中...
                     </div>
                 </div>
             </div>
@@ -1839,6 +1909,15 @@
             dropZone.classList.remove('drag-over');
             
             if (draggedTask && draggedTask.columnId !== columnId) {
+                // Doneカラムに移動する場合、completedAtを記録
+                if (columnId === 'done' && !draggedTask.completedAt) {
+                    draggedTask.completedAt = new Date().toISOString();
+                }
+                // Doneカラムから他に移動する場合、completedAtをクリア
+                else if (draggedTask.columnId === 'done' && columnId !== 'done') {
+                    draggedTask.completedAt = null;
+                }
+                
                 draggedTask.columnId = columnId;
                 draggedTask.completed = (columnId === 'done');
                 saveTasks();
@@ -2780,13 +2859,41 @@
             
             const modeInfo = `<div style="font-size: 0.9rem; margin-top: 0.5rem;">✨ インデント行は自動でコメントに設定済み（半角スペース2個以上・全角スペース・タブ）。ドラッグ&ドロップで親子関係を変更可能</div>`;
             
+            // プレビュー表示方式の判定
+            const isScreenshotMode = originalImageDataUrl ? true : false;
+            
             let content = `
-                <div style="margin-bottom: 1rem; padding: 0.75rem; background: #e8f5e8; border-radius: 4px; color: #2f7d2f;">
-                    <strong>📝 ${activeTaskCount}個のアイテム (📋 メイン: ${mainTaskCount}, 💬 コメント: ${commentCount})</strong>
-                    ${modeInfo}
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; padding: 1rem; background: #f0f2f5; border-radius: 12px;" id="preview-container" class="preview-grid">
+                        
+                        <div style="margin-bottom: 1rem; padding: 0.75rem; background: #e8f5e8; border-radius: 4px; color: #2f7d2f;">
+                            <strong>📝 ${activeTaskCount}個のアイテム (📋 メイン: ${mainTaskCount}, 💬 コメント: ${commentCount})</strong>
+                            ${modeInfo}
+                        </div>
+                        
+                        ${isScreenshotMode ? `
+                        <!-- スクリーンショット表示＋タスクカード横並びレイアウト -->
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem; height: 600px;">
+                            <!-- 左側：スクリーンショット -->
+                            <div style="flex: 1; padding: 0.75rem; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <h6 style="margin: 0; color: #495057;">🖼️ スクリーンショット参考</h6>
+                                    <button onclick="toggleScreenshot()" id="screenshot-toggle" style="padding: 0.25rem 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                                        非表示
+                                    </button>
+                                </div>
+                                <div id="screenshot-preview" style="height: calc(100% - 40px); overflow: auto; text-align: center;">
+                                    <img src="${originalImageDataUrl}" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;">
+                                </div>
+                            </div>
+                            
+                            <!-- 右側：タスクカード縦列表示 -->
+                            <div style="flex: 1; padding: 0.75rem; background: #f0f2f5; border: 1px solid #ddd; border-radius: 4px; overflow-y: auto;">
+                                <h6 style="margin: 0 0 1rem 0; color: #495057;">📝 認識されたタスク一覧</h6>
+                                <div id="preview-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        ` : `
+                        <!-- テキスト入力時：従来の3列表示 -->
+                        <div style="padding: 1rem; background: #f0f2f5; border-radius: 12px; margin-bottom: 1rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" id="preview-container">
+                        `}
             `;
             
             previewTasks.forEach((task, index) => {
@@ -2814,8 +2921,13 @@
                     headerText = isAutoDetected ? '✨ 自動コメント' : 'ドラッグ可能';
                 }
                 
+                // スクリーンショット表示時は縦列レイアウト用にスタイル調整
+                const cardStyle = originalImageDataUrl ? 
+                    `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; margin-bottom: 0;` :
+                    `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content;`;
+                
                 content += `
-                    <div style="border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content;" 
+                    <div style="${cardStyle}" 
                          draggable="true" 
                          ondragstart="handleDragStart(event, ${index})" 
                          ondragend="handleDragEnd(event)"
@@ -3199,7 +3311,33 @@
                 `;
             });
             
-            contentDiv.innerHTML = content;
+            // プレビューの終了部分
+            content += `
+                        ${isScreenshotMode ? '</div></div>' : '</div></div>'}
+            `;
+            
+            if (isScreenshotMode) {
+                // スクリーンショットモード時はフルスクリーンプレビュー
+                const fullscreenPreview = `
+                    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; overflow-y: auto; padding: 1rem;">
+                        <div style="max-width: 1200px; margin: 0 auto;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid #dee2e6;">
+                                <h3 style="margin: 0; color: #172b4d;">📝 インポートプレビュー</h3>
+                                <div>
+                                    <button onclick="executeImport()" style="padding: 0.5rem 1rem; background: #38a169; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 0.5rem; font-weight: bold;">✅ インポート実行</button>
+                                    <button onclick="hidePreview()" style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">✕ 閉じる</button>
+                                </div>
+                            </div>
+                            ${content}
+                        </div>
+                    </div>
+                `;
+                contentDiv.innerHTML = fullscreenPreview;
+            } else {
+                // テキスト入力モード時は通常のプレビュー
+                contentDiv.innerHTML = content;
+            }
+            
             previewDiv.style.display = 'block';
         }
         
@@ -3217,6 +3355,9 @@
         }
         
         function executeImport() {
+            console.log('🚀 executeImport開始, previewTasks.length:', previewTasks.length);
+            console.log('📸 originalImageDataUrl存在:', !!originalImageDataUrl);
+            
             if (previewTasks.length === 0) {
                 alert('インポートするタスクがありません');
                 return;
@@ -3289,11 +3430,27 @@
                 closeSettingsModal();
                 
                 const commentCount = previewTasks.filter(t => !t.isMainTask && !t.isSkip).length;
-                let message = `✅ ${importedCount}個のタスクをインポートしました！`;
+                let message = `🎉 タスク追加が完了しました！\n\n`;
+                message += `📋 ${importedCount}個のタスクを追加\n`;
                 if (commentCount > 0) {
-                    message += `\n💬 ${commentCount}個のコメントも追加されました。`;
+                    message += `💬 ${commentCount}個のコメントを追加\n`;
                 }
+                message += `\n🎯 タスク管理画面に移行します...`;
+                
+                console.log('💬 メッセージ表示:', message);
                 alert(message);
+                console.log('💬 alert完了');
+                
+                // 画像データもクリア
+                originalImageDataUrl = null;
+                
+                // タスク管理画面の最上部にスクロール
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                }, 100);
             }
         }
         
@@ -3308,6 +3465,7 @@
             document.getElementById('ocr-file-input').value = ''; // OCRファイルもクリア
             hidePreview(); // プレビューも同時にクリア
             hideImagePreview(); // 画像プレビューもクリア
+            originalImageDataUrl = null; // 画像データもクリア
         }
         
         // 画像選択時の処理（領域選択モード）
@@ -3586,11 +3744,15 @@
         let isSelecting = false;
         let startX, startY, endX, endY;
         let imageScale = 1;
+        let originalImageDataUrl = null; // スクリーンショット表示用
         
         async function displayImagePreview(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    // 元の画像データを保存（プレビュー用）
+                    originalImageDataUrl = e.target.result;
+                    
                     const img = new Image();
                     img.onload = function() {
                         currentImage = img;
@@ -3835,18 +3997,10 @@
             `;
             
             selectorDiv.innerHTML = `
-                <span style="font-weight: bold; color: #495057;">この領域は：</span>
+                <span style="font-weight: bold; color: #495057;">タスク名として認識：</span>
                 <button onclick="setAreaTag(${areaIndex}, 'task')" 
                         style="padding: 0.4rem 0.8rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
-                    📋 タスク名
-                </button>
-                <button onclick="setAreaTag(${areaIndex}, 'deadline')" 
-                        style="padding: 0.4rem 0.8rem; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
-                    📅 期限
-                </button>
-                <button onclick="setAreaTag(${areaIndex}, null)" 
-                        style="padding: 0.4rem 0.8rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    ❌ 未分類
+                    📋 確定
                 </button>
             `;
             
@@ -3863,7 +4017,7 @@
         // 領域にタグを設定
         function setAreaTag(areaIndex, tag) {
             if (selectedAreas[areaIndex]) {
-                selectedAreas[areaIndex].tag = tag;
+                selectedAreas[areaIndex].tag = 'task'; // 常にタスクとして設定
                 updateSelectionDisplay();
                 redrawCanvas(document.getElementById('image-canvas'));
                 
@@ -3891,6 +4045,31 @@
             document.getElementById('image-preview-container').style.display = 'none';
             selectedAreas = [];
             currentImage = null;
+            // 注意：originalImageDataUrlはプレビュー用に保持
+        }
+        
+        // タスク入力エリアにスクロール
+        function scrollToTaskArea() {
+            document.getElementById('import-text').scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+            // テキストエリアをフォーカス
+            document.getElementById('import-text').focus();
+        }
+        
+        // スクリーンショット表示切り替え
+        function toggleScreenshot() {
+            const preview = document.getElementById('screenshot-preview');
+            const button = document.getElementById('screenshot-toggle');
+            
+            if (preview.style.display === 'none') {
+                preview.style.display = 'block';
+                button.textContent = '非表示';
+            } else {
+                preview.style.display = 'none';
+                button.textContent = '表示';
+            }
         }
         
         async function processSelectedAreas() {
@@ -3992,37 +4171,69 @@
                 updateOCRProgress(85, '🔗 タスクと期限をペア化中...');
                 
                 // タグ付きの領域を自動ペア化
-                const pairedTasks = pairTasksAndDeadlines();
+                const tasks = generateSimpleTaskList();
                 
                 updateOCRProgress(95, '📝 結果を整理中...');
                 
-                if (pairedTasks.length > 0) {
-                    // 結果をテキストエリアに追加
-                    const formattedText = formatPairedTasks(pairedTasks);
-                    const currentText = document.getElementById('import-text').value;
-                    const separator = currentText ? '\n\n' : '';
-                    document.getElementById('import-text').value = currentText + separator + formattedText;
-                    
+                if (tasks.length > 0) {
                     // 成功メッセージ
-                    const taskCount = pairedTasks.filter(t => t.type === 'task').length;
-                    const pairedCount = pairedTasks.filter(t => t.deadline).length;
-                    alert(`✅ OCR完了！\n📋 ${taskCount}個のタスクを認識\n📅 ${pairedCount}個のタスクに期限を自動設定`);
+                    alert(`✅ OCR完了！\n📋 ${tasks.length}個のタスクを認識しました\n\n📝 インポートプレビューで期限を設定してください。`);
                     
                     // 画像プレビューを閉じる
                     hideImagePreview();
+                    
+                    // 自動でインポートプレビューを実行
+                    setTimeout(() => {
+                        previewImport();
+                    }, 500);
                 } else {
-                    alert('有効なタスクを認識できませんでした。タグ設定を確認してください。');
+                    alert('有効なタスクを認識できませんでした。文字がはっきり見える領域を選択してください。');
                 }
                 
                 hideOCRProgress();
             } catch (error) {
                 hideOCRProgress();
                 console.error('Area OCR Error:', error);
-                alert('OCR処理でエラーが発生しました。');
+                
+                // より詳細なエラー情報を表示
+                let errorMessage = 'OCR処理でエラーが発生しました。\n\n';
+                errorMessage += `エラー詳細: ${error.message || error}\n\n`;
+                
+                if (error.message && error.message.includes('network')) {
+                    errorMessage += '【原因】ネットワーク接続の問題の可能性があります。\n';
+                    errorMessage += '【対策】インターネット接続を確認してください。';
+                } else if (error.message && error.message.includes('memory')) {
+                    errorMessage += '【原因】メモリ不足の可能性があります。\n';
+                    errorMessage += '【対策】画像サイズを小さくしてお試しください。';
+                } else if (error.message && error.message.includes('cors')) {
+                    errorMessage += '【原因】セキュリティ制限の問題です。\n';
+                    errorMessage += '【対策】別のブラウザでお試しください。';
+                } else {
+                    errorMessage += '【対策】\n';
+                    errorMessage += '1. ページを再読み込みしてください\n';
+                    errorMessage += '2. 異なる画像でお試しください\n';
+                    errorMessage += '3. ブラウザを変更してお試しください';
+                }
+                
+                alert(errorMessage);
             }
         }
         
-        // タスクと期限をペア化
+        // シンプルなタスクリスト生成
+        function generateSimpleTaskList() {
+            const tasks = selectedAreas
+                .filter(area => area.text && area.text.trim().length > 1)
+                .map(area => area.text.trim());
+            
+            // インポート用テキストを生成
+            const importText = tasks.join('\n');
+            document.getElementById('import-text').value = importText;
+            
+            console.log('認識されたタスク:', tasks);
+            return tasks;
+        }
+
+        // タスクと期限をペア化（削除予定）
         function pairTasksAndDeadlines() {
             const taskAreas = selectedAreas.filter(area => area.tag === 'task' && area.text);
             const deadlineAreas = selectedAreas.filter(area => area.tag === 'deadline' && area.text);
@@ -5897,8 +6108,263 @@
             });
         }
         
+        // 分析・レポート機能
+        function showAnalytics() {
+            const modal = document.getElementById('analyticsModal');
+            modal.style.display = 'block';
+            
+            // 統計データを計算
+            calculateAnalytics();
+            
+            // グラフを描画
+            drawCompletionChart();
+            drawDeadlineChart();
+            
+            // 担当者別パフォーマンスを表示
+            displayAssigneePerformance();
+        }
+        
+        function closeAnalyticsModal() {
+            document.getElementById('analyticsModal').style.display = 'none';
+        }
+        
+        function calculateAnalytics() {
+            // 総タスク数
+            const totalTasks = tasks.length;
+            document.getElementById('total-tasks').textContent = totalTasks;
+            
+            // 完了タスク数と完了率
+            const completedTasks = tasks.filter(task => task.columnId === 'done').length;
+            const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            document.getElementById('completion-rate').textContent = completionRate + '%';
+            
+            // 期限遵守率を計算（完了タスクのうち、期限内に完了したタスクの割合）
+            const completedTasksWithDeadline = tasks.filter(task => 
+                task.columnId === 'done' && task.deadline && task.completedAt
+            );
+            
+            const onTimeCompleted = completedTasksWithDeadline.filter(task => {
+                const deadline = new Date(task.deadline);
+                const completedDate = new Date(task.completedAt);
+                return completedDate <= deadline;
+            }).length;
+            
+            const deadlineCompliance = completedTasksWithDeadline.length > 0 
+                ? Math.round((onTimeCompleted / completedTasksWithDeadline.length) * 100) 
+                : 100;
+            document.getElementById('deadline-compliance').textContent = deadlineCompliance + '%';
+            
+            // 平均完了時間を計算
+            const completedWithTime = tasks.filter(task => 
+                task.columnId === 'done' && task.createdAt && task.completedAt
+            );
+            
+            if (completedWithTime.length > 0) {
+                const totalTime = completedWithTime.reduce((sum, task) => {
+                    const created = new Date(task.createdAt);
+                    const completed = new Date(task.completedAt);
+                    return sum + (completed - created);
+                }, 0);
+                
+                const avgTime = totalTime / completedWithTime.length;
+                const days = Math.floor(avgTime / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((avgTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                
+                document.getElementById('avg-completion-time').textContent = 
+                    days > 0 ? `${days}日${hours}時間` : `${hours}時間`;
+            } else {
+                document.getElementById('avg-completion-time').textContent = '-';
+            }
+        }
+        
+        function drawCompletionChart() {
+            const chartContainer = document.getElementById('completion-chart');
+            
+            // カラム別タスク数を集計
+            const columnCounts = {};
+            columns.forEach(column => {
+                columnCounts[column.id] = tasks.filter(task => task.columnId === column.id).length;
+            });
+            
+            // 最大値を求める
+            const maxCount = Math.max(...Object.values(columnCounts), 1);
+            
+            // 棒グラフをHTMLで作成
+            let chartHTML = '<div style="display: flex; height: 100%; align-items: flex-end; justify-content: space-around; padding: 1rem;">';
+            
+            columns.forEach(column => {
+                const count = columnCounts[column.id];
+                const percentage = (count / maxCount) * 100;
+                
+                chartHTML += `
+                    <div style="flex: 1; text-align: center; margin: 0 0.5rem;">
+                        <div style="position: relative; height: 150px; display: flex; align-items: flex-end;">
+                            <div style="background: ${column.color}; width: 100%; height: ${percentage}%; border-radius: 4px 4px 0 0; position: relative;">
+                                <div style="position: absolute; top: -25px; left: 50%; transform: translateX(-50%); font-weight: bold; color: #333;">
+                                    ${count}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #666;">
+                            ${column.title.replace(/[^\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\w\s]/g, '')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            chartHTML += '</div>';
+            chartContainer.innerHTML = chartHTML;
+        }
+        
+        function drawDeadlineChart() {
+            const chartContainer = document.getElementById('deadline-chart');
+            
+            // 期限状況を集計（Doneカラムを除く）
+            const activeTasks = tasks.filter(task => task.columnId !== 'done');
+            const now = new Date();
+            
+            const deadlineStatus = {
+                overdue: 0,
+                today: 0,
+                thisWeek: 0,
+                later: 0,
+                noDeadline: 0
+            };
+            
+            activeTasks.forEach(task => {
+                if (!task.deadline) {
+                    deadlineStatus.noDeadline++;
+                    return;
+                }
+                
+                const deadline = new Date(task.deadline);
+                const daysUntil = Math.floor((deadline - now) / (1000 * 60 * 60 * 24));
+                
+                if (deadline < now) {
+                    deadlineStatus.overdue++;
+                } else if (daysUntil === 0) {
+                    deadlineStatus.today++;
+                } else if (daysUntil <= 7) {
+                    deadlineStatus.thisWeek++;
+                } else {
+                    deadlineStatus.later++;
+                }
+            });
+            
+            // 円グラフ風の表示を作成
+            const total = activeTasks.length || 1;
+            const statusConfig = [
+                { key: 'overdue', label: '期限切れ', color: '#e53e3e' },
+                { key: 'today', label: '今日', color: '#d69e2e' },
+                { key: 'thisWeek', label: '今週', color: '#3182ce' },
+                { key: 'later', label: 'それ以降', color: '#38a169' },
+                { key: 'noDeadline', label: '期限なし', color: '#a0aec0' }
+            ];
+            
+            let chartHTML = '<div style="display: flex; flex-direction: column; height: 100%; padding: 1rem;">';
+            
+            statusConfig.forEach(config => {
+                const count = deadlineStatus[config.key];
+                const percentage = Math.round((count / total) * 100);
+                
+                if (count > 0) {
+                    chartHTML += `
+                        <div style="margin-bottom: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                <span style="font-size: 0.9rem; color: #666;">${config.label}</span>
+                                <span style="font-size: 0.9rem; font-weight: bold;">${count} (${percentage}%)</span>
+                            </div>
+                            <div style="background: #e2e8f0; height: 20px; border-radius: 10px; overflow: hidden;">
+                                <div style="background: ${config.color}; height: 100%; width: ${percentage}%; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            chartHTML += '</div>';
+            chartContainer.innerHTML = chartHTML;
+        }
+        
+        function displayAssigneePerformance() {
+            const performanceContainer = document.getElementById('assignee-performance');
+            
+            // 担当者別の統計を集計
+            const assigneeStats = {};
+            
+            assignees.forEach(assignee => {
+                const assigneeTasks = tasks.filter(task => task.assignee === assignee);
+                const completed = assigneeTasks.filter(task => task.columnId === 'done').length;
+                const total = assigneeTasks.length;
+                
+                // 期限遵守率
+                const completedWithDeadline = assigneeTasks.filter(task => 
+                    task.columnId === 'done' && task.deadline && task.completedAt
+                );
+                const onTime = completedWithDeadline.filter(task => {
+                    const deadline = new Date(task.deadline);
+                    const completedDate = new Date(task.completedAt);
+                    return completedDate <= deadline;
+                }).length;
+                
+                assigneeStats[assignee] = {
+                    total: total,
+                    completed: completed,
+                    completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+                    onTimeRate: completedWithDeadline.length > 0 
+                        ? Math.round((onTime / completedWithDeadline.length) * 100) 
+                        : 100
+                };
+            });
+            
+            // テーブル形式で表示
+            let tableHTML = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f7fafc; border-bottom: 2px solid #e2e8f0;">
+                            <th style="padding: 0.75rem; text-align: left;">担当者</th>
+                            <th style="padding: 0.75rem; text-align: center;">総タスク</th>
+                            <th style="padding: 0.75rem; text-align: center;">完了</th>
+                            <th style="padding: 0.75rem; text-align: center;">完了率</th>
+                            <th style="padding: 0.75rem; text-align: center;">期限遵守率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            Object.entries(assigneeStats).forEach(([assignee, stats]) => {
+                if (stats.total > 0) {
+                    tableHTML += `
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 0.75rem; font-weight: 500;">${assignee}</td>
+                            <td style="padding: 0.75rem; text-align: center;">${stats.total}</td>
+                            <td style="padding: 0.75rem; text-align: center;">${stats.completed}</td>
+                            <td style="padding: 0.75rem; text-align: center;">
+                                <span style="color: ${stats.completionRate >= 80 ? '#38a169' : stats.completionRate >= 50 ? '#d69e2e' : '#e53e3e'}; font-weight: bold;">
+                                    ${stats.completionRate}%
+                                </span>
+                            </td>
+                            <td style="padding: 0.75rem; text-align: center;">
+                                <span style="color: ${stats.onTimeRate >= 90 ? '#38a169' : stats.onTimeRate >= 70 ? '#d69e2e' : '#e53e3e'}; font-weight: bold;">
+                                    ${stats.onTimeRate}%
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            tableHTML += `
+                    </tbody>
+                </table>
+            `;
+            
+            performanceContainer.innerHTML = tableHTML;
+        }
+        
         // 初期化実行
         init();
     </script>
 </body>
-</html><!-- Deploy force: 1754141305 -->
+</html><!-- Cache bust: 1754142681 -->
+<!-- UI Update: 1754143540 -->
