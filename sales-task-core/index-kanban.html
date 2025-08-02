@@ -2107,8 +2107,14 @@
                 const wasOverdue = isOverdue(editingTask.deadline, editingTask.columnId);
                 const willBeOverdue = isOverdue(newDeadline.toISOString(), editingTask.columnId);
                 
+                console.log(`🔍 [DEADLINE] Checking deadline change for task ${editingTask.id}`);
+                console.log(`🔍 [DEADLINE] Old deadline: ${editingTask.deadline}, wasOverdue: ${wasOverdue}`);
+                console.log(`🔍 [DEADLINE] New deadline: ${newDeadline.toISOString()}, willBeOverdue: ${willBeOverdue}`);
+                console.log(`🔍 [DEADLINE] Task column: ${editingTask.columnId}`);
+                
                 // 期限切れタスクの期限が延長された場合の確認
                 if (wasOverdue && !willBeOverdue) {
+                    console.log(`📅 [DEADLINE] Overdue task deadline extended, showing confirmation dialog`);
                     const columnTitle = getColumnTitle(editingTask.columnId);
                     const shouldMoveBack = confirm(
                         `📅 期限が延長されました\n\n` +
@@ -2128,6 +2134,8 @@
                         }
                     }
                     console.log(`📅 Deadline extended for overdue task ${editingTask.id}, moving back: ${shouldMoveBack}`);
+                } else {
+                    console.log(`🔍 [DEADLINE] No confirmation needed: wasOverdue=${wasOverdue}, willBeOverdue=${willBeOverdue}`);
                 }
                 
                 // 編集
