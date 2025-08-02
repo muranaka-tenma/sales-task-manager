@@ -1473,12 +1473,19 @@
             return new Date().toISOString().split('T')[0];
         }
         
+        function getDefaultDeadlineString() {
+            // 現在時刻+3時間をデフォルト期限として設定
+            const now = new Date();
+            now.setHours(now.getHours() + 3);
+            return now.toISOString().split('T')[0];
+        }
+        
         // 統一カード作成関数（画面上部のボタン用）
         function createTaskUnified() {
             editingTask = null;
             document.getElementById('modal-title').textContent = '新しいタスク';
             document.getElementById('task-title-input').value = '';
-            document.getElementById('task-date-input').value = getTodayString();
+            document.getElementById('task-date-input').value = getDefaultDeadlineString();
             document.getElementById('task-time-input').value = '17:00';
             document.getElementById('task-priority-input').value = 'medium';
             document.getElementById('task-memo-input').value = '';
@@ -1531,7 +1538,7 @@
             editingTask = null;
             document.getElementById('modal-title').textContent = '新しいタスク';
             document.getElementById('task-title-input').value = '';
-            document.getElementById('task-date-input').value = getTodayString();
+            document.getElementById('task-date-input').value = getDefaultDeadlineString();
             document.getElementById('task-time-input').value = '17:00';
             document.getElementById('task-priority-input').value = 'medium';
             document.getElementById('task-memo-input').value = '';
@@ -2214,6 +2221,21 @@
                 console.log(`🔵 [MAIN] Current task column: ${draggedTask.columnId}, Target: ${columnId}`);
                 
                 if (draggedTask.columnId !== columnId) {
+                    // 期限切れタスクを移動する場合の確認
+                    if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId) && columnId !== 'done') {
+                        const shouldMove = confirm(
+                            `⚠️ 期限切れタスクの移動\n\n` +
+                            `"${draggedTask.title}" は期限切れです。\n` +
+                            `${getColumnTitle(columnId)}カラムに移動しますか？\n\n` +
+                            `移動後は期限切れカラムには表示されなくなります。`
+                        );
+                        
+                        if (!shouldMove) {
+                            console.log(`❌ [MAIN] Overdue task move cancelled by user`);
+                            return;
+                        }
+                    }
+                    
                     console.log(`🟡 [MAIN] Moving "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
                     
                     // Doneカラムに移動する場合、completedAtを記録
@@ -2247,6 +2269,40 @@
         
         function handleDragLeave(e) {
             e.currentTarget.classList.remove('drag-over');
+        }
+        
+        function handleOverdueDrop(e) {
+            console.log(`🔴 [OVERDUE] handleOverdueDrop called`);
+            e.preventDefault();
+            const dropZone = e.currentTarget;
+            dropZone.classList.remove('drag-over');
+            
+            if (draggedTask) {
+                // 期限切れカラムには期限切れタスクのみをドロップ可能
+                if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId)) {
+                    console.log(`⚠️ [OVERDUE] Task is already overdue, no move needed`);
+                    return;
+                }
+                
+                // 期限切れではないタスクを期限切れカラムにドロップしようとした場合
+                const shouldMove = confirm(
+                    `⚠️ 期限切れカラムへの移動\n\n` +
+                    `"${draggedTask.title}" は期限切れではありませんが、期限切れカラムに移動しますか？\n\n` +
+                    `※ 移動後も元のカラム（${getColumnTitle(draggedTask.columnId)}）に表示されます。`
+                );
+                
+                if (!shouldMove) {
+                    console.log(`❌ [OVERDUE] Move cancelled by user`);
+                    return;
+                }
+                
+                console.log(`🟡 [OVERDUE] Non-overdue task moved to overdue display`);
+            }
+        }
+        
+        function getColumnTitle(columnId) {
+            const column = columns.find(c => c.id === columnId);
+            return column ? column.title : columnId;
         }
         
         
@@ -2284,7 +2340,12 @@
                             <div class="column-count">${overdueTasks.length}</div>
                         </div>
                     </div>
-                    <div class="column-content" style="background: #fee;">
+                    <div class="column-content" 
+                         style="background: #fee;"
+                         ondragover="handleDragOver(event)"
+                         ondrop="handleOverdueDrop(event)"
+                         ondragenter="handleDragEnter(event)"
+                         ondragleave="handleDragLeave(event)">
                         ${overdueTasks.map(task => createTaskCard(task, true)).join('')}
                     </div>
                 `;
