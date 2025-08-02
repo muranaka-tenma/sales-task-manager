@@ -2176,15 +2176,22 @@
         
         // ドラッグ&ドロップ
         function handleDragStart(e, taskId) {
-            console.log(`🟢 handleDragStart called with taskId: ${taskId}`);
+            console.log(`🟢 [MAIN] handleDragStart called with taskId: ${taskId}`);
+            console.log(`🟢 [MAIN] All tasks:`, tasks);
+            console.log(`🟢 [MAIN] isBulkMode: ${isBulkMode}`);
             draggedTask = tasks.find(t => t.id === taskId);
-            console.log(`🟢 Found draggedTask:`, draggedTask);
+            console.log(`🟢 [MAIN] Found draggedTask:`, draggedTask);
+            if (!draggedTask) {
+                console.error(`❌ [MAIN] draggedTask not found for taskId: ${taskId}`);
+                return false;
+            }
             e.target.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', ''); // 必要な場合があります
+            e.dataTransfer.setData('text/plain', taskId);
         }
         
         function handleDragEnd(e) {
+            console.log(`🔴 [MAIN] handleDragEnd called`);
             e.target.classList.remove('dragging');
             draggedTask = null;
         }
@@ -2195,17 +2202,19 @@
         }
         
         function handleDrop(e, columnId) {
-            console.log(`🔵 handleDrop called with columnId: ${columnId}`);
-            console.log(`🔵 draggedTask:`, draggedTask);
+            console.log(`🔵 [MAIN] handleDrop called with columnId: ${columnId}`);
+            console.log(`🔵 [MAIN] draggedTask:`, draggedTask);
+            console.log(`🔵 [MAIN] Event target:`, e.target);
+            console.log(`🔵 [MAIN] Event currentTarget:`, e.currentTarget);
             e.preventDefault();
             const dropZone = e.currentTarget;
             dropZone.classList.remove('drag-over');
             
             if (draggedTask) {
-                console.log(`🔵 Current task column: ${draggedTask.columnId}, Target: ${columnId}`);
+                console.log(`🔵 [MAIN] Current task column: ${draggedTask.columnId}, Target: ${columnId}`);
                 
                 if (draggedTask.columnId !== columnId) {
-                    console.log(`🟡 Moving "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
+                    console.log(`🟡 [MAIN] Moving "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
                     
                     // Doneカラムに移動する場合、completedAtを記録
                     if (columnId === 'done' && !draggedTask.completedAt) {
@@ -2222,12 +2231,12 @@
                     render();
                     updateStats();
                     
-                    console.log(`✅ Task moved successfully to ${columnId}`);
+                    console.log(`✅ [MAIN] Task moved successfully to ${columnId}`);
                 } else {
-                    console.log(`⚠️ Same column, no move needed`);
+                    console.log(`⚠️ [MAIN] Same column, no move needed`);
                 }
             } else {
-                console.log(`❌ No draggedTask found`);
+                console.log(`❌ [MAIN] No draggedTask found`);
             }
         }
         
@@ -2390,11 +2399,10 @@
             
             return `
                 <div class="${cardClass}" 
-                     draggable="true"
-                     ondragstart="handleDragStart(event, ${task.id})"
-                     ondragend="handleDragEnd(event)"
+                     draggable="${!isBulkMode}"
+                     ${!isBulkMode ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
                      onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
-                     style="position: relative; cursor: move;">
+                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : 'move'};">
                     ${checkboxHtml}
                     <div class="task-title">${task.title}</div>
                     <div class="task-meta">
