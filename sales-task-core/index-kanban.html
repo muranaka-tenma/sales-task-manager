@@ -3320,10 +3320,10 @@
                 content += `
                     <div style="${cardStyle}" 
                          draggable="true" 
-                         ondragstart="handleDragStart(event, ${index})" 
+                         ondragstart="handlePreviewDragStart(event, ${index})" 
                          ondragend="handleDragEnd(event)"
                          ondragover="handleDragOver(event)" 
-                         ondrop="handleDrop(event, ${index})"
+                         ondrop="handlePreviewDrop(event, ${index})"
                          ondragenter="handleDragEnter(event)"
                          ondragleave="handleDragLeave(event)"
                          id="preview-item-${index}">
@@ -3524,7 +3524,7 @@
         // ドラッグ&ドロップ機能
         let draggedIndex = -1;
         
-        function handleDragStart(event, index) {
+        function handlePreviewDragStart(event, index) {
             draggedIndex = index;
             event.dataTransfer.effectAllowed = 'move';
             event.target.style.opacity = '0.6';
@@ -3557,7 +3557,7 @@
             }
         }
         
-        function handleDrop(event, targetIndex) {
+        function handlePreviewDrop(event, targetIndex) {
             event.preventDefault();
             
             if (draggedIndex === targetIndex || draggedIndex === -1) {
