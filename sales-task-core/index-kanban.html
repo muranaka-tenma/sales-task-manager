@@ -7217,10 +7217,14 @@
         }
         
         function toggleTaskSelection(taskId) {
+            console.log(`Toggle selection for task ${taskId}, current size: ${selectedTasks.size}`);
+            
             if (selectedTasks.has(taskId)) {
                 selectedTasks.delete(taskId);
+                console.log(`Removed task ${taskId}, new size: ${selectedTasks.size}`);
             } else {
                 selectedTasks.add(taskId);
+                console.log(`Added task ${taskId}, new size: ${selectedTasks.size}`);
             }
             updateSelectedCount();
             
@@ -7229,6 +7233,8 @@
             if (checkbox) {
                 checkbox.checked = selectedTasks.has(taskId);
             }
+            
+            console.log(`Selected tasks:`, Array.from(selectedTasks));
         }
         
         function updateSelectedCount() {
@@ -7265,9 +7271,9 @@
             console.log(`Total moved: ${movedCount} tasks`);
             
             saveTasks();
-            clearSelection();
-            render();
+            render(); // 先に画面を更新
             updateStats();
+            clearSelection(); // その後で選択をクリア
             
             const targetColumnTitle = columns.find(c => c.id === targetColumn)?.title || targetColumn;
             alert(`${movedCount}件のタスクを「${targetColumnTitle}」に移動しました`);
