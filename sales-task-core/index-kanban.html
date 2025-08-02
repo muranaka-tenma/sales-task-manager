@@ -3837,11 +3837,7 @@
                 <span style="font-weight: bold; color: #495057;">タスク名として認識：</span>
                 <button onclick="setAreaTag(${areaIndex}, 'task')" 
                         style="padding: 0.4rem 0.8rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
-                    📋 タスク名
-                </button>
-                <button onclick="setAreaTag(${areaIndex}, null)" 
-                        style="padding: 0.4rem 0.8rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                    ❌ 未分類
+                    📋 確定
                 </button>
             `;
             
@@ -3993,10 +3989,10 @@
                 
                 if (tasks.length > 0) {
                     // 成功メッセージ
-                    alert(`✅ OCR完了！\n📋 ${tasks.length}個のタスクを認識しました\n\n期限は手動で設定してください。`);
+                    alert(`✅ OCR完了！\n📋 ${tasks.length}個のタスクを認識しました\n\n🖼️ スクリーンショットを参考に期限を手動で設定してください。\n\n※ 画像は「閉じる」ボタンで非表示にできます。`);
                     
-                    // 画像プレビューを閉じる
-                    hideImagePreview();
+                    // スクリーンショットは表示したまま（手動期限設定用）
+                    // hideImagePreview(); ← コメントアウト
                 } else {
                     alert('有効なタスクを認識できませんでした。文字がはっきり見える領域を選択してください。');
                 }
