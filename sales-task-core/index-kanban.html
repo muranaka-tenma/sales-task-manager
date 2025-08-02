@@ -906,9 +906,7 @@
         <div style="display: flex; align-items: center; gap: 0.5rem; color: #5e6c84;">
             <span style="font-weight: 600;">📊 ワークフロー:</span>
         </div>
-        <div id="workflow-status" style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
-            <!-- ステータス別統計がここに動的生成される -->
-        </div>
+        <!-- ワークフロー表示を削除: カラムで既に表示されているため不要 -->
     </div>
         
         <!-- カラム追加機能 -->
@@ -2572,8 +2570,7 @@
             document.getElementById('today-count').textContent = todayCount;
             document.getElementById('completed-count').textContent = completedCount;
             
-            // ワークフロー統計を更新
-            updateWorkflowStats(filteredTasks);
+            // ワークフロー表示を削除: 管理者にとって用途が不明確なため
             
             // 分析サマリーも更新
             updateAnalyticsSummary();
@@ -6845,30 +6842,23 @@
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             document.getElementById('completion-rate').textContent = completionRate + '%';
             
-            // 期限遵守率を計算（全タスクのうち、期限を守っているタスクの割合）
-            const tasksWithDeadline = tasks.filter(task => task.deadline);
-            const currentTime = getCurrentDateTime();
-            
-            // 期限を守っているタスク = 完了済みで期限内に完了 OR 未完了だが期限前
-            const compliantTasks = tasksWithDeadline.filter(task => {
-                const deadline = new Date(task.deadline);
-                
-                if (task.columnId === 'done') {
-                    // 完了タスク: 完了日が期限以内
-                    const completedDate = task.completedAt ? new Date(task.completedAt) : currentTime;
+            // 期限遵守率を計算（全タスクのうち、期限内に完了したタスクの割合）
+            const totalTasksCount = tasks.length;
+            const completedOnTime = tasks.filter(task => {
+                if (task.columnId === 'done' && task.deadline && task.completedAt) {
+                    const deadline = new Date(task.deadline);
+                    const completedDate = new Date(task.completedAt);
                     return completedDate <= deadline;
-                } else {
-                    // 未完了タスク: 現在時刻が期限前
-                    return currentTime <= deadline;
                 }
+                return false;
             }).length;
             
-            const deadlineCompliance = tasksWithDeadline.length > 0 
-                ? Math.round((compliantTasks / tasksWithDeadline.length) * 100) 
+            const deadlineCompliance = totalTasksCount > 0 
+                ? Math.round((completedOnTime / totalTasksCount) * 100) 
                 : 100;
                 
-            console.log(`📊 [COMPLIANCE] Total tasks with deadline: ${tasksWithDeadline.length}`);
-            console.log(`📊 [COMPLIANCE] Compliant tasks: ${compliantTasks}`);
+            console.log(`📊 [COMPLIANCE] Total tasks: ${totalTasksCount}`);
+            console.log(`📊 [COMPLIANCE] Completed on time: ${completedOnTime}`);
             console.log(`📊 [COMPLIANCE] Compliance rate: ${deadlineCompliance}%`);
             
             document.getElementById('deadline-compliance').textContent = deadlineCompliance + '%';
