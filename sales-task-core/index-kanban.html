@@ -2346,6 +2346,7 @@
         }
         
         function createTaskCard(task, isFromOverdueColumn = false) {
+            console.log(`🎴 [CARD] Creating card for task ${task.id}, isBulkMode: ${isBulkMode}`);
             const deadline = new Date(task.deadline);
             const isOverdueTask = isOverdue(task.deadline, task.columnId);
             const isTodayTask = isToday(task.deadline, task.columnId);
@@ -7200,6 +7201,7 @@
         // バルク操作関数群
         function toggleBulkMode() {
             isBulkMode = !isBulkMode;
+            console.log(`🔄 [BULK] toggleBulkMode called, new state: ${isBulkMode}`);
             const bulkBar = document.getElementById('bulk-actions-bar');
             const toggleBtn = document.querySelector('button[onclick="toggleBulkMode()"]');
             
