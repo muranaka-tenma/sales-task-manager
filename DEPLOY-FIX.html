@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛠️ デプロイ問題解決ガイド</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .content {
+            padding: 2rem;
+        }
+        
+        .solution {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+        
+        .solution h3 {
+            color: #ff6b6b;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .step {
+            background: white;
+            border-left: 4px solid #4ecdc4;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .step-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+        
+        .code {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 0.5rem 0;
+            overflow-x: auto;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            color: #155724;
+        }
+        
+        .warning {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            color: #721c24;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: transform 0.3s ease;
+            margin: 1rem 0;
+        }
+        
+        .button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛠️ ドラッグ&ドロップできない時の解決法</h1>
+            <p>3つの簡単な方法で必ず解決します</p>
+        </div>
+        
+        <div class="content">
+            <div class="solution">
+                <h3>🎯 解決策1: 個別ファイル選択（推奨）</h3>
+                
+                <div class="step">
+                    <div class="step-title">1. Netlifyの画面で「browse to upload」をクリック</div>
+                    ドラッグ&ドロップエリアの下に小さく表示されているリンクです
+                </div>
+                
+                <div class="step">
+                    <div class="step-title">2. ファイル選択画面で複数選択</div>
+                    <div class="code">
+Ctrl+A（Windows）または Cmd+A（Mac）で全選択
+または
+Ctrlキーを押しながら必要なファイルをクリック：
+- index.html
+- enhanced-task-manager.html
+- sales-workflow-builder.html
+- mobile-app.html
+- admin-dashboard.html
+- manifest.json
+- sw.js
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-title">3. 「開く」をクリック</div>
+                    選択したファイルが一度にアップロードされます
+                </div>
+            </div>
+            
+            <div class="solution">
+                <h3>💡 解決策2: 圧縮ファイルを作成</h3>
+                
+                <div class="step">
+                    <div class="step-title">1. フォルダを右クリック</div>
+                    「最強タスク管理ツール」フォルダを右クリック
+                </div>
+                
+                <div class="step">
+                    <div class="step-title">2. 圧縮オプションを選択</div>
+                    <div class="highlight">
+                        <strong>Windows:</strong> 「送る」→「圧縮（zip形式）フォルダー」<br>
+                        <strong>Mac:</strong> 「"最強タスク管理ツール"を圧縮」<br>
+                        <strong>Linux:</strong> 「圧縮」または「アーカイブの作成」
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-title">3. ZIPファイルをドラッグ&ドロップ</div>
+                    作成された.zipファイルをNetlifyにドロップ
+                </div>
+                
+                <div class="success">
+                    ✅ 既に作成済み: <strong>task-manager-deploy.tar.gz</strong><br>
+                    場所: /home/muranaka-tenma/顧客管理ツール/frontend/src/services/api/
+                </div>
+            </div>
+            
+            <div class="solution">
+                <h3>🚀 解決策3: GitHub Pages（別の方法）</h3>
+                
+                <div class="step">
+                    <div class="step-title">GitHubで新しいリポジトリ作成</div>
+                    リポジトリ名: <code>sales-task-manager</code>
+                </div>
+                
+                <div class="step">
+                    <div class="step-title">ファイルをアップロード</div>
+                    GitHubの画面から「uploading an existing file」でファイルを追加
+                </div>
+                
+                <div class="step">
+                    <div class="step-title">GitHub Pagesを有効化</div>
+                    Settings → Pages → Source: Deploy from a branch → Save
+                </div>
+                
+                <div class="highlight">
+                    URL: https://[あなたのユーザー名].github.io/sales-task-manager/
+                </div>
+            </div>
+            
+            <div class="warning">
+                <strong>⚠️ よくある問題：</strong><br>
+                • ブラウザのセキュリティ設定でドラッグが制限されている<br>
+                • フォルダ名に日本語が含まれている<br>
+                • ファイルサイズが大きすぎる（通常は問題なし）
+            </div>
+            
+            <div class="success">
+                <strong>💡 最も確実な方法：</strong><br>
+                「browse to upload」から個別ファイルを選択する方法が最も確実です。<br>
+                フォルダ構造は自動的に保持されます。
+            </div>
+            
+            <div style="text-align: center; margin: 2rem 0;">
+                <a href="https://app.netlify.com/drop" target="_blank" class="button">
+                    🔄 Netlifyに戻って再試行
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

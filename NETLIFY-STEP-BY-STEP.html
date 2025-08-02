@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📋 Netlify完全ガイド - 画面通りに進む</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #00ad9f 0%, #00c6fb 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #00ad9f 0%, #00c6fb 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .content {
+            padding: 2rem;
+        }
+        
+        .step {
+            background: #f8f9fa;
+            border-left: 5px solid #00ad9f;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+        
+        .step-number {
+            background: #00ad9f;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            position: absolute;
+            left: -17px;
+            top: 1.5rem;
+        }
+        
+        .step-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #2d3748;
+            margin-left: 1rem;
+        }
+        
+        .step-desc {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-left: 1rem;
+        }
+        
+        .screenshot {
+            background: #e2e8f0;
+            border: 2px dashed #cbd5e0;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem 0;
+            color: #4a5568;
+            font-style: italic;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #856404;
+        }
+        
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #155724;
+        }
+        
+        .button-demo {
+            background: #00ad9f;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 0.5rem;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .folder-info {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        
+        .folder-info h4 {
+            color: #1565c0;
+            margin-bottom: 1rem;
+        }
+        
+        .file-list {
+            background: #f5f5f5;
+            border-radius: 5px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Netlify完全ガイド</h1>
+            <p>GitHubログイン済み → 画面通りに進むだけ</p>
+        </div>
+        
+        <div class="content">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-title">現在の画面で「Get started」をクリック</div>
+                <div class="step-desc">
+                    GitHubでログインできているなら、そのまま進めます。
+                    <div class="screenshot">
+                        [Get started] ボタンが表示されている画面
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-title">「Deploy your first project」を探す</div>
+                <div class="step-desc">
+                    次の画面で以下のようなオプションが表示されます：
+                    <div class="highlight">
+                        • <strong>「Import from Git」</strong> - GitHubから<br>
+                        • <strong>「Deploy manually」</strong> - 直接アップロード<br>
+                        • <strong>「Browse templates」</strong> - テンプレート
+                    </div>
+                    <strong>→ 「Deploy manually」を選択してください</strong>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-title">フォルダをドラッグ&ドロップ</div>
+                <div class="step-desc">
+                    大きなドロップエリアが表示されます。
+                    <div class="screenshot">
+                        「Drag and drop your site output folder here」
+                    </div>
+                    
+                    <div class="folder-info">
+                        <h4>📁 アップロードするフォルダ</h4>
+                        <div class="file-list">
+/home/muranaka-tenma/顧客管理ツール/frontend/src/services/api/最強タスク管理ツール/
+
+含まれるファイル：
+├── START-HERE.html
+├── index.html
+├── enhanced-task-manager.html  
+├── sales-workflow-builder.html
+├── mobile-app.html
+├── admin-dashboard.html
+├── manifest.json
+└── sw.js
+                        </div>
+                    </div>
+                    
+                    <strong>このフォルダ全体をドラッグ&ドロップしてください</strong>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-title">アップロード完了を待つ</div>
+                <div class="step-desc">
+                    ファイルがアップロードされると：
+                    <div class="success">
+                        ✅ 「Site deploy in progress」<br>
+                        ✅ プログレスバーが表示<br>
+                        ✅ 数秒〜1分で完了
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-title">URLを取得</div>
+                <div class="step-desc">
+                    デプロイ完了後、以下が表示されます：
+                    <div class="highlight">
+                        <strong>Site URL:</strong> https://amazing-name-123456.netlify.app
+                    </div>
+                    このURLをブックマークしてください！<br>
+                    PC・スマホ両方からアクセス可能です。
+                </div>
+            </div>
+            
+            <div class="success" style="text-align: center; font-size: 1.1rem; margin: 2rem 0;">
+                <strong>🎉 完了！</strong><br>
+                営業タスク管理システムが世界中からアクセス可能になりました
+            </div>
+            
+            <div class="highlight">
+                <strong>⚠️ もし迷ったら：</strong><br>
+                「Deploy manually」または「Drag and drop」と書かれたオプションを選んでください。<br>
+                GitHubとの連携は後からでも設定できます。
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ページ読み込み時のアニメーション
+        document.addEventListener('DOMContentLoaded', function() {
+            const steps = document.querySelectorAll('.step');
+            steps.forEach((step, index) => {
+                step.style.opacity = '0';
+                step.style.transform = 'translateX(-20px)';
+                step.style.transition = 'all 0.6s ease';
+                
+                setTimeout(() => {
+                    step.style.opacity = '1';
+                    step.style.transform = 'translateX(0)';
+                }, index * 300 + 500);
+            });
+        });
+    </script>
+</body>
+</body>
+</html>

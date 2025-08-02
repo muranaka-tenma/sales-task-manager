@@ -3,19 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リダイレクト中...</title>
+    <title>🚀 革新的タスク管理ツール V2</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 3rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 { color: #2d3748; margin-bottom: 1rem; }
+        .version-badge {
+            background: #667eea;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            display: inline-block;
+        }
+        .btn {
+            display: inline-block;
+            padding: 1rem 2rem;
+            margin: 0.5rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+        .features {
+            margin: 2rem 0;
+            text-align: left;
+        }
+        .feature {
+            margin: 0.5rem 0;
+            color: #4a5568;
+        }
+    </style>
 </head>
 <body>
-    <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif;">
-        <div style="text-align: center;">
-            <h2>新しいタスク管理画面に移動中...</h2>
-            <p>自動で移動しない場合は<a href="./task-core.html">こちらをクリック</a></p>
+    <div class="container">
+        <div class="version-badge">NEW VERSION 2.0</div>
+        <h1>🚀 革新的タスク管理ツール</h1>
+        <p style="color: #6b7280; margin-bottom: 2rem;">カスタムフロー対応の次世代タスク管理システム</p>
+        
+        <div class="features">
+            <div class="feature">✨ カスタムフロー設計</div>
+            <div class="feature">🎯 ドラッグ&ドロップ操作</div>
+            <div class="feature">📊 リアルタイム統計</div>
+            <div class="feature">💾 自動データ保存</div>
+            <div class="feature">📱 PC・スマホ対応</div>
         </div>
+        
+        <div style="margin: 2rem 0;">
+            <a href="./task-manager-v2.html" class="btn">
+                🚀 V2を使う（推奨）
+            </a>
+            <br>
+            <a href="./task-core.html" class="btn btn-secondary">
+                📋 旧版を使う
+            </a>
+        </div>
+        
+        <p style="font-size: 0.8rem; color: #9ca3af; margin-top: 2rem;">
+            V2では「タスクの異動先は、連絡待ちとか承認待ちとか...フェーズは自由設定出来て、位置とかフロー自体も直感的に設定出来る」機能を実現しました
+        </p>
     </div>
     
     <script>
-        // 即座にリダイレクト
-        window.location.replace('./task-core.html');
+        // 3秒後に自動的にV2にリダイレクト
+        setTimeout(() => {
+            window.location.href = './task-manager-v2.html';
+        }, 3000);
     </script>
 </body>
 </html>

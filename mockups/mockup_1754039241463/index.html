@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 営業タスク管理 - カンバンボード</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2d3748;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        
+        .container {
+            padding: 0.75rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        /* カンバンボード */
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .column {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            padding: 0.75rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            min-height: 450px;
+        }
+        
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding: 0.4rem 0.6rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .column-header.new {
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%);
+            color: #2d3748;
+        }
+        
+        .column-header.progress {
+            background: linear-gradient(135deg, #bee3f8 0%, #90cdf4 100%);
+            color: #2b6cb0;
+        }
+        
+        .column-header.waiting {
+            background: linear-gradient(135deg, #fef5e7 0%, #f6e05e 100%);
+            color: #d69e2e;
+        }
+        
+        .column-header.completed {
+            background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);
+            color: #2f855a;
+        }
+        
+        .column-count {
+            background: rgba(255, 255, 255, 0.4);
+            color: inherit;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        .drop-zone {
+            min-height: 350px;
+            border: 1px dashed transparent;
+            border-radius: 8px;
+            padding: 0.3rem;
+            transition: all 0.2s ease;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        /* タスクカード */
+        .task-card {
+            background: white;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            cursor: move;
+            border-left: 3px solid #667eea;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        
+        .task-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        
+        .task-card.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+        
+        /* 期限切れ・今日期限のアラート */
+        .task-card.overdue {
+            border-left-color: #e53e3e;
+            background: linear-gradient(135deg, #fed7d7 0%, #ffffff 100%);
+            animation: pulse 2s infinite;
+        }
+        
+        .task-card.today {
+            border-left-color: #d69e2e;
+            background: linear-gradient(135deg, #fef5e7 0%, #ffffff 100%);
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 2px 8px rgba(229, 62, 62, 0.2); }
+            50% { box-shadow: 0 4px 16px rgba(229, 62, 62, 0.4); }
+            100% { box-shadow: 0 2px 8px rgba(229, 62, 62, 0.2); }
+        }
+        
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 0.6rem;
+            color: #1a202c;
+            font-size: 0.9rem;
+            line-height: 1.3;
+        }
+        
+        .task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            color: #4a5568;
+            align-items: center;
+        }
+        
+        .task-deadline {
+            background: #e2e8f0;
+            padding: 0.15rem 0.45rem;
+            border-radius: 8px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.7rem;
+        }
+        
+        .task-deadline.overdue {
+            background: #e53e3e;
+            color: white;
+        }
+        
+        .task-deadline.today {
+            background: #d69e2e;
+            color: white;
+        }
+        
+        .task-priority {
+            padding: 0.15rem 0.45rem;
+            border-radius: 8px;
+            font-weight: 500;
+            color: white;
+            font-size: 0.7rem;
+        }
+        
+        .task-priority.high { background: #e53e3e; }
+        .task-priority.medium { background: #d69e2e; }
+        .task-priority.low { background: #38a169; }
+        
+        /* タスク種類別の色分け */
+        .task-card.type-visit { border-left-color: #8b5cf6; }
+        .task-card.type-document { border-left-color: #3b82f6; }
+        .task-card.type-internal { border-left-color: #f59e0b; }
+        .task-card.type-follow { border-left-color: #10b981; }
+        .task-card.type-admin { border-left-color: #6b7280; }
+        .task-card.type-meeting { border-left-color: #ef4444; }
+        
+        /* 緊急度の表示 */
+        .task-urgency {
+            padding: 0.15rem 0.45rem;
+            border-radius: 8px;
+            font-weight: 500;
+            color: white;
+            font-size: 0.7rem;
+        }
+        
+        .task-urgency.normal { background: #6b7280; }
+        .task-urgency.important { background: #f59e0b; }
+        .task-urgency.urgent { background: #ef4444; }
+        .task-urgency.critical { 
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+            animation: pulse 2s infinite;
+        }
+        
+        /* 追加日表示 */
+        .task-created {
+            font-size: 0.65rem;
+            color: #9CA3AF;
+            margin-top: 0.3rem;
+        }
+        
+        /* 備考プレビュー */
+        .task-notes-preview {
+            font-size: 0.7rem;
+            color: #6b7280;
+            margin-top: 0.4rem;
+            font-style: italic;
+            line-height: 1.2;
+            max-height: 2.4em;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        /* 他ユーザーのタスク */
+        .other-user-task {
+            opacity: 0.75;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .other-user-task .task-assignee {
+            background: #9ca3af;
+        }
+        
+        .task-assignee {
+            background: #667eea;
+            color: white;
+            padding: 0.15rem 0.45rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.7rem;
+        }
+        
+        /* タスク追加フォーム */
+        .add-task-form {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            backdrop-filter: blur(10px);
+        }
+        
+        .form-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #1a202c;
+            text-align: center;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .form-group {
+            margin-bottom: 0.75rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+            color: #2d3748;
+            font-size: 0.8rem;
+        }
+        
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border-color 0.2s ease;
+            font-family: inherit;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .add-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+        
+        .add-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(72, 187, 120, 0.25);
+        }
+        
+        .success-message {
+            background: #c6f6d5;
+            color: #2f855a;
+            padding: 1rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+        
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            .kanban-board {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-bar {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* 担当者管理 */
+        .assignee-manager {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        
+        .assignee-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .assignee-tag {
+            background: #e2e8f0;
+            padding: 0.25rem 0.6rem;
+            border-radius: 16px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .assignee-remove {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            font-size: 0.65rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 1rem;
+        }
+        
+        .modal-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #4a5568;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        
+        .close-btn:hover {
+            background: #f7fafc;
+        }
+        
+        .modal-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-header {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .status-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+        }
+        
+        .status-option {
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .status-option:hover {
+            border-color: #cbd5e0;
+        }
+        
+        .status-option.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+        
+        .save-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 1rem 2rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+        
+        .save-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .field-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        /* マイルストーン */
+        .milestone-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .milestone-item.overdue {
+            border-color: #e53e3e;
+            background: #fed7d7;
+        }
+        
+        .milestone-item.today {
+            border-color: #d69e2e;
+            background: #fef5e7;
+        }
+        
+        .milestone-item.completed {
+            background: #c6f6d5;
+            border-color: #38a169;
+            opacity: 0.7;
+        }
+        
+        .milestone-content {
+            flex: 1;
+        }
+        
+        .milestone-title {
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 0.2rem;
+        }
+        
+        .milestone-date {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .milestone-actions {
+            display: flex;
+            gap: 0.3rem;
+        }
+        
+        .milestone-check {
+            background: #38a169;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        
+        .milestone-remove {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 600px) {
+            .modal-content {
+                margin: 1rem;
+                width: calc(100% - 2rem);
+                padding: 1.5rem;
+            }
+            
+            .field-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-selector {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">🎯 営業タスク管理 - カンバンボード</div>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span>🚨 期限切れ: <strong id="overdue-count">0</strong>件</span>
+            </div>
+            <div class="stat-item">
+                <span>⏰ 今日期限: <strong id="today-count">0</strong>件</span>
+            </div>
+            <div class="stat-item">
+                <span>✅ 完了: <strong id="completed-count">0</strong>件</span>
+            </div>
+            <div class="stat-item">
+                <span>📊 全タスク: <strong id="total-count">0</strong>件</span>
+            </div>
+            <div class="stat-item">
+                <span>👤 表示: 
+                    <select id="user-filter" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.8rem;">
+                        <option value="all">全員</option>
+                        <option value="self">自分のみ</option>
+                    </select>
+                </span>
+            </div>
+            <div class="stat-item">
+                <span>🔔 
+                    <button id="notification-toggle" onclick="toggleNotifications()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 6px; padding: 0.2rem 0.5rem; font-size: 0.8rem; cursor: pointer;">
+                        通知OFF
+                    </button>
+                </span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- 担当者管理 -->
+        <div class="assignee-manager">
+            <div class="form-title">👥 担当者管理</div>
+            <div class="assignee-list" id="assignee-list"></div>
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="new-assignee" placeholder="新しい担当者名" class="form-input" style="flex: 1;">
+                <button onclick="addAssignee()" class="add-btn" style="width: auto; padding: 0.8rem 1.5rem;">追加</button>
+            </div>
+        </div>
+        
+        <!-- タスク追加フォーム -->
+        <div class="add-task-form">
+            <div class="form-title">➕ 新しいタスクを追加</div>
+            
+            <div class="form-group">
+                <label class="form-label">タスク名 *</label>
+                <input type="text" id="task-title" class="form-input" placeholder="例: A社への提案書作成" required>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">期限日 *</label>
+                    <input type="date" id="task-date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">期限時刻</label>
+                    <input type="time" id="task-time" class="form-input" value="17:00">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">優先度</label>
+                    <select id="task-priority" class="form-select">
+                        <option value="high">🔴 最重要</option>
+                        <option value="medium" selected>🟡 重要</option>
+                        <option value="low">🟢 通常</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">担当者</label>
+                    <select id="task-assignee" class="form-select">
+                        <option value="">選択してください</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">タスクの種類</label>
+                    <select id="task-type" class="form-select">
+                        <option value="visit">🚶 訪問・商談</option>
+                        <option value="document">📄 書類・資料作成</option>
+                        <option value="internal">🏢 社内申請・手続き</option>
+                        <option value="follow">📞 フォロー・確認</option>
+                        <option value="admin">⚙️ 雑務・管理業務</option>
+                        <option value="meeting">👥 会議・打ち合わせ</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">緊急度</label>
+                    <select id="task-urgency" class="form-select">
+                        <option value="normal">📋 普通</option>
+                        <option value="important">📈 重要</option>
+                        <option value="urgent">⚡ 緊急</option>
+                        <option value="critical">🔥 緊急・重要</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button class="add-btn" onclick="addTask()">タスクを追加</button>
+            <div id="success-message" class="success-message"></div>
+        </div>
+        
+        <!-- カンバンボード -->
+        <div class="kanban-board">
+            <div class="column">
+                <div class="column-header new">
+                    <span>📋 新規</span>
+                    <span class="column-count" id="count-new">0</span>
+                </div>
+                <div class="drop-zone" data-status="new" id="zone-new"></div>
+            </div>
+            
+            <div class="column">
+                <div class="column-header progress">
+                    <span>🔄 進行中</span>
+                    <span class="column-count" id="count-progress">0</span>
+                </div>
+                <div class="drop-zone" data-status="progress" id="zone-progress"></div>
+            </div>
+            
+            <div class="column">
+                <div class="column-header waiting">
+                    <span>⏳ 待機中</span>
+                    <span class="column-count" id="count-waiting">0</span>
+                </div>
+                <div class="drop-zone" data-status="waiting" id="zone-waiting"></div>
+            </div>
+            
+            <div class="column">
+                <div class="column-header completed">
+                    <span>✅ 完了</span>
+                    <span class="column-count" id="count-completed">0</span>
+                </div>
+                <div class="drop-zone" data-status="completed" id="zone-completed"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- タスク詳細編集モーダル -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">タスク詳細編集</h2>
+                <button class="close-btn" onclick="closeTaskModal()">&times;</button>
+            </div>
+            
+            <div class="modal-section">
+                <div class="section-header">📝 基本情報</div>
+                <div class="form-group">
+                    <label class="form-label">タスク名</label>
+                    <input type="text" id="modal-task-title" class="form-input">
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label class="form-label">期限日</label>
+                        <input type="date" id="modal-task-date" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">期限時刻</label>
+                        <input type="time" id="modal-task-time" class="form-input">
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label class="form-label">タスクの種類</label>
+                        <select id="modal-task-type" class="form-select">
+                            <option value="visit">🚶 訪問・商談</option>
+                            <option value="document">📄 書類・資料作成</option>
+                            <option value="internal">🏢 社内申請・手続き</option>
+                            <option value="follow">📞 フォロー・確認</option>
+                            <option value="admin">⚙️ 雑務・管理業務</option>
+                            <option value="meeting">👥 会議・打ち合わせ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">担当者</label>
+                        <select id="modal-task-assignee" class="form-select">
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label class="form-label">緊急度</label>
+                        <select id="modal-task-urgency" class="form-select">
+                            <option value="normal">📋 普通</option>
+                            <option value="important">📈 重要</option>
+                            <option value="urgent">⚡ 緊急</option>
+                            <option value="critical">🔥 緊急・重要</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">作成日時</label>
+                        <input type="text" id="modal-task-created" class="form-input" readonly style="background: #f7fafc;">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-section">
+                <div class="section-header">📊 ステータス変更</div>
+                <div class="status-selector" id="status-selector">
+                    <div class="status-option" data-status="new">📋 新規</div>
+                    <div class="status-option" data-status="progress">🔄 進行中</div>
+                    <div class="status-option" data-status="waiting">⏳ 待機中</div>
+                    <div class="status-option" data-status="completed">✅ 完了</div>
+                </div>
+            </div>
+            
+            <div class="modal-section">
+                <div class="section-header">👥 連絡先・宛先情報</div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label class="form-label">宛先・連絡先</label>
+                        <input type="text" id="modal-contact" class="form-input" placeholder="例: A社 田中様 (03-1234-5678)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">メールアドレス</label>
+                        <input type="email" id="modal-email" class="form-input" placeholder="例: tanaka@a-company.com">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-section">
+                <div class="section-header">📎 関連書類・ファイル</div>
+                <div class="form-group">
+                    <label class="form-label">関連ファイル・書類</label>
+                    <textarea id="modal-documents" class="form-textarea" placeholder="関連する書類やファイルの情報を記載&#10;例: 提案書v2.1.pdf、契約書案.docx、見積書20241201.xlsx"></textarea>
+                </div>
+            </div>
+            
+            <div class="modal-section">
+                <div class="section-header">⏰ 中間期限・マイルストーン</div>
+                <div id="milestone-list">
+                    <!-- マイルストーンがここに表示される -->
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <input type="date" id="milestone-date" class="form-input" style="flex: 1;">
+                    <input type="time" id="milestone-time" class="form-input" style="flex: 1;">
+                    <input type="text" id="milestone-title" class="form-input" placeholder="中間期限の内容" style="flex: 2;">
+                    <button type="button" onclick="addMilestone()" style="background: #667eea; color: white; border: none; padding: 0.6rem 1rem; border-radius: 6px; font-size: 0.8rem; white-space: nowrap;">追加</button>
+                </div>
+            </div>
+            
+            <div class="modal-section">
+                <div class="section-header">📝 進捗状況・備考</div>
+                <div class="form-group">
+                    <label class="form-label">進捗メモ・備考</label>
+                    <textarea id="modal-notes" class="form-textarea" placeholder="進捗状況、注意点、次のアクション等を記載&#10;例: 12/1に初回MTG実施。追加要件について12/5に再度確認予定"></textarea>
+                </div>
+            </div>
+            
+            <button class="save-btn" onclick="saveTaskDetails()">💾 変更を保存</button>
+        </div>
+    </div>
+    
+    <script>
+        // データ管理
+        let tasks = JSON.parse(localStorage.getItem('kanbanTasks') || '[]');
+        let assignees = JSON.parse(localStorage.getItem('assigneeList') || '["田中部長", "山田課長", "佐藤主任", "鈴木係長"]');
+        let currentEditingTask = null;
+        let currentUser = localStorage.getItem('currentUser') || '田中部長';
+        let userFilter = 'all';
+        let notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+        
+        // 現在の日時を取得
+        function getCurrentDateTime() {
+            return new Date();
+        }
+        
+        // 期限チェック
+        function isOverdue(deadline) {
+            return new Date(deadline) < getCurrentDateTime();
+        }
+        
+        function isToday(deadline) {
+            const today = new Date();
+            const deadlineDate = new Date(deadline);
+            return today.toDateString() === deadlineDate.toDateString();
+        }
+        
+        // 今日の日付文字列を取得
+        function getTodayString() {
+            return new Date().toISOString().split('T')[0];
+        }
+        
+        // 通知機能
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                const permission = await Notification.requestPermission();
+                return permission === 'granted';
+            }
+            return false;
+        }
+        
+        function showNotification(title, options = {}) {
+            if (!notificationsEnabled || !('Notification' in window) || Notification.permission !== 'granted') {
+                return;
+            }
+            
+            const notification = new Notification(title, {
+                icon: '🎯',
+                badge: '🎯',
+                ...options
+            });
+            
+            // 5秒後に自動で閉じる
+            setTimeout(() => notification.close(), 5000);
+            
+            return notification;
+        }
+        
+        async function toggleNotifications() {
+            const button = document.getElementById('notification-toggle');
+            
+            if (!notificationsEnabled) {
+                const granted = await requestNotificationPermission();
+                if (granted) {
+                    notificationsEnabled = true;
+                    localStorage.setItem('notificationsEnabled', 'true');
+                    button.textContent = '通知ON';
+                    button.style.background = 'rgba(34, 197, 94, 0.8)';
+                    showNotification('🎯 通知が有効になりました', {
+                        body: '新しいタスクが割り当てられた時に通知します'
+                    });
+                } else {
+                    alert('通知を有効にするには、ブラウザの設定で通知を許可してください。');
+                }
+            } else {
+                notificationsEnabled = false;
+                localStorage.setItem('notificationsEnabled', 'false');
+                button.textContent = '通知OFF';
+                button.style.background = 'rgba(255,255,255,0.2)';
+            }
+        }
+        
+        // 成功メッセージを表示
+        function showMessage(text, duration = 3000) {
+            const messageEl = document.getElementById('success-message');
+            messageEl.textContent = text;
+            messageEl.style.display = 'block';
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, duration);
+        }
+        
+        // 担当者を追加
+        function addAssignee() {
+            const input = document.getElementById('new-assignee');
+            const name = input.value.trim();
+            
+            if (!name) {
+                alert('担当者名を入力してください');
+                return;
+            }
+            
+            if (assignees.includes(name)) {
+                alert('この担当者は既に存在します');
+                return;
+            }
+            
+            assignees.push(name);
+            saveAssignees();
+            renderAssignees();
+            updateAssigneeSelect();
+            input.value = '';
+            showMessage(`担当者「${name}」を追加しました`);
+        }
+        
+        // 担当者を削除
+        function removeAssignee(name) {
+            if (confirm(`担当者「${name}」を削除しますか？`)) {
+                assignees = assignees.filter(a => a !== name);
+                saveAssignees();
+                renderAssignees();
+                updateAssigneeSelect();
+                showMessage(`担当者「${name}」を削除しました`);
+            }
+        }
+        
+        // 担当者を保存
+        function saveAssignees() {
+            localStorage.setItem('assigneeList', JSON.stringify(assignees));
+        }
+        
+        // 担当者を表示
+        function renderAssignees() {
+            const list = document.getElementById('assignee-list');
+            list.innerHTML = assignees.map(name => `
+                <div class="assignee-tag">
+                    ${name}
+                    <button class="assignee-remove" onclick="removeAssignee('${name}')" title="削除">×</button>
+                </div>
+            `).join('');
+        }
+        
+        // 担当者選択肢を更新
+        function updateAssigneeSelect() {
+            const select = document.getElementById('task-assignee');
+            select.innerHTML = '<option value="">選択してください</option>' + 
+                assignees.map(name => `<option value="${name}">${name}</option>`).join('');
+        }
+        
+        // タスクを追加
+        function addTask() {
+            const title = document.getElementById('task-title').value.trim();
+            const date = document.getElementById('task-date').value;
+            const time = document.getElementById('task-time').value;
+            const priority = document.getElementById('task-priority').value;
+            const assignee = document.getElementById('task-assignee').value;
+            
+            if (!title) {
+                alert('タスク名を入力してください');
+                return;
+            }
+            
+            if (!date) {
+                alert('期限日を設定してください');
+                return;
+            }
+            
+            const deadline = new Date(`${date}T${time || '23:59'}`);
+            
+            const taskType = document.getElementById('task-type').value;
+            const urgency = document.getElementById('task-urgency').value;
+            
+            const newTask = {
+                id: Date.now(),
+                title: title,
+                deadline: deadline.toISOString(),
+                priority: priority,
+                assignee: assignee || '未設定',
+                status: 'new',
+                createdAt: new Date().toISOString(),
+                taskType: taskType,
+                urgency: urgency,
+                contact: '',
+                email: '',
+                documents: '',
+                notes: '',
+                milestones: []
+            };
+            
+            tasks.push(newTask);
+            saveTasks();
+            renderTasks();
+            updateStats();
+            
+            // 自分宛てのタスクが追加された場合の通知
+            if (newTask.assignee === currentUser) {
+                showNotification('🎯 新しいタスクが追加されました', {
+                    body: `${newTask.title}\n期限: ${new Date(newTask.deadline).toLocaleDateString('ja-JP')}`,
+                    tag: 'new-task'
+                });
+            }
+            
+            // フォームをクリア
+            document.getElementById('task-title').value = '';
+            document.getElementById('task-date').value = getTodayString();
+            document.getElementById('task-time').value = '17:00';
+            document.getElementById('task-assignee').value = '';
+            document.getElementById('task-type').value = 'visit';
+            document.getElementById('task-urgency').value = 'normal';
+            
+            showMessage(`✅ タスク「${title}」を追加しました！`);
+        }
+        
+        // タスクを保存
+        function saveTasks() {
+            localStorage.setItem('kanbanTasks', JSON.stringify(tasks));
+        }
+        
+        // タスクを削除
+        function deleteTask(taskId) {
+            if (confirm('このタスクを削除しますか？')) {
+                const task = tasks.find(t => t.id === taskId);
+                tasks = tasks.filter(t => t.id !== taskId);
+                saveTasks();
+                renderTasks();
+                updateStats();
+                showMessage(`🗑️ タスク「${task.title}」を削除しました`);
+            }
+        }
+        
+        // タスクを表示
+        function renderTasks() {
+            const statuses = ['new', 'progress', 'waiting', 'completed'];
+            
+            statuses.forEach(status => {
+                const zone = document.getElementById(`zone-${status}`);
+                let statusTasks = tasks.filter(t => t.status === status);
+                
+                // ユーザーフィルタリング
+                if (userFilter === 'self') {
+                    statusTasks = statusTasks.filter(t => t.assignee === currentUser);
+                }
+                
+                zone.innerHTML = statusTasks.map(task => {
+                    const deadline = new Date(task.deadline);
+                    const isOverdueTask = isOverdue(task.deadline) && task.status !== 'completed';
+                    const isTodayTask = isToday(task.deadline) && task.status !== 'completed';
+                    
+                    let cardClass = 'task-card';
+                    if (isOverdueTask) cardClass += ' overdue';
+                    else if (isTodayTask) cardClass += ' today';
+                    
+                    let deadlineClass = 'task-deadline';
+                    let deadlineIcon = '📅';
+                    if (isOverdueTask) {
+                        deadlineClass += ' overdue';
+                        deadlineIcon = '🚨';
+                    } else if (isTodayTask) {
+                        deadlineClass += ' today';
+                        deadlineIcon = '⏰';
+                    }
+                    
+                    // 追加情報の表示アイコン
+                    let additionalIcons = '';
+                    if (task.contact) additionalIcons += ' 📞';
+                    if (task.email) additionalIcons += ' 📧';
+                    if (task.documents) additionalIcons += ' 📎';
+                    if (task.notes) additionalIcons += ' 📝';
+                    
+                    // 添付ファイルありアイコン（書類情報がある場合）
+                    if (task.documents && task.documents.trim()) {
+                        additionalIcons += ' 📂';
+                    }
+                    
+                    // タスク種類による色分け
+                    const typeClass = task.taskType ? `type-${task.taskType}` : '';
+                    
+                    // 緊急度の表示
+                    const urgencyText = {
+                        'normal': '📋',
+                        'important': '📈',
+                        'urgent': '⚡',
+                        'critical': '🔥'
+                    }[task.urgency || 'normal'];
+                    
+                    // 備考プレビュー（最初の30文字）
+                    const notesPreview = task.notes ? task.notes.substring(0, 30) + (task.notes.length > 30 ? '...' : '') : '';
+                    
+                    // マイルストーン情報
+                    const milestoneCount = task.milestones ? task.milestones.length : 0;
+                    const milestoneIcon = milestoneCount > 0 ? ` 🎯${milestoneCount}` : '';
+                    
+                    // 作成日表示
+                    const createdDate = new Date(task.createdAt).toLocaleDateString('ja-JP');
+                    
+                    // 他ユーザーのタスクかどうかの判定と色分け
+                    const isOwnTask = task.assignee === currentUser;
+                    const ownershipClass = !isOwnTask && userFilter === 'all' ? ' other-user-task' : '';
+                    
+                    return `
+                        <div class="${cardClass} ${typeClass}${ownershipClass}" draggable="true" data-task-id="${task.id}" onclick="openTaskModal(${task.id})" style="cursor: pointer;">
+                            <div class="task-title">${task.title}${additionalIcons}${milestoneIcon}</div>
+                            <div class="task-meta">
+                                <span class="${deadlineClass}">
+                                    ${deadlineIcon} ${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
+                                </span>
+                                <span class="task-urgency ${task.urgency || 'normal'}">
+                                    ${urgencyText}
+                                </span>
+                                <span class="task-assignee">${task.assignee}</span>
+                                <button onclick="event.stopPropagation(); deleteTask(${task.id})" style="background: #e53e3e; color: white; border: none; padding: 0.2rem 0.4rem; border-radius: 6px; font-size: 0.7rem; cursor: pointer; margin-left: auto;">削除</button>
+                            </div>
+                            ${notesPreview ? `<div class="task-notes-preview">"${notesPreview}"</div>` : ''}
+                            <div class="task-created">作成: ${createdDate}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // カウントを更新
+                document.getElementById(`count-${status}`).textContent = statusTasks.length;
+            });
+            
+            // ドラッグイベントを再設定
+            setupDragAndDrop();
+        }
+        
+        // モーダル関連の関数
+        function openTaskModal(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            currentEditingTask = task;
+            
+            // 基本情報を設定
+            document.getElementById('modal-task-title').value = task.title;
+            document.getElementById('modal-task-date').value = new Date(task.deadline).toISOString().split('T')[0];
+            document.getElementById('modal-task-time').value = new Date(task.deadline).toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'});
+            document.getElementById('modal-task-priority').value = task.priority;
+            document.getElementById('modal-task-type').value = task.taskType || 'visit';
+            document.getElementById('modal-task-urgency').value = task.urgency || 'normal';
+            document.getElementById('modal-task-created').value = new Date(task.createdAt).toLocaleString('ja-JP');
+            
+            // 担当者選択肢を更新
+            const assigneeSelect = document.getElementById('modal-task-assignee');
+            assigneeSelect.innerHTML = '<option value="">選択してください</option>' + 
+                assignees.map(name => `<option value="${name}" ${task.assignee === name ? 'selected' : ''}>${name}</option>`).join('');
+            
+            // ステータス選択を設定
+            document.querySelectorAll('.status-option').forEach(option => {
+                option.classList.remove('selected');
+                if (option.dataset.status === task.status) {
+                    option.classList.add('selected');
+                }
+            });
+            
+            // 追加情報を設定
+            document.getElementById('modal-contact').value = task.contact || '';
+            document.getElementById('modal-email').value = task.email || '';
+            document.getElementById('modal-documents').value = task.documents || '';
+            document.getElementById('modal-notes').value = task.notes || '';
+            
+            // マイルストーンを表示
+            renderMilestones();
+            
+            // モーダルを表示
+            document.getElementById('task-modal').style.display = 'block';
+        }
+        
+        function closeTaskModal() {
+            document.getElementById('task-modal').style.display = 'none';
+            currentEditingTask = null;
+        }
+        
+        function saveTaskDetails() {
+            if (!currentEditingTask) return;
+            
+            // 基本情報を更新
+            currentEditingTask.title = document.getElementById('modal-task-title').value.trim();
+            const date = document.getElementById('modal-task-date').value;
+            const time = document.getElementById('modal-task-time').value;
+            currentEditingTask.deadline = new Date(`${date}T${time || '23:59'}`).toISOString();
+            currentEditingTask.priority = document.getElementById('modal-task-priority').value;
+            currentEditingTask.assignee = document.getElementById('modal-task-assignee').value || '未設定';
+            currentEditingTask.taskType = document.getElementById('modal-task-type').value;
+            currentEditingTask.urgency = document.getElementById('modal-task-urgency').value;
+            
+            // ステータスを更新
+            const selectedStatus = document.querySelector('.status-option.selected');
+            if (selectedStatus) {
+                currentEditingTask.status = selectedStatus.dataset.status;
+            }
+            
+            // 追加情報を更新
+            currentEditingTask.contact = document.getElementById('modal-contact').value.trim();
+            currentEditingTask.email = document.getElementById('modal-email').value.trim();
+            currentEditingTask.documents = document.getElementById('modal-documents').value.trim();
+            currentEditingTask.notes = document.getElementById('modal-notes').value.trim();
+            
+            // 担当者が変更された場合の通知
+            const originalAssignee = tasks.find(t => t.id === currentEditingTask.id).assignee;
+            const newAssignee = currentEditingTask.assignee;
+            
+            // 保存と再描画
+            saveTasks();
+            renderTasks();
+            updateStats();
+            closeTaskModal();
+            
+            // 担当者変更通知
+            if (originalAssignee !== newAssignee && newAssignee !== currentUser && newAssignee !== '未設定') {
+                showNotification('🎯 タスクが割り当てられました', {
+                    body: `${currentEditingTask.title}\n担当者: ${newAssignee}`,
+                    tag: 'task-assigned'
+                });
+            }
+            
+            showMessage(`✅ タスク「${currentEditingTask.title}」を更新しました！`);
+        }
+        
+        // マイルストーン関連の関数
+        function addMilestone() {
+            if (!currentEditingTask) return;
+            
+            const date = document.getElementById('milestone-date').value;
+            const time = document.getElementById('milestone-time').value;
+            const title = document.getElementById('milestone-title').value.trim();
+            
+            if (!date || !title) {
+                alert('日付とタイトルを入力してください');
+                return;
+            }
+            
+            const milestone = {
+                id: Date.now(),
+                title: title,
+                deadline: new Date(`${date}T${time || '23:59'}`).toISOString(),
+                completed: false
+            };
+            
+            if (!currentEditingTask.milestones) {
+                currentEditingTask.milestones = [];
+            }
+            
+            currentEditingTask.milestones.push(milestone);
+            currentEditingTask.milestones.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+            
+            // フォームをクリア
+            document.getElementById('milestone-date').value = '';
+            document.getElementById('milestone-time').value = '';
+            document.getElementById('milestone-title').value = '';
+            
+            renderMilestones();
+        }
+        
+        function renderMilestones() {
+            if (!currentEditingTask || !currentEditingTask.milestones) return;
+            
+            const milestoneList = document.getElementById('milestone-list');
+            
+            if (currentEditingTask.milestones.length === 0) {
+                milestoneList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 1rem; font-size: 0.9rem;">マイルストーンが設定されていません</div>';
+                return;
+            }
+            
+            milestoneList.innerHTML = currentEditingTask.milestones.map(milestone => {
+                const deadline = new Date(milestone.deadline);
+                const isOverdue = deadline < getCurrentDateTime() && !milestone.completed;
+                const isToday = isToday(milestone.deadline) && !milestone.completed;
+                
+                let itemClass = 'milestone-item';
+                if (milestone.completed) itemClass += ' completed';
+                else if (isOverdue) itemClass += ' overdue';
+                else if (isToday) itemClass += ' today';
+                
+                return `
+                    <div class="${itemClass}">
+                        <div class="milestone-content">
+                            <div class="milestone-title">${milestone.completed ? '✅ ' : ''}${milestone.title}</div>
+                            <div class="milestone-date">${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}</div>
+                        </div>
+                        <div class="milestone-actions">
+                            ${!milestone.completed ? 
+                                `<button class="milestone-check" onclick="toggleMilestone(${milestone.id})">完了</button>` : 
+                                `<button class="milestone-check" onclick="toggleMilestone(${milestone.id})" style="background: #6b7280;">未完了</button>`
+                            }
+                            <button class="milestone-remove" onclick="removeMilestone(${milestone.id})">削除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function toggleMilestone(milestoneId) {
+            if (!currentEditingTask || !currentEditingTask.milestones) return;
+            
+            const milestone = currentEditingTask.milestones.find(m => m.id === milestoneId);
+            if (milestone) {
+                milestone.completed = !milestone.completed;
+                renderMilestones();
+            }
+        }
+        
+        function removeMilestone(milestoneId) {
+            if (!currentEditingTask || !currentEditingTask.milestones) return;
+            
+            if (confirm('このマイルストーンを削除しますか？')) {
+                currentEditingTask.milestones = currentEditingTask.milestones.filter(m => m.id !== milestoneId);
+                renderMilestones();
+            }
+        }
+        
+        // ステータス選択
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.status-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.status-option').forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                });
+            });
+            
+            // モーダル外クリックで閉じる
+            document.getElementById('task-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeTaskModal();
+                }
+            });
+        });
+        
+        // ドラッグ&ドロップを設定
+        function setupDragAndDrop() {
+            // タスクカードのドラッグイベント
+            document.querySelectorAll('.task-card').forEach(card => {
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', card.dataset.taskId);
+                    card.classList.add('dragging');
+                });
+                
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                });
+            });
+            
+            // ドロップゾーンのイベント
+            document.querySelectorAll('.drop-zone').forEach(zone => {
+                zone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+                
+                zone.addEventListener('dragleave', () => {
+                    zone.classList.remove('drag-over');
+                });
+                
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('drag-over');
+                    
+                    const taskId = parseInt(e.dataTransfer.getData('text/plain'));
+                    const newStatus = zone.dataset.status;
+                    const task = tasks.find(t => t.id === taskId);
+                    
+                    if (task && task.status !== newStatus) {
+                        task.status = newStatus;
+                        saveTasks();
+                        renderTasks();
+                        updateStats();
+                        
+                        const statusNames = {
+                            'new': '新規',
+                            'progress': '進行中',
+                            'waiting': '待機中',
+                            'completed': '完了'
+                        };
+                        
+                        showMessage(`📋 「${task.title}」を「${statusNames[newStatus]}」に移動しました`);
+                    }
+                });
+            });
+        }
+        
+        // 統計を更新
+        function updateStats() {
+            let filteredTasks = tasks;
+            
+            // ユーザーフィルタリング適用
+            if (userFilter === 'self') {
+                filteredTasks = tasks.filter(t => t.assignee === currentUser);
+            }
+            
+            const overdueCount = filteredTasks.filter(t => t.status !== 'completed' && isOverdue(t.deadline)).length;
+            const todayCount = filteredTasks.filter(t => t.status !== 'completed' && isToday(t.deadline)).length;
+            const completedCount = filteredTasks.filter(t => t.status === 'completed').length;
+            const totalCount = filteredTasks.length;
+            
+            document.getElementById('overdue-count').textContent = overdueCount;
+            document.getElementById('today-count').textContent = todayCount;
+            document.getElementById('completed-count').textContent = completedCount;
+            document.getElementById('total-count').textContent = totalCount;
+        }
+        
+        // ユーザーフィルタ変更
+        function changeUserFilter() {
+            const filterSelect = document.getElementById('user-filter');
+            userFilter = filterSelect.value;
+            renderTasks();
+            updateStats();
+        }
+        
+        // 期限切れタスクの定期チェック
+        function checkOverdueTasks() {
+            const overdueTasks = tasks.filter(t => 
+                t.assignee === currentUser && 
+                t.status !== 'completed' && 
+                isOverdue(t.deadline)
+            );
+            
+            if (overdueTasks.length > 0) {
+                showNotification(`🚨 期限切れタスク ${overdueTasks.length}件`, {
+                    body: `最も古い期限切れ: ${overdueTasks[0].title}`,
+                    tag: 'overdue-reminder'
+                });
+            }
+        }
+        
+        // 初期化
+        function init() {
+            document.getElementById('task-date').value = getTodayString();
+            renderAssignees();
+            updateAssigneeSelect();
+            renderTasks();
+            updateStats();
+            
+            // 通知ボタンの初期状態設定
+            const notificationButton = document.getElementById('notification-toggle');
+            if (notificationsEnabled) {
+                notificationButton.textContent = '通知ON';
+                notificationButton.style.background = 'rgba(34, 197, 94, 0.8)';
+            }
+            
+            // ユーザーフィルタのイベントリスナー
+            document.getElementById('user-filter').addEventListener('change', changeUserFilter);
+            
+            // Enter キーでタスク追加
+            document.getElementById('task-title').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addTask();
+                }
+            });
+            
+            // 担当者追加のEnterキー
+            document.getElementById('new-assignee').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addAssignee();
+                }
+            });
+            
+            // 定期更新（1分ごと）
+            setInterval(() => {
+                renderTasks();
+                updateStats();
+            }, 60000);
+            
+            // 期限切れチェック（10分ごと）
+            setInterval(checkOverdueTasks, 600000);
+            
+            // 初回期限切れチェック（5秒後）
+            setTimeout(checkOverdueTasks, 5000);
+        }
+        
+        init();
+    </script>
+</body>
+</html>
