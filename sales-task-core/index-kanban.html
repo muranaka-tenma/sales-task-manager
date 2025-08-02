@@ -2176,10 +2176,12 @@
         
         // ドラッグ&ドロップ
         function handleDragStart(e, taskId) {
+            console.log(`🟢 handleDragStart called with taskId: ${taskId}`);
             draggedTask = tasks.find(t => t.id === taskId);
+            console.log(`🟢 Found draggedTask:`, draggedTask);
             e.target.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
-            console.log(`Dragging task: ${draggedTask?.title}`);
+            e.dataTransfer.setData('text/plain', ''); // 必要な場合があります
         }
         
         function handleDragEnd(e) {
@@ -2193,29 +2195,39 @@
         }
         
         function handleDrop(e, columnId) {
+            console.log(`🔵 handleDrop called with columnId: ${columnId}`);
+            console.log(`🔵 draggedTask:`, draggedTask);
             e.preventDefault();
             const dropZone = e.currentTarget;
             dropZone.classList.remove('drag-over');
             
-            if (draggedTask && draggedTask.columnId !== columnId) {
-                console.log(`Moving "${draggedTask.title}" to ${columnId}`);
+            if (draggedTask) {
+                console.log(`🔵 Current task column: ${draggedTask.columnId}, Target: ${columnId}`);
                 
-                // Doneカラムに移動する場合、completedAtを記録
-                if (columnId === 'done' && !draggedTask.completedAt) {
-                    draggedTask.completedAt = new Date().toISOString();
+                if (draggedTask.columnId !== columnId) {
+                    console.log(`🟡 Moving "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
+                    
+                    // Doneカラムに移動する場合、completedAtを記録
+                    if (columnId === 'done' && !draggedTask.completedAt) {
+                        draggedTask.completedAt = new Date().toISOString();
+                    }
+                    // Doneカラムから他に移動する場合、completedAtをクリア
+                    else if (draggedTask.columnId === 'done' && columnId !== 'done') {
+                        draggedTask.completedAt = null;
+                    }
+                    
+                    draggedTask.columnId = columnId;
+                    draggedTask.completed = (columnId === 'done');
+                    saveTasks();
+                    render();
+                    updateStats();
+                    
+                    console.log(`✅ Task moved successfully to ${columnId}`);
+                } else {
+                    console.log(`⚠️ Same column, no move needed`);
                 }
-                // Doneカラムから他に移動する場合、completedAtをクリア
-                else if (draggedTask.columnId === 'done' && columnId !== 'done') {
-                    draggedTask.completedAt = null;
-                }
-                
-                draggedTask.columnId = columnId;
-                draggedTask.completed = (columnId === 'done');
-                saveTasks();
-                render();
-                updateStats();
-                
-                console.log(`Task moved successfully`);
+            } else {
+                console.log(`❌ No draggedTask found`);
             }
         }
         
