@@ -2785,20 +2785,31 @@
                 </div>
                 
                 ${originalImageDataUrl ? `
-                <div style="margin-bottom: 1rem; padding: 0.75rem; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <h6 style="margin: 0; color: #495057;">🖼️ スクリーンショット参考</h6>
-                        <button onclick="toggleScreenshot()" id="screenshot-toggle" style="padding: 0.25rem 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
-                            非表示
-                        </button>
+                <!-- スクリーンショット表示＋タスクカード横並びレイアウト -->
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <!-- 左側：スクリーンショット -->
+                    <div style="flex: 1; padding: 0.75rem; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <h6 style="margin: 0; color: #495057;">🖼️ スクリーンショット参考</h6>
+                            <button onclick="toggleScreenshot()" id="screenshot-toggle" style="padding: 0.25rem 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                                非表示
+                            </button>
+                        </div>
+                        <div id="screenshot-preview" style="max-height: 500px; overflow: auto; text-align: center;">
+                            <img src="${originalImageDataUrl}" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;">
+                        </div>
                     </div>
-                    <div id="screenshot-preview" style="max-height: 300px; overflow: auto; text-align: center;">
-                        <img src="${originalImageDataUrl}" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 4px;">
+                    
+                    <!-- 右側：タスクカード縦列表示 -->
+                    <div style="flex: 1; padding: 0.75rem; background: #f0f2f5; border: 1px solid #ddd; border-radius: 4px; max-height: 500px; overflow-y: auto;">
+                        <h6 style="margin: 0 0 1rem 0; color: #495057;">📝 認識されたタスク一覧</h6>
+                        <div id="preview-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        </div>
                     </div>
                 </div>
-                ` : ''}
-                
+                ` : `
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; padding: 1rem; background: #f0f2f5; border-radius: 12px;" id="preview-container" class="preview-grid">
+                `}
             `;
             
             previewTasks.forEach((task, index) => {
@@ -2826,8 +2837,13 @@
                     headerText = isAutoDetected ? '✨ 自動コメント' : 'ドラッグ可能';
                 }
                 
+                // スクリーンショット表示時は縦列レイアウト用にスタイル調整
+                const cardStyle = originalImageDataUrl ? 
+                    `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; margin-bottom: 0;` :
+                    `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content;`;
+                
                 content += `
-                    <div style="border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content;" 
+                    <div style="${cardStyle}" 
                          draggable="true" 
                          ondragstart="handleDragStart(event, ${index})" 
                          ondragend="handleDragEnd(event)"
@@ -3301,11 +3317,17 @@
                 closeSettingsModal();
                 
                 const commentCount = previewTasks.filter(t => !t.isMainTask && !t.isSkip).length;
-                let message = `✅ ${importedCount}個のタスクをインポートしました！`;
+                let message = `🎉 タスク追加が完了しました！\n\n`;
+                message += `📋 ${importedCount}個のタスクを追加\n`;
                 if (commentCount > 0) {
-                    message += `\n💬 ${commentCount}個のコメントも追加されました。`;
+                    message += `💬 ${commentCount}個のコメントを追加\n`;
                 }
+                message += `\n🎯 タスク管理画面に移行します...`;
+                
                 alert(message);
+                
+                // 画像データもクリア
+                originalImageDataUrl = null;
             }
         }
         
@@ -3320,6 +3342,7 @@
             document.getElementById('ocr-file-input').value = ''; // OCRファイルもクリア
             hidePreview(); // プレビューも同時にクリア
             hideImagePreview(); // 画像プレビューもクリア
+            originalImageDataUrl = null; // 画像データもクリア
         }
         
         // 画像選択時の処理（領域選択モード）
