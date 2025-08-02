@@ -2003,6 +2003,10 @@
             
             saveTasks();
             render();
+            
+            // タスク作成・編集後に即座に期限チェック
+            setTimeout(() => checkDeadlines(), 100);
+            
             closeModal();
             
         }
@@ -2441,6 +2445,15 @@
                     );
                     task.overdueNotified = true;
                 }
+                // 5分前通知
+                else if (timeUntilDeadline > 0 && timeUntilDeadline <= 5 * 60 * 1000 && !task.fiveMinNotified) {
+                    showNotification(
+                        '🚨 緊急期限',
+                        `「${task.title}」の期限まで5分です！`,
+                        { tag: `fivemin-${task.id}`, taskId: task.id }
+                    );
+                    task.fiveMinNotified = true;
+                }
                 // 3時間前通知
                 else if (timeUntilDeadline > 0 && timeUntilDeadline <= 3 * 60 * 60 * 1000 && !task.threeHourNotified) {
                     showNotification(
@@ -2844,9 +2857,9 @@
             // 担当者フィルタを初期化
             updateAssigneeFilter();
             
-            // 定期的に期限チェック（5分間隔）
+            // 定期的に期限チェック（1分間隔）
             checkDeadlines();
-            setInterval(checkDeadlines, 5 * 60 * 1000);
+            setInterval(checkDeadlines, 1 * 60 * 1000);
         }
         
         // イベントリスナー
@@ -3635,6 +3648,9 @@
             if (importedCount > 0) {
                 saveTasks();
                 render();
+                
+                // タスクインポート後に即座に期限チェック
+                setTimeout(() => checkDeadlines(), 100);
                 
                 // プレビューをリセットしてタスク画面に切り替え
                 document.getElementById('import-text').value = '';
