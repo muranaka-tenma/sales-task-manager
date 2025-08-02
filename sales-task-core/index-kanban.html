@@ -2039,6 +2039,17 @@
         async function saveTask(event) {
             event.preventDefault();
             
+            // 編集モード時は task-column-input の required 属性を一時的に削除
+            const columnInput = document.getElementById('task-column-input');
+            const columnSelectionGroup = document.getElementById('column-selection-group');
+            const wasRequired = columnInput.hasAttribute('required');
+            const isColumnSelectionHidden = columnSelectionGroup.style.display === 'none';
+            
+            if (isColumnSelectionHidden && wasRequired) {
+                columnInput.removeAttribute('required');
+                console.log(`🔧 [FORM] Temporarily removed required attribute from task-column-input`);
+            }
+            
             const title = document.getElementById('task-title-input').value.trim();
             const date = document.getElementById('task-date-input').value;
             const time = document.getElementById('task-time-input').value;
@@ -2186,6 +2197,12 @@
             
             // タスク作成・編集後に即座に期限チェック
             setTimeout(() => checkDeadlines(), 100);
+            
+            // required 属性を復活 (統一作成モード用)
+            if (wasRequired && isColumnSelectionHidden) {
+                columnInput.setAttribute('required', '');
+                console.log(`🔧 [FORM] Restored required attribute to task-column-input`);
+            }
             
             closeModal();
             
