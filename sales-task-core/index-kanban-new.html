@@ -2118,6 +2118,23 @@
             const isOverdueTask = isOverdue(task.deadline, task.columnId);
             const isTodayTask = isToday(task.deadline, task.columnId);
             
+            // 経過日数を計算
+            let daysSinceCreated = 0;
+            let daysText = '';
+            if (task.createdAt) {
+                const createdDate = new Date(task.createdAt);
+                const now = new Date();
+                daysSinceCreated = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+                
+                if (daysSinceCreated === 0) {
+                    daysText = '今日作成';
+                } else if (daysSinceCreated === 1) {
+                    daysText = '1日前';
+                } else {
+                    daysText = `${daysSinceCreated}日前`;
+                }
+            }
+            
             let cardClass = `task-card priority-${task.priority}`;
             if (isOverdueTask) cardClass += ' overdue';
             else if (isTodayTask) cardClass += ' today';
@@ -2144,7 +2161,10 @@
                      ondragstart="handleDragStart(event, ${task.id})"
                      ondragend="handleDragEnd(event)"
                      onclick="editTask(${task.id})">
-                    <div class="task-title">${task.title}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <div class="task-title" style="flex: 1;">${task.title}</div>
+                        ${daysText ? `<div style="font-size: 0.65rem; color: #a0aec0; padding: 0.2rem 0.4rem; background: #f7fafc; border-radius: 3px; white-space: nowrap; margin-left: 0.5rem;">${daysText}</div>` : ''}
+                    </div>
                     <div class="task-meta">
                         <span class="${deadlineClass}">
                             ${deadlineIcon} ${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
@@ -6582,12 +6602,13 @@
             });
             
             // レポート表示
+            const modalId = 'period-report-' + Date.now();
             const reportHTML = `
-                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;">
+                <div id="${modalId}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;" onclick="if(event.target === this) document.getElementById('${modalId}').remove()">
                     <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem;">
                             <h3 style="margin: 0; color: #2d3748;">📊 ${periodName}のレポート</h3>
-                            <button onclick="this.closest('[style*=\"position: fixed\"]').remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #a0aec0;">&times;</button>
+                            <button onclick="document.getElementById('${modalId}').remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #a0aec0; padding: 0.5rem; z-index: 2001; position: relative;">&times;</button>
                         </div>
                         
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
