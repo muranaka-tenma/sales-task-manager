@@ -3274,6 +3274,9 @@
         }
         
         function executeImport() {
+            console.log('🚀 executeImport開始, previewTasks.length:', previewTasks.length);
+            console.log('📸 originalImageDataUrl存在:', !!originalImageDataUrl);
+            
             if (previewTasks.length === 0) {
                 alert('インポートするタスクがありません');
                 return;
@@ -3353,7 +3356,9 @@
                 }
                 message += `\n🎯 タスク管理画面に移行します...`;
                 
+                console.log('💬 メッセージ表示:', message);
                 alert(message);
+                console.log('💬 alert完了');
                 
                 // 画像データもクリア
                 originalImageDataUrl = null;
