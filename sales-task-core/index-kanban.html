@@ -2277,19 +2277,11 @@
                 console.log(`🔵 [MAIN] Current task column: ${draggedTask.columnId}, Target: ${columnId}`);
                 
                 if (draggedTask.columnId !== columnId) {
-                    // 期限切れタスクを移動する場合の確認
-                    if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId) && columnId !== 'done') {
-                        const shouldMove = confirm(
-                            `⚠️ 期限切れタスクの移動\n\n` +
-                            `"${draggedTask.title}" は期限切れです。\n` +
-                            `${getColumnTitle(columnId)}ステータスに移動しますか？\n\n` +
-                            `移動後は期限切れエリアには表示されなくなります。`
-                        );
-                        
-                        if (!shouldMove) {
-                            console.log(`❌ [MAIN] Overdue task move cancelled by user`);
-                            return;
-                        }
+                    // 期限切れタスクのdrag&dropは無効（期限延長でのみ移動可能）
+                    if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId)) {
+                        console.log(`❌ [MAIN] Overdue task drag&drop is disabled`);
+                        alert('期限切れタスクは直接移動できません。\n編集画面で期限を延長すると移動できます。');
+                        return;
                     }
                     
                     console.log(`🟡 [MAIN] Moving "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
@@ -2328,32 +2320,14 @@
         }
         
         function handleOverdueDrop(e) {
-            console.log(`🔴 [OVERDUE] handleOverdueDrop called`);
+            console.log(`🔴 [OVERDUE] handleOverdueDrop called - disabled`);
             e.preventDefault();
             const dropZone = e.currentTarget;
             dropZone.classList.remove('drag-over');
             
-            if (draggedTask) {
-                // 期限切れカラムには期限切れタスクのみをドロップ可能
-                if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId)) {
-                    console.log(`⚠️ [OVERDUE] Task is already overdue, no move needed`);
-                    return;
-                }
-                
-                // 期限切れではないタスクを期限切れカラムにドロップしようとした場合
-                const shouldMove = confirm(
-                    `⚠️ 期限切れエリアへの移動\n\n` +
-                    `"${draggedTask.title}" は期限切れではありませんが、期限切れエリアに移動しますか？\n\n` +
-                    `※ 移動後も元のステータス（${getColumnTitle(draggedTask.columnId)}）に表示されます。`
-                );
-                
-                if (!shouldMove) {
-                    console.log(`❌ [OVERDUE] Move cancelled by user`);
-                    return;
-                }
-                
-                console.log(`🟡 [OVERDUE] Non-overdue task moved to overdue display`);
-            }
+            // 期限切れエリアへのドロップは無効
+            alert('期限切れエリアには直接移動できません。\n編集画面で期限を延長してください。');
+            console.log(`❌ [OVERDUE] Drop to overdue area is disabled`);
         }
         
         function getColumnTitle(columnId) {
@@ -2521,10 +2495,11 @@
             
             return `
                 <div class="${cardClass}" 
-                     draggable="${!isBulkMode}"
-                     ${!isBulkMode ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
+                     draggable="${!isBulkMode && !(isFromOverdueColumn || isOverdueTask)}"
+                     ${(!isBulkMode && !(isFromOverdueColumn || isOverdueTask)) ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
                      onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
-                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : 'move'};">
+                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : ((isFromOverdueColumn || isOverdueTask) ? 'default' : 'move')}; ${(isFromOverdueColumn || isOverdueTask) ? 'opacity: 0.9;' : ''}"
+                     title="${(isFromOverdueColumn || isOverdueTask) ? '期限切れタスクです。移動するには編集で期限を延長してください。' : ''}">
                     ${checkboxHtml}
                     <div class="task-title">${task.title}</div>
                     <div class="task-meta">
