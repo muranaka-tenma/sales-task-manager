@@ -2782,13 +2782,6 @@
             const isScreenshotMode = originalImageDataUrl ? true : false;
             
             let content = `
-                <!-- プレビューモード表示（テキスト入力エリアを隠す） -->
-                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; overflow-y: auto; padding: 1rem;">
-                    <div style="max-width: 1200px; margin: 0 auto;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid #dee2e6;">
-                            <h3 style="margin: 0; color: #172b4d;">📝 インポートプレビュー</h3>
-                            <button onclick="hidePreview()" style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">✕ 閉じる</button>
-                        </div>
                         
                         <div style="margin-bottom: 1rem; padding: 0.75rem; background: #e8f5e8; border-radius: 4px; color: #2f7d2f;">
                             <strong>📝 ${activeTaskCount}個のアイテム (📋 メイン: ${mainTaskCount}, 💬 コメント: ${commentCount})</strong>
@@ -3240,18 +3233,30 @@
             // プレビューの終了部分
             content += `
                         ${isScreenshotMode ? '</div></div>' : '</div></div>'}
-                        
-                        <!-- インポート実行ボタン -->
-                        <div style="text-align: center; margin: 2rem 0; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
-                            <button onclick="executeImport()" style="padding: 1rem 2rem; background: #38a169; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold;">
-                                ✅ タスクをインポート実行
-                            </button>
-                        </div>
-                    </div>
-                </div>
             `;
             
-            contentDiv.innerHTML = content;
+            if (isScreenshotMode) {
+                // スクリーンショットモード時はフルスクリーンプレビュー
+                const fullscreenPreview = `
+                    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; overflow-y: auto; padding: 1rem;">
+                        <div style="max-width: 1200px; margin: 0 auto;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 2px solid #dee2e6;">
+                                <h3 style="margin: 0; color: #172b4d;">📝 インポートプレビュー</h3>
+                                <div>
+                                    <button onclick="executeImport()" style="padding: 0.5rem 1rem; background: #38a169; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 0.5rem; font-weight: bold;">✅ インポート実行</button>
+                                    <button onclick="hidePreview()" style="padding: 0.5rem 1rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">✕ 閉じる</button>
+                                </div>
+                            </div>
+                            ${content}
+                        </div>
+                    </div>
+                `;
+                contentDiv.innerHTML = fullscreenPreview;
+            } else {
+                // テキスト入力モード時は通常のプレビュー
+                contentDiv.innerHTML = content;
+            }
+            
             previewDiv.style.display = 'block';
         }
         
