@@ -1689,10 +1689,16 @@
         let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"📋 TODO","color":"#667eea"},{"id":"inprogress","title":"⚡ 進行中","color":"#f59e0b"},{"id":"waiting","title":"⏳ 連絡待ち","color":"#8b5cf6"},{"id":"done","title":"✅ Done","color":"#10b981"},{"id":"trash","title":"🗑️ ゴミ箱","color":"#6c757d"}]');
         
         // ゴミ箱カラムが存在しない場合は強制追加
-        if (!columns.find(c => c.id === 'trash')) {
+        const trashColumn = columns.find(c => c.id === 'trash');
+        console.log('🗑️ [TRASH] 現在のカラム:', columns.map(c => c.id));
+        console.log('🗑️ [TRASH] ゴミ箱カラム存在:', !!trashColumn);
+        
+        if (!trashColumn) {
             columns.push({"id":"trash","title":"🗑️ ゴミ箱","color":"#6c757d"});
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
             console.log('🗑️ ゴミ箱カラムを追加しました');
+        } else {
+            console.log('🗑️ ゴミ箱カラムは既に存在します');
         }
         
         // テンプレート管理
@@ -2874,9 +2880,10 @@
             console.log(`🔍 [MENTION] チェック開始: "${text}" by ${author}`);
             console.log(`🔍 [MENTION] 現在の担当者リスト:`, assignees);
             
-            // @メンションを検出
-            const mentionPattern = /@(\w+[^\s]*)/g;
+            // @メンションを検出（日本語文字対応）
+            const mentionPattern = /@([^\s@]+)/g;
             const mentions = text.match(mentionPattern);
+            console.log(`🔍 [MENTION] 使用した正規表現: ${mentionPattern}`);
             
             console.log(`🔍 [MENTION] 検出されたメンション:`, mentions);
             
