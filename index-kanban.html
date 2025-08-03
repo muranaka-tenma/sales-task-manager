@@ -1114,7 +1114,7 @@
                         
                         <div class="modal-actions">
                             <button type="button" class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
-                            <button type="submit" class="btn btn-primary">保存</button>
+                            <button type="submit" class="btn btn-primary" onclick="debugFormValidation(event)">保存</button>
                         </div>
                     </form>
                 </div>
@@ -8863,6 +8863,34 @@
         
         window.createRecurringTemplate = createRecurringTemplate;
         window.generatePendingTasks = generatePendingTasks;
+        // デバッグ用: フォームバリデーション確認
+        function debugFormValidation(event) {
+            const form = event.target.form;
+            const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+            const invalidInputs = [];
+            
+            inputs.forEach(input => {
+                if (!input.checkValidity()) {
+                    invalidInputs.push({
+                        id: input.id,
+                        name: input.name,
+                        value: input.value,
+                        type: input.type,
+                        required: input.hasAttribute('required'),
+                        visible: input.offsetParent !== null,
+                        display: window.getComputedStyle(input).display,
+                        validationMessage: input.validationMessage
+                    });
+                }
+            });
+            
+            if (invalidInputs.length > 0) {
+                console.error('❌ フォームバリデーションエラー:', invalidInputs);
+                alert(`保存できません。以下の項目を確認してください:\n${invalidInputs.map(i => `- ${i.id}: ${i.validationMessage}`).join('\n')}`);
+                event.preventDefault();
+                return false;
+            }
+        }
     </script>
 </body>
 </html><!-- Cache bust: 1754211273 -->
