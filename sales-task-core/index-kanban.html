@@ -1751,16 +1751,12 @@
                 setSelectedAssignees([]);
                 
                 // PJタスクモードに設定
-                const projectRadio = document.getElementById('task-type-project');
-                const personalRadio = document.getElementById('task-type-personal');
                 const projectSettings = document.getElementById('project-task-settings');
                 
-                if (!projectRadio || !personalRadio || !projectSettings) {
+                if (!projectSettings) {
                     throw new Error('PJタスク設定要素が見つかりません');
                 }
                 
-                projectRadio.checked = true;
-                personalRadio.checked = false;
                 projectSettings.style.display = 'block';
                 
                 // PJ情報をクリア
