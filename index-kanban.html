@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎯 営業タスク管理 - Kanbanボード</title>
-    <!-- Deploy: 2025-08-03-17:35 - PJ creation moved to separate page -->
+    <!-- Deploy: 2025-08-03-17:00 - Fixed required attribute issue -->
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
         * {
@@ -19,8 +19,6 @@
             color: var(--text-color, #172b4d);
             overflow-x: auto;
         }
-        
-        /* PJタスク設定は別ページ（pj-create.html）に移動 */
         
         .header {
             background: var(--theme-color, #026aa7);
@@ -927,7 +925,7 @@
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
             <!-- PJ作成ボタン -->
-            <button onclick="navigateToPJCreate()" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいPJタスクを作成">
+            <button onclick="window.location.href='pj-create.html'" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいPJタスクを作成">
                 👥 PJ作成
             </button>
             <!-- 定期タスク管理ボタン -->
@@ -1026,7 +1024,29 @@
                 <!-- 左側: タスク詳細 -->
                 <div class="modal-left">
                     <form onsubmit="saveTask(event)">
-                        <!-- PJタスク設定は別ページ（pj-create.html）に移動しました -->
+                        <!-- PJタスク専用設定（PJ作成時のみ表示） -->
+                        <div id="project-task-settings" class="form-group" style="background: #fff3e0; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #ff9800; display: none;">
+                            <div style="margin-bottom: 1rem;">
+                                <h4 style="color: #f57c00; margin: 0 0 0.5rem 0;">👥 プロジェクト設定</h4>
+                                <p style="color: #666; font-size: 0.85rem; margin: 0;">Wチェック対象のプロジェクトタスクを作成します</p>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" style="color: #f57c00;">📁 プロジェクトID *</label>
+                                    <input type="text" class="form-input" id="project-id-input" placeholder="例: PJ001" style="font-size: 0.9rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" style="color: #f57c00;">📝 プロジェクト名 *</label>
+                                    <input type="text" class="form-input" id="project-name-input" placeholder="例: 新規システム導入PJ" style="font-size: 0.9rem;">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" style="color: #f57c00;">✅ 承認者（複数選択可）*</label>
+                                <div id="project-approvers" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <!-- 承認者チェックボックスがここに動的追加される -->
+                                </div>
+                            </div>
+                        </div>
                         
                         <!-- テンプレート選択 -->
                         <div class="form-group" style="background: #f8f9fa; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
@@ -1693,8 +1713,8 @@
             alert(helpText);
         }
         
-        // PJ作成機能は別ページ（pj-create.html）に移動
-        // function createProjectTask() {
+        // PJ作成機能
+        function createProjectTask() {
             try {
                 console.log('👥 [PJ CREATE] Starting PJ task creation...');
                 
@@ -1810,11 +1830,11 @@
                     console.log('👥 [PJ CREATE] Successfully opened PJ task creation modal');
                 }, 50);
                 
-        //     } catch (error) {
-        //         console.error('👥 [PJ CREATE ERROR]', error);
-        //         alert('PJタスク作成モーダルの起動に失敗しました: ' + error.message);
-        //     }
-        // }
+            } catch (error) {
+                console.error('👥 [PJ CREATE ERROR]', error);
+                alert('PJタスク作成モーダルの起動に失敗しました: ' + error.message);
+            }
+        }
         
         // ドロップダウン外クリックで閉じる
         document.addEventListener('click', function(event) {
@@ -2383,8 +2403,6 @@
             
             // Phase 2: PJタスク編集時はPJ設定を非表示（作成時のみ使用）
             document.getElementById('project-task-settings').style.display = 'none';
-            document.getElementById('project-id-input').removeAttribute('required');
-            document.getElementById('project-name-input').removeAttribute('required');
             
             // PJタスクの場合はタイトルに表示
             const isPJTask = editingTask.projectId && editingTask.projectId !== null;
@@ -2781,8 +2799,6 @@
                 console.log('🚀 [SAVE TASK] Starting saveTask function...');
                 event.preventDefault();
             
-            // PJフィールドは別ページに移動したため、この処理は不要
-            
             // 編集モード時は task-column-input の required 属性を一時的に削除
             const columnInput = document.getElementById('task-column-input');
             const columnSelectionGroup = document.getElementById('column-selection-group');
@@ -2803,11 +2819,10 @@
             const fileInput = document.getElementById('task-files-input');
             
             // Phase 2: PJタスク関連の入力値取得
-            // PJ作成は別ページに移動したため、常にfalse
-            const isProjectTask = false;
-            const projectId = '';
-            const projectName = '';
-            const selectedApprovers = [];
+            const isProjectTask = isPJTaskMode();
+            const projectId = document.getElementById('project-id-input').value.trim();
+            const projectName = document.getElementById('project-name-input').value.trim();
+            const selectedApprovers = getSelectedApprovers();
             
             if (!title || !date) {
                 alert('タスク名と期限日は必須です');
@@ -8846,40 +8861,6 @@
         
         window.createRecurringTemplate = createRecurringTemplate;
         window.generatePendingTasks = generatePendingTasks;
-        
-        // PJ作成ページへの遷移
-        function navigateToPJCreate() {
-            console.log('PJ作成ページに遷移します...');
-            window.location.href = 'pj-create.html';
-        }
-        // デバッグ用: フォームバリデーション確認
-        function debugFormValidation(event) {
-            const form = event.target.form;
-            const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
-            const invalidInputs = [];
-            
-            inputs.forEach(input => {
-                if (!input.checkValidity()) {
-                    invalidInputs.push({
-                        id: input.id,
-                        name: input.name,
-                        value: input.value,
-                        type: input.type,
-                        required: input.hasAttribute('required'),
-                        visible: input.offsetParent !== null,
-                        display: window.getComputedStyle(input).display,
-                        validationMessage: input.validationMessage
-                    });
-                }
-            });
-            
-            if (invalidInputs.length > 0) {
-                console.error('❌ フォームバリデーションエラー:', invalidInputs);
-                alert(`保存できません。以下の項目を確認してください:\n${invalidInputs.map(i => `- ${i.id}: ${i.validationMessage}`).join('\n')}`);
-                event.preventDefault();
-                return false;
-            }
-        }
     </script>
 </body>
 </html><!-- Cache bust: 1754211273 -->
