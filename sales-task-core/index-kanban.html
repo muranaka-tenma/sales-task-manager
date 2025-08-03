@@ -2302,10 +2302,18 @@
         }
         
         function getDefaultTimeString() {
-            // 現在時刻+3時間をデフォルト時刻として設定
+            // 現在時刻+3時間をデフォルト時刻として設定（日付変更を避ける）
             const now = new Date();
-            now.setHours(now.getHours() + 3);
-            return now.toTimeString().slice(0, 5); // HH:MM形式
+            let hours = now.getHours() + 3;
+            let minutes = now.getMinutes();
+            
+            // 24時間を超える場合は23:59に制限
+            if (hours >= 24) {
+                hours = 23;
+                minutes = 59;
+            }
+            
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
         }
         
         // 統一カード作成関数（画面上部のボタン用）
