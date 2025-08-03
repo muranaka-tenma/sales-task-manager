@@ -254,14 +254,26 @@
         }
         
         function setDefaultDeadline() {
+            console.log('🕐 PJタスク期限設定開始...');
+            
             // 日付は今日、時刻は現在時刻+3時間に設定
             const now = new Date();
+            console.log('現在時刻:', now.toString());
             
             // 日付：ローカル日付基準で今日を設定
             const year = now.getFullYear();
             const month = (now.getMonth() + 1).toString().padStart(2, '0');
             const day = now.getDate().toString().padStart(2, '0');
-            document.getElementById('deadline-date').value = `${year}-${month}-${day}`;
+            const dateString = `${year}-${month}-${day}`;
+            console.log('設定する日付:', dateString);
+            
+            const dateElement = document.getElementById('deadline-date');
+            if (dateElement) {
+                dateElement.value = dateString;
+                console.log('✅ 日付設定完了:', dateElement.value);
+            } else {
+                console.error('❌ deadline-date要素が見つかりません');
+            }
             
             // 時刻：現在時刻+3時間を設定
             let hours = now.getHours() + 3;
@@ -274,7 +286,15 @@
             }
             
             const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-            document.getElementById('deadline-time').value = timeString;
+            console.log('設定する時刻:', timeString);
+            
+            const timeElement = document.getElementById('deadline-time');
+            if (timeElement) {
+                timeElement.value = timeString;
+                console.log('✅ 時刻設定完了:', timeElement.value);
+            } else {
+                console.error('❌ deadline-time要素が見つかりません');
+            }
         }
         
         function createPJTask(event) {
