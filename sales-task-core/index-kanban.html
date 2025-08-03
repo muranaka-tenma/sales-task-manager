@@ -1744,6 +1744,18 @@
                 if (columnGroup && columnInput) {
                     columnGroup.style.display = 'block';
                     columnInput.setAttribute('required', '');
+                    
+                    // カラム選択肢を更新
+                    columnInput.innerHTML = '';
+                    columns.forEach(column => {
+                        const option = document.createElement('option');
+                        option.value = column.id;
+                        option.textContent = column.title;
+                        if (column.id === 'todo') {
+                            option.selected = true; // デフォルトでTODOを選択
+                        }
+                        columnInput.appendChild(option);
+                    });
                 }
                 
                 // 担当者選択肢を更新
