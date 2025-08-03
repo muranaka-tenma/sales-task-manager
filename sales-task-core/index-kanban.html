@@ -2863,9 +2863,10 @@
                         // デモ用: 通知を表示
                         // 自分自身へのメンションかどうかで通知内容を変更
                         const notificationTitle = mentionedUser === author ? '💬 セルフメンション（テスト）' : '💬 メンション通知';
+                        const shortComment = text.length > 50 ? text.substring(0, 50) + '...' : text;
                         const notificationBody = mentionedUser === author 
-                            ? `「${task.title}」でセルフメンション - 通知テスト成功！`
-                            : `${author}さんが「${task.title}」であなたをメンションしました`;
+                            ? `「${task.title}」でセルフメンション\n💬 ${shortComment}`
+                            : `${author}さんが「${task.title}」でメンション\n💬 ${shortComment}`;
                         
                         showNotification(
                             notificationTitle,
@@ -3406,6 +3407,7 @@
                 
                 const columnEl = document.createElement('div');
                 columnEl.className = 'column';
+                columnEl.setAttribute('data-column-id', column.id); // ゴミ箱スタイル用
                 columnEl.innerHTML = `
                     <div class="column-header" style="background: ${column.color}; color: white;">
                         <div class="column-title" ondblclick="editColumnNameInline('${column.id}', this)">${column.title}</div>
@@ -8934,18 +8936,23 @@
             const result = confirm(
                 `🗑️ タスクをゴミ箱に移動しますか？\n\n` +
                 `タスク: ${task.title}\n\n` +
-                `※ ゴミ箱からドラッグ&ドロップで復元可能です`
+                `※ ゴミ箱からドラッグ&ドロップで復元可能です\n` +
+                `※ ゴミ箱で30日経過後に自動完全削除されます`
             );
             
             if (result) {
                 // ゴミ箱に移動
+                const previousColumn = task.columnId;
                 task.columnId = 'trash';
                 task.deletedAt = new Date().toISOString();
-                task.previousColumn = task.columnId || 'todo'; // 復元用
+                task.previousColumn = previousColumn; // 復元用
                 
                 saveTasks();
                 render();
                 updateStats();
+                
+                // ゴミ箱の自動削除チェック
+                cleanupTrash();
                 
                 console.log(`🗑️ タスク「${task.title}」をゴミ箱に移動しました`);
                 
@@ -8955,6 +8962,41 @@
                     `「${task.title}」をゴミ箱に移動しました`,
                     { tag: `delete-${Date.now()}` }
                 );
+            }
+        }
+        
+        // ゴミ箱の自動クリーンアップ機能
+        function cleanupTrash() {
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            
+            const trashTasks = tasks.filter(t => t.columnId === 'trash');
+            const expiredTasks = trashTasks.filter(t => {
+                if (!t.deletedAt) return false;
+                return new Date(t.deletedAt) < thirtyDaysAgo;
+            });
+            
+            if (expiredTasks.length > 0) {
+                // 30日経過したタスクを完全削除
+                tasks = tasks.filter(t => !expiredTasks.includes(t));
+                saveTasks();
+                
+                console.log(`🧹 ゴミ箱から${expiredTasks.length}件のタスクを自動削除しました`);
+                
+                // 削除通知
+                if (expiredTasks.length > 0) {
+                    showNotification(
+                        '🧹 自動クリーンアップ',
+                        `ゴミ箱から${expiredTasks.length}件のタスクを自動削除しました（30日経過）`,
+                        { tag: `cleanup-${Date.now()}` }
+                    );
+                }
+            }
+            
+            // ゴミ箱が20件を超えた場合の警告
+            const remainingTrashTasks = tasks.filter(t => t.columnId === 'trash');
+            if (remainingTrashTasks.length > 20) {
+                console.log(`⚠️ ゴミ箱に${remainingTrashTasks.length}件のタスクがあります`);
             }
         }
         
