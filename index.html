@@ -2154,6 +2154,7 @@
         
         // 統一カード作成関数（画面上部のボタン用）
         function createTaskUnified() {
+            console.log('📝 [CREATE UNIFIED] Starting unified task creation...');
             editingTask = null;
             document.getElementById('modal-title').textContent = '新しいタスク';
             document.getElementById('task-title-input').value = '';
@@ -2199,6 +2200,7 @@
             
             // 統一作成モードを設定
             document.getElementById('task-modal').dataset.unifiedMode = 'true';
+            
             // ページトップにスクロールしてからモーダル表示
             window.scrollTo(0, 0);
             
