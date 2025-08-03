@@ -2750,6 +2750,9 @@
                 return;
             }
             
+            // Phase 2: PJタスク関連の変数を事前に定義
+            let finalApprovers = [];
+            
             // Phase 2: PJタスクのバリデーション
             if (isProjectTask) {
                 console.log(`🔍 [PJ VALIDATION] ProjectID: "${projectId}", ProjectName: "${projectName}", Approvers: [${selectedApprovers.join(', ')}]`);
@@ -2792,7 +2795,7 @@
                         return;
                     }
                 }
-                const finalApprovers = getSelectedApprovers(); // 最新の承認者を取得
+                finalApprovers = getSelectedApprovers(); // 最新の承認者を取得
                 console.log(`🎯 [PJ TASK] Creating project task: ${projectId} - ${projectName} with approvers: [${finalApprovers.join(', ')}]`);
             }
             
