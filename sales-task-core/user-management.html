@@ -273,18 +273,29 @@
         // ユーザー管理システム
         let users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
         
-        // 初回起動時にデフォルト管理者を作成
+        // 初回起動時にデフォルトユーザーを作成
         if (users.length === 0) {
-            const defaultAdmin = {
-                id: Date.now(),
-                name: 'システム管理者',
-                email: 'admin@company.com',
-                role: 'admin',
-                department: 'システム部',
-                createdAt: new Date().toISOString(),
-                password: 'admin123' // 実際の運用では暗号化が必要
-            };
-            users.push(defaultAdmin);
+            const defaultUsers = [
+                {
+                    id: Date.now(),
+                    name: 'システム管理者',
+                    email: 'admin@company.com',
+                    role: 'admin',
+                    department: 'システム部',
+                    createdAt: new Date().toISOString(),
+                    password: 'admin123'
+                },
+                {
+                    id: Date.now() + 1,
+                    name: 'ユーザー様', // ここにあなたの名前を入力してください
+                    email: 'user@company.com', // ここにあなたのメールアドレスを入力してください
+                    role: 'admin', // 管理者権限で作成
+                    department: '営業部',
+                    createdAt: new Date().toISOString(),
+                    password: 'user123' // 初期パスワード
+                }
+            ];
+            users.push(...defaultUsers);
             saveUsers();
         }
         
