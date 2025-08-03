@@ -3250,6 +3250,18 @@
                     
                     console.log(`🟡 [MAIN] Moving "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
                     
+                    // PJタスクの証憑チェック
+                    if (draggedTask.projectId && draggedTask.projectName) {
+                        const hasEvidence = checkTaskEvidence(draggedTask);
+                        if (!hasEvidence) {
+                            const evidenceResult = promptForEvidence(draggedTask);
+                            if (!evidenceResult) {
+                                console.log(`❌ [PJ] 証憑なしのため移動キャンセル: ${draggedTask.title}`);
+                                return; // 移動をキャンセル
+                            }
+                        }
+                    }
+                    
                     // Doneカラムに移動する場合、completedAtを記録
                     if (columnId === 'done' && !draggedTask.completedAt) {
                         draggedTask.completedAt = new Date().toISOString();
@@ -8831,6 +8843,42 @@
         
         window.createRecurringTemplate = createRecurringTemplate;
         window.generatePendingTasks = generatePendingTasks;
+        
+        // PJタスク証憑チェック機能
+        function checkTaskEvidence(task) {
+            // 証憑の存在確認
+            const hasComments = task.comments && task.comments.length > 0;
+            const hasAttachments = task.attachments && task.attachments.length > 0;
+            const hasDetailedMemo = task.memo && task.memo.trim().length > 10; // 10文字以上の詳細メモ
+            
+            return hasComments || hasAttachments || hasDetailedMemo;
+        }
+        
+        function promptForEvidence(task) {
+            const result = confirm(
+                `⚠️ PJタスクの移動には証憑が必要です\n\n` +
+                `タスク: ${task.title}\n` +
+                `プロジェクト: ${task.projectName}\n\n` +
+                `以下のいずれかを追加してください:\n` +
+                `• コメント（進捗報告・連絡内容等）\n` +
+                `• ファイル添付（資料・スクリーンショット等）\n` +
+                `• 詳細メモ（メール内容・打ち合わせ結果等）\n\n` +
+                `証憑を追加せずに移動しますか？\n` +
+                `※ 承認者が状況を判断できません`
+            );
+            
+            if (!result) {
+                // 証憑追加のためタスク編集画面を開く
+                editTask(task.id);
+                return false;
+            }
+            
+            return true; // 証憑なしで強制移動
+        }
+        
+        // グローバル関数として公開
+        window.checkTaskEvidence = checkTaskEvidence;
+        window.promptForEvidence = promptForEvidence;
     </script>
 </body>
 </html><!-- Cache bust: 1754211273 -->
