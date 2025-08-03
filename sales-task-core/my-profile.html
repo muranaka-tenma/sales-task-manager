@@ -230,39 +230,49 @@
                 <div class="action-desc">現在のパスワードを変更します</div>
             </div>
             
-            <div class="action-card" onclick="window.location.href='index-kanban.html'; setTimeout(() => openSettings(), 1000)">
-                <div class="action-icon">⚙️</div>
-                <div class="action-title">タスク設定</div>
-                <div class="action-desc">カラム設定、アラート設定など</div>
-            </div>
-            
-            <div class="action-card" onclick="window.location.href='index-kanban.html'; setTimeout(() => showTemplateModal(), 1000)">
-                <div class="action-icon">📑</div>
-                <div class="action-title">テンプレート管理</div>
-                <div class="action-desc">タスクテンプレートの作成・編集</div>
+            <div class="action-card" onclick="window.location.href='index-kanban.html'">
+                <div class="action-icon">🏠</div>
+                <div class="action-title">メイン画面に戻る</div>
+                <div class="action-desc">設定やテンプレートはハンバーガーメニューから</div>
             </div>
         </div>
         
-        <!-- 個人統計 -->
+        <!-- 個人詳細統計 -->
         <div class="stats-section">
-            <div class="section-title">📊 個人統計</div>
-            <div class="stats-grid" id="personal-stats">
-                <div class="stat-item">
-                    <div class="stat-number" id="my-total-tasks">-</div>
-                    <div class="stat-label">総タスク数</div>
+            <div class="section-title">📊 個人詳細統計</div>
+            
+            <!-- 期間選択 -->
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: #f7fafc; border-radius: 8px;">
+                <span style="font-weight: 600;">期間:</span>
+                <button class="period-btn" onclick="showPersonalAnalyticsForPeriod('all')" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">全期間</button>
+                <button class="period-btn" onclick="showPersonalAnalyticsForPeriod('today')" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">今日</button>
+                <button class="period-btn active" onclick="showPersonalAnalyticsForPeriod('week')" style="padding: 0.5rem 1rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer;">今週</button>
+                <button class="period-btn" onclick="showPersonalAnalyticsForPeriod('month')" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">今月</button>
+            </div>
+            
+            <!-- 統計カード -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold;" id="my-total-tasks">-</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">総タスク数</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="my-completed-tasks">-</div>
-                    <div class="stat-label">完了タスク</div>
+                <div style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold;" id="my-completion-rate">-</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">完了率</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="my-pending-tasks">-</div>
-                    <div class="stat-label">進行中タスク</div>
+                <div style="background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%); color: white; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold;" id="my-deadline-compliance">-</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">期限遵守率</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-number" id="my-project-tasks">-</div>
-                    <div class="stat-label">PJタスク</div>
+                <div style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold;" id="my-avg-completion-time">-</div>
+                    <div style="font-size: 0.9rem; opacity: 0.8;">平均完了時間</div>
                 </div>
+            </div>
+            
+            <!-- パフォーマンス詳細 -->
+            <div id="personal-performance-details" style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-top: 1rem;">
+                <!-- 詳細情報がここに表示される -->
             </div>
         </div>
         
@@ -338,27 +348,148 @@
             document.getElementById('profile-role').textContent = roleText;
         }
         
-        // 個人統計の読み込み
+        // 個人詳細統計の読み込み
         function loadPersonalStats(user) {
+            try {
+                // デフォルトは今週の統計を表示
+                calculatePersonalAnalytics(user, 'week');
+            } catch (error) {
+                console.error('統計読み込みエラー:', error);
+            }
+        }
+        
+        // 期間選択ボタンクリック時の処理
+        function showPersonalAnalyticsForPeriod(period) {
+            const currentUser = checkAuthentication();
+            if (!currentUser) return;
+            
+            // すべてのボタンからactiveクラスを削除
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.style.background = '#e2e8f0';
+                btn.style.color = '#333';
+            });
+            
+            // クリックしたボタンにactiveスタイルを適用
+            event.target.style.background = '#026aa7';
+            event.target.style.color = 'white';
+            
+            // 期間に応じて分析を再計算
+            calculatePersonalAnalytics(currentUser, period);
+        }
+        
+        // 個人統計の計算
+        function calculatePersonalAnalytics(user, period = 'all') {
             try {
                 const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
                 
                 // 自分が担当者になっているタスクを抽出
-                const myTasks = tasks.filter(task => 
+                let myTasks = tasks.filter(task => 
                     task.assignees && task.assignees.includes(user.name)
                 );
                 
+                // 期間フィルター
+                const now = new Date();
+                const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                
+                if (period === 'today') {
+                    myTasks = myTasks.filter(task => {
+                        if (task.createdAt) {
+                            const createdDate = new Date(task.createdAt);
+                            return createdDate >= startOfToday;
+                        }
+                        return false;
+                    });
+                } else if (period === 'week') {
+                    const startOfWeek = new Date(startOfToday);
+                    startOfWeek.setDate(startOfToday.getDate() - startOfToday.getDay());
+                    myTasks = myTasks.filter(task => {
+                        if (task.createdAt) {
+                            const createdDate = new Date(task.createdAt);
+                            return createdDate >= startOfWeek;
+                        }
+                        return false;
+                    });
+                } else if (period === 'month') {
+                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                    myTasks = myTasks.filter(task => {
+                        if (task.createdAt) {
+                            const createdDate = new Date(task.createdAt);
+                            return createdDate >= startOfMonth;
+                        }
+                        return false;
+                    });
+                }
+                
+                // 統計計算
+                const totalTasks = myTasks.length;
                 const completedTasks = myTasks.filter(task => task.columnId === 'done');
                 const pendingTasks = myTasks.filter(task => task.columnId !== 'done' && task.columnId !== 'trash');
-                const projectTasks = myTasks.filter(task => task.isProjectTask);
                 
-                document.getElementById('my-total-tasks').textContent = myTasks.length;
-                document.getElementById('my-completed-tasks').textContent = completedTasks.length;
-                document.getElementById('my-pending-tasks').textContent = pendingTasks.length;
-                document.getElementById('my-project-tasks').textContent = projectTasks.length;
+                // 完了率
+                const completionRate = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
+                
+                // 期限遵守率計算
+                const tasksWithDeadlines = completedTasks.filter(task => task.deadline);
+                let onTimeCompletions = 0;
+                let totalCompletionTime = 0; // 分単位
+                
+                tasksWithDeadlines.forEach(task => {
+                    const deadline = new Date(task.deadline);
+                    // 完了日は更新日時から推定（実際の完了日時がない場合）
+                    const completedAt = task.updatedAt ? new Date(task.updatedAt) : new Date();
+                    
+                    if (completedAt <= deadline) {
+                        onTimeCompletions++;
+                    }
+                    
+                    // 平均完了時間計算（作成日から完了日まで）
+                    if (task.createdAt) {
+                        const createdAt = new Date(task.createdAt);
+                        const completionTimeMs = completedAt - createdAt;
+                        totalCompletionTime += Math.max(0, completionTimeMs / (1000 * 60 * 60 * 24)); // 日単位
+                    }
+                });
+                
+                const deadlineCompliance = tasksWithDeadlines.length > 0 ? 
+                    Math.round((onTimeCompletions / tasksWithDeadlines.length) * 100) : 0;
+                
+                const avgCompletionTime = tasksWithDeadlines.length > 0 ? 
+                    (totalCompletionTime / tasksWithDeadlines.length).toFixed(1) : 0;
+                
+                // UI更新
+                document.getElementById('my-total-tasks').textContent = totalTasks;
+                document.getElementById('my-completion-rate').textContent = completionRate + '%';
+                document.getElementById('my-deadline-compliance').textContent = deadlineCompliance + '%';
+                document.getElementById('my-avg-completion-time').textContent = avgCompletionTime + '日';
+                
+                // 詳細情報を表示
+                const detailsDiv = document.getElementById('personal-performance-details');
+                detailsDiv.innerHTML = `
+                    <h4 style="margin: 0 0 1rem 0; color: #172b4d;">📈 パフォーマンス詳細</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div>
+                            <div style="font-weight: 600; color: #666; margin-bottom: 0.5rem;">タスク状況</div>
+                            <div>完了: ${completedTasks.length}件</div>
+                            <div>進行中: ${pendingTasks.length}件</div>
+                            <div>PJタスク: ${myTasks.filter(t => t.isProjectTask).length}件</div>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #666; margin-bottom: 0.5rem;">期限管理</div>
+                            <div>期限付きタスク: ${tasksWithDeadlines.length}件</div>
+                            <div>期限内完了: ${onTimeCompletions}件</div>
+                            <div>遅延完了: ${tasksWithDeadlines.length - onTimeCompletions}件</div>
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #666; margin-bottom: 0.5rem;">効率性</div>
+                            <div>平均完了時間: ${avgCompletionTime}日</div>
+                            <div>期限遵守率: ${deadlineCompliance}%</div>
+                            <div>完了率: ${completionRate}%</div>
+                        </div>
+                    </div>
+                `;
                 
             } catch (error) {
-                console.error('統計読み込みエラー:', error);
+                console.error('個人統計計算エラー:', error);
             }
         }
         
