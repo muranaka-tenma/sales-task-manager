@@ -9333,6 +9333,16 @@
                 else if (currentUser.role === 'admin') roleText = '管理者';
                 if (role) role.textContent = roleText;
                 
+                // 開発者機能の表示制御
+                const developerSection = document.getElementById('developer-menu-section');
+                if (developerSection) {
+                    if (currentUser.role === 'developer') {
+                        developerSection.style.display = 'block';
+                    } else {
+                        developerSection.style.display = 'none';
+                    }
+                }
+                
                 // 管理機能の表示制御
                 const adminSection = document.getElementById('admin-menu-section');
                 if (adminSection) {
@@ -9351,6 +9361,16 @@
                 localStorage.removeItem('currentSession');
                 window.location.href = 'login.html';
             }
+        }
+        
+        // 機能改善書を開く（開発者専用）
+        function openDevelopmentLog() {
+            const currentUser = getCurrentUser();
+            if (currentUser.role !== 'developer') {
+                alert('この機能は開発者のみ利用可能です');
+                return;
+            }
+            window.location.href = 'my-profile.html#development-log';
         }
         
         // グローバル関数として公開
@@ -9379,6 +9399,14 @@
             <a href="#" class="menu-item" onclick="openSettingsModal(); toggleHamburgerMenu(); return false;">
                 <span>⚙️</span>
                 <span>設定・テンプレート</span>
+            </a>
+        </div>
+        
+        <div class="menu-section" id="developer-menu-section" style="display: none;">
+            <div class="menu-section-title">開発機能</div>
+            <a href="#" class="menu-item" onclick="openDevelopmentLog(); toggleHamburgerMenu(); return false;">
+                <span>📝</span>
+                <span>機能改善書</span>
             </a>
         </div>
         

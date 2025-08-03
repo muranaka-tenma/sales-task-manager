@@ -276,27 +276,42 @@
             </div>
         </div>
         
-        <!-- 管理者機能 -->
-        <div class="admin-section" id="admin-section" style="display: none;">
-            <div class="section-title">👥 管理機能</div>
+        <!-- 開発者専用機能 -->
+        <div class="admin-section" id="developer-section" style="display: none;">
+            <div class="section-title">⚙️ 開発者機能</div>
             <div class="action-grid">
-                <div class="action-card" onclick="window.location.href='user-management.html'">
-                    <div class="action-icon">👥</div>
-                    <div class="action-title">ユーザー管理</div>
-                    <div class="action-desc">ユーザーの追加・編集・削除</div>
+                <div class="action-card" onclick="showDevelopmentLog()">
+                    <div class="action-icon">📝</div>
+                    <div class="action-title">機能改善書</div>
+                    <div class="action-desc">要件・改善ログ・開発メモの管理</div>
                 </div>
                 
-                <div class="action-card" onclick="window.location.href='admin-dashboard.html'">
-                    <div class="action-icon">📊</div>
-                    <div class="action-title">管理者ダッシュボード</div>
-                    <div class="action-desc">全体統計とシステム管理</div>
+                <div class="action-card" onclick="showSystemInfo()">
+                    <div class="action-icon">🔧</div>
+                    <div class="action-title">システム情報</div>
+                    <div class="action-desc">バージョン・デプロイ状況・技術情報</div>
                 </div>
-                
-                <div class="action-card" onclick="showTeamStats()">
-                    <div class="action-icon">📈</div>
-                    <div class="action-title">チーム統計</div>
-                    <div class="action-desc">メンバー別の統計情報</div>
-                </div>
+            </div>
+        </div>
+        
+        <!-- 管理機能案内 -->
+        <div class="admin-section" id="admin-section" style="display: none;">
+            <div class="section-title">👥 管理機能について</div>
+            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                <h3 style="margin-bottom: 1rem;">管理者ダッシュボード</h3>
+                <p style="color: #666; margin-bottom: 1.5rem; line-height: 1.6;">
+                    • 緊急対応が必要な項目のアラート表示<br>
+                    • チーム生産性推移とタスク完了率のグラフ<br>
+                    • メンバー別のパフォーマンス分析<br>
+                    • システム状況の監視（サーバー応答時間等）
+                </p>
+                <p style="color: #999; font-size: 0.9rem; margin-bottom: 1.5rem;">
+                    ユーザー管理や詳細な統計情報は<br>左上のハンバーガーメニューからアクセスできます
+                </p>
+                <button onclick="window.location.href='index-kanban.html'" style="padding: 0.75rem 2rem; background: var(--theme-color, #026aa7); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem;">
+                    メイン画面に戻る
+                </button>
             </div>
         </div>
     </div>
@@ -330,9 +345,21 @@
             updateProfileInfo(currentUser);
             loadPersonalStats(currentUser);
             
-            // 管理者・開発者のみ管理機能を表示
+            // 開発者専用機能
+            if (currentUser.role === 'developer') {
+                document.getElementById('developer-section').style.display = 'block';
+            }
+            
+            // 管理者・開発者のみ管理機能案内を表示
             if (currentUser.role === 'developer' || currentUser.role === 'admin') {
                 document.getElementById('admin-section').style.display = 'block';
+            }
+            
+            // URLハッシュが#development-logの場合、機能改善書を自動で開く
+            if (window.location.hash === '#development-log' && currentUser.role === 'developer') {
+                setTimeout(() => {
+                    showDevelopmentLog();
+                }, 500);
             }
         });
         
@@ -529,33 +556,145 @@
             alert('パスワードが正常に変更されました');
         }
         
-        // チーム統計表示（管理者・開発者のみ）
-        function showTeamStats() {
-            try {
-                const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
-                const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                
-                let statsText = '📈 チーム統計\n\n';
-                
-                users.forEach(user => {
-                    const userTasks = tasks.filter(task => 
-                        task.assignees && task.assignees.includes(user.name)
-                    );
-                    const completedTasks = userTasks.filter(task => task.columnId === 'done');
-                    const pendingTasks = userTasks.filter(task => task.columnId !== 'done' && task.columnId !== 'trash');
-                    
-                    statsText += `👤 ${user.name} (${user.role})\n`;
-                    statsText += `   総タスク: ${userTasks.length}件\n`;
-                    statsText += `   完了: ${completedTasks.length}件\n`;
-                    statsText += `   進行中: ${pendingTasks.length}件\n\n`;
-                });
-                
-                alert(statsText);
-                
-            } catch (error) {
-                console.error('チーム統計エラー:', error);
-                alert('統計の読み込みに失敗しました');
+        // 機能改善書表示（開発者専用）
+        function showDevelopmentLog() {
+            const existingLog = localStorage.getItem('developmentLog') || '';
+            
+            const logModal = document.createElement('div');
+            logModal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+                z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 2rem;
+            `;
+            
+            logModal.innerHTML = `
+                <div style="background: white; border-radius: 12px; width: 100%; max-width: 800px; max-height: 80vh; overflow-y: auto;">
+                    <div style="padding: 2rem; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="margin: 0; color: #172b4d;">📝 機能改善書</h2>
+                        <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" 
+                                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">×</button>
+                    </div>
+                    <div style="padding: 2rem;">
+                        <div style="margin-bottom: 1.5rem;">
+                            <h4 style="color: #666; margin-bottom: 0.5rem;">💡 使用方法</h4>
+                            <p style="color: #888; font-size: 0.9rem; line-height: 1.5;">
+                                • 要件や改善内容を記録<br>
+                                • セッション停止時の状況メモ<br>
+                                • 次回開発時の引き継ぎ事項<br>
+                                • 機能追加・修正履歴
+                            </p>
+                        </div>
+                        <textarea id="devLogContent" placeholder="開発メモ・要件・改善ログを記入してください..."
+                                  style="width: 100%; height: 300px; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; 
+                                         font-family: monospace; font-size: 0.9rem; resize: vertical;">${existingLog}</textarea>
+                        <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                            <button onclick="saveDevelopmentLog()" 
+                                    style="padding: 0.75rem 2rem; background: #026aa7; color: white; border: none; 
+                                           border-radius: 8px; cursor: pointer; font-size: 1rem;">
+                                💾 保存
+                            </button>
+                            <button onclick="exportDevelopmentLog()" 
+                                    style="padding: 0.75rem 2rem; background: #28a745; color: white; border: none; 
+                                           border-radius: 8px; cursor: pointer; font-size: 1rem;">
+                                📄 エクスポート
+                            </button>
+                            <button onclick="clearDevelopmentLog()" 
+                                    style="padding: 0.75rem 2rem; background: #dc3545; color: white; border: none; 
+                                           border-radius: 8px; cursor: pointer; font-size: 1rem;">
+                                🗑️ クリア
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(logModal);
+        }
+        
+        // 開発ログ保存
+        function saveDevelopmentLog() {
+            const content = document.getElementById('devLogContent').value;
+            const timestamp = new Date().toLocaleString('ja-JP');
+            const logEntry = `[${timestamp}] 保存\n${content}\n\n`;
+            
+            localStorage.setItem('developmentLog', content);
+            localStorage.setItem('developmentLogHistory', 
+                (localStorage.getItem('developmentLogHistory') || '') + logEntry
+            );
+            
+            alert('📝 機能改善書を保存しました');
+        }
+        
+        // 開発ログエクスポート
+        function exportDevelopmentLog() {
+            const content = document.getElementById('devLogContent').value;
+            const history = localStorage.getItem('developmentLogHistory') || '';
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            
+            const exportData = `# 機能改善書 - エクスポート\n生成日時: ${new Date().toLocaleString('ja-JP')}\n\n## 現在の内容\n${content}\n\n## 履歴\n${history}`;
+            
+            const blob = new Blob([exportData], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `機能改善書_${timestamp}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // 開発ログクリア
+        function clearDevelopmentLog() {
+            if (confirm('機能改善書をクリアしますか？\n（履歴は保持されます）')) {
+                document.getElementById('devLogContent').value = '';
+                localStorage.removeItem('developmentLog');
+                alert('🗑️ 機能改善書をクリアしました');
             }
+        }
+        
+        // システム情報表示（開発者専用）
+        function showSystemInfo() {
+            const deployInfo = `
+📊 システム情報
+
+🏗️ プロジェクト構成:
+• フロントエンド: HTML/CSS/JavaScript (Vanilla)
+• デプロイ: Netlify (GitHub連携)  
+• ストレージ: LocalStorage
+• 認証: セッション管理
+
+🔧 技術スタック:
+• Chart.js (統計グラフ)
+• Tesseract.js (OCR機能)
+• Material Icons
+• Web Notifications API
+
+🌐 デプロイ情報:
+• URL: https://stellar-biscochitos-e19cb4.netlify.app/
+• メイン: /sales-task-core/index-kanban.html
+• リポジトリ: GitHub自動デプロイ
+
+📦 主要機能:
+• タスク管理 (Kanban方式)
+• PJタスク管理
+• ユーザー権限管理 (developer/admin/user)
+• 詳細統計・分析
+• OCR文字認識
+• 通知システム
+
+🔑 権限レベル:
+• developer(3): 全権限 + 開発機能
+• admin(2): 管理機能 + ユーザー管理
+• user(1): 基本機能のみ
+
+💾 データ構造:
+• salesTasksKanban: タスクデータ
+• systemUsers: ユーザー情報
+• currentSession: ログインセッション
+• developmentLog: 開発メモ
+
+最終更新: ${new Date().toLocaleString('ja-JP')}
+            `;
+            
+            alert(deployInfo);
         }
     </script>
 </body>
