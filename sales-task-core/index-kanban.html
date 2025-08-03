@@ -2403,6 +2403,8 @@
             
             // Phase 2: PJタスク編集時はPJ設定を非表示（作成時のみ使用）
             document.getElementById('project-task-settings').style.display = 'none';
+            document.getElementById('project-id-input').removeAttribute('required');
+            document.getElementById('project-name-input').removeAttribute('required');
             
             // PJタスクの場合はタイトルに表示
             const isPJTask = editingTask.projectId && editingTask.projectId !== null;
