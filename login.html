@@ -357,6 +357,7 @@
                 expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24時間後に期限切れ
             };
             localStorage.setItem('currentSession', JSON.stringify(session));
+            localStorage.setItem('currentUser', user.name); // currentUserも追加保存
             console.log('📝 セッション保存:', user.name, user.role);
         }
         

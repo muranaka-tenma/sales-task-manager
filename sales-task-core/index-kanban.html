@@ -4861,8 +4861,23 @@
             
             // デフォルト期限を今日の日付+3時間後の時間に設定
             const now = new Date();
-            const defaultDeadline = now.toISOString().split('T')[0]; // 今日の日付
+            
+            // 日本時間で今日の日付を正確に取得
+            const jstOffset = 9 * 60; // JST は UTC+9
+            const jstDate = new Date(now.getTime() + jstOffset * 60 * 1000);
+            const year = jstDate.getFullYear();
+            const month = (jstDate.getMonth() + 1).toString().padStart(2, '0');
+            const day = jstDate.getDate().toString().padStart(2, '0');
+            const defaultDeadline = `${year}-${month}-${day}`;
+            
             const defaultTime = getDefaultTimeString(); // 現在時刻+3時間
+            
+            console.log('📅 OCR日付設定:', {
+                now: now.toString(),
+                jstDate: jstDate.toString(),
+                defaultDeadline,
+                defaultTime
+            });
             
             const defaultPriority = 'medium';
             const defaultColumn = 'todo';
