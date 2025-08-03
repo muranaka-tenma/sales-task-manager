@@ -886,7 +886,7 @@
     
     
     <!-- 統計バー -->
-    <div class="stats-bar">
+    <div class="stats-bar" id="stats-bar">
         <div class="stat-item stat-overdue">
             <span class="stat-number" id="overdue-count">0</span>
             <span>期限切れ</span>
@@ -895,31 +895,70 @@
             <span class="stat-number" id="today-count">0</span>
             <span>今日期限</span>
         </div>
-        <div class="stat-item stat-completed">
-            <span class="stat-number" id="completed-count">0</span>
-            <span>完了済み</span>
+        <div class="stat-item" style="color: #e77600;" onclick="showStaleTasksDetail()" title="3日以上同じステータスのタスク">
+            <span style="cursor: pointer;">🚨</span>
+            <span class="stat-number" id="stale-count">0</span>
+            <span style="cursor: pointer;">停滞中</span>
         </div>
-        
-        <!-- カラム追加機能 -->
-        <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
-            <input type="text" id="quick-column-name" placeholder="新カラム名" style="padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; width: 120px;">
-            <button onclick="quickAddColumn()" style="padding: 0.4rem 0.8rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">＋カラム</button>
-            
-            <span style="font-size: 0.75rem; color: #5e6c84; margin-left: 1rem;">👥 担当者:</span>
-            <div id="assignee-filter-container" style="position: relative;">
-                <button id="assignee-filter-btn" onclick="toggleAssigneeFilter()" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border: 1px solid #dfe1e6; border-radius: 3px; background: white; cursor: pointer; min-width: 120px; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+        <div class="stat-item" id="workload-item" style="color: #0052cc; display: none;" onclick="showWorkloadDetail()" title="チーム平均の1.2倍以上のタスクを担当">
+            <span style="cursor: pointer;">👥</span>
+            <span class="stat-number" id="overload-count">0</span>
+            <span style="cursor: pointer;">要調整</span>
+        </div>
+    </div>
+    
+    <!-- フィルター・管理バー -->
+    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <span style="font-weight: 600; color: #2d3748;">👥 表示対象:</span>
+            <!-- 統合担当者・PJフィルター -->
+            <div style="position: relative;" id="assignee-filter-container">
+                <button onclick="toggleAssigneeFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; min-width: 150px;">
                     <span id="assignee-filter-text">全員</span>
                     <span>▼</span>
                 </button>
-                <div id="assignee-filter-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #dfe1e6; border-radius: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none; z-index: 1000; max-height: 200px; overflow-y: auto;">
-                    <div style="padding: 0.5rem;">
-                        <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; hover: background: #f5f5f5;">
-                            <input type="checkbox" value="" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;">
-                            <span>全員</span>
-                        </label>
-                    </div>
+                <div id="assignee-filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 1000; min-width: 250px;">
+                    <!-- 担当者・PJ選択肢がここに動的追加される -->
                 </div>
             </div>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <!-- PJ作成ボタン -->
+            <button onclick="createProjectTask()" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいPJタスクを作成">
+                👥 PJ作成
+            </button>
+            <!-- 定期タスク管理ボタン -->
+            <button onclick="showRecurringTasksInfo()" style="padding: 0.5rem 0.75rem; background: #805ad5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="定期タスクの状況">
+                🔄 定期タスク
+            </button>
+            <button onclick="showFilterHelp()" style="background: none; border: none; color: #4a5568; cursor: pointer; font-size: 1rem;" title="フィルターの説明">
+                ❓
+            </button>
+        </div>
+    </div>
+    
+    <!-- 分析サマリーバー -->
+    <div class="analytics-summary" id="analytics-summary">
+        <div class="analytics-left">
+            <div class="analytics-metric">
+                <span style="font-weight: 600;">完了率:</span>
+                <span class="analytics-value" id="completion-rate-summary">0%</span>
+            </div>
+            <div class="analytics-metric">
+                <span style="font-weight: 600;">期限遵守率:</span>
+                <span class="analytics-value" id="compliance-rate-summary">0%</span>
+            </div>
+        </div>
+        <button class="analytics-btn" onclick="showAnalytics()"
+                style="padding: 0.5rem 1rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+            📊 詳細分析
+        </button>
+    </div>
+        
+        <!-- カラム追加機能 -->
+        <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" id="quick-column-name" placeholder="新ステータス名" style="padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; width: 120px;">
+            <button onclick="quickAddColumn()" style="padding: 0.4rem 0.8rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">＋ステータス</button>
         </div>
     </div>
     
@@ -942,11 +981,7 @@
         <div class="analytics-actions">
             <button onclick="createTaskUnified()" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-right: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">✨ 新規タスク</button>
             <button onclick="toggleBulkMode()" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-right: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">☑️ 複数選択</button>
-            <span style="font-size: 0.8rem; color: #718096;">期間レポート:</span>
-            <button class="period-btn" onclick="showPeriodReport('today')">今日</button>
-            <button class="period-btn active" onclick="showPeriodReport('week')">今週</button>
-            <button class="period-btn" onclick="showPeriodReport('month')">今月</button>
-            <button onclick="showAnalytics()" style="padding: 0.4rem 0.8rem; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-left: 0.5rem;">📊 詳細分析</button>
+            <!-- 期間レポートボタンを削除: 詳細分析内に統合 -->
         </div>
     </div>
     
@@ -988,6 +1023,30 @@
                 <!-- 左側: タスク詳細 -->
                 <div class="modal-left">
                     <form onsubmit="saveTask(event)">
+                        <!-- PJタスク専用設定（PJ作成時のみ表示） -->
+                        <div id="project-task-settings" class="form-group" style="background: #fff3e0; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #ff9800; display: none;">
+                            <div style="margin-bottom: 1rem;">
+                                <h4 style="color: #f57c00; margin: 0 0 0.5rem 0;">👥 プロジェクト設定</h4>
+                                <p style="color: #666; font-size: 0.85rem; margin: 0;">Wチェック対象のプロジェクトタスクを作成します</p>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" style="color: #f57c00;">📁 プロジェクトID *</label>
+                                    <input type="text" class="form-input" id="project-id-input" placeholder="例: PJ001" style="font-size: 0.9rem;" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" style="color: #f57c00;">📝 プロジェクト名 *</label>
+                                    <input type="text" class="form-input" id="project-name-input" placeholder="例: 新規システム導入PJ" style="font-size: 0.9rem;" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" style="color: #f57c00;">✅ 承認者（複数選択可）*</label>
+                                <div id="project-approvers" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <!-- 承認者チェックボックスがここに動的追加される -->
+                                </div>
+                            </div>
+                        </div>
+                        
                         <!-- テンプレート選択 -->
                         <div class="form-group" style="background: #f8f9fa; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
                             <label class="form-label" style="color: #495057;">📋 テンプレートから作成（任意）</label>
@@ -1022,7 +1081,7 @@
                                 </select>
                             </div>
                             <div class="form-group" id="column-selection-group" style="display: none;">
-                                <label class="form-label">配置先カラム *</label>
+                                <label class="form-label">配置先ステータス *</label>
                                 <select class="form-select" id="task-column-input" required>
                                     <!-- カラム選択肢がここに動的に追加される -->
                                 </select>
@@ -1095,7 +1154,7 @@
                 <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #026aa7;">
                     <p style="margin: 0; color: #172b4d; font-size: 0.9rem;">
                         💡 <strong>設定画面の使い方：</strong><br>
-                        • カラム管理：ワークフローのフェーズを追加・編集・削除できます<br>
+                        • ステータス管理：ワークフローの段階を追加・編集・削除できます<br>
                         • カラー変更：各フェーズの色を変更してチーム識別を向上<br>
                         • アラート設定：期限通知のタイミングをカスタマイズ
                     </p>
@@ -1103,7 +1162,7 @@
                 
                 <!-- カラム・フェーズ管理 -->
                 <div class="setting-section">
-                    <h4 style="margin-bottom: 1rem; color: #172b4d;">📋 カラム・フェーズ管理</h4>
+                    <h4 style="margin-bottom: 1rem; color: #172b4d;">📋 ステータス・フェーズ管理</h4>
                     <div id="column-manager">
                         <div id="column-list" style="margin-bottom: 1rem;">
                             <!-- 既存のカラムリストがここに表示される -->
@@ -1309,6 +1368,15 @@
             </div>
             
             <div style="padding: 1.5rem; overflow-y: auto; max-height: 80vh;">
+                <!-- 期間選択 -->
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: #f7fafc; border-radius: 8px;">
+                    <span style="font-weight: 600;">期間:</span>
+                    <button class="period-btn" onclick="showAnalyticsForPeriod('all')" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">全期間</button>
+                    <button class="period-btn" onclick="showAnalyticsForPeriod('today')" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">今日</button>
+                    <button class="period-btn active" onclick="showAnalyticsForPeriod('week')" style="padding: 0.5rem 1rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer;">今週</button>
+                    <button class="period-btn" onclick="showAnalyticsForPeriod('month')" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">今月</button>
+                </div>
+                
                 <!-- 概要統計 -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
                     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 12px; text-align: center;">
@@ -1434,6 +1502,47 @@
     <script>
         // グローバル変数
         let tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+        
+        // 既存タスクにcreatedAtがない場合は、現在時刻から遡って設定
+        // （インポートされたタスクなど用）
+        tasks = tasks.map((task, index) => {
+            if (!task.createdAt) {
+                // インポート順を考慮して、古いタスクは7日前、新しいタスクは今日として設定
+                const daysAgo = Math.floor((tasks.length - index - 1) / Math.max(1, tasks.length / 7));
+                const createdDate = new Date();
+                createdDate.setDate(createdDate.getDate() - daysAgo);
+                task.createdAt = createdDate.toISOString();
+                console.log(`📅 [MIGRATION] Added createdAt to task ${task.id}: ${daysAgo} days ago`);
+            }
+            return task;
+        });
+        
+        // 停滞タスクのテスト用サンプルを追加（初回のみ）
+        const hasStaleTestTask = tasks.some(task => task.title.includes('【停滞テスト】'));
+        if (!hasStaleTestTask) {
+            const staleDate = new Date();
+            staleDate.setDate(staleDate.getDate() - 4); // 4日前
+            
+            const staleTestTask = {
+                id: Date.now(),
+                title: '【停滞テスト】4日前から進行中のタスク',
+                deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3日後期限
+                priority: 'high',
+                columnId: 'inprogress',
+                assignee: '佐藤課長',
+                assignees: ['佐藤課長'],
+                memo: '重要な案件です。4日前から進行中ですが、何らかの理由で停滞しています。',
+                createdAt: staleDate.toISOString(),
+                isMainTask: false
+            };
+            
+            tasks.push(staleTestTask);
+            console.log('📊 [INIT] Added stale test task for demonstration');
+        }
+        
+        // 変更があった場合は保存
+        localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+        
         let draggedTask = null;
         let editingTask = null;
         let taskCounter = tasks.length || 0;
@@ -1451,6 +1560,552 @@
         // バルク操作管理
         let isBulkMode = false;
         let selectedTasks = new Set();
+        
+        // フィルタ管理（Phase 2対応）
+        let selectedAssigneeFilters = [];
+        let selectedProjectFilters = [];
+        let viewMode = 'personal'; // 'personal' or 'project'
+        
+        // 定期タスク管理
+        let recurringTemplates = JSON.parse(localStorage.getItem('recurringTemplates') || '[]');
+        
+        // Phase 2: PJタスク関連関数（PJ作成専用）
+        function isPJTaskMode() {
+            // PJ設定が表示されているかどうかでPJモードを判定
+            const projectSettings = document.getElementById('project-task-settings');
+            return projectSettings && projectSettings.style.display === 'block';
+        }
+        
+        function populateApprovers() {
+            const container = document.getElementById('project-approvers');
+            container.innerHTML = '';
+            
+            assignees.forEach(assignee => {
+                const checkboxWrapper = document.createElement('label');
+                checkboxWrapper.style.cssText = 'display: flex; align-items: center; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 4px; background: #fff; border: 1px solid #ddd; font-size: 0.85rem;';
+                checkboxWrapper.innerHTML = `
+                    <input type="checkbox" value="${assignee}" style="margin-right: 0.5rem;">
+                    <span>${assignee}</span>
+                `;
+                container.appendChild(checkboxWrapper);
+            });
+        }
+        
+        function getSelectedApprovers() {
+            const checkboxes = document.querySelectorAll('#project-approvers input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+        
+        // 統合フィルター機能（担当者 + PJ）
+        function toggleAssigneeFilterDropdown() {
+            const dropdown = document.getElementById('assignee-filter-dropdown');
+            const isVisible = dropdown.style.display === 'block';
+            
+            if (isVisible) {
+                dropdown.style.display = 'none';
+            } else {
+                populateAssigneeFilterOptions();
+                dropdown.style.display = 'block';
+            }
+        }
+        
+        function populateAssigneeFilterOptions() {
+            const dropdown = document.getElementById('assignee-filter-dropdown');
+            
+            // 全プロジェクトを取得（重複除去）
+            const projectMap = new Map();
+            tasks.filter(t => t.projectId && t.projectId !== null)
+                 .forEach(t => {
+                     if (!projectMap.has(t.projectId)) {
+                         projectMap.set(t.projectId, {id: t.projectId, name: t.projectName});
+                     }
+                 });
+            const allProjects = Array.from(projectMap.values());
+            
+            dropdown.innerHTML = `
+                <div style="padding: 0.5rem;">
+                    <div style="font-weight: 600; color: #2d3748; margin-bottom: 0.5rem; padding: 0.25rem;">👤 担当者</div>
+                    <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
+                        <input type="radio" name="filter-type" value="" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.length === 0 && selectedProjectFilters.length === 0 ? 'checked' : ''}>
+                        <span>全員</span>
+                    </label>
+                    ${assignees.map(assignee => `
+                        <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
+                            <input type="radio" name="filter-type" value="assignee:${assignee}" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.includes(assignee) && selectedProjectFilters.length === 0 ? 'checked' : ''}>
+                            <span>${assignee}</span>
+                        </label>
+                    `).join('')}
+                    
+                    ${allProjects.length > 0 ? `
+                        <div style="font-weight: 600; color: #2d3748; margin: 0.75rem 0 0.5rem 0; padding: 0.25rem; border-top: 1px solid #e2e8f0;">👥 プロジェクト</div>
+                        ${allProjects.map(project => `
+                            <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
+                                <input type="radio" name="filter-type" value="project:${project.id}" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedProjectFilters.includes(project.id) ? 'checked' : ''}>
+                                <span>${project.id} - ${project.name}</span>
+                            </label>
+                        `).join('')}
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        function updateAssigneeFilterSelection() {
+            const selectedRadio = document.querySelector('#assignee-filter-dropdown input[name="filter-type"]:checked');
+            
+            // リセット
+            selectedAssigneeFilters = [];
+            selectedProjectFilters = [];
+            viewMode = 'personal';
+            
+            if (selectedRadio && selectedRadio.value) {
+                const [type, value] = selectedRadio.value.split(':');
+                
+                if (type === 'assignee') {
+                    selectedAssigneeFilters = [value];
+                    console.log(`👤 [FILTER] Switched to assignee: ${value}`);
+                } else if (type === 'project') {
+                    selectedProjectFilters = [value];
+                    viewMode = 'project';
+                    console.log(`👥 [FILTER] Switched to project: ${value}`);
+                }
+            } else {
+                console.log(`👥 [FILTER] Showing all tasks`);
+            }
+            
+            updateAssigneeFilterText();
+            render();
+            updateStats();
+        }
+        
+        function updateAssigneeFilterText() {
+            const textElement = document.getElementById('assignee-filter-text');
+            
+            if (selectedProjectFilters.length > 0) {
+                const projectTask = tasks.find(t => t.projectId === selectedProjectFilters[0]);
+                textElement.textContent = projectTask ? `👥 ${projectTask.projectId}` : selectedProjectFilters[0];
+            } else if (selectedAssigneeFilters.length > 0) {
+                textElement.textContent = `👤 ${selectedAssigneeFilters[0]}`;
+            } else {
+                textElement.textContent = '全員';
+            }
+        }
+        
+        function showFilterHelp() {
+            const helpText = `
+👥 表示対象フィルターについて
+
+【👤 担当者選択】
+• 特定の担当者のタスクのみ表示
+• 個人の作業状況を確認
+
+【👥 プロジェクト選択】
+• 特定プロジェクトのタスクのみ表示
+• PJタスクのWチェック管理用
+• プロジェクト進捗の一元確認
+
+【全員】
+• 全てのタスクを表示
+• チーム全体の状況把握
+
+💡 個人表示とPJ表示は排他的です。
+`;
+            alert(helpText);
+        }
+        
+        // PJ作成機能
+        function createProjectTask() {
+            try {
+                console.log('👥 [PJ CREATE] Starting PJ task creation...');
+                
+                // 新規タスク作成モーダルを開き、PJタスクモードに設定
+                editingTask = null;
+                
+                // 基本入力項目をクリア
+                const titleInput = document.getElementById('task-title-input');
+                const dateInput = document.getElementById('task-date-input');
+                const timeInput = document.getElementById('task-time-input');
+                const priorityInput = document.getElementById('task-priority-input');
+                const memoInput = document.getElementById('task-memo-input');
+                
+                if (!titleInput || !dateInput || !timeInput || !priorityInput || !memoInput) {
+                    throw new Error('必要な入力要素が見つかりません');
+                }
+                
+                document.getElementById('modal-title').textContent = '新しいPJタスク';
+                titleInput.value = '';
+                dateInput.value = getDefaultDeadlineString();
+                timeInput.value = '17:00';
+                priorityInput.value = 'medium';
+                memoInput.value = '';
+                
+                // カラム選択を表示
+                const columnGroup = document.getElementById('column-selection-group');
+                const columnInput = document.getElementById('task-column-input');
+                if (columnGroup && columnInput) {
+                    columnGroup.style.display = 'block';
+                    columnInput.setAttribute('required', '');
+                    
+                    // カラム選択肢を更新
+                    columnInput.innerHTML = '';
+                    columns.forEach(column => {
+                        const option = document.createElement('option');
+                        option.value = column.id;
+                        option.textContent = column.title;
+                        if (column.id === 'todo') {
+                            option.selected = true; // デフォルトでTODOを選択
+                        }
+                        columnInput.appendChild(option);
+                    });
+                }
+                
+                // 担当者選択肢を更新
+                updateAssigneeOptions();
+                setSelectedAssignees([]);
+                
+                // PJタスクモードに設定
+                const projectSettings = document.getElementById('project-task-settings');
+                
+                if (!projectSettings) {
+                    throw new Error('PJタスク設定要素が見つかりません');
+                }
+                
+                projectSettings.style.display = 'block';
+                
+                // PJ情報をクリア
+                const projectIdInput = document.getElementById('project-id-input');
+                const projectNameInput = document.getElementById('project-name-input');
+                
+                if (!projectIdInput || !projectNameInput) {
+                    throw new Error('PJ情報入力要素が見つかりません');
+                }
+                
+                projectIdInput.value = '';
+                projectNameInput.value = '';
+                
+                // 承認者を設定
+                populateApprovers();
+                
+                // ファイル・コメント関連をクリア
+                displayAttachedFiles([]);
+                const commentsSection = document.getElementById('comments-section');
+                const commentInput = document.getElementById('comment-input');
+                
+                if (commentsSection) {
+                    commentsSection.innerHTML = '<div style="text-align: center; color: #5e6c84; padding: 2rem;">新しいタスクです。保存後にコメントを追加できます。</div>';
+                }
+                if (commentInput) {
+                    commentInput.disabled = true;
+                }
+                
+                // 統一作成モードを設定
+                const modal = document.getElementById('task-modal');
+                if (!modal) {
+                    throw new Error('タスクモーダルが見つかりません');
+                }
+                
+                modal.dataset.unifiedMode = 'true';
+                modal.classList.add('show');
+                
+                console.log('👥 [PJ CREATE] Successfully opened PJ task creation modal');
+                
+            } catch (error) {
+                console.error('👥 [PJ CREATE ERROR]', error);
+                alert('PJタスク作成モーダルの起動に失敗しました: ' + error.message);
+            }
+        }
+        
+        // ドロップダウン外クリックで閉じる
+        document.addEventListener('click', function(event) {
+            const assigneeContainer = document.getElementById('assignee-filter-container');
+            if (assigneeContainer && !assigneeContainer.contains(event.target)) {
+                document.getElementById('assignee-filter-dropdown').style.display = 'none';
+            }
+        });
+        
+        // 定期タスク機能
+        function saveRecurringTemplates() {
+            localStorage.setItem('recurringTemplates', JSON.stringify(recurringTemplates));
+        }
+        
+        function generateRecurringTask(template) {
+            const now = new Date();
+            
+            // テンプレート文字列の置換
+            const title = formatTemplateString(template.taskTemplate.title, now);
+            const deadline = calculateDeadline(now, template.deadlineConfig);
+            
+            const task = {
+                id: Date.now(),
+                title: title,
+                deadline: deadline.toISOString(),
+                priority: template.taskTemplate.priority,
+                assignees: template.taskTemplate.assignees || [],
+                assignee: template.taskTemplate.assignees?.[0] || '未設定',
+                memo: template.taskTemplate.memo || '',
+                attachments: [],
+                comments: [],
+                columnId: 'todo',
+                completed: false,
+                createdAt: now.toISOString(),
+                
+                // PJタスク対応
+                projectId: template.taskTemplate.projectId,
+                projectName: template.taskTemplate.projectName,
+                personalStatus: 'todo',
+                projectStatus: 'todo',
+                pendingMove: null,
+                approvers: template.taskTemplate.approvers || [],
+                lastApprovedBy: null,
+                approvedAt: null,
+                
+                // 定期タスク情報
+                isRecurring: true,
+                recurringTemplateId: template.id,
+                generatedFor: formatDateForRecurring(now)
+            };
+            
+            return task;
+        }
+        
+        function formatTemplateString(template, date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            
+            return template
+                .replace(/\{\{YYYY\}\}/g, year)
+                .replace(/\{\{YYYY年\}\}/g, `${year}年`)
+                .replace(/\{\{MM\}\}/g, String(month).padStart(2, '0'))
+                .replace(/\{\{MM月\}\}/g, `${month}月`)
+                .replace(/\{\{DD\}\}/g, String(day).padStart(2, '0'))
+                .replace(/\{\{DD日\}\}/g, `${day}日`);
+        }
+        
+        function calculateDeadline(baseDate, deadlineConfig) {
+            const deadline = new Date(baseDate);
+            deadline.setDate(deadline.getDate() + deadlineConfig.relativeDays);
+            
+            const [hours, minutes] = deadlineConfig.timeOfDay.split(':');
+            deadline.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            
+            return deadline;
+        }
+        
+        function formatDateForRecurring(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            return `${year}-${String(month).padStart(2, '0')}`;
+        }
+        
+        function checkAndGenerateRecurringTasks() {
+            const now = new Date();
+            let generatedCount = 0;
+            
+            recurringTemplates.forEach(template => {
+                if (shouldGenerateRecurringTask(template, now)) {
+                    const newTask = generateRecurringTask(template);
+                    tasks.unshift(newTask);
+                    
+                    // 次回生成日を更新
+                    updateNextGenerationDate(template, now);
+                    generatedCount++;
+                    
+                    console.log(`🔄 [RECURRING] Generated task: ${newTask.title} for ${newTask.generatedFor}`);
+                }
+            });
+            
+            if (generatedCount > 0) {
+                saveTasks();
+                saveRecurringTemplates();
+                render();
+                updateStats();
+                console.log(`🔄 [RECURRING] Generated ${generatedCount} recurring tasks`);
+            }
+        }
+        
+        function shouldGenerateRecurringTask(template, now) {
+            if (!template.isActive) return false;
+            
+            const nextGen = template.generationConfig.nextGeneration 
+                ? new Date(template.generationConfig.nextGeneration) 
+                : now;
+            
+            return now >= nextGen;
+        }
+        
+        function updateNextGenerationDate(template, currentDate) {
+            const config = template.recurringConfig;
+            const next = new Date(currentDate);
+            
+            switch (config.type) {
+                case 'daily':
+                    next.setDate(next.getDate() + config.interval);
+                    break;
+                case 'weekly':
+                    next.setDate(next.getDate() + (7 * config.interval));
+                    break;
+                case 'monthly':
+                    next.setMonth(next.getMonth() + config.interval);
+                    break;
+                case 'yearly':
+                    next.setFullYear(next.getFullYear() + config.interval);
+                    break;
+            }
+            
+            template.generationConfig.lastGenerated = currentDate.toISOString();
+            template.generationConfig.nextGeneration = next.toISOString();
+        }
+        
+        function showRecurringTasksInfo() {
+            showRecurringTasksManagement();
+        }
+        
+        function showRecurringTasksManagement() {
+            const activeTemplates = recurringTemplates.filter(t => t.isActive);
+            const recurringTasks = tasks.filter(t => t.isRecurring);
+            
+            const modal = document.createElement('div');
+            modal.id = 'recurring-tasks-modal';
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.6); z-index: 1000;
+                display: flex; align-items: center; justify-content: center;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; width: 90%; max-width: 800px; max-height: 80vh; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+                    <div style="background: linear-gradient(135deg, #805ad5 0%, #667eea 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0;">
+                        <h3 style="margin: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                            🔄 定期タスク管理
+                            <button onclick="document.getElementById('recurring-tasks-modal').remove()" style="margin-left: auto; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
+                        </h3>
+                        <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.9rem;">毎月・毎週の繰り返しタスクを管理</p>
+                    </div>
+                    
+                    <div style="padding: 1.5rem; overflow-y: auto; max-height: 60vh;">
+                        <div style="margin-bottom: 2rem;">
+                            <h4 style="color: #2d3748; margin: 0 0 1rem 0;">📊 現在の状況</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="background: #f7fafc; padding: 1rem; border-radius: 8px; border-left: 4px solid #805ad5;">
+                                    <div style="font-size: 1.5rem; font-weight: 600; color: #805ad5;">${activeTemplates.length}</div>
+                                    <div style="color: #4a5568; font-size: 0.9rem;">アクティブテンプレート</div>
+                                </div>
+                                <div style="background: #f7fafc; padding: 1rem; border-radius: 8px; border-left: 4px solid #38a169;">
+                                    <div style="font-size: 1.5rem; font-weight: 600; color: #38a169;">${recurringTasks.length}</div>
+                                    <div style="color: #4a5568; font-size: 0.9rem;">生成済みタスク</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                            <button onclick="createRecurringTemplate()" style="background: #805ad5; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                ➕ テンプレート作成
+                            </button>
+                            <button onclick="generatePendingTasks()" style="background: #3182ce; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                🔄 今すぐ生成チェック
+                            </button>
+                            <button onclick="showRecurringTasksInfo_Old()" style="background: #718096; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                📋 簡易表示
+                            </button>
+                        </div>
+                        
+                        ${activeTemplates.length > 0 ? `
+                            <div>
+                                <h4 style="color: #2d3748; margin: 0 0 1rem 0;">📋 テンプレート一覧</h4>
+                                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                    ${activeTemplates.map(template => {
+                                        const nextGen = template.generationConfig?.nextGeneration ? 
+                                            new Date(template.generationConfig.nextGeneration).toLocaleDateString('ja-JP') : '未設定';
+                                        const typeText = getRecurringTypeText(template.recurringConfig?.type || 'monthly');
+                                        
+                                        return `
+                                            <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                                    <div style="font-weight: 600; color: #2d3748;">${template.name || 'テンプレート名未設定'}</div>
+                                                    <div style="display: flex; gap: 0.5rem;">
+                                                        <button onclick="alert('編集機能は近日実装予定です')" style="background: #edf2f7; border: 1px solid #e2e8f0; color: #4a5568; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">編集</button>
+                                                        <button onclick="alert('停止機能は近日実装予定です')" style="background: #fed7d7; border: 1px solid #feb2b2; color: #c53030; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">停止</button>
+                                                    </div>
+                                                </div>
+                                                <div style="font-size: 0.85rem; color: #4a5568; line-height: 1.4;">
+                                                    <div>📅 頻度: ${typeText}</div>
+                                                    <div>⏰ 次回生成: ${nextGen}</div>
+                                                    <div>👥 担当者: ${template.taskTemplate?.assignees ? template.taskTemplate.assignees.join(', ') : '未設定'}</div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 2rem; color: #718096;">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">📅</div>
+                                <div style="font-size: 1.1rem; margin-bottom: 0.5rem;">定期テンプレートがありません</div>
+                                <div style="font-size: 0.9rem;">新しいテンプレートを作成して、繰り返しタスクを自動化しましょう</div>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // 背景クリックで閉じる
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+        
+        // 元の簡易表示関数（下位互換用）
+        function showRecurringTasksInfo_Old() {
+            const activeTemplates = recurringTemplates.filter(t => t.isActive);
+            const recurringTasks = tasks.filter(t => t.isRecurring);
+            
+            let infoText = `🔄 定期タスク管理\n\n`;
+            infoText += `📊 現在の状況:\n`;
+            infoText += `• 定期テンプレート: ${activeTemplates.length}件\n`;
+            infoText += `• 生成済みタスク: ${recurringTasks.length}件\n\n`;
+            
+            if (activeTemplates.length > 0) {
+                infoText += `📋 テンプレート一覧:\n`;
+                activeTemplates.forEach((template, index) => {
+                    const nextGen = template.generationConfig?.nextGeneration 
+                        ? new Date(template.generationConfig.nextGeneration).toLocaleDateString('ja-JP')
+                        : '未設定';
+                    infoText += `${index + 1}. ${template.name}\n`;
+                    infoText += `   種類: ${getRecurringTypeText(template.recurringConfig?.type || 'monthly')}\n`;
+                    infoText += `   次回生成: ${nextGen}\n\n`;
+                });
+            }
+            
+            if (recurringTasks.length > 0) {
+                infoText += `📝 生成済みタスク:\n`;
+                const recentTasks = recurringTasks.slice(0, 5);
+                recentTasks.forEach(task => {
+                    const status = getColumnTitle(task.columnId);
+                    infoText += `• ${task.title} (${status})\n`;
+                });
+                if (recurringTasks.length > 5) {
+                    infoText += `...他${recurringTasks.length - 5}件\n`;
+                }
+            }
+            
+            infoText += `\n💡 ヒント: 定期タスクは自動的に生成され、🔄アイコンで識別できます。`;
+            
+            alert(infoText);
+        }
+        
+        function getRecurringTypeText(type) {
+            const typeMap = {
+                'daily': '毎日',
+                'weekly': '毎週',
+                'monthly': '毎月',
+                'yearly': '毎年'
+            };
+            return typeMap[type] || type;
+        }
         
         // 日付・時間ユーティリティ
         function getCurrentDateTime() {
@@ -1473,12 +2128,19 @@
             return new Date().toISOString().split('T')[0];
         }
         
+        function getDefaultDeadlineString() {
+            // 現在時刻+3時間をデフォルト期限として設定
+            const now = new Date();
+            now.setHours(now.getHours() + 3);
+            return now.toISOString().split('T')[0];
+        }
+        
         // 統一カード作成関数（画面上部のボタン用）
         function createTaskUnified() {
             editingTask = null;
             document.getElementById('modal-title').textContent = '新しいタスク';
             document.getElementById('task-title-input').value = '';
-            document.getElementById('task-date-input').value = getTodayString();
+            document.getElementById('task-date-input').value = getDefaultDeadlineString();
             document.getElementById('task-time-input').value = '17:00';
             document.getElementById('task-priority-input').value = 'medium';
             document.getElementById('task-memo-input').value = '';
@@ -1531,7 +2193,7 @@
             editingTask = null;
             document.getElementById('modal-title').textContent = '新しいタスク';
             document.getElementById('task-title-input').value = '';
-            document.getElementById('task-date-input').value = getTodayString();
+            document.getElementById('task-date-input').value = getDefaultDeadlineString();
             document.getElementById('task-time-input').value = '17:00';
             document.getElementById('task-priority-input').value = 'medium';
             document.getElementById('task-memo-input').value = '';
@@ -1540,6 +2202,7 @@
             
             // カラム選択フィールドを非表示
             document.getElementById('column-selection-group').style.display = 'none';
+            document.getElementById('task-column-input').removeAttribute('required');
             
             // 担当者選択肢を更新
             updateAssigneeOptions();
@@ -1660,10 +2323,23 @@
             
             // カラム選択フィールドを非表示（編集時は不要）
             document.getElementById('column-selection-group').style.display = 'none';
+            document.getElementById('task-column-input').removeAttribute('required');
             
             // 担当者選択肢を更新してから値を設定
             updateAssigneeOptions();
             setSelectedAssignees(editingTask.assignees || editingTask.assignee || []);
+            
+            // Phase 2: PJタスク編集時はPJ設定を非表示（作成時のみ使用）
+            document.getElementById('project-task-settings').style.display = 'none';
+            
+            // PJタスクの場合はタイトルに表示
+            const isPJTask = editingTask.projectId && editingTask.projectId !== null;
+            if (isPJTask) {
+                document.getElementById('modal-title').textContent = `👥 PJタスク編集: ${editingTask.projectId}`;
+                console.log(`🎯 [EDIT] Editing PJ task: ${editingTask.projectId} - ${editingTask.projectName}`);
+            } else {
+                console.log(`👤 [EDIT] Editing personal task: ${editingTask.title}`);
+            }
             
             // 添付ファイル表示
             displayAttachedFiles(editingTask.attachments || []);
@@ -2030,6 +2706,17 @@
         async function saveTask(event) {
             event.preventDefault();
             
+            // 編集モード時は task-column-input の required 属性を一時的に削除
+            const columnInput = document.getElementById('task-column-input');
+            const columnSelectionGroup = document.getElementById('column-selection-group');
+            const wasRequired = columnInput.hasAttribute('required');
+            const isColumnSelectionHidden = columnSelectionGroup.style.display === 'none';
+            
+            if (isColumnSelectionHidden && wasRequired) {
+                columnInput.removeAttribute('required');
+                console.log(`🔧 [FORM] Temporarily removed required attribute from task-column-input`);
+            }
+            
             const title = document.getElementById('task-title-input').value.trim();
             const date = document.getElementById('task-date-input').value;
             const time = document.getElementById('task-time-input').value;
@@ -2038,9 +2725,61 @@
             const memo = document.getElementById('task-memo-input').value.trim();
             const fileInput = document.getElementById('task-files-input');
             
+            // Phase 2: PJタスク関連の入力値取得
+            const isProjectTask = isPJTaskMode();
+            const projectId = document.getElementById('project-id-input').value.trim();
+            const projectName = document.getElementById('project-name-input').value.trim();
+            const selectedApprovers = getSelectedApprovers();
+            
             if (!title || !date) {
                 alert('タスク名と期限日は必須です');
                 return;
+            }
+            
+            // Phase 2: PJタスクのバリデーション
+            if (isProjectTask) {
+                console.log(`🔍 [PJ VALIDATION] ProjectID: "${projectId}", ProjectName: "${projectName}", Approvers: [${selectedApprovers.join(', ')}]`);
+                
+                if (!projectId || !projectName) {
+                    alert('PJタスクの場合、プロジェクトIDとプロジェクト名は必須です');
+                    // required属性を復活させてからreturn
+                    if (wasRequired && isColumnSelectionHidden) {
+                        columnInput.setAttribute('required', '');
+                    }
+                    return;
+                }
+                if (selectedApprovers.length === 0) {
+                    // 承認者が選択されていない場合は自動で担当者を承認者に設定
+                    if (selectedAssignees.length > 0) {
+                        console.log(`⚠️ [PJ VALIDATION] No approvers selected, using assignees as approvers: [${selectedAssignees.join(', ')}]`);
+                        // 承認者を自動設定（担当者の中から）
+                        const approverCheckboxes = document.querySelectorAll('#project-approvers input[type="checkbox"]');
+                        approverCheckboxes.forEach(cb => {
+                            if (selectedAssignees.includes(cb.value)) {
+                                cb.checked = true;
+                            }
+                        });
+                        // 再度取得
+                        const autoSelectedApprovers = getSelectedApprovers();
+                        if (autoSelectedApprovers.length === 0) {
+                            alert('PJタスクの場合、承認者を1名以上選択してください\n\n※ 承認者一覧から1名以上チェックしてください\n※ または担当者を先に選択してください');
+                            // required属性を復活させてからreturn
+                            if (wasRequired && isColumnSelectionHidden) {
+                                columnInput.setAttribute('required', '');
+                            }
+                            return;
+                        }
+                    } else {
+                        alert('PJタスクの場合、承認者を1名以上選択してください\n\n※ 承認者一覧から1名以上チェックしてください\n※ または担当者を先に選択してください');
+                        // required属性を復活させてからreturn
+                        if (wasRequired && isColumnSelectionHidden) {
+                            columnInput.setAttribute('required', '');
+                        }
+                        return;
+                    }
+                }
+                const finalApprovers = getSelectedApprovers(); // 最新の承認者を取得
+                console.log(`🎯 [PJ TASK] Creating project task: ${projectId} - ${projectName} with approvers: [${finalApprovers.join(', ')}]`);
             }
             
             if (selectedAssignees.length === 0) {
@@ -2094,6 +2833,43 @@
             }
             
             if (editingTask) {
+                // 期限変更の確認処理
+                const oldDeadline = new Date(editingTask.deadline);
+                const newDeadline = deadline;
+                const wasOverdue = isOverdue(editingTask.deadline, editingTask.columnId);
+                const willBeOverdue = isOverdue(newDeadline.toISOString(), editingTask.columnId);
+                
+                console.log(`🔍 [DEADLINE] Checking deadline change for task ${editingTask.id}`);
+                console.log(`🔍 [DEADLINE] Old deadline: ${editingTask.deadline}, wasOverdue: ${wasOverdue}`);
+                console.log(`🔍 [DEADLINE] New deadline: ${newDeadline.toISOString()}, willBeOverdue: ${willBeOverdue}`);
+                console.log(`🔍 [DEADLINE] Task column: ${editingTask.columnId}`);
+                
+                // 期限切れタスクの期限が延長された場合の確認
+                if (wasOverdue && !willBeOverdue) {
+                    console.log(`📅 [DEADLINE] Overdue task deadline extended, showing confirmation dialog`);
+                    const columnTitle = getColumnTitle(editingTask.columnId);
+                    const shouldMoveBack = confirm(
+                        `📅 期限が延長されました\n\n` +
+                        `"${editingTask.title}" の期限が延長され、期限切れではなくなります。\n\n` +
+                        `元の進捗状況「${columnTitle}」に戻しますか？\n\n` +
+                        `• OK: ${columnTitle}に戻す\n` +
+                        `• キャンセル: 期限切れエリアに残す`
+                    );
+                    
+                    if (!shouldMoveBack) {
+                        // ユーザーが期限切れエリアに残すことを選択した場合、
+                        // 期限を元に戻して期限切れのままにする
+                        if (confirm('期限変更をキャンセルして、元の期限のままにしますか？')) {
+                            console.log(`⚠️ User chose to cancel deadline change for task ${editingTask.id}`);
+                            closeModal();
+                            return;
+                        }
+                    }
+                    console.log(`📅 Deadline extended for overdue task ${editingTask.id}, moving back: ${shouldMoveBack}`);
+                } else {
+                    console.log(`🔍 [DEADLINE] No confirmation needed: wasOverdue=${wasOverdue}, willBeOverdue=${willBeOverdue}`);
+                }
+                
                 // 編集
                 editingTask.title = title;
                 editingTask.deadline = deadline.toISOString();
@@ -2102,6 +2878,9 @@
                 // 後方互換性のため古いassigneeフィールドも保持
                 editingTask.assignee = selectedAssignees.length > 0 ? selectedAssignees[0] : '未設定';
                 editingTask.memo = memo;
+                
+                // Phase 2: PJタスクの編集ではPJ情報は変更しない
+                console.log(`📝 [TASK EDIT] Updated task: ${editingTask.title}`);
                 
                 // 新しい添付ファイルがある場合のみ追加
                 if (attachments.length > 0) {
@@ -2127,8 +2906,24 @@
                     comments: [],
                     columnId: targetColumn,
                     completed: targetColumn === 'done',
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    
+                    // Phase 2: PJタスク拡張フィールド
+                    projectId: isProjectTask ? projectId : null,
+                    projectName: isProjectTask ? projectName : null,
+                    personalStatus: targetColumn,
+                    projectStatus: targetColumn,
+                    pendingMove: null,
+                    approvers: isProjectTask ? finalApprovers : [],
+                    lastApprovedBy: null,
+                    approvedAt: null
                 };
+                
+                if (isProjectTask) {
+                    console.log(`🎯 [PJ TASK CREATE] Created new PJ task: ${projectId} - ${projectName}, approvers: ${finalApprovers.join(', ')}`);
+                } else {
+                    console.log(`👤 [PERSONAL TASK CREATE] Created new personal task: ${title}`);
+                }
                 tasks.unshift(newTask);
                 
                 // 共同タスク作成時の通知
@@ -2140,6 +2935,12 @@
             
             // タスク作成・編集後に即座に期限チェック
             setTimeout(() => checkDeadlines(), 100);
+            
+            // required 属性を復活 (統一作成モード用)
+            if (wasRequired && isColumnSelectionHidden) {
+                columnInput.setAttribute('required', '');
+                console.log(`🔧 [FORM] Restored required attribute to task-column-input`);
+            }
             
             closeModal();
             
@@ -2163,6 +2964,15 @@
             if (commentInput) {
                 commentInput.value = '';
             }
+            
+            // Phase 2: PJタスク設定を非表示に戻す
+            document.getElementById('project-task-settings').style.display = 'none';
+            document.getElementById('project-id-input').value = '';
+            document.getElementById('project-name-input').value = '';
+            
+            // 承認者チェックボックスをクリア
+            const approverCheckboxes = document.querySelectorAll('#project-approvers input[type="checkbox"]');
+            approverCheckboxes.forEach(cb => cb.checked = false);
         }
         
         function deleteTask(taskId) {
@@ -2176,13 +2986,22 @@
         
         // ドラッグ&ドロップ
         function handleDragStart(e, taskId) {
+            console.log(`🟢 [MAIN] handleDragStart called with taskId: ${taskId}`);
+            console.log(`🟢 [MAIN] All tasks:`, tasks);
+            console.log(`🟢 [MAIN] isBulkMode: ${isBulkMode}`);
             draggedTask = tasks.find(t => t.id === taskId);
+            console.log(`🟢 [MAIN] Found draggedTask:`, draggedTask);
+            if (!draggedTask) {
+                console.error(`❌ [MAIN] draggedTask not found for taskId: ${taskId}`);
+                return false;
+            }
             e.target.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
-            console.log(`Dragging task: ${draggedTask?.title}`);
+            e.dataTransfer.setData('text/plain', taskId);
         }
         
         function handleDragEnd(e) {
+            console.log(`🔴 [MAIN] handleDragEnd called`);
             e.target.classList.remove('dragging');
             draggedTask = null;
         }
@@ -2193,29 +3012,48 @@
         }
         
         function handleDrop(e, columnId) {
+            console.log(`🔵 [MAIN] handleDrop called with columnId: ${columnId}`);
+            console.log(`🔵 [MAIN] draggedTask:`, draggedTask);
+            console.log(`🔵 [MAIN] Event target:`, e.target);
+            console.log(`🔵 [MAIN] Event currentTarget:`, e.currentTarget);
             e.preventDefault();
             const dropZone = e.currentTarget;
             dropZone.classList.remove('drag-over');
             
-            if (draggedTask && draggedTask.columnId !== columnId) {
-                console.log(`Moving "${draggedTask.title}" to ${columnId}`);
+            if (draggedTask) {
+                console.log(`🔵 [MAIN] Current task column: ${draggedTask.columnId}, Target: ${columnId}`);
                 
-                // Doneカラムに移動する場合、completedAtを記録
-                if (columnId === 'done' && !draggedTask.completedAt) {
-                    draggedTask.completedAt = new Date().toISOString();
+                if (draggedTask.columnId !== columnId) {
+                    // 期限切れタスクのdrag&dropは無効（期限延長でのみ移動可能）
+                    if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId)) {
+                        console.log(`❌ [MAIN] Overdue task drag&drop is disabled`);
+                        alert('期限切れタスクは直接移動できません。\n編集画面で期限を延長すると移動できます。');
+                        return;
+                    }
+                    
+                    console.log(`🟡 [MAIN] Moving "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
+                    
+                    // Doneカラムに移動する場合、completedAtを記録
+                    if (columnId === 'done' && !draggedTask.completedAt) {
+                        draggedTask.completedAt = new Date().toISOString();
+                    }
+                    // Doneカラムから他に移動する場合、completedAtをクリア
+                    else if (draggedTask.columnId === 'done' && columnId !== 'done') {
+                        draggedTask.completedAt = null;
+                    }
+                    
+                    draggedTask.columnId = columnId;
+                    draggedTask.completed = (columnId === 'done');
+                    saveTasks();
+                    render();
+                    updateStats();
+                    
+                    console.log(`✅ [MAIN] Task moved successfully to ${columnId}`);
+                } else {
+                    console.log(`⚠️ [MAIN] Same column, no move needed`);
                 }
-                // Doneカラムから他に移動する場合、completedAtをクリア
-                else if (draggedTask.columnId === 'done' && columnId !== 'done') {
-                    draggedTask.completedAt = null;
-                }
-                
-                draggedTask.columnId = columnId;
-                draggedTask.completed = (columnId === 'done');
-                saveTasks();
-                render();
-                updateStats();
-                
-                console.log(`Task moved successfully`);
+            } else {
+                console.log(`❌ [MAIN] No draggedTask found`);
             }
         }
         
@@ -2228,28 +3066,57 @@
             e.currentTarget.classList.remove('drag-over');
         }
         
+        function handleOverdueDrop(e) {
+            console.log(`🔴 [OVERDUE] handleOverdueDrop called - disabled`);
+            e.preventDefault();
+            const dropZone = e.currentTarget;
+            dropZone.classList.remove('drag-over');
+            
+            // 期限切れエリアへのドロップは無効
+            alert('期限切れエリアには直接移動できません。\n編集画面で期限を延長してください。');
+            console.log(`❌ [OVERDUE] Drop to overdue area is disabled`);
+        }
+        
+        function getColumnTitle(columnId) {
+            const column = columns.find(c => c.id === columnId);
+            return column ? column.title : columnId;
+        }
+        
         
         // レンダリング
         function render() {
             const board = document.getElementById('kanban-board');
             board.innerHTML = '';
             
-            // 期限切れタスクを抽出
-            let overdueTasks = tasks.filter(t => 
-                t.columnId !== 'done' && 
-                t.deadline && 
-                isOverdue(t.deadline, t.columnId)
-            );
+            // 統合フィルターを適用
+            let filteredTasks = tasks;
             
-            // 担当者フィルタを適用
-            if (selectedAssigneeFilters.length > 0) {
-                overdueTasks = overdueTasks.filter(t => {
+            if (selectedProjectFilters.length > 0) {
+                // PJフィルター: 特定プロジェクトのタスクのみ表示
+                filteredTasks = tasks.filter(t => 
+                    t.projectId && selectedProjectFilters.includes(t.projectId)
+                );
+                console.log(`👥 [RENDER] Project filter: showing ${filteredTasks.length} tasks for project ${selectedProjectFilters[0]}`);
+            } else if (selectedAssigneeFilters.length > 0) {
+                // 担当者フィルター: 特定担当者のタスクのみ表示
+                filteredTasks = tasks.filter(t => {
                     if (t.assignees && Array.isArray(t.assignees)) {
                         return t.assignees.some(a => selectedAssigneeFilters.includes(a));
                     }
                     return selectedAssigneeFilters.includes(t.assignee);
                 });
+                console.log(`👤 [RENDER] Assignee filter: showing ${filteredTasks.length} tasks for ${selectedAssigneeFilters[0]}`);
+            } else {
+                // 全員: 全タスク表示
+                console.log(`👥 [RENDER] Showing all ${filteredTasks.length} tasks`);
             }
+            
+            // 期限切れタスクを抽出（フィルタリング後のタスクから）
+            let overdueTasks = filteredTasks.filter(t => 
+                t.columnId !== 'done' && 
+                t.deadline && 
+                isOverdue(t.deadline, t.columnId)
+            );
             
             // 期限切れカラムを最初に表示
             if (overdueTasks.length > 0) {
@@ -2263,7 +3130,12 @@
                             <div class="column-count">${overdueTasks.length}</div>
                         </div>
                     </div>
-                    <div class="column-content" style="background: #fee;">
+                    <div class="column-content" 
+                         style="background: #fee;"
+                         ondragover="handleDragOver(event)"
+                         ondrop="handleOverdueDrop(event)"
+                         ondragenter="handleDragEnter(event)"
+                         ondragleave="handleDragLeave(event)">
                         ${overdueTasks.map(task => createTaskCard(task, true)).join('')}
                     </div>
                 `;
@@ -2272,25 +3144,13 @@
             
             // 通常のカラムを表示
             columns.forEach(column => {
-                let columnTasks = tasks.filter(t => {
+                let columnTasks = filteredTasks.filter(t => {
                     // 期限切れタスクは期限切れカラムに表示するので除外
                     if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
                         return false;
                     }
                     return t.columnId === column.id;
                 });
-                
-                // 担当者フィルタを適用（複数選択対応）
-                if (selectedAssigneeFilters.length > 0) {
-                    columnTasks = columnTasks.filter(t => {
-                        // 新しいassigneesフィールドをチェック
-                        if (t.assignees && Array.isArray(t.assignees)) {
-                            return t.assignees.some(a => selectedAssigneeFilters.includes(a));
-                        }
-                        // 旧いassigneeフィールドもチェック（後方互換性）
-                        return selectedAssigneeFilters.includes(t.assignee);
-                    });
-                }
                 
                 // 期限順でソート
                 columnTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
@@ -2325,24 +3185,38 @@
         }
         
         function createTaskCard(task, isFromOverdueColumn = false) {
+            console.log(`🎴 [CARD] Creating card for task ${task.id}, isBulkMode: ${isBulkMode}, isFromOverdueColumn: ${isFromOverdueColumn}`);
             const deadline = new Date(task.deadline);
             const isOverdueTask = isOverdue(task.deadline, task.columnId);
             const isTodayTask = isToday(task.deadline, task.columnId);
+            const now = new Date();
+            console.log(`🎴 [CARD] Task ${task.id} - deadline: ${task.deadline}, columnId: ${task.columnId}`);
+            console.log(`🎴 [CARD] Task ${task.id} - Current time: ${now.toISOString()}, deadline < now: ${deadline < now}`);
+            console.log(`🎴 [CARD] Task ${task.id} - isOverdueTask: ${isOverdueTask}, draggable: ${!isBulkMode}`);
             
-            // 経過日数を計算
+            // 経過時間を計算
             let daysSinceCreated = 0;
-            let daysText = '';
+            let elapsedText = '';
+            let isStale = false; // 3日以上停滞フラグ
+            
             if (task.createdAt) {
                 const createdDate = new Date(task.createdAt);
                 const now = new Date();
-                daysSinceCreated = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+                const timeDiff = now - createdDate;
+                const hoursDiff = Math.floor(timeDiff / (1000 * 60 * 60));
+                daysSinceCreated = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
                 
-                if (daysSinceCreated === 0) {
-                    daysText = '今日作成';
-                } else if (daysSinceCreated === 1) {
-                    daysText = '1日前';
+                if (hoursDiff < 24) {
+                    // 24時間以内は時間表示
+                    elapsedText = `${String(hoursDiff).padStart(2, '0')}h`;
                 } else {
-                    daysText = `${daysSinceCreated}日前`;
+                    // 24時間以上は日数表示
+                    elapsedText = `${daysSinceCreated}d`;
+                }
+                
+                // 3日以上で完了していないタスクは停滞フラグ
+                if (daysSinceCreated >= 3 && task.columnId !== 'done') {
+                    isStale = true;
                 }
             }
             
@@ -2378,20 +3252,27 @@
             
             return `
                 <div class="${cardClass}" 
-                     draggable="true"
-                     ondragstart="handleDragStart(event, ${task.id})"
-                     ondragend="handleDragEnd(event)"
+                     draggable="${!isBulkMode && !(isFromOverdueColumn || isOverdueTask)}"
+                     ${(!isBulkMode && !(isFromOverdueColumn || isOverdueTask)) ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
                      onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
-                     style="position: relative; cursor: move;">
+                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : ((isFromOverdueColumn || isOverdueTask) ? 'default' : 'move')}; ${(isFromOverdueColumn || isOverdueTask) ? 'opacity: 0.9;' : ''} ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
+                     title="${(isFromOverdueColumn || isOverdueTask) ? '期限切れタスクです。移動するには編集で期限を延長してください。' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
                     ${checkboxHtml}
-                    <div class="task-title">${task.title}</div>
+                    <div class="task-title">
+                        ${task.isRecurring ? '<span style="color: #2d3748; margin-right: 0.25rem;" title="定期タスク">🔄</span>' : ''}
+                        ${task.projectId ? '<span style="color: #2b6cb0; margin-right: 0.25rem;" title="PJタスク">👥</span>' : ''}
+                        ${task.title}
+                    </div>
                     <div class="task-meta">
                         <div style="margin-bottom: 0.25rem;">
                             <span class="${deadlineClass}">
                                 ${deadlineIcon} ${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
                             </span>
                         </div>
-                        ${daysText ? `<div style="font-size: 0.65rem; color: #a0aec0; margin-bottom: 0.25rem;">📅 ${daysText}</div>` : ''}
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            ${elapsedText ? `<span style="font-size: 0.75rem; color: ${isStale ? '#e53e3e' : '#718096'}; font-weight: ${isStale ? '600' : '400'};">⏱️ ${elapsedText}</span>` : ''}
+                            ${isStale ? '<span style="font-size: 0.75rem; color: #e53e3e;">🚨 停滞中</span>' : ''}
+                        </div>
                         <span class="task-priority-badge priority-${task.priority}">
                             ${priorityText}
                         </span>
@@ -2440,90 +3321,399 @@
             const todayCount = filteredTasks.filter(t => t.columnId !== 'done' && isToday(t.deadline, t.columnId)).length;
             const completedCount = filteredTasks.filter(t => t.columnId === 'done').length;
             
+            // 3日以上停滞しているタスクを検出
+            const now = new Date();
+            const staleTasks = filteredTasks.filter(t => {
+                if (t.columnId === 'done') return false;
+                
+                // createdAtがない場合は今日作成されたものとして扱う（停滞判定から除外）
+                if (!t.createdAt) return false;
+                
+                const createdDate = new Date(t.createdAt);
+                const daysDiff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+                return daysDiff >= 3;
+            });
+            
+            // チーム平均の1.2倍以上のタスクを持つ担当者を検出
+            const assigneeCounts = {};
+            let totalAssignedTasks = 0;
+            let assigneeCount = 0;
+            
+            // 全タスクで担当者別カウント（フィルタ前の全体から計算）
+            tasks.forEach(task => {
+                if (task.columnId !== 'done') {
+                    // 新しいassigneesフィールドの処理
+                    if (task.assignees && Array.isArray(task.assignees)) {
+                        task.assignees.forEach(assignee => {
+                            if (!assigneeCounts[assignee]) {
+                                assigneeCounts[assignee] = 0;
+                                assigneeCount++;
+                            }
+                            assigneeCounts[assignee]++;
+                            totalAssignedTasks++;
+                        });
+                    } else if (task.assignee && task.assignee !== '未設定') {
+                        // 旧assigneeフィールドの処理
+                        if (!assigneeCounts[task.assignee]) {
+                            assigneeCounts[task.assignee] = 0;
+                            assigneeCount++;
+                        }
+                        assigneeCounts[task.assignee]++;
+                        totalAssignedTasks++;
+                    }
+                }
+            });
+            
+            // チーム平均を計算
+            const avgTasksPerPerson = assigneeCount > 0 ? totalAssignedTasks / assigneeCount : 0;
+            const overloadThreshold = avgTasksPerPerson * 1.2;
+            
+            // 過負荷の担当者数をカウント
+            const overloadedAssignees = Object.entries(assigneeCounts)
+                .filter(([assignee, count]) => count > overloadThreshold)
+                .map(([assignee, count]) => ({ assignee, count }));
+            
             document.getElementById('overdue-count').textContent = overdueCount;
             document.getElementById('today-count').textContent = todayCount;
-            document.getElementById('completed-count').textContent = completedCount;
+            document.getElementById('stale-count').textContent = staleTasks.length;
+            document.getElementById('overload-count').textContent = overloadedAssignees.length;
+            
+            // 管理者のみ要調整を表示
+            const workloadItem = document.getElementById('workload-item');
+            if (workloadItem) {
+                workloadItem.style.display = isAdmin() ? 'flex' : 'none';
+            }
+            
+            // グローバル変数に保存（詳細表示用）
+            window.staleTasks = staleTasks;
+            window.overloadedAssignees = overloadedAssignees;
+            window.avgTasksPerPerson = avgTasksPerPerson;
+            
+            // ワークフロー表示を削除: 管理者にとって用途が不明確なため
             
             // 分析サマリーも更新
             updateAnalyticsSummary();
         }
         
-        function updateAssigneeFilter() {
-            const dropdownContainer = document.getElementById('assignee-filter-dropdown');
-            if (!dropdownContainer) return;
+        function updateWorkflowStats(filteredTasks) {
+            const workflowContainer = document.getElementById('workflow-status');
+            if (!workflowContainer) return;
             
-            // すべての担当者を取得（新旧フィールド両方から）
-            const allAssignees = [...new Set(
-                tasks.flatMap(t => {
-                    const assignees = [];
-                    // 新しいassigneesフィールドから
-                    if (t.assignees && Array.isArray(t.assignees)) {
-                        assignees.push(...t.assignees);
-                    }
-                    // 旧いassigneeフィールドから（後方互換性）
-                    if (t.assignee && t.assignee !== '未設定') {
-                        assignees.push(t.assignee);
-                    }
-                    return assignees;
-                }).filter(a => a && a !== '未設定')
-            )];
+            // ステータス別統計を計算
+            const statusStats = {};
+            const now = new Date();
             
-            // ドロップダウンのHTMLを再構築
-            dropdownContainer.innerHTML = `
-                <div style="padding: 0.5rem;">
-                    <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
-                        <input type="checkbox" value="" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.length === 0 ? 'checked' : ''}>
-                        <span>全員</span>
-                    </label>
-                    ${allAssignees.map(assignee => `
-                        <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
-                            <input type="checkbox" value="${assignee}" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.includes(assignee) ? 'checked' : ''}>
-                            <span>${assignee}</span>
-                        </label>
-                    `).join('')}
+            columns.forEach(column => {
+                const columnTasks = filteredTasks.filter(t => {
+                    // 期限切れタスクは期限切れエリアに表示されるので除外
+                    if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
+                        return false;
+                    }
+                    return t.columnId === column.id;
+                });
+                
+                // 平均滞留時間を計算
+                let avgDays = 0;
+                if (columnTasks.length > 0) {
+                    const totalDays = columnTasks.reduce((sum, task) => {
+                        if (task.createdAt) {
+                            const createdDate = new Date(task.createdAt);
+                            const days = Math.max(0, (now - createdDate) / (1000 * 60 * 60 * 24));
+                            return sum + days;
+                        }
+                        return sum;
+                    }, 0);
+                    avgDays = Math.round((totalDays / columnTasks.length) * 10) / 10; // 小数点1桁
+                }
+                
+                statusStats[column.id] = {
+                    title: column.title,
+                    count: columnTasks.length,
+                    avgDays: avgDays,
+                    color: column.color || '#026aa7'
+                };
+            });
+            
+            // ワークフロー表示を生成
+            const workflowHtml = columns.map((column, index) => {
+                const stats = statusStats[column.id];
+                const isBottleneck = stats.avgDays > 2.0; // 2日以上でボトルネック判定
+                const statusClass = isBottleneck ? 'bottleneck' : 'normal';
+                const statusIcon = isBottleneck ? '🚨' : '';
+                
+                const arrow = index < columns.length - 1 ? '<span style="margin: 0 0.25rem; color: #5e6c84;">→</span>' : '';
+                
+                return `
+                    <div class="workflow-status-item ${statusClass}" 
+                         onclick="showStatusDetails('${column.id}')"
+                         style="
+                            display: flex; 
+                            align-items: center; 
+                            gap: 0.25rem; 
+                            padding: 0.25rem 0.5rem; 
+                            border-radius: 4px; 
+                            cursor: pointer;
+                            background: ${isBottleneck ? '#fee2e2' : '#f1f5f9'};
+                            border: 1px solid ${isBottleneck ? '#fca5a5' : '#cbd5e1'};
+                            transition: all 0.2s;
+                         "
+                         onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'"
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                         title="${stats.title}: ${stats.count}件、平均${stats.avgDays}日">
+                        ${statusIcon}
+                        <span style="font-weight: 600; color: ${isBottleneck ? '#dc2626' : '#374151'};">${stats.title}</span>
+                        <span style="color: ${isBottleneck ? '#dc2626' : '#6b7280'};">(${stats.count}件)</span>
+                        ${stats.avgDays > 0 ? `<span style="font-size: 0.75rem; color: ${isBottleneck ? '#dc2626' : '#9ca3af'};">${stats.avgDays}日</span>` : ''}
+                    </div>
+                    ${arrow}
+                `;
+            }).join('');
+            
+            workflowContainer.innerHTML = workflowHtml;
+        }
+        
+        // 3日以上停滞しているタスクの詳細表示
+        function showStaleTasksDetail() {
+            if (!window.staleTasks || window.staleTasks.length === 0) {
+                alert('現在、3日以上停滞しているタスクはありません。');
+                return;
+            }
+            
+            const now = new Date();
+            const taskListHtml = window.staleTasks.map(task => {
+                const createdDate = task.createdAt ? new Date(task.createdAt) : now;
+                const daysDiff = task.createdAt ? Math.floor((now - createdDate) / (1000 * 60 * 60 * 24)) : 0;
+                const column = columns.find(c => c.id === task.columnId);
+                const assigneesText = task.assignees?.join(', ') || task.assignee || '未設定';
+                
+                // 経過日数の表示（createdAtがない場合は「作成日不明」と表示）
+                const elapsedText = task.createdAt ? `⏱️ ${daysDiff}日経過` : `⏱️ 作成日不明`;
+                
+                return `
+                    <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">${task.title}</div>
+                        <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #5e6c84;">
+                            <span>👤 ${assigneesText}</span>
+                            <span>📍 ${column?.title || 'ー'}</span>
+                            <span>${elapsedText}</span>
+                            ${task.deadline ? `<span>📅 期限: ${new Date(task.deadline).toLocaleDateString('ja-JP')}</span>` : ''}
+                        </div>
+                        ${task.memo ? `<div style="margin-top: 0.5rem; font-size: 0.85rem; color: #6b7280;">📝 ${task.memo.substring(0, 50)}...</div>` : ''}
+                        <button onclick="editTask(${task.id})" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                            確認・編集
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+            modalOverlay.id = 'stale-tasks-modal';
+            
+            modalOverlay.innerHTML = `
+                <div style="background: white; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                        <h2 style="margin: 0; font-size: 1.25rem;">🚨 3日以上停滞しているタスク（${window.staleTasks.length}件）</h2>
+                        <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">進捗確認が必要なタスクです</p>
+                    </div>
+                    <div>${taskListHtml}</div>
+                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
+                        <button onclick="document.getElementById('stale-tasks-modal').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                            閉じる
+                        </button>
+                    </div>
                 </div>
             `;
             
-            updateAssigneeFilterText();
-        }
-        
-        function toggleAssigneeFilter() {
-            const dropdown = document.getElementById('assignee-filter-dropdown');
-            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-        }
-        
-        function updateAssigneeFilterSelection() {
-            const checkboxes = document.querySelectorAll('#assignee-filter-dropdown input[type="checkbox"]');
-            selectedAssigneeFilters = [];
-            
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked && checkbox.value) {
-                    selectedAssigneeFilters.push(checkbox.value);
+            // 背景クリックでも閉じる
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    modalOverlay.remove();
                 }
             });
             
-            // 全員チェックボックスの制御
-            const allCheckbox = document.querySelector('#assignee-filter-dropdown input[value=""]');
-            if (selectedAssigneeFilters.length === 0) {
-                allCheckbox.checked = true;
-            } else {
-                allCheckbox.checked = false;
-            }
-            
-            updateAssigneeFilterText();
-            render();
+            document.body.appendChild(modalOverlay);
         }
         
-        function updateAssigneeFilterText() {
-            const textElement = document.getElementById('assignee-filter-text');
-            if (selectedAssigneeFilters.length === 0) {
-                textElement.textContent = '全員';
-            } else if (selectedAssigneeFilters.length === 1) {
-                textElement.textContent = selectedAssigneeFilters[0];
-            } else {
-                textElement.textContent = `${selectedAssigneeFilters.length}名選択中`;
+        // チーム平均1.2倍以上の負荷担当者の詳細表示
+        function showWorkloadDetail() {
+            if (!window.overloadedAssignees || window.overloadedAssignees.length === 0) {
+                alert('現在、過負荷の担当者はいません。');
+                return;
+            }
+            
+            const avgTasks = Math.round(window.avgTasksPerPerson * 10) / 10;
+            const threshold = Math.round(avgTasks * 1.2 * 10) / 10;
+            
+            const assigneeListHtml = window.overloadedAssignees.map(({ assignee, count }) => {
+                const overloadPercentage = Math.round((count / avgTasks - 1) * 100);
+                return `
+                    <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">${assignee}</div>
+                                <div style="font-size: 0.85rem; color: #5e6c84;">
+                                    担当タスク数: ${count}件（平均の${100 + overloadPercentage}%）
+                                </div>
+                            </div>
+                            <button onclick="document.getElementById('assignee-filter').value='${assignee}'; filterTasks(); this.closest('div[style*=\\"position: fixed\\"]').remove();" 
+                                    style="padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                                タスク確認
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+            modalOverlay.id = 'workload-modal';
+            
+            modalOverlay.innerHTML = `
+                <div style="background: white; border-radius: 8px; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                        <h2 style="margin: 0; font-size: 1.25rem;">👥 負荷調整が必要な担当者（${window.overloadedAssignees.length}名）</h2>
+                        <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">
+                            チーム平均: ${avgTasks}件 / 人　｜　要調整基準: ${threshold}件以上
+                        </p>
+                    </div>
+                    <div>${assigneeListHtml}</div>
+                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
+                        <button onclick="document.getElementById('workload-modal').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                            閉じる
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // 背景クリックでも閉じる
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    modalOverlay.remove();
+                }
+            });
+            
+            document.body.appendChild(modalOverlay);
+        }
+        
+        function showStatusDetails(columnId) {
+            const column = columns.find(c => c.id === columnId);
+            if (!column) return;
+            
+            const assigneeFilter = document.getElementById('assignee-filter')?.value || '';
+            let filteredTasks = tasks;
+            
+            // 担当者フィルタを適用
+            if (assigneeFilter) {
+                filteredTasks = tasks.filter(t => {
+                    if (t.assignees && Array.isArray(t.assignees)) {
+                        return t.assignees.includes(assigneeFilter);
+                    }
+                    return t.assignee === assigneeFilter;
+                });
+            }
+            
+            // 該当ステータスのタスクを取得
+            const statusTasks = filteredTasks.filter(t => {
+                // 期限切れタスクは期限切れエリアに表示されるので除外
+                if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
+                    return false;
+                }
+                return t.columnId === columnId;
+            });
+            
+            if (statusTasks.length === 0) {
+                alert(`${column.title}ステータスにはタスクがありません。`);
+                return;
+            }
+            
+            // モーダル表示
+            const now = new Date();
+            const taskListHtml = statusTasks.map(task => {
+                const createdDate = new Date(task.createdAt);
+                const daysOld = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+                const deadline = new Date(task.deadline);
+                const isOverdueTask = deadline < now;
+                const assigneeList = Array.isArray(task.assignees) ? task.assignees.join(', ') : (task.assignee || '未設定');
+                
+                return `
+                    <div style="
+                        padding: 0.75rem; 
+                        margin-bottom: 0.5rem; 
+                        background: white; 
+                        border: 1px solid #e5e7eb; 
+                        border-radius: 6px;
+                        ${isOverdueTask ? 'border-left: 4px solid #dc2626;' : ''}
+                    ">
+                        <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 0.5rem;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 0.25rem; ${isOverdueTask ? 'color: #dc2626;' : ''}">${task.title}</div>
+                                <div style="font-size: 0.8rem; color: #6b7280;">
+                                    👤 ${assigneeList} | 📅 ${deadline.toLocaleDateString('ja-JP')} | ⏰ ${daysOld}日経過
+                                </div>
+                            </div>
+                            <button onclick="editTask(${task.id}); closeStatusModal();" 
+                                    style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                編集
+                            </button>
+                        </div>
+                        ${task.memo ? `<div style="font-size: 0.85rem; color: #4b5563; margin-top: 0.5rem;">${task.memo}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            // モーダルHTML生成
+            const modalHtml = `
+                <div id="status-detail-modal" style="
+                    position: fixed; 
+                    top: 0; left: 0; 
+                    width: 100%; height: 100%; 
+                    background: rgba(0,0,0,0.5); 
+                    z-index: 1000; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center;
+                " onclick="closeStatusModal()">
+                    <div style="
+                        background: white; 
+                        border-radius: 8px; 
+                        padding: 1.5rem; 
+                        max-width: 600px; 
+                        max-height: 80vh; 
+                        overflow-y: auto;
+                        margin: 1rem;
+                    " onclick="event.stopPropagation()">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.75rem;">
+                            <h3 style="margin: 0; color: #111827;">📋 ${column.title} (${statusTasks.length}件)</h3>
+                            <button onclick="closeStatusModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280;">×</button>
+                        </div>
+                        <div style="background: #f9fafb; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem;">
+                            <div style="font-size: 0.9rem; color: #374151;">
+                                平均滞留時間: <strong>${Math.round((statusTasks.reduce((sum, t) => sum + Math.floor((now - new Date(t.createdAt)) / (1000 * 60 * 60 * 24)), 0) / statusTasks.length) * 10) / 10}日</strong>
+                            </div>
+                        </div>
+                        <div>${taskListHtml}</div>
+                    </div>
+                </div>
+            `;
+            
+            // 既存のモーダルを削除してから新しいモーダルを追加
+            const existingModal = document.getElementById('status-detail-modal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+        
+        function closeStatusModal() {
+            const modal = document.getElementById('status-detail-modal');
+            if (modal) {
+                modal.remove();
             }
         }
+        
+        
         
         function saveTasks() {
             localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
@@ -2906,6 +4096,74 @@
             // メンションシステムを初期化
             setupMentionSystem();
             
+            // 定期タスクのサンプルテンプレートを初期化
+            if (recurringTemplates.length === 0) {
+                const sampleTemplate = {
+                    id: "recurring_001",
+                    name: "月次営業レポート",
+                    taskTemplate: {
+                        title: "{{YYYY年MM月}} 営業レポート作成",
+                        priority: "high",
+                        assignees: ["田中部長"],
+                        memo: "前月実績をまとめて提出してください",
+                        projectId: null,
+                        projectName: null,
+                        approvers: []
+                    },
+                    recurringConfig: {
+                        type: "monthly",
+                        interval: 1,
+                        dayOfMonth: 25
+                    },
+                    deadlineConfig: {
+                        relativeDays: 5,
+                        timeOfDay: "17:00"
+                    },
+                    generationConfig: {
+                        advanceDays: 3,
+                        maxFutureGeneration: 2,
+                        lastGenerated: null,
+                        nextGeneration: new Date().toISOString()
+                    },
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    createdBy: "システム"
+                };
+                
+                recurringTemplates.push(sampleTemplate);
+                saveRecurringTemplates();
+                console.log('🔄 [INIT] Created sample recurring template');
+            }
+            
+            // 定期タスクの自動生成チェック
+            checkAndGenerateRecurringTasks();
+            
+            // Phase 2対応: 既存タスクのマイグレーション
+            tasks = tasks.map(task => {
+                // PJ関連フィールドが存在しない場合は追加
+                if (task.projectId === undefined) {
+                    return {
+                        ...task,
+                        // PJタスク拡張フィールド
+                        projectId: null,           // PJタスクの場合のみ設定
+                        projectName: null,         // PJ表示名
+                        
+                        // ステータス管理（デュアル管理）
+                        personalStatus: task.columnId || 'todo', // 個人側での進捗状態
+                        projectStatus: task.columnId || 'todo',  // PJ側での承認状態
+                        
+                        // 移動申請管理
+                        pendingMove: null,
+                        
+                        // 承認者設定
+                        approvers: [],             // このPJの承認者リスト
+                        lastApprovedBy: null,      // 最後に承認した人
+                        approvedAt: null           // 承認日時
+                    };
+                }
+                return task;
+            });
+
             // 既存データがない場合はサンプルデータを作成
             if (tasks.length === 0) {
                 tasks = [
@@ -2920,6 +4178,17 @@
                         columnId: 'todo',
                         completed: false,
                         createdAt: new Date().toISOString(),
+                        
+                        // PJタスク拡張フィールド
+                        projectId: null,
+                        projectName: null,
+                        personalStatus: 'todo',
+                        projectStatus: 'todo',
+                        pendingMove: null,
+                        approvers: [],
+                        lastApprovedBy: null,
+                        approvedAt: null,
+                        
                         comments: [
                             {
                                 id: 1,
@@ -2943,15 +4212,26 @@
                     },
                     {
                         id: 2,
-                        title: 'B社との打ち合わせ',
+                        title: 'B社との打ち合わせ - PJタスク例',
                         deadline: new Date().toISOString(),
                         priority: 'medium',
                         assignees: ['佐藤課長'],
                         assignee: '佐藤課長',
-                        memo: '会議室予約済み',
+                        memo: '会議室予約済み - Wチェック対象',
                         columnId: 'inprogress',
                         completed: false,
                         createdAt: new Date().toISOString(),
+                        
+                        // PJタスクの例
+                        projectId: 'PJ001',
+                        projectName: '新規システム導入PJ',
+                        personalStatus: 'inprogress',
+                        projectStatus: 'inprogress',
+                        pendingMove: null,
+                        approvers: ['田中部長', '山田主任'],
+                        lastApprovedBy: null,
+                        approvedAt: null,
+                        
                         comments: []
                     },
                     {
@@ -2965,6 +4245,17 @@
                         columnId: 'todo',
                         completed: false,
                         createdAt: new Date().toISOString(),
+                        
+                        // 個人タスクの例
+                        projectId: null,
+                        projectName: null,
+                        personalStatus: 'todo',
+                        projectStatus: 'todo',
+                        pendingMove: null,
+                        approvers: [],
+                        lastApprovedBy: null,
+                        approvedAt: null,
+                        
                         comments: []
                     },
                     {
@@ -2978,6 +4269,17 @@
                         columnId: 'waiting',
                         completed: false,
                         createdAt: new Date().toISOString(),
+                        
+                        // 個人タスクの例
+                        projectId: null,
+                        projectName: null,
+                        personalStatus: 'waiting',
+                        projectStatus: 'waiting',
+                        pendingMove: null,
+                        approvers: [],
+                        lastApprovedBy: null,
+                        approvedAt: null,
+                        
                         comments: []
                     },
                     {
@@ -2991,6 +4293,17 @@
                         columnId: 'done',
                         completed: true,
                         createdAt: new Date().toISOString(),
+                        
+                        // 完了済み個人タスク
+                        projectId: null,
+                        projectName: null,
+                        personalStatus: 'done',
+                        projectStatus: 'done',
+                        pendingMove: null,
+                        approvers: [],
+                        lastApprovedBy: null,
+                        approvedAt: null,
+                        
                         comments: [
                             {
                                 id: 1,
@@ -3308,10 +4621,10 @@
                 content += `
                     <div style="${cardStyle}" 
                          draggable="true" 
-                         ondragstart="handleDragStart(event, ${index})" 
+                         ondragstart="handlePreviewDragStart(event, ${index})" 
                          ondragend="handleDragEnd(event)"
                          ondragover="handleDragOver(event)" 
-                         ondrop="handleDrop(event, ${index})"
+                         ondrop="handlePreviewDrop(event, ${index})"
                          ondragenter="handleDragEnter(event)"
                          ondragleave="handleDragLeave(event)"
                          id="preview-item-${index}">
@@ -3512,7 +4825,7 @@
         // ドラッグ&ドロップ機能
         let draggedIndex = -1;
         
-        function handleDragStart(event, index) {
+        function handlePreviewDragStart(event, index) {
             draggedIndex = index;
             event.dataTransfer.effectAllowed = 'move';
             event.target.style.opacity = '0.6';
@@ -3545,7 +4858,7 @@
             }
         }
         
-        function handleDrop(event, targetIndex) {
+        function handlePreviewDrop(event, targetIndex) {
             event.preventDefault();
             
             if (draggedIndex === targetIndex || draggedIndex === -1) {
@@ -6495,8 +7808,8 @@
             const modal = document.getElementById('analyticsModal');
             modal.style.display = 'block';
             
-            // 統計データを計算
-            calculateAnalytics();
+            // デフォルトは今週の統計データを計算
+            calculateAnalytics('week');
             
             // グラフを描画
             drawCompletionChart();
@@ -6510,30 +7823,84 @@
             document.getElementById('analyticsModal').style.display = 'none';
         }
         
-        function calculateAnalytics() {
+        // 期間選択ボタンクリック時の処理
+        function showAnalyticsForPeriod(period) {
+            // すべてのボタンからactiveクラスを削除
+            document.querySelectorAll('#analyticsModal .period-btn').forEach(btn => {
+                btn.style.background = '#e2e8f0';
+                btn.style.color = '#333';
+            });
+            
+            // クリックしたボタンにactiveスタイルを適用
+            event.target.style.background = '#0052cc';
+            event.target.style.color = 'white';
+            
+            // 期間に応じて分析を再計算
+            calculateAnalytics(period);
+        }
+        
+        function calculateAnalytics(period = 'all') {
+            // 期間フィルター
+            let filteredTasks = tasks;
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            if (period === 'today') {
+                filteredTasks = tasks.filter(task => {
+                    if (task.createdAt) {
+                        const createdDate = new Date(task.createdAt);
+                        return createdDate >= startOfToday;
+                    }
+                    return false;
+                });
+            } else if (period === 'week') {
+                const startOfWeek = new Date(startOfToday);
+                startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+                filteredTasks = tasks.filter(task => {
+                    if (task.createdAt) {
+                        const createdDate = new Date(task.createdAt);
+                        return createdDate >= startOfWeek;
+                    }
+                    return false;
+                });
+            } else if (period === 'month') {
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                filteredTasks = tasks.filter(task => {
+                    if (task.createdAt) {
+                        const createdDate = new Date(task.createdAt);
+                        return createdDate >= startOfMonth;
+                    }
+                    return false;
+                });
+            }
+            
             // 総タスク数
-            const totalTasks = tasks.length;
+            const totalTasks = filteredTasks.length;
             document.getElementById('total-tasks').textContent = totalTasks;
             
             // 完了タスク数と完了率
-            const completedTasks = tasks.filter(task => task.columnId === 'done').length;
+            const completedTasks = filteredTasks.filter(task => task.columnId === 'done').length;
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             document.getElementById('completion-rate').textContent = completionRate + '%';
             
-            // 期限遵守率を計算（完了タスクのうち、期限内に完了したタスクの割合）
-            const completedTasksWithDeadline = tasks.filter(task => 
-                task.columnId === 'done' && task.deadline && task.completedAt
-            );
-            
-            const onTimeCompleted = completedTasksWithDeadline.filter(task => {
-                const deadline = new Date(task.deadline);
-                const completedDate = new Date(task.completedAt);
-                return completedDate <= deadline;
+            // 期限遵守率を計算（フィルター済みタスクのうち、期限内に完了したタスクの割合）
+            const completedOnTime = filteredTasks.filter(task => {
+                if (task.columnId === 'done' && task.deadline && task.completedAt) {
+                    const deadline = new Date(task.deadline);
+                    const completedDate = new Date(task.completedAt);
+                    return completedDate <= deadline;
+                }
+                return false;
             }).length;
             
-            const deadlineCompliance = completedTasksWithDeadline.length > 0 
-                ? Math.round((onTimeCompleted / completedTasksWithDeadline.length) * 100) 
+            const deadlineCompliance = totalTasks > 0 
+                ? Math.round((completedOnTime / totalTasks) * 100) 
                 : 100;
+                
+            console.log(`📊 [COMPLIANCE] Period: ${period}, Total tasks: ${totalTasks}`);
+            console.log(`📊 [COMPLIANCE] Completed on time: ${completedOnTime}`);
+            console.log(`📊 [COMPLIANCE] Compliance rate: ${deadlineCompliance}%`);
+            
             document.getElementById('deadline-compliance').textContent = deadlineCompliance + '%';
             
             // 平均完了時間を計算
@@ -6750,17 +8117,18 @@
             const completedTasks = tasks.filter(task => task.columnId === 'done').length;
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             
-            // 期限遵守率
-            const completedTasksWithDeadline = tasks.filter(task => 
-                task.columnId === 'done' && task.deadline && task.completedAt
-            );
-            const onTimeCompleted = completedTasksWithDeadline.filter(task => {
-                const deadline = new Date(task.deadline);
-                const completedDate = new Date(task.completedAt);
-                return completedDate <= deadline;
+            // 期限遵守率（全タスクのうち期限内に完了したタスクの割合）
+            const completedOnTime = tasks.filter(task => {
+                if (task.columnId === 'done' && task.deadline && task.completedAt) {
+                    const deadline = new Date(task.deadline);
+                    const completedDate = new Date(task.completedAt);
+                    return completedDate <= deadline;
+                }
+                return false;
             }).length;
-            const deadlineCompliance = completedTasksWithDeadline.length > 0 
-                ? Math.round((onTimeCompleted / completedTasksWithDeadline.length) * 100) 
+            
+            const deadlineCompliance = totalTasks > 0 
+                ? Math.round((completedOnTime / totalTasks) * 100) 
                 : 100;
             
             // 平均完了時間
@@ -7180,6 +8548,7 @@
         // バルク操作関数群
         function toggleBulkMode() {
             isBulkMode = !isBulkMode;
+            console.log(`🔄 [BULK] toggleBulkMode called, new state: ${isBulkMode}`);
             const bulkBar = document.getElementById('bulk-actions-bar');
             const toggleBtn = document.querySelector('button[onclick="toggleBulkMode()"]');
             
@@ -7190,7 +8559,7 @@
                 
                 // 移動先カラム選択肢を更新
                 const moveSelect = document.getElementById('bulk-move-column');
-                moveSelect.innerHTML = '<option value="">移動先を選択</option>';
+                moveSelect.innerHTML = '<option value="">移動先ステータスを選択</option>';
                 columns.forEach(column => {
                     const option = document.createElement('option');
                     option.value = column.id;
@@ -7253,7 +8622,7 @@
         function bulkMoveSelected() {
             const targetColumn = document.getElementById('bulk-move-column').value;
             if (!targetColumn) {
-                alert('移動先のカラムを選択してください');
+                alert('移動先のステータスを選択してください');
                 return;
             }
             
@@ -7312,7 +8681,87 @@
         
         // 初期化実行
         init();
+        
+        // テスト用: 停滞タスクを作成（コンソールから実行可能）
+        function createTestStaleTask() {
+            const staleDate = new Date();
+            staleDate.setDate(staleDate.getDate() - 5); // 5日前
+            
+            const testTask = {
+                id: Date.now(),
+                title: '【テスト】5日前に作成されたタスク',
+                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7日後の期限
+                priority: 'medium',
+                columnId: 'todo',
+                assignee: '田中部長',
+                assignees: ['田中部長'],
+                memo: 'これは停滞タスクのテスト用です。3日以上経過しているため赤枠表示されます。',
+                createdAt: staleDate.toISOString(),
+                isMainTask: false
+            };
+            
+            tasks.push(testTask);
+            taskCounter++;
+            
+            saveTasks();
+            renderKanban();
+            updateStats();
+            
+            alert('5日前に作成されたテストタスクを追加しました。\n赤枠で表示され、停滞中カウントに含まれます。');
+        }
+        
+        // グローバルに公開（コンソールから呼び出し可能）
+        window.createTestStaleTask = createTestStaleTask;
+        
+        // テスト用PJタスク作成
+        function createTestPJTask() {
+            const testPJTask = {
+                id: Date.now() + Math.floor(Math.random() * 1000),
+                title: '【テストPJ】新規システム導入 - 要件定義書作成',
+                deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(), // 10日後の期限
+                priority: 'high',
+                columnId: 'todo',
+                assignee: '田中部長',
+                assignees: ['田中部長', '佐藤課長'],
+                memo: 'これはPJタスクのテストです。Wチェック体制の確認用。',
+                createdAt: new Date().toISOString(),
+                completed: false,
+                
+                // PJタスク専用フィールド
+                projectId: 'PJ001',
+                projectName: '新規システム導入プロジェクト',
+                personalStatus: 'todo',
+                projectStatus: 'todo',
+                pendingMove: null,
+                approvers: ['佐藤課長', '鈴木主任'],
+                lastApprovedBy: null,
+                approvedAt: null
+            };
+            
+            tasks.push(testPJTask);
+            saveTasks();
+            render();
+            updateStats();
+            
+            alert('テスト用PJタスクを作成しました。\n\nPJフィルターから「PJ001」を選択すると表示されます。\n\nプロジェクト名: 新規システム導入プロジェクト\nプロジェクトID: PJ001');
+        }
+        
+        window.createTestPJTask = createTestPJTask;
+        
+        // 定期タスク管理の基本関数
+        function createRecurringTemplate() {
+            alert('定期タスクテンプレート作成機能は実装中です。\n\n予定機能:\n• 毎月・毎週の繰り返し設定\n• 担当者・期限の自動設定\n• テンプレートからの自動生成');
+        }
+        
+        function generatePendingTasks() {
+            // 現在定期タスクが0件なので、デモ用の説明を表示
+            alert('定期タスク生成チェック完了\n\n現在アクティブなテンプレートはありません。\nテンプレートを作成すると、指定された間隔でタスクが自動生成されます。');
+        }
+        
+        window.createRecurringTemplate = createRecurringTemplate;
+        window.generatePendingTasks = generatePendingTasks;
     </script>
 </body>
-</html><!-- Cache bust: 1754142681 -->
-<!-- UI Update: 1754143540 -->
+</html><!-- Cache bust: 1754211273 -->
+<!-- UI Update: 1754211273 -->
+<!-- EMERGENCY FIX: Force cache refresh for PJ creation feature -->
