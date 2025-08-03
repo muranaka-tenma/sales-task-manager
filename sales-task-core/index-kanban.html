@@ -923,6 +923,10 @@
             </div>
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
+            <!-- PJ作成ボタン -->
+            <button onclick="createProjectTask()" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいPJタスクを作成">
+                👥 PJ作成
+            </button>
             <!-- 定期タスク管理ボタン -->
             <button onclick="showRecurringTasksInfo()" style="padding: 0.5rem 0.75rem; background: #805ad5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="定期タスクの状況">
                 🔄 定期タスク
@@ -1035,35 +1039,24 @@
                 <!-- 左側: タスク詳細 -->
                 <div class="modal-left">
                     <form onsubmit="saveTask(event)">
-                        <!-- Phase 2: PJタスク作成オプション -->
-                        <div class="form-group" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #2196f3;">
-                            <label class="form-label" style="color: #1976d2; font-weight: 600;">🎯 タスクタイプ</label>
-                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-                                <label style="display: flex; align-items: center; cursor: pointer;">
-                                    <input type="radio" name="task-type" value="personal" id="task-type-personal" checked onchange="handleTaskTypeChange()" style="margin-right: 0.5rem;">
-                                    <span style="font-size: 0.9rem;">👤 個人タスク</span>
-                                </label>
-                                <label style="display: flex; align-items: center; cursor: pointer;">
-                                    <input type="radio" name="task-type" value="project" id="task-type-project" onchange="handleTaskTypeChange()" style="margin-right: 0.5rem;">
-                                    <span style="font-size: 0.9rem;">👥 PJタスク（Wチェック）</span>
-                                </label>
-                            </div>
-                        </div>
-                        
-                        <!-- PJタスク専用設定（初期は非表示） -->
+                        <!-- PJタスク専用設定（PJ作成時のみ表示） -->
                         <div id="project-task-settings" class="form-group" style="background: #fff3e0; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #ff9800; display: none;">
+                            <div style="margin-bottom: 1rem;">
+                                <h4 style="color: #f57c00; margin: 0 0 0.5rem 0;">👥 プロジェクト設定</h4>
+                                <p style="color: #666; font-size: 0.85rem; margin: 0;">Wチェック対象のプロジェクトタスクを作成します</p>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label" style="color: #f57c00;">📁 プロジェクトID</label>
-                                    <input type="text" class="form-input" id="project-id-input" placeholder="例: PJ001" style="font-size: 0.9rem;">
+                                    <label class="form-label" style="color: #f57c00;">📁 プロジェクトID *</label>
+                                    <input type="text" class="form-input" id="project-id-input" placeholder="例: PJ001" style="font-size: 0.9rem;" required>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label" style="color: #f57c00;">📝 プロジェクト名</label>
-                                    <input type="text" class="form-input" id="project-name-input" placeholder="例: 新規システム導入PJ" style="font-size: 0.9rem;">
+                                    <label class="form-label" style="color: #f57c00;">📝 プロジェクト名 *</label>
+                                    <input type="text" class="form-input" id="project-name-input" placeholder="例: 新規システム導入PJ" style="font-size: 0.9rem;" required>
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label" style="color: #f57c00;">✅ 承認者（複数選択可）</label>
+                                <label class="form-label" style="color: #f57c00;">✅ 承認者（複数選択可）*</label>
                                 <div id="project-approvers" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
                                     <!-- 承認者チェックボックスがここに動的追加される -->
                                 </div>
@@ -1592,19 +1585,11 @@
         // 定期タスク管理
         let recurringTemplates = JSON.parse(localStorage.getItem('recurringTemplates') || '[]');
         
-        // Phase 2: PJタスク関連関数
-        function handleTaskTypeChange() {
-            const isProjectTask = document.getElementById('task-type-project').checked;
+        // Phase 2: PJタスク関連関数（PJ作成専用）
+        function isPJTaskMode() {
+            // PJ設定が表示されているかどうかでPJモードを判定
             const projectSettings = document.getElementById('project-task-settings');
-            
-            if (isProjectTask) {
-                projectSettings.style.display = 'block';
-                populateApprovers();
-                console.log('🎯 [TASK TYPE] Switched to Project task mode');
-            } else {
-                projectSettings.style.display = 'none';
-                console.log('🎯 [TASK TYPE] Switched to Personal task mode');
-            }
+            return projectSettings && projectSettings.style.display === 'block';
         }
         
         function populateApprovers() {
@@ -1643,11 +1628,15 @@
         function populateAssigneeFilterOptions() {
             const dropdown = document.getElementById('assignee-filter-dropdown');
             
-            // 全プロジェクトを取得
-            const allProjects = [...new Set(tasks
-                .filter(t => t.projectId && t.projectId !== null)
-                .map(t => ({id: t.projectId, name: t.projectName}))
-            )];
+            // 全プロジェクトを取得（重複除去）
+            const projectMap = new Map();
+            tasks.filter(t => t.projectId && t.projectId !== null)
+                 .forEach(t => {
+                     if (!projectMap.has(t.projectId)) {
+                         projectMap.set(t.projectId, {id: t.projectId, name: t.projectName});
+                     }
+                 });
+            const allProjects = Array.from(projectMap.values());
             
             dropdown.innerHTML = `
                 <div style="padding: 0.5rem;">
@@ -1737,6 +1726,49 @@
 💡 個人表示とPJ表示は排他的です。
 `;
             alert(helpText);
+        }
+        
+        // PJ作成機能
+        function createProjectTask() {
+            // 新規タスク作成モーダルを開き、PJタスクモードに設定
+            editingTask = null;
+            document.getElementById('modal-title').textContent = '新しいPJタスク';
+            document.getElementById('task-title-input').value = '';
+            document.getElementById('task-date-input').value = getDefaultDeadlineString();
+            document.getElementById('task-time-input').value = '17:00';
+            document.getElementById('task-priority-input').value = 'medium';
+            document.getElementById('task-memo-input').value = '';
+            
+            // カラム選択を表示
+            document.getElementById('column-selection-group').style.display = 'block';
+            document.getElementById('task-column-input').setAttribute('required', '');
+            
+            // 担当者選択肢を更新
+            updateAssigneeOptions();
+            setSelectedAssignees([]);
+            
+            // PJタスクモードに設定
+            document.getElementById('task-type-project').checked = true;
+            document.getElementById('task-type-personal').checked = false;
+            document.getElementById('project-task-settings').style.display = 'block';
+            
+            // PJ情報をクリア
+            document.getElementById('project-id-input').value = '';
+            document.getElementById('project-name-input').value = '';
+            
+            // 承認者を設定
+            populateApprovers();
+            
+            // ファイル・コメント関連をクリア
+            displayAttachedFiles([]);
+            document.getElementById('comments-section').innerHTML = '<div style="text-align: center; color: #5e6c84; padding: 2rem;">新しいタスクです。保存後にコメントを追加できます。</div>';
+            document.getElementById('comment-input').disabled = true;
+            
+            // 統一作成モードを設定
+            document.getElementById('task-modal').dataset.unifiedMode = 'true';
+            document.getElementById('task-modal').classList.add('show');
+            
+            console.log('👥 [PJ CREATE] Opened PJ task creation modal');
         }
         
         // ドロップダウン外クリックで閉じる
@@ -2151,35 +2183,16 @@
             updateAssigneeOptions();
             setSelectedAssignees(editingTask.assignees || editingTask.assignee || []);
             
-            // Phase 2: PJタスク情報の表示設定
+            // Phase 2: PJタスク編集時はPJ設定を非表示（作成時のみ使用）
+            document.getElementById('project-task-settings').style.display = 'none';
+            
+            // PJタスクの場合はタイトルに表示
             const isPJTask = editingTask.projectId && editingTask.projectId !== null;
             if (isPJTask) {
-                // PJタスクモードに設定
-                document.getElementById('task-type-project').checked = true;
-                document.getElementById('task-type-personal').checked = false;
-                document.getElementById('project-task-settings').style.display = 'block';
-                
-                // PJ情報を設定
-                document.getElementById('project-id-input').value = editingTask.projectId || '';
-                document.getElementById('project-name-input').value = editingTask.projectName || '';
-                
-                // 承認者を設定
-                populateApprovers();
-                setTimeout(() => {
-                    const approvers = editingTask.approvers || [];
-                    const checkboxes = document.querySelectorAll('#project-approvers input[type="checkbox"]');
-                    checkboxes.forEach(cb => {
-                        cb.checked = approvers.includes(cb.value);
-                    });
-                }, 100);
-                
-                console.log(`🎯 [EDIT] Loading PJ task: ${editingTask.projectId} - ${editingTask.projectName}`);
+                document.getElementById('modal-title').textContent = `👥 PJタスク編集: ${editingTask.projectId}`;
+                console.log(`🎯 [EDIT] Editing PJ task: ${editingTask.projectId} - ${editingTask.projectName}`);
             } else {
-                // 個人タスクモードに設定
-                document.getElementById('task-type-personal').checked = true;
-                document.getElementById('task-type-project').checked = false;
-                document.getElementById('project-task-settings').style.display = 'none';
-                console.log(`👤 [EDIT] Loading personal task: ${editingTask.title}`);
+                console.log(`👤 [EDIT] Editing personal task: ${editingTask.title}`);
             }
             
             // 添付ファイル表示
@@ -2567,7 +2580,7 @@
             const fileInput = document.getElementById('task-files-input');
             
             // Phase 2: PJタスク関連の入力値取得
-            const isProjectTask = document.getElementById('task-type-project').checked;
+            const isProjectTask = isPJTaskMode();
             const projectId = document.getElementById('project-id-input').value.trim();
             const projectName = document.getElementById('project-name-input').value.trim();
             const selectedApprovers = getSelectedApprovers();
@@ -2687,27 +2700,8 @@
                 editingTask.assignee = selectedAssignees.length > 0 ? selectedAssignees[0] : '未設定';
                 editingTask.memo = memo;
                 
-                // Phase 2: PJタスクフィールドの更新
-                if (isProjectTask) {
-                    editingTask.projectId = projectId;
-                    editingTask.projectName = projectName;
-                    editingTask.approvers = selectedApprovers;
-                    // 初回設定時のみ同期ステータスを設定
-                    if (!editingTask.personalStatus) {
-                        editingTask.personalStatus = editingTask.columnId;
-                        editingTask.projectStatus = editingTask.columnId;
-                    }
-                    console.log(`🎯 [PJ TASK EDIT] Updated PJ task: ${projectId} - ${projectName}`);
-                } else {
-                    // 個人タスクに変換
-                    editingTask.projectId = null;
-                    editingTask.projectName = null;
-                    editingTask.approvers = [];
-                    editingTask.pendingMove = null;
-                    editingTask.personalStatus = editingTask.columnId;
-                    editingTask.projectStatus = editingTask.columnId;
-                    console.log(`👤 [PERSONAL TASK EDIT] Converted to personal task`);
-                }
+                // Phase 2: PJタスクの編集ではPJ情報は変更しない
+                console.log(`📝 [TASK EDIT] Updated task: ${editingTask.title}`);
                 
                 // 新しい添付ファイルがある場合のみ追加
                 if (attachments.length > 0) {
@@ -2792,9 +2786,7 @@
                 commentInput.value = '';
             }
             
-            // Phase 2: PJタスクフィールドをリセット
-            document.getElementById('task-type-personal').checked = true;
-            document.getElementById('task-type-project').checked = false;
+            // Phase 2: PJタスク設定を非表示に戻す
             document.getElementById('project-task-settings').style.display = 'none';
             document.getElementById('project-id-input').value = '';
             document.getElementById('project-name-input').value = '';
