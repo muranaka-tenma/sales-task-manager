@@ -4807,8 +4807,11 @@
         
         // 担当者選択の変更イベント
         document.addEventListener('DOMContentLoaded', () => {
-            // ハンバーガーメニューを初期化
-            updateHamburgerMenu();
+            // ハンバーガーメニューを初期化（少し遅延させて確実に実行）
+            setTimeout(() => {
+                updateHamburgerMenu();
+                console.log('🍔 ハンバーガーメニュー更新完了');
+            }, 100);
             
             const assigneeSelect = document.getElementById('task-assignee-input');
             if (assigneeSelect) {
@@ -9361,6 +9364,7 @@
         // ハンバーガーメニューの更新
         function updateHamburgerMenu() {
             const currentUser = getCurrentUser();
+            console.log('🍔 ハンバーガーメニュー更新中:', currentUser);
             
             if (currentUser.isLoggedIn) {
                 // ユーザー情報を表示
