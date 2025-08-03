@@ -2198,6 +2198,11 @@
             document.getElementById('comment-input').disabled = true;
             document.getElementById('comments-section').innerHTML = '<div style="text-align: center; color: #5e6c84; padding: 2rem;">新しいタスクです。保存後にコメントを追加できます。</div>';
             
+            // PJタスク設定を非表示にしてrequired属性を削除
+            document.getElementById('project-task-settings').style.display = 'none';
+            document.getElementById('project-id-input').removeAttribute('required');
+            document.getElementById('project-name-input').removeAttribute('required');
+            
             // 統一作成モードを設定
             document.getElementById('task-modal').dataset.unifiedMode = 'true';
             
@@ -2241,6 +2246,11 @@
             // カラム選択フィールドを非表示
             document.getElementById('column-selection-group').style.display = 'none';
             document.getElementById('task-column-input').removeAttribute('required');
+            
+            // PJタスク設定を非表示にしてrequired属性を削除
+            document.getElementById('project-task-settings').style.display = 'none';
+            document.getElementById('project-id-input').removeAttribute('required');
+            document.getElementById('project-name-input').removeAttribute('required');
             
             // 担当者選択肢を更新
             updateAssigneeOptions();
