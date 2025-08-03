@@ -1024,29 +1024,7 @@
                 <!-- 左側: タスク詳細 -->
                 <div class="modal-left">
                     <form onsubmit="saveTask(event)">
-                        <!-- PJタスク専用設定（PJ作成時のみ表示） -->
-                        <div id="project-task-settings" class="form-group" style="background: #fff3e0; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #ff9800; display: none;">
-                            <div style="margin-bottom: 1rem;">
-                                <h4 style="color: #f57c00; margin: 0 0 0.5rem 0;">👥 プロジェクト設定</h4>
-                                <p style="color: #666; font-size: 0.85rem; margin: 0;">Wチェック対象のプロジェクトタスクを作成します</p>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label" style="color: #f57c00;">📁 プロジェクトID *</label>
-                                    <input type="text" class="form-input" id="project-id-input" placeholder="例: PJ001" style="font-size: 0.9rem;">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" style="color: #f57c00;">📝 プロジェクト名 *</label>
-                                    <input type="text" class="form-input" id="project-name-input" placeholder="例: 新規システム導入PJ" style="font-size: 0.9rem;">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" style="color: #f57c00;">✅ 承認者（複数選択可）*</label>
-                                <div id="project-approvers" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
-                                    <!-- 承認者チェックボックスがここに動的追加される -->
-                                </div>
-                            </div>
-                        </div>
+                        <!-- PJタスク設定は別ページ（pj-create.html）に移動 -->
                         
                         <!-- テンプレート選択 -->
                         <div class="form-group" style="background: #f8f9fa; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
@@ -2818,11 +2796,11 @@
             const memo = document.getElementById('task-memo-input').value.trim();
             const fileInput = document.getElementById('task-files-input');
             
-            // Phase 2: PJタスク関連の入力値取得
-            const isProjectTask = isPJTaskMode();
-            const projectId = document.getElementById('project-id-input').value.trim();
-            const projectName = document.getElementById('project-name-input').value.trim();
-            const selectedApprovers = getSelectedApprovers();
+            // PJタスク機能は別ページに移動したため、常に通常タスクとして処理
+            const isProjectTask = false;
+            const projectId = '';
+            const projectName = '';
+            const selectedApprovers = [];
             
             if (!title || !date) {
                 alert('タスク名と期限日は必須です');
