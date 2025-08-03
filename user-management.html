@@ -441,11 +441,18 @@
             if (!user) return;
             
             if (confirm(`${user.name}を削除しますか？\nこの操作は取り消せません。`)) {
+                const deletedUserName = user.name;
+                
+                // ユーザーリストから削除
                 users = users.filter(u => u.id !== userId);
                 saveUsers();
+                
+                // 担当者リストからも削除（表示対象同期）
+                removeFromAssigneesList(deletedUserName);
+                
                 loadUsers();
                 showSuccess();
-                console.log('🗑️ ユーザー削除:', user.name);
+                console.log('🗑️ ユーザー削除:', deletedUserName, '- 担当者リストからも削除済み');
             }
         }
         
@@ -464,6 +471,14 @@
             });
             
             localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+        }
+        
+        function removeFromAssigneesList(userName) {
+            // 担当者リストから削除（表示対象同期）
+            const assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
+            const updatedAssignees = assignees.filter(name => name !== userName);
+            localStorage.setItem('taskAssignees', JSON.stringify(updatedAssignees));
+            console.log('📝 担当者リスト更新:', `"${userName}"を削除`, updatedAssignees);
         }
         
         function showSuccess() {
