@@ -824,7 +824,7 @@ ${currentLog || '記録なし'}
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = \`引き継ぎサマリー_\${timestamp.replace(/[:/]/g, '-')}.txt\`;
+                a.download = `引き継ぎサマリー_${timestamp.replace(/[:/]/g, '-')}.txt`;
                 a.click();
                 URL.revokeObjectURL(url);
                 alert('📋 引き継ぎサマリーをダウンロードしました！');
