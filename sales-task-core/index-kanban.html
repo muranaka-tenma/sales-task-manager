@@ -1688,6 +1688,13 @@
         // カラム定義
         let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"📋 TODO","color":"#667eea"},{"id":"inprogress","title":"⚡ 進行中","color":"#f59e0b"},{"id":"waiting","title":"⏳ 連絡待ち","color":"#8b5cf6"},{"id":"done","title":"✅ Done","color":"#10b981"},{"id":"trash","title":"🗑️ ゴミ箱","color":"#6c757d"}]');
         
+        // ゴミ箱カラムが存在しない場合は強制追加
+        if (!columns.find(c => c.id === 'trash')) {
+            columns.push({"id":"trash","title":"🗑️ ゴミ箱","color":"#6c757d"});
+            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            console.log('🗑️ ゴミ箱カラムを追加しました');
+        }
+        
         // テンプレート管理
         let taskTemplates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
         let editingTemplateId = null;
@@ -2822,8 +2829,22 @@
                 return;
             }
             
-            // 現在のユーザー名を取得（担当者フィルタから推測）
-            const currentUser = document.getElementById('assignee-filter')?.value || 'ユーザー';
+            // 現在のユーザー名を取得（セッション情報から優先取得）
+            let currentUser = 'ユーザー';
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (session && session.user && session.user.name) {
+                    currentUser = session.user.name;
+                    console.log(`📝 [COMMENT] ログインユーザー: ${currentUser}`);
+                } else {
+                    // フォールバック: 担当者フィルタから取得
+                    currentUser = document.getElementById('assignee-filter')?.value || 'ユーザー';
+                    console.log(`📝 [COMMENT] フィルタから取得: ${currentUser}`);
+                }
+            } catch (error) {
+                console.log(`⚠️ [COMMENT] ユーザー名取得エラー:`, error);
+                currentUser = 'ユーザー';
+            }
             
             const newComment = {
                 id: Date.now(),
@@ -2850,23 +2871,33 @@
         }
         
         function checkMentionNotifications(text, author, task) {
+            console.log(`🔍 [MENTION] チェック開始: "${text}" by ${author}`);
+            console.log(`🔍 [MENTION] 現在の担当者リスト:`, assignees);
+            
             // @メンションを検出
             const mentionPattern = /@(\w+[^\s]*)/g;
             const mentions = text.match(mentionPattern);
             
+            console.log(`🔍 [MENTION] 検出されたメンション:`, mentions);
+            
             if (mentions) {
                 mentions.forEach(mention => {
                     const mentionedUser = mention.substring(1); // @を除去
+                    console.log(`🔍 [MENTION] 処理中: ${mention} → ユーザー名: ${mentionedUser}`);
+                    console.log(`🔍 [MENTION] 担当者リストに存在: ${assignees.includes(mentionedUser)}`);
                     
                     // メンションされたユーザーが担当者リストに存在する場合（テスト用に自己メンションも許可）
                     if (assignees.includes(mentionedUser)) {
-                        // デモ用: 通知を表示
+                        console.log(`✅ [MENTION] 通知送信準備: ${mentionedUser}`);
+                        
                         // 自分自身へのメンションかどうかで通知内容を変更
                         const notificationTitle = mentionedUser === author ? '💬 セルフメンション（テスト）' : '💬 メンション通知';
                         const shortComment = text.length > 50 ? text.substring(0, 50) + '...' : text;
                         const notificationBody = mentionedUser === author 
                             ? `「${task.title}」でセルフメンション\n💬 ${shortComment}`
                             : `${author}さんが「${task.title}」でメンション\n💬 ${shortComment}`;
+                        
+                        console.log(`🔔 [MENTION] 通知実行: ${notificationTitle} - ${notificationBody}`);
                         
                         showNotification(
                             notificationTitle,
@@ -2878,9 +2909,13 @@
                             }
                         );
                         
-                        console.log(`メンション通知: ${mentionedUser}さんに通知を送信しました`);
+                        console.log(`✅ [MENTION] 通知送信完了: ${mentionedUser}さん`);
+                    } else {
+                        console.log(`❌ [MENTION] 担当者リストに存在しないためスキップ: ${mentionedUser}`);
                     }
                 });
+            } else {
+                console.log(`❌ [MENTION] メンションが検出されませんでした`);
             }
         }
         
