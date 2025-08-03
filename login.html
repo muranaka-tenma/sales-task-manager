@@ -213,9 +213,8 @@
         </div>
         
         <div class="demo-accounts">
-            <h4>💡 セキュリティ情報</h4>
-            <p>ユーザー管理画面で安全なパスワードを設定してください</p>
-            <p>※ ハードコードされたパスワードは削除されました</p>
+            <h4>💡 初期セットアップ</h4>
+            <p id="setup-info">読み込み中...</p>
         </div>
     </div>
     
@@ -229,6 +228,24 @@
                 setTimeout(() => {
                     window.location.href = 'index-kanban.html';
                 }, 1500);
+            }
+            
+            // 初期セットアップ情報を表示
+            const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const setupInfo = document.getElementById('setup-info');
+            
+            if (users.length === 0) {
+                setupInfo.innerHTML = `
+                    <strong style="color: #dc2626;">🚨 初期セットアップが必要です</strong><br>
+                    メール: <code>muranaka-tenma@terracom.co.jp</code><br>
+                    パスワード: 任意のパスワードを設定してください<br>
+                    <small>※ 最初のログインで開発者アカウントが作成されます</small>
+                `;
+            } else {
+                setupInfo.innerHTML = `
+                    システムは設定済みです<br>
+                    登録済みのメールアドレスとパスワードでログインしてください
+                `;
             }
         });
         
@@ -266,6 +283,47 @@
         function authenticate(email, password) {
             // ユーザーデータベースから認証
             const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            
+            // 初期セットアップモード: ユーザーが0人の場合
+            if (users.length === 0 && email === 'muranaka-tenma@terracom.co.jp') {
+                console.log('🔧 初期セットアップモード: 最初の開発者アカウントを作成');
+                
+                // 最初の開発者アカウントを作成
+                const newDeveloper = {
+                    id: Date.now(),
+                    name: '村中天馬',
+                    email: email,
+                    role: 'developer',
+                    department: '開発部',
+                    password: password,
+                    createdAt: new Date().toISOString()
+                };
+                
+                // ユーザーを保存
+                users.push(newDeveloper);
+                localStorage.setItem('systemUsers', JSON.stringify(users));
+                
+                // 担当者リストにも追加
+                const assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
+                if (!assignees.includes(newDeveloper.name)) {
+                    assignees.push(newDeveloper.name);
+                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                }
+                
+                console.log('✅ 初期開発者アカウント作成完了');
+                return {
+                    success: true,
+                    user: {
+                        id: newDeveloper.id,
+                        name: newDeveloper.name,
+                        email: newDeveloper.email,
+                        role: newDeveloper.role,
+                        department: newDeveloper.department
+                    }
+                };
+            }
+            
+            // 通常の認証処理
             const user = users.find(u => u.email === email && u.password === password);
             
             if (user) {

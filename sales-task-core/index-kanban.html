@@ -1222,7 +1222,7 @@
                 <div class="setting-section" style="margin-top: 2rem;">
                     <h4 style="margin-bottom: 1rem; color: #172b4d;">📝 柔軟テキストインポート</h4>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <textarea id="import-text" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @田中部長 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @佐藤課長&#10;　資料準備済み（全角スペース）&#10;		会議室予約（タブ）&#10;C社フォローアップ" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
+                        <textarea id="import-text" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @ユーザー名 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @担当者名&#10;　資料準備済み（全角スペース）&#10;		会議室予約（タブ）&#10;C社フォローアップ" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
                         
                         <div style="display: flex; gap: 0.5rem;">
                             <button onclick="previewImport()" style="flex: 1; padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">👁️ プレビュー</button>
@@ -1617,7 +1617,7 @@
         let taskCounter = tasks.length || 0;
         
         // 担当者リスト
-        let assignees = JSON.parse(localStorage.getItem('taskAssignees') || '["田中部長", "佐藤課長", "鈴木主任", "山田さん"]');
+        let assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
         
         // カラム定義
         let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"📋 TODO","color":"#667eea"},{"id":"inprogress","title":"⚡ 進行中","color":"#f59e0b"},{"id":"waiting","title":"⏳ 連絡待ち","color":"#8b5cf6"},{"id":"done","title":"✅ Done","color":"#10b981"}]');
@@ -4268,7 +4268,7 @@
                     taskTemplate: {
                         title: "{{YYYY年MM月}} 営業レポート作成",
                         priority: "high",
-                        assignees: ["田中部長"],
+                        assignees: [],
                         memo: "前月実績をまとめて提出してください",
                         projectId: null,
                         projectName: null,
@@ -4328,157 +4328,11 @@
                 return task;
             });
 
-            // 既存データがない場合はサンプルデータを作成
+            // 既存データがない場合は空配列（サンプルデータは作成しない）
             if (tasks.length === 0) {
-                tasks = [
-                    {
-                        id: 1,
-                        title: 'A社への提案書作成',
-                        deadline: new Date(Date.now() + 24*60*60*1000).toISOString(),
-                        priority: 'high',
-                        assignees: ['田中部長', '佐藤課長'],
-                        assignee: '田中部長', // 後方互換性
-                        memo: '見積金額の最終確認が必要',
-                        columnId: 'todo',
-                        completed: false,
-                        createdAt: new Date().toISOString(),
-                        
-                        // PJタスク拡張フィールド
-                        projectId: null,
-                        projectName: null,
-                        personalStatus: 'todo',
-                        projectStatus: 'todo',
-                        pendingMove: null,
-                        approvers: [],
-                        lastApprovedBy: null,
-                        approvedAt: null,
-                        
-                        comments: [
-                            {
-                                id: 1,
-                                author: '田中部長',
-                                text: '見積書のレビューを開始しました。技術仕様の確認を進めています。',
-                                timestamp: new Date(Date.now() - 2*60*60*1000).toISOString()
-                            },
-                            {
-                                id: 2,
-                                author: '佐藤課長',
-                                text: '@田中部長 A社の予算要件について追加情報を入手できました。明日共有します。',
-                                timestamp: new Date(Date.now() - 30*60*1000).toISOString()
-                            },
-                            {
-                                id: 3,
-                                author: '田中部長',
-                                text: '@佐藤課長 ありがとうございます。資料の準備進めます。',
-                                timestamp: new Date(Date.now() - 10*60*1000).toISOString()
-                            }
-                        ]
-                    },
-                    {
-                        id: 2,
-                        title: 'B社との打ち合わせ - PJタスク例',
-                        deadline: new Date().toISOString(),
-                        priority: 'medium',
-                        assignees: ['佐藤課長'],
-                        assignee: '佐藤課長',
-                        memo: '会議室予約済み - Wチェック対象',
-                        columnId: 'inprogress',
-                        completed: false,
-                        createdAt: new Date().toISOString(),
-                        
-                        // PJタスクの例
-                        projectId: 'PJ001',
-                        projectName: '新規システム導入PJ',
-                        personalStatus: 'inprogress',
-                        projectStatus: 'inprogress',
-                        pendingMove: null,
-                        approvers: ['田中部長', '山田主任'],
-                        lastApprovedBy: null,
-                        approvedAt: null,
-                        
-                        comments: []
-                    },
-                    {
-                        id: 3,
-                        title: 'C社契約書レビュー',
-                        deadline: new Date(Date.now() + 2*24*60*60*1000).toISOString(),
-                        priority: 'medium',
-                        assignees: ['山田主任', '鈴木係長'],
-                        assignee: '山田主任',
-                        memo: '法務部との確認が必要',
-                        columnId: 'todo',
-                        completed: false,
-                        createdAt: new Date().toISOString(),
-                        
-                        // 個人タスクの例
-                        projectId: null,
-                        projectName: null,
-                        personalStatus: 'todo',
-                        projectStatus: 'todo',
-                        pendingMove: null,
-                        approvers: [],
-                        lastApprovedBy: null,
-                        approvedAt: null,
-                        
-                        comments: []
-                    },
-                    {
-                        id: 4,
-                        title: 'D社フォローアップ',
-                        deadline: new Date(Date.now() + 3*24*60*60*1000).toISOString(),
-                        priority: 'low',
-                        assignees: ['鈴木係長'],
-                        assignee: '鈴木係長',
-                        memo: '前回の商談結果を確認',
-                        columnId: 'waiting',
-                        completed: false,
-                        createdAt: new Date().toISOString(),
-                        
-                        // 個人タスクの例
-                        projectId: null,
-                        projectName: null,
-                        personalStatus: 'waiting',
-                        projectStatus: 'waiting',
-                        pendingMove: null,
-                        approvers: [],
-                        lastApprovedBy: null,
-                        approvedAt: null,
-                        
-                        comments: []
-                    },
-                    {
-                        id: 5,
-                        title: 'E社システム導入完了',
-                        deadline: new Date(Date.now() - 24*60*60*1000).toISOString(),
-                        priority: 'high',
-                        assignees: ['田中部長'],
-                        assignee: '田中部長',
-                        memo: '無事に導入完了',
-                        columnId: 'done',
-                        completed: true,
-                        createdAt: new Date().toISOString(),
-                        
-                        // 完了済み個人タスク
-                        projectId: null,
-                        projectName: null,
-                        personalStatus: 'done',
-                        projectStatus: 'done',
-                        pendingMove: null,
-                        approvers: [],
-                        lastApprovedBy: null,
-                        approvedAt: null,
-                        
-                        comments: [
-                            {
-                                id: 1,
-                                author: '田中部長',
-                                text: 'システム導入が完了しました。先方からも満足のお声をいただいています。',
-                                timestamp: new Date(Date.now() - 6*60*60*1000).toISOString()
-                            }
-                        ]
-                    }
-                ];
+                tasks = [];
                 saveTasks();
+                console.log('🧹 クリーンな状態で開始: サンプルタスクなし');
             }
             
             render();
@@ -5582,10 +5436,14 @@
                         { id: 'waiting', title: '⏳ 連絡待ち', color: '#8b5cf6' },
                         { id: 'done', title: '✅ Done', color: '#10b981' }
                     ];
-                    assignees = ["田中部長", "佐藤課長", "鈴木主任", "山田さん"];
+                    // 実ユーザーから担当者リストを再構築
+                    const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                    assignees = users.map(user => user.name);
                     
                     localStorage.setItem('kanbanColumns', JSON.stringify(columns));
                     localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                    
+                    console.log('🧹 システムリセット完了: 実ユーザーベースで再構築', assignees);
                     
                     render();
                     closeSettingsModal();
