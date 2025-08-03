@@ -1009,6 +1009,41 @@
                 <!-- 左側: タスク詳細 -->
                 <div class="modal-left">
                     <form onsubmit="saveTask(event)">
+                        <!-- Phase 2: PJタスク作成オプション -->
+                        <div class="form-group" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #2196f3;">
+                            <label class="form-label" style="color: #1976d2; font-weight: 600;">🎯 タスクタイプ</label>
+                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="task-type" value="personal" id="task-type-personal" checked onchange="handleTaskTypeChange()" style="margin-right: 0.5rem;">
+                                    <span style="font-size: 0.9rem;">👤 個人タスク</span>
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="radio" name="task-type" value="project" id="task-type-project" onchange="handleTaskTypeChange()" style="margin-right: 0.5rem;">
+                                    <span style="font-size: 0.9rem;">👥 PJタスク（Wチェック）</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- PJタスク専用設定（初期は非表示） -->
+                        <div id="project-task-settings" class="form-group" style="background: #fff3e0; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #ff9800; display: none;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" style="color: #f57c00;">📁 プロジェクトID</label>
+                                    <input type="text" class="form-input" id="project-id-input" placeholder="例: PJ001" style="font-size: 0.9rem;">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" style="color: #f57c00;">📝 プロジェクト名</label>
+                                    <input type="text" class="form-input" id="project-name-input" placeholder="例: 新規システム導入PJ" style="font-size: 0.9rem;">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" style="color: #f57c00;">✅ 承認者（複数選択可）</label>
+                                <div id="project-approvers" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <!-- 承認者チェックボックスがここに動的追加される -->
+                                </div>
+                            </div>
+                        </div>
+                        
                         <!-- テンプレート選択 -->
                         <div class="form-group" style="background: #f8f9fa; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
                             <label class="form-label" style="color: #495057;">📋 テンプレートから作成（任意）</label>
@@ -1522,6 +1557,46 @@
         // バルク操作管理
         let isBulkMode = false;
         let selectedTasks = new Set();
+        
+        // フィルタ管理（Phase 2対応）
+        let selectedAssigneeFilters = [];
+        let selectedProjectFilters = [];
+        let viewMode = 'personal'; // 'personal' or 'project'
+        
+        // Phase 2: PJタスク関連関数
+        function handleTaskTypeChange() {
+            const isProjectTask = document.getElementById('task-type-project').checked;
+            const projectSettings = document.getElementById('project-task-settings');
+            
+            if (isProjectTask) {
+                projectSettings.style.display = 'block';
+                populateApprovers();
+                console.log('🎯 [TASK TYPE] Switched to Project task mode');
+            } else {
+                projectSettings.style.display = 'none';
+                console.log('🎯 [TASK TYPE] Switched to Personal task mode');
+            }
+        }
+        
+        function populateApprovers() {
+            const container = document.getElementById('project-approvers');
+            container.innerHTML = '';
+            
+            assignees.forEach(assignee => {
+                const checkboxWrapper = document.createElement('label');
+                checkboxWrapper.style.cssText = 'display: flex; align-items: center; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 4px; background: #fff; border: 1px solid #ddd; font-size: 0.85rem;';
+                checkboxWrapper.innerHTML = `
+                    <input type="checkbox" value="${assignee}" style="margin-right: 0.5rem;">
+                    <span>${assignee}</span>
+                `;
+                container.appendChild(checkboxWrapper);
+            });
+        }
+        
+        function getSelectedApprovers() {
+            const checkboxes = document.querySelectorAll('#project-approvers input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
         
         // 日付・時間ユーティリティ
         function getCurrentDateTime() {
@@ -2129,9 +2204,28 @@
             const memo = document.getElementById('task-memo-input').value.trim();
             const fileInput = document.getElementById('task-files-input');
             
+            // Phase 2: PJタスク関連の入力値取得
+            const isProjectTask = document.getElementById('task-type-project').checked;
+            const projectId = document.getElementById('project-id-input').value.trim();
+            const projectName = document.getElementById('project-name-input').value.trim();
+            const selectedApprovers = getSelectedApprovers();
+            
             if (!title || !date) {
                 alert('タスク名と期限日は必須です');
                 return;
+            }
+            
+            // Phase 2: PJタスクのバリデーション
+            if (isProjectTask) {
+                if (!projectId || !projectName) {
+                    alert('PJタスクの場合、プロジェクトIDとプロジェクト名は必須です');
+                    return;
+                }
+                if (selectedApprovers.length === 0) {
+                    alert('PJタスクの場合、承認者を1名以上選択してください');
+                    return;
+                }
+                console.log(`🎯 [PJ TASK] Creating project task: ${projectId} - ${projectName}`);
             }
             
             if (selectedAssignees.length === 0) {
@@ -2231,6 +2325,28 @@
                 editingTask.assignee = selectedAssignees.length > 0 ? selectedAssignees[0] : '未設定';
                 editingTask.memo = memo;
                 
+                // Phase 2: PJタスクフィールドの更新
+                if (isProjectTask) {
+                    editingTask.projectId = projectId;
+                    editingTask.projectName = projectName;
+                    editingTask.approvers = selectedApprovers;
+                    // 初回設定時のみ同期ステータスを設定
+                    if (!editingTask.personalStatus) {
+                        editingTask.personalStatus = editingTask.columnId;
+                        editingTask.projectStatus = editingTask.columnId;
+                    }
+                    console.log(`🎯 [PJ TASK EDIT] Updated PJ task: ${projectId} - ${projectName}`);
+                } else {
+                    // 個人タスクに変換
+                    editingTask.projectId = null;
+                    editingTask.projectName = null;
+                    editingTask.approvers = [];
+                    editingTask.pendingMove = null;
+                    editingTask.personalStatus = editingTask.columnId;
+                    editingTask.projectStatus = editingTask.columnId;
+                    console.log(`👤 [PERSONAL TASK EDIT] Converted to personal task`);
+                }
+                
                 // 新しい添付ファイルがある場合のみ追加
                 if (attachments.length > 0) {
                     if (!editingTask.attachments) editingTask.attachments = [];
@@ -2255,8 +2371,24 @@
                     comments: [],
                     columnId: targetColumn,
                     completed: targetColumn === 'done',
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    
+                    // Phase 2: PJタスク拡張フィールド
+                    projectId: isProjectTask ? projectId : null,
+                    projectName: isProjectTask ? projectName : null,
+                    personalStatus: targetColumn,
+                    projectStatus: targetColumn,
+                    pendingMove: null,
+                    approvers: isProjectTask ? selectedApprovers : [],
+                    lastApprovedBy: null,
+                    approvedAt: null
                 };
+                
+                if (isProjectTask) {
+                    console.log(`🎯 [PJ TASK CREATE] Created new PJ task: ${projectId} - ${projectName}, approvers: ${selectedApprovers.join(', ')}`);
+                } else {
+                    console.log(`👤 [PERSONAL TASK CREATE] Created new personal task: ${title}`);
+                }
                 tasks.unshift(newTask);
                 
                 // 共同タスク作成時の通知
@@ -2297,6 +2429,17 @@
             if (commentInput) {
                 commentInput.value = '';
             }
+            
+            // Phase 2: PJタスクフィールドをリセット
+            document.getElementById('task-type-personal').checked = true;
+            document.getElementById('task-type-project').checked = false;
+            document.getElementById('project-task-settings').style.display = 'none';
+            document.getElementById('project-id-input').value = '';
+            document.getElementById('project-name-input').value = '';
+            
+            // 承認者チェックボックスをクリア
+            const approverCheckboxes = document.querySelectorAll('#project-approvers input[type="checkbox"]');
+            approverCheckboxes.forEach(cb => cb.checked = false);
         }
         
         function deleteTask(taskId) {
@@ -3490,6 +3633,32 @@
             // メンションシステムを初期化
             setupMentionSystem();
             
+            // Phase 2対応: 既存タスクのマイグレーション
+            tasks = tasks.map(task => {
+                // PJ関連フィールドが存在しない場合は追加
+                if (task.projectId === undefined) {
+                    return {
+                        ...task,
+                        // PJタスク拡張フィールド
+                        projectId: null,           // PJタスクの場合のみ設定
+                        projectName: null,         // PJ表示名
+                        
+                        // ステータス管理（デュアル管理）
+                        personalStatus: task.columnId || 'todo', // 個人側での進捗状態
+                        projectStatus: task.columnId || 'todo',  // PJ側での承認状態
+                        
+                        // 移動申請管理
+                        pendingMove: null,
+                        
+                        // 承認者設定
+                        approvers: [],             // このPJの承認者リスト
+                        lastApprovedBy: null,      // 最後に承認した人
+                        approvedAt: null           // 承認日時
+                    };
+                }
+                return task;
+            });
+
             // 既存データがない場合はサンプルデータを作成
             if (tasks.length === 0) {
                 tasks = [
@@ -3504,6 +3673,17 @@
                         columnId: 'todo',
                         completed: false,
                         createdAt: new Date().toISOString(),
+                        
+                        // PJタスク拡張フィールド
+                        projectId: null,
+                        projectName: null,
+                        personalStatus: 'todo',
+                        projectStatus: 'todo',
+                        pendingMove: null,
+                        approvers: [],
+                        lastApprovedBy: null,
+                        approvedAt: null,
+                        
                         comments: [
                             {
                                 id: 1,
@@ -3527,15 +3707,26 @@
                     },
                     {
                         id: 2,
-                        title: 'B社との打ち合わせ',
+                        title: 'B社との打ち合わせ - PJタスク例',
                         deadline: new Date().toISOString(),
                         priority: 'medium',
                         assignees: ['佐藤課長'],
                         assignee: '佐藤課長',
-                        memo: '会議室予約済み',
+                        memo: '会議室予約済み - Wチェック対象',
                         columnId: 'inprogress',
                         completed: false,
                         createdAt: new Date().toISOString(),
+                        
+                        // PJタスクの例
+                        projectId: 'PJ001',
+                        projectName: '新規システム導入PJ',
+                        personalStatus: 'inprogress',
+                        projectStatus: 'inprogress',
+                        pendingMove: null,
+                        approvers: ['田中部長', '山田主任'],
+                        lastApprovedBy: null,
+                        approvedAt: null,
+                        
                         comments: []
                     },
                     {
@@ -3549,6 +3740,17 @@
                         columnId: 'todo',
                         completed: false,
                         createdAt: new Date().toISOString(),
+                        
+                        // 個人タスクの例
+                        projectId: null,
+                        projectName: null,
+                        personalStatus: 'todo',
+                        projectStatus: 'todo',
+                        pendingMove: null,
+                        approvers: [],
+                        lastApprovedBy: null,
+                        approvedAt: null,
+                        
                         comments: []
                     },
                     {
@@ -3562,6 +3764,17 @@
                         columnId: 'waiting',
                         completed: false,
                         createdAt: new Date().toISOString(),
+                        
+                        // 個人タスクの例
+                        projectId: null,
+                        projectName: null,
+                        personalStatus: 'waiting',
+                        projectStatus: 'waiting',
+                        pendingMove: null,
+                        approvers: [],
+                        lastApprovedBy: null,
+                        approvedAt: null,
+                        
                         comments: []
                     },
                     {
@@ -3575,6 +3788,17 @@
                         columnId: 'done',
                         completed: true,
                         createdAt: new Date().toISOString(),
+                        
+                        // 完了済み個人タスク
+                        projectId: null,
+                        projectName: null,
+                        personalStatus: 'done',
+                        projectStatus: 'done',
+                        pendingMove: null,
+                        approvers: [],
+                        lastApprovedBy: null,
+                        approvedAt: null,
+                        
                         comments: [
                             {
                                 id: 1,
