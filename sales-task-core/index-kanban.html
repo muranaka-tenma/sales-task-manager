@@ -2741,6 +2741,17 @@
             editingTask = tasks.find(t => t.id === taskId);
             if (!editingTask) return;
             
+            // 権限チェック：一般ユーザーは自分のタスクのみ編集可能
+            const currentUser = getCurrentUser();
+            if (currentUser.role === 'user') {
+                const canEdit = editingTask.assignees && editingTask.assignees.includes(currentUser.name) || 
+                               editingTask.assignee === currentUser.name;
+                if (!canEdit) {
+                    alert('他のユーザーのタスクは編集できません。自分が担当者として設定されているタスクのみ編集可能です。');
+                    return;
+                }
+            }
+            
             document.getElementById('modal-title').textContent = 'タスク編集';
             document.getElementById('task-title-input').value = editingTask.title;
             document.getElementById('task-date-input').value = editingTask.deadline.split('T')[0];
@@ -3597,6 +3608,25 @@
         }
         
         
+        // プロジェクト専用カラム取得
+        function getProjectColumns(projectId) {
+            if (!projectId) return columns;
+            
+            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+            const project = projectSettings[projectId];
+            
+            if (project && project.columns && project.columns.length > 0) {
+                // プロジェクト専用カラムを通常のカラム形式に変換
+                return project.columns.map((columnTitle, index) => ({
+                    id: `pj_${projectId}_${index}`,
+                    title: columnTitle,
+                    color: ['#667eea', '#f59e0b', '#8b5cf6', '#10b981', '#6c757d'][index % 5] // 色をローテーション
+                }));
+            }
+            
+            return columns; // デフォルトカラムを使用
+        }
+
         // レンダリング
         function render() {
             const board = document.getElementById('kanban-board');
@@ -3604,13 +3634,17 @@
             
             // 統合フィルターを適用
             let filteredTasks = tasks;
+            let currentColumns = columns; // デフォルトカラム
             
             if (selectedProjectFilters.length > 0) {
                 // PJフィルター: 特定プロジェクトのタスクのみ表示
                 filteredTasks = tasks.filter(t => 
                     t.projectId && selectedProjectFilters.includes(t.projectId)
                 );
-                console.log(`👥 [RENDER] Project filter: showing ${filteredTasks.length} tasks for project ${selectedProjectFilters[0]}`);
+                
+                // プロジェクト専用カラムを取得
+                currentColumns = getProjectColumns(selectedProjectFilters[0]);
+                console.log(`👥 [RENDER] Project filter: showing ${filteredTasks.length} tasks for project ${selectedProjectFilters[0]} with ${currentColumns.length} columns`);
             } else if (selectedAssigneeFilters.length > 0) {
                 // 担当者フィルター: 特定担当者のタスクのみ表示
                 filteredTasks = tasks.filter(t => {
@@ -3656,13 +3690,34 @@
                 board.appendChild(overdueColumn);
             }
             
-            // 通常のカラムを表示
-            columns.forEach(column => {
+            // 通常のカラムを表示（プロジェクト専用カラムまたはデフォルトカラム）
+            currentColumns.forEach(column => {
                 let columnTasks = filteredTasks.filter(t => {
                     // 期限切れタスクは期限切れカラムに表示するので除外
                     if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
                         return false;
                     }
+                    
+                    // プロジェクト専用カラムの場合、カラムインデックスでマッピング
+                    if (selectedProjectFilters.length > 0 && column.id.startsWith('pj_')) {
+                        const columnIndex = parseInt(column.id.split('_')[2]);
+                        const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                        const project = projectSettings[selectedProjectFilters[0]];
+                        
+                        if (project && project.columns) {
+                            // タスクのcolumnIdが標準カラムの場合は、プロジェクトカラムにマッピング
+                            const defaultColumns = ['todo', 'inprogress', 'waiting', 'done', 'trash'];
+                            const taskColumnIndex = defaultColumns.indexOf(t.columnId);
+                            
+                            if (taskColumnIndex !== -1 && taskColumnIndex < project.columns.length) {
+                                return taskColumnIndex === columnIndex;
+                            }
+                            
+                            // 既にプロジェクト専用カラムIDの場合
+                            return t.columnId === column.id;
+                        }
+                    }
+                    
                     return t.columnId === column.id;
                 });
                 
@@ -9253,6 +9308,17 @@
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
             
+            // 権限チェック：一般ユーザーは自分のタスクのみ削除可能
+            const currentUser = getCurrentUser();
+            if (currentUser.role === 'user') {
+                const canDelete = task.assignees && task.assignees.includes(currentUser.name) || 
+                                 task.assignee === currentUser.name;
+                if (!canDelete) {
+                    alert('他のユーザーのタスクは削除できません。自分が担当者として設定されているタスクのみ削除可能です。');
+                    return;
+                }
+            }
+            
             const result = confirm(
                 `🗑️ タスクをゴミ箱に移動しますか？\n\n` +
                 `タスク: ${task.title}\n\n` +
@@ -9448,6 +9514,11 @@
         
         <div class="menu-section" id="admin-menu-section" style="display: none;">
             <div class="menu-section-title">管理機能</div>
+            <a href="pj-settings.html" class="menu-item" onclick="toggleHamburgerMenu();">
+                <span>🏗️</span>
+                <span>PJ設定・管理</span>
+                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">プロジェクト作成・カラム設定</div>
+            </a>
             <a href="user-management.html" class="menu-item" onclick="toggleHamburgerMenu();">
                 <span>👥</span>
                 <span>ユーザー管理</span>

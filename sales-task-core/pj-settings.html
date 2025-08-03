@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏗️ PJ設定・管理 - 営業タスク管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f4f5f7;
+            color: #172b4d;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            color: #026aa7;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: #026aa7;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #025aa0;
+        }
+        
+        .btn-secondary {
+            background: #e4e6eb;
+            color: #172b4d;
+        }
+        
+        .btn-secondary:hover {
+            background: #d1d3d8;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e4e6eb;
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .project-list {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .project-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #026aa7;
+        }
+        
+        .project-info h3 {
+            margin: 0 0 0.5rem 0;
+            color: #026aa7;
+        }
+        
+        .project-meta {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .project-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #f57c00;
+        }
+        
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .columns-container {
+            display: grid;
+            gap: 0.5rem;
+        }
+        
+        .column-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e4e6eb;
+        }
+        
+        .column-drag-handle {
+            cursor: move;
+            color: #666;
+        }
+        
+        .column-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 0.25rem;
+        }
+        
+        .column-input:focus {
+            outline: none;
+            background: white;
+            border: 1px solid #026aa7;
+            border-radius: 3px;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-title {
+            margin: 0;
+            color: #026aa7;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        
+        .empty-state .emoji {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+            
+            .project-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+            
+            .project-actions {
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏗️ PJ設定・管理</h1>
+            <div>
+                <button class="btn btn-primary" onclick="openCreateModal()">
+                    ➕ 新規PJ作成
+                </button>
+                <a href="index-kanban.html" class="btn btn-secondary">
+                    ⬅️ 戻る
+                </a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                📋 プロジェクト一覧
+                <span id="project-count">0 プロジェクト</span>
+            </div>
+            <div class="card-body">
+                <div id="project-list" class="project-list">
+                    <!-- プロジェクトが動的に挿入される -->
+                </div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <div class="emoji">📂</div>
+                    <p>まだプロジェクトが作成されていません</p>
+                    <p>「新規PJ作成」ボタンから最初のプロジェクトを作成しましょう</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- PJ作成・編集モーダル -->
+    <div id="project-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title" class="modal-title">新規PJ作成</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="project-form">
+                <div class="form-group">
+                    <label class="form-label">プロジェクト名 *</label>
+                    <input type="text" id="project-name" class="form-input" required placeholder="例: 新規システム導入PJ">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">説明</label>
+                    <textarea id="project-description" class="form-textarea" placeholder="プロジェクトの概要や目的を入力してください"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">カラム設定</label>
+                    <div id="columns-container" class="columns-container">
+                        <!-- カラムが動的に挿入される -->
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="addColumn()" style="margin-top: 0.5rem;">
+                        ➕ カラム追加
+                    </button>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-success">
+                        💾 保存
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                        キャンセル
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // 現在編集中のプロジェクトID
+        let currentEditingProjectId = null;
+        
+        // デフォルトカラム設定
+        const DEFAULT_COLUMNS = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+        
+        // プロジェクト設定データの取得
+        function getProjectSettings() {
+            const settings = localStorage.getItem('projectSettings');
+            return settings ? JSON.parse(settings) : {};
+        }
+        
+        // プロジェクト設定データの保存
+        function saveProjectSettings(settings) {
+            localStorage.setItem('projectSettings', JSON.stringify(settings));
+        }
+        
+        // ユニークなプロジェクトIDの生成
+        function generateProjectId() {
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substr(2, 5);
+            return `PJ${timestamp.toString().slice(-6)}_${random}`;
+        }
+        
+        // 現在のユーザー情報を取得
+        function getCurrentUser() {
+            const user = localStorage.getItem('currentUser');
+            return user ? JSON.parse(user) : { name: 'ゲスト', role: 'user' };
+        }
+        
+        // プロジェクト一覧の表示
+        function loadProjects() {
+            const settings = getProjectSettings();
+            const projectList = document.getElementById('project-list');
+            const emptyState = document.getElementById('empty-state');
+            const projectCount = document.getElementById('project-count');
+            
+            const projectIds = Object.keys(settings);
+            projectCount.textContent = `${projectIds.length} プロジェクト`;
+            
+            if (projectIds.length === 0) {
+                projectList.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            projectList.style.display = 'block';
+            emptyState.style.display = 'none';
+            
+            projectList.innerHTML = projectIds.map(projectId => {
+                const project = settings[projectId];
+                const createdDate = new Date(project.createdAt).toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                // そのプロジェクトのタスク数を取得
+                const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+                const projectTasks = tasks.filter(task => task.projectId === projectId);
+                
+                return `
+                    <div class="project-item">
+                        <div class="project-info">
+                            <h3>${project.name}</h3>
+                            <div class="project-meta">
+                                📅 作成日: ${createdDate} | 👤 作成者: ${project.createdBy} | 📊 タスク数: ${projectTasks.length}件
+                                <br>📝 ${project.description || '説明なし'}
+                            </div>
+                        </div>
+                        <div class="project-actions">
+                            <button class="btn btn-secondary" onclick="editProject('${projectId}')">
+                                ✏️ 編集
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteProject('${projectId}')">
+                                🗑️ 削除
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // PJ作成モーダルを開く
+        function openCreateModal() {
+            currentEditingProjectId = null;
+            document.getElementById('modal-title').textContent = '新規PJ作成';
+            document.getElementById('project-name').value = '';
+            document.getElementById('project-description').value = '';
+            loadDefaultColumns();
+            document.getElementById('project-modal').classList.add('active');
+        }
+        
+        // PJ編集モーダルを開く
+        function editProject(projectId) {
+            const settings = getProjectSettings();
+            const project = settings[projectId];
+            
+            if (!project) return;
+            
+            currentEditingProjectId = projectId;
+            document.getElementById('modal-title').textContent = 'PJ編集';
+            document.getElementById('project-name').value = project.name;
+            document.getElementById('project-description').value = project.description || '';
+            loadColumns(project.columns);
+            document.getElementById('project-modal').classList.add('active');
+        }
+        
+        // モーダルを閉じる
+        function closeModal() {
+            document.getElementById('project-modal').classList.remove('active');
+            currentEditingProjectId = null;
+        }
+        
+        // デフォルトカラムを読み込む
+        function loadDefaultColumns() {
+            loadColumns(DEFAULT_COLUMNS);
+        }
+        
+        // カラムを読み込む
+        function loadColumns(columns) {
+            const container = document.getElementById('columns-container');
+            container.innerHTML = columns.map((column, index) => `
+                <div class="column-item" data-index="${index}">
+                    <span class="column-drag-handle">⋮⋮</span>
+                    <input type="text" class="column-input" value="${column}" onchange="updateColumn(${index}, this.value)">
+                    <button type="button" class="btn btn-danger" onclick="removeColumn(${index})" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        // カラム追加
+        function addColumn() {
+            const container = document.getElementById('columns-container');
+            const currentColumns = getCurrentColumns();
+            currentColumns.push('新しいカラム');
+            loadColumns(currentColumns);
+        }
+        
+        // カラム削除
+        function removeColumn(index) {
+            const currentColumns = getCurrentColumns();
+            if (currentColumns.length <= 1) {
+                alert('最低1つのカラムが必要です');
+                return;
+            }
+            
+            currentColumns.splice(index, 1);
+            loadColumns(currentColumns);
+        }
+        
+        // カラム更新
+        function updateColumn(index, value) {
+            // リアルタイムで更新されるため、特別な処理は不要
+        }
+        
+        // 現在のカラム設定を取得
+        function getCurrentColumns() {
+            const inputs = document.querySelectorAll('.column-input');
+            return Array.from(inputs).map(input => input.value.trim()).filter(val => val);
+        }
+        
+        // プロジェクト保存
+        function saveProject(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('project-name').value.trim();
+            const description = document.getElementById('project-description').value.trim();
+            const columns = getCurrentColumns();
+            
+            if (!name) {
+                alert('プロジェクト名を入力してください');
+                return;
+            }
+            
+            if (columns.length === 0) {
+                alert('最低1つのカラムを設定してください');
+                return;
+            }
+            
+            const settings = getProjectSettings();
+            const currentUser = getCurrentUser();
+            const projectId = currentEditingProjectId || generateProjectId();
+            
+            const projectData = {
+                name: name,
+                description: description,
+                columns: columns,
+                createdAt: currentEditingProjectId ? settings[projectId].createdAt : new Date().toISOString(),
+                createdBy: currentEditingProjectId ? settings[projectId].createdBy : currentUser.name,
+                updatedAt: new Date().toISOString(),
+                updatedBy: currentUser.name
+            };
+            
+            settings[projectId] = projectData;
+            saveProjectSettings(settings);
+            
+            closeModal();
+            loadProjects();
+            
+            const action = currentEditingProjectId ? '更新' : '作成';
+            alert(`プロジェクト「${name}」を${action}しました`);
+        }
+        
+        // プロジェクト削除
+        function deleteProject(projectId) {
+            const settings = getProjectSettings();
+            const project = settings[projectId];
+            
+            if (!project) return;
+            
+            // そのプロジェクトに紐づくタスクがあるかチェック
+            const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+            const projectTasks = tasks.filter(task => task.projectId === projectId);
+            
+            let confirmMessage = `プロジェクト「${project.name}」を削除しますか？`;
+            if (projectTasks.length > 0) {
+                confirmMessage += `\n\n⚠️ このプロジェクトには${projectTasks.length}件のタスクが紐づいています。削除すると、これらのタスクのプロジェクト情報もクリアされます。`;
+            }
+            
+            if (!confirm(confirmMessage)) return;
+            
+            // プロジェクト設定から削除
+            delete settings[projectId];
+            saveProjectSettings(settings);
+            
+            // 紐づくタスクのプロジェクト情報をクリア
+            if (projectTasks.length > 0) {
+                const updatedTasks = tasks.map(task => {
+                    if (task.projectId === projectId) {
+                        delete task.projectId;
+                        task.isPJTask = false;
+                    }
+                    return task;
+                });
+                localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+            }
+            
+            loadProjects();
+            alert(`プロジェクト「${project.name}」を削除しました`);
+        }
+        
+        // 権限チェック
+        function checkPermissions() {
+            const currentUser = getCurrentUser();
+            const isAuthorized = ['admin', 'developer'].includes(currentUser.role);
+            
+            if (!isAuthorized) {
+                alert('この機能を利用する権限がありません');
+                window.location.href = 'index-kanban.html';
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // フォームサブミット処理
+        document.getElementById('project-form').addEventListener('submit', saveProject);
+        
+        // モーダル外クリックで閉じる
+        document.getElementById('project-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkPermissions()) return;
+            loadProjects();
+        });
+    </script>
+</body>
+</html>
