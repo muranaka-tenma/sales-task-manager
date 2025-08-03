@@ -1668,6 +1668,35 @@
             }
         }
         
+        // Phase 3: 一般ユーザーのユーザー管理ボタン非表示
+        function hideUserManagementForUsers() {
+            try {
+                const currentUser = getCurrentUser();
+                if (!currentUser.isLoggedIn) {
+                    console.log('❌ [Phase 3] 未ログイン: 処理スキップ');
+                    return;
+                }
+                
+                console.log(`🔐 [Phase 3] 権限チェック: ${currentUser.name} (${currentUser.role})`);
+                
+                // 一般ユーザーの場合のみユーザー管理ボタンを非表示
+                if (currentUser.role === 'user') {
+                    const userMgmtBtn = document.querySelector('button[onclick*="user-management.html"]');
+                    if (userMgmtBtn) {
+                        userMgmtBtn.style.display = 'none';
+                        console.log('🔒 [Phase 3] 一般ユーザー: ユーザー管理ボタンを非表示');
+                    } else {
+                        console.log('⚠️ [Phase 3] ユーザー管理ボタンが見つかりません');
+                    }
+                } else {
+                    console.log(`✅ [Phase 3] ${currentUser.role}権限: ユーザー管理ボタン表示維持`);
+                }
+                
+            } catch (error) {
+                console.error('❌ [Phase 3] ユーザー管理ボタン制御エラー:', error);
+            }
+        }
+        
         // 認証チェックを実行（ページが読み込まれる前に）
         if (!checkAuthentication()) {
             // 認証失敗時は以降の処理を停止
@@ -8992,6 +9021,11 @@
         setTimeout(() => {
             addMyProfileButton();
         }, 1500); // 1.5秒後に安全に実行
+        
+        // Phase 3: ユーザー管理ボタン制御実行
+        setTimeout(() => {
+            hideUserManagementForUsers();
+        }, 2000); // 2秒後に安全に実行
         
         // テスト用: 停滞タスクを作成（コンソールから実行可能）
         function createTestStaleTask() {
