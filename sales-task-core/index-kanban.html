@@ -2297,9 +2297,12 @@
         }
         
         function getDefaultDeadlineString() {
-            // 日付は今日を設定（ローカル時間使用）
+            // 日付は今日を設定（ローカル日付基準）
             const now = new Date();
-            return now.toISOString().split('T')[0];
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
         }
         
         function getDefaultTimeString() {
