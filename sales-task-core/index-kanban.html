@@ -2297,10 +2297,8 @@
         }
         
         function getDefaultDeadlineString() {
-            // 現在時刻+3時間をデフォルト期限として設定
-            const now = new Date();
-            now.setHours(now.getHours() + 3);
-            return now.toISOString().split('T')[0];
+            // 日付は今日を設定
+            return new Date().toISOString().split('T')[0];
         }
         
         function getDefaultTimeString() {
