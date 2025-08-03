@@ -317,24 +317,47 @@
     </div>
     
     <script>
-        // 認証チェック
-        function checkAuthentication() {
+        // 現在のユーザー情報を取得（メイン画面と同じ関数）
+        function getCurrentUser() {
             try {
                 const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
-                if (!session) {
-                    window.location.href = 'login.html';
-                    return null;
+                if (session && session.user) {
+                    // セッション期限チェック
+                    if (new Date() > new Date(session.expiresAt)) {
+                        localStorage.removeItem('currentSession');
+                        return {
+                            name: null,
+                            email: null,
+                            role: null,
+                            isLoggedIn: false
+                        };
+                    }
+                    return {
+                        name: session.user.name,
+                        email: session.user.email,
+                        role: session.user.role,
+                        isLoggedIn: true
+                    };
                 }
-                if (new Date() > new Date(session.expiresAt)) {
-                    localStorage.removeItem('currentSession');
-                    window.location.href = 'login.html';
-                    return null;
-                }
-                return session.user;
             } catch (error) {
+                console.error('セッション取得エラー:', error);
+            }
+            return {
+                name: null,
+                email: null,
+                role: null,
+                isLoggedIn: false
+            };
+        }
+        
+        // 認証チェック（リダイレクト用）
+        function checkAuthentication() {
+            const currentUser = getCurrentUser();
+            if (!currentUser.isLoggedIn) {
                 window.location.href = 'login.html';
                 return null;
             }
+            return currentUser;
         }
         
         // ページ読み込み時の初期化
@@ -362,10 +385,6 @@
                 }, 500);
             }
             
-            // 開発者の場合、デプロイ検出を実行
-            if (currentUser.role === 'developer') {
-                checkForNewDeployment();
-            }
         });
         
         // プロフィール情報の更新
@@ -563,9 +582,16 @@
         
         // 機能改善書表示（開発者専用）
         function showDevelopmentLog() {
+            // 既存のモーダルがあれば削除
+            const existingModal = document.getElementById('developmentLogModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
             const existingLog = localStorage.getItem('developmentLog') || '';
             
             const logModal = document.createElement('div');
+            logModal.id = 'developmentLogModal';
             logModal.style.cssText = `
                 position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
                 z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 2rem;
@@ -575,8 +601,8 @@
                 <div style="background: white; border-radius: 12px; width: 100%; max-width: 800px; max-height: 80vh; overflow-y: auto;">
                     <div style="padding: 2rem; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
                         <h2 style="margin: 0; color: #172b4d;">📝 機能改善書</h2>
-                        <button onclick="this.closest('div[style*=\"position: fixed\"]').remove()" 
-                                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">×</button>
+                        <button onclick="closeDevelopmentLog()" 
+                                style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666; padding: 0.5rem;">×</button>
                     </div>
                     <div style="padding: 2rem;">
                         <div style="margin-bottom: 1.5rem;">
@@ -623,6 +649,14 @@
             `;
             
             document.body.appendChild(logModal);
+        }
+        
+        // 機能改善書を閉じる
+        function closeDevelopmentLog() {
+            const modal = document.getElementById('developmentLogModal');
+            if (modal) {
+                modal.remove();
+            }
         }
         
         // 開発ログ保存
