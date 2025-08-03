@@ -923,6 +923,10 @@
             </div>
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
+            <!-- 定期タスク管理ボタン -->
+            <button onclick="showRecurringTasksInfo()" style="padding: 0.5rem 0.75rem; background: #805ad5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="定期タスクの状況">
+                🔄 定期タスク
+            </button>
             <!-- Phase 2: PJフィルター -->
             <div style="position: relative;" id="project-filter-container">
                 <button onclick="toggleProjectFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -1599,6 +1603,9 @@
         let selectedProjectFilters = [];
         let viewMode = 'personal'; // 'personal' or 'project'
         
+        // 定期タスク管理
+        let recurringTemplates = JSON.parse(localStorage.getItem('recurringTemplates') || '[]');
+        
         // Phase 2: PJタスク関連関数
         function handleTaskTypeChange() {
             const isProjectTask = document.getElementById('task-type-project').checked;
@@ -1763,6 +1770,188 @@
                 document.getElementById('project-filter-dropdown').style.display = 'none';
             }
         });
+        
+        // 定期タスク機能
+        function saveRecurringTemplates() {
+            localStorage.setItem('recurringTemplates', JSON.stringify(recurringTemplates));
+        }
+        
+        function generateRecurringTask(template) {
+            const now = new Date();
+            
+            // テンプレート文字列の置換
+            const title = formatTemplateString(template.taskTemplate.title, now);
+            const deadline = calculateDeadline(now, template.deadlineConfig);
+            
+            const task = {
+                id: Date.now(),
+                title: title,
+                deadline: deadline.toISOString(),
+                priority: template.taskTemplate.priority,
+                assignees: template.taskTemplate.assignees || [],
+                assignee: template.taskTemplate.assignees?.[0] || '未設定',
+                memo: template.taskTemplate.memo || '',
+                attachments: [],
+                comments: [],
+                columnId: 'todo',
+                completed: false,
+                createdAt: now.toISOString(),
+                
+                // PJタスク対応
+                projectId: template.taskTemplate.projectId,
+                projectName: template.taskTemplate.projectName,
+                personalStatus: 'todo',
+                projectStatus: 'todo',
+                pendingMove: null,
+                approvers: template.taskTemplate.approvers || [],
+                lastApprovedBy: null,
+                approvedAt: null,
+                
+                // 定期タスク情報
+                isRecurring: true,
+                recurringTemplateId: template.id,
+                generatedFor: formatDateForRecurring(now)
+            };
+            
+            return task;
+        }
+        
+        function formatTemplateString(template, date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            
+            return template
+                .replace(/\{\{YYYY\}\}/g, year)
+                .replace(/\{\{YYYY年\}\}/g, `${year}年`)
+                .replace(/\{\{MM\}\}/g, String(month).padStart(2, '0'))
+                .replace(/\{\{MM月\}\}/g, `${month}月`)
+                .replace(/\{\{DD\}\}/g, String(day).padStart(2, '0'))
+                .replace(/\{\{DD日\}\}/g, `${day}日`);
+        }
+        
+        function calculateDeadline(baseDate, deadlineConfig) {
+            const deadline = new Date(baseDate);
+            deadline.setDate(deadline.getDate() + deadlineConfig.relativeDays);
+            
+            const [hours, minutes] = deadlineConfig.timeOfDay.split(':');
+            deadline.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            
+            return deadline;
+        }
+        
+        function formatDateForRecurring(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            return `${year}-${String(month).padStart(2, '0')}`;
+        }
+        
+        function checkAndGenerateRecurringTasks() {
+            const now = new Date();
+            let generatedCount = 0;
+            
+            recurringTemplates.forEach(template => {
+                if (shouldGenerateRecurringTask(template, now)) {
+                    const newTask = generateRecurringTask(template);
+                    tasks.unshift(newTask);
+                    
+                    // 次回生成日を更新
+                    updateNextGenerationDate(template, now);
+                    generatedCount++;
+                    
+                    console.log(`🔄 [RECURRING] Generated task: ${newTask.title} for ${newTask.generatedFor}`);
+                }
+            });
+            
+            if (generatedCount > 0) {
+                saveTasks();
+                saveRecurringTemplates();
+                render();
+                updateStats();
+                console.log(`🔄 [RECURRING] Generated ${generatedCount} recurring tasks`);
+            }
+        }
+        
+        function shouldGenerateRecurringTask(template, now) {
+            if (!template.isActive) return false;
+            
+            const nextGen = template.generationConfig.nextGeneration 
+                ? new Date(template.generationConfig.nextGeneration) 
+                : now;
+            
+            return now >= nextGen;
+        }
+        
+        function updateNextGenerationDate(template, currentDate) {
+            const config = template.recurringConfig;
+            const next = new Date(currentDate);
+            
+            switch (config.type) {
+                case 'daily':
+                    next.setDate(next.getDate() + config.interval);
+                    break;
+                case 'weekly':
+                    next.setDate(next.getDate() + (7 * config.interval));
+                    break;
+                case 'monthly':
+                    next.setMonth(next.getMonth() + config.interval);
+                    break;
+                case 'yearly':
+                    next.setFullYear(next.getFullYear() + config.interval);
+                    break;
+            }
+            
+            template.generationConfig.lastGenerated = currentDate.toISOString();
+            template.generationConfig.nextGeneration = next.toISOString();
+        }
+        
+        function showRecurringTasksInfo() {
+            const activeTemplates = recurringTemplates.filter(t => t.isActive);
+            const recurringTasks = tasks.filter(t => t.isRecurring);
+            
+            let infoText = `🔄 定期タスク管理\n\n`;
+            infoText += `📊 現在の状況:\n`;
+            infoText += `• 定期テンプレート: ${activeTemplates.length}件\n`;
+            infoText += `• 生成済みタスク: ${recurringTasks.length}件\n\n`;
+            
+            if (activeTemplates.length > 0) {
+                infoText += `📋 テンプレート一覧:\n`;
+                activeTemplates.forEach((template, index) => {
+                    const nextGen = template.generationConfig.nextGeneration 
+                        ? new Date(template.generationConfig.nextGeneration).toLocaleDateString('ja-JP')
+                        : '未設定';
+                    infoText += `${index + 1}. ${template.name}\n`;
+                    infoText += `   種類: ${getRecurringTypeText(template.recurringConfig.type)}\n`;
+                    infoText += `   次回生成: ${nextGen}\n\n`;
+                });
+            }
+            
+            if (recurringTasks.length > 0) {
+                infoText += `📝 生成済みタスク:\n`;
+                const recentTasks = recurringTasks.slice(0, 5);
+                recentTasks.forEach(task => {
+                    const status = getColumnTitle(task.columnId);
+                    infoText += `• ${task.title} (${status})\n`;
+                });
+                if (recurringTasks.length > 5) {
+                    infoText += `...他${recurringTasks.length - 5}件\n`;
+                }
+            }
+            
+            infoText += `\n💡 ヒント: 定期タスクは自動的に生成され、🔄アイコンで識別できます。`;
+            
+            alert(infoText);
+        }
+        
+        function getRecurringTypeText(type) {
+            const typeMap = {
+                'daily': '毎日',
+                'weekly': '毎週',
+                'monthly': '毎月',
+                'yearly': '毎年'
+            };
+            return typeMap[type] || type;
+        }
         
         // 日付・時間ユーティリティ
         function getCurrentDateTime() {
@@ -2944,7 +3133,11 @@
                      style="position: relative; cursor: ${isBulkMode ? 'pointer' : ((isFromOverdueColumn || isOverdueTask) ? 'default' : 'move')}; ${(isFromOverdueColumn || isOverdueTask) ? 'opacity: 0.9;' : ''} ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
                      title="${(isFromOverdueColumn || isOverdueTask) ? '期限切れタスクです。移動するには編集で期限を延長してください。' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
                     ${checkboxHtml}
-                    <div class="task-title">${task.title}</div>
+                    <div class="task-title">
+                        ${task.isRecurring ? '<span style="color: #2d3748; margin-right: 0.25rem;" title="定期タスク">🔄</span>' : ''}
+                        ${task.projectId ? '<span style="color: #2b6cb0; margin-right: 0.25rem;" title="PJタスク">👥</span>' : ''}
+                        ${task.title}
+                    </div>
                     <div class="task-meta">
                         <div style="margin-bottom: 0.25rem;">
                             <span class="${deadlineClass}">
@@ -3852,6 +4045,48 @@
             
             // メンションシステムを初期化
             setupMentionSystem();
+            
+            // 定期タスクのサンプルテンプレートを初期化
+            if (recurringTemplates.length === 0) {
+                const sampleTemplate = {
+                    id: "recurring_001",
+                    name: "月次営業レポート",
+                    taskTemplate: {
+                        title: "{{YYYY年MM月}} 営業レポート作成",
+                        priority: "high",
+                        assignees: ["田中部長"],
+                        memo: "前月実績をまとめて提出してください",
+                        projectId: null,
+                        projectName: null,
+                        approvers: []
+                    },
+                    recurringConfig: {
+                        type: "monthly",
+                        interval: 1,
+                        dayOfMonth: 25
+                    },
+                    deadlineConfig: {
+                        relativeDays: 5,
+                        timeOfDay: "17:00"
+                    },
+                    generationConfig: {
+                        advanceDays: 3,
+                        maxFutureGeneration: 2,
+                        lastGenerated: null,
+                        nextGeneration: new Date().toISOString()
+                    },
+                    isActive: true,
+                    createdAt: new Date().toISOString(),
+                    createdBy: "システム"
+                };
+                
+                recurringTemplates.push(sampleTemplate);
+                saveRecurringTemplates();
+                console.log('🔄 [INIT] Created sample recurring template');
+            }
+            
+            // 定期タスクの自動生成チェック
+            checkAndGenerateRecurringTasks();
             
             // Phase 2対応: 既存タスクのマイグレーション
             tasks = tasks.map(task => {
