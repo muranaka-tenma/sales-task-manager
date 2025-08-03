@@ -2825,24 +2825,33 @@
                 `;
             }).join('');
             
-            const modal = document.createElement('div');
-            modal.innerHTML = `
-                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-                    <div style="background: white; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                        <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
-                            <h2 style="margin: 0; font-size: 1.25rem;">🚨 3日以上停滞しているタスク（${window.staleTasks.length}件）</h2>
-                            <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">進捗確認が必要なタスクです</p>
-                        </div>
-                        <div>${taskListHtml}</div>
-                        <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
-                            <button onclick="this.closest('div[style*=\\"position: fixed\\"]').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
-                                閉じる
-                            </button>
-                        </div>
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+            modalOverlay.id = 'stale-tasks-modal';
+            
+            modalOverlay.innerHTML = `
+                <div style="background: white; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                        <h2 style="margin: 0; font-size: 1.25rem;">🚨 3日以上停滞しているタスク（${window.staleTasks.length}件）</h2>
+                        <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">進捗確認が必要なタスクです</p>
+                    </div>
+                    <div>${taskListHtml}</div>
+                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
+                        <button onclick="document.getElementById('stale-tasks-modal').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                            閉じる
+                        </button>
                     </div>
                 </div>
             `;
-            document.body.appendChild(modal.firstElementChild);
+            
+            // 背景クリックでも閉じる
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    modalOverlay.remove();
+                }
+            });
+            
+            document.body.appendChild(modalOverlay);
         }
         
         // チーム平均1.2倍以上の負荷担当者の詳細表示
@@ -2875,26 +2884,35 @@
                 `;
             }).join('');
             
-            const modal = document.createElement('div');
-            modal.innerHTML = `
-                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
-                    <div style="background: white; border-radius: 8px; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                        <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
-                            <h2 style="margin: 0; font-size: 1.25rem;">👥 負荷調整が必要な担当者（${window.overloadedAssignees.length}名）</h2>
-                            <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">
-                                チーム平均: ${avgTasks}件 / 人　｜　要調整基準: ${threshold}件以上
-                            </p>
-                        </div>
-                        <div>${assigneeListHtml}</div>
-                        <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
-                            <button onclick="this.closest('div[style*=\\"position: fixed\\"]').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
-                                閉じる
-                            </button>
-                        </div>
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+            modalOverlay.id = 'workload-modal';
+            
+            modalOverlay.innerHTML = `
+                <div style="background: white; border-radius: 8px; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
+                        <h2 style="margin: 0; font-size: 1.25rem;">👥 負荷調整が必要な担当者（${window.overloadedAssignees.length}名）</h2>
+                        <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">
+                            チーム平均: ${avgTasks}件 / 人　｜　要調整基準: ${threshold}件以上
+                        </p>
+                    </div>
+                    <div>${assigneeListHtml}</div>
+                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
+                        <button onclick="document.getElementById('workload-modal').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                            閉じる
+                        </button>
                     </div>
                 </div>
             `;
-            document.body.appendChild(modal.firstElementChild);
+            
+            // 背景クリックでも閉じる
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) {
+                    modalOverlay.remove();
+                }
+            });
+            
+            document.body.appendChild(modalOverlay);
         }
         
         function showStatusDetails(columnId) {
