@@ -1816,6 +1816,10 @@
                         window.scrollTo(0, 0);
                         document.body.scrollTop = 0; // Safariにも対応
                         document.documentElement.scrollTop = 0; // IEにも対応
+                        
+                        // モーダル自体も上部に配置を強制
+                        modal.style.top = '0px';
+                        modal.scrollTop = 0;
                     }, 10);
                     
                     console.log('👥 [PJ CREATE] Successfully opened PJ task creation modal');
@@ -2206,6 +2210,13 @@
                     window.scrollTo(0, 0);
                     document.body.scrollTop = 0; // Safariにも対応
                     document.documentElement.scrollTop = 0; // IEにも対応
+                    
+                    // モーダル自体も上部に配置を強制
+                    const modalElement = document.getElementById('task-modal');
+                    if (modalElement) {
+                        modalElement.style.top = '0px';
+                        modalElement.scrollTop = 0;
+                    }
                 }, 10);
                 
                 // メンション機能を初期化
@@ -2254,6 +2265,13 @@
                     window.scrollTo(0, 0);
                     document.body.scrollTop = 0; // Safariにも対応
                     document.documentElement.scrollTop = 0; // IEにも対応
+                    
+                    // モーダル自体も上部に配置を強制
+                    const modalElement = document.getElementById('task-modal');
+                    if (modalElement) {
+                        modalElement.style.top = '0px';
+                        modalElement.scrollTop = 0;
+                    }
                 }, 10);
                 
                 // メンション機能を初期化
@@ -2398,6 +2416,13 @@
                     window.scrollTo(0, 0);
                     document.body.scrollTop = 0; // Safariにも対応
                     document.documentElement.scrollTop = 0; // IEにも対応
+                    
+                    // モーダル自体も上部に配置を強制
+                    const modalElement = document.getElementById('task-modal');
+                    if (modalElement) {
+                        modalElement.style.top = '0px';
+                        modalElement.scrollTop = 0;
+                    }
                 }, 10);
                 
                 // メンション機能を初期化
@@ -3244,7 +3269,6 @@
             });
             
             updateStats();
-            updateAssigneeFilter();
         }
         
         function createTaskCard(task, isFromOverdueColumn = false) {
@@ -4382,9 +4406,6 @@
             
             render();
             updateStats();
-            
-            // 担当者フィルタを初期化
-            updateAssigneeFilter();
             
             // 定期的に期限チェック（1分間隔）
             checkDeadlines();
