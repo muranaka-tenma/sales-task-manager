@@ -20,6 +20,14 @@
             overflow-x: auto;
         }
         
+        /* PJタスク設定を完全に無効化（別ページに移動） */
+        #project-task-settings {
+            display: none !important;
+        }
+        #project-id-input, #project-name-input {
+            required: false !important;
+        }
+        
         .header {
             background: var(--theme-color, #026aa7);
             color: white;
@@ -925,7 +933,7 @@
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
             <!-- PJ作成ボタン -->
-            <button onclick="createProjectTask()" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいPJタスクを作成">
+            <button onclick="window.location.href='pj-create.html'" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいPJタスクを作成">
                 👥 PJ作成
             </button>
             <!-- 定期タスク管理ボタン -->
@@ -2800,6 +2808,15 @@
             try {
                 console.log('🚀 [SAVE TASK] Starting saveTask function...');
                 event.preventDefault();
+            
+            // PJフィールドのrequired属性を一時的に削除（PJタスクでない場合）
+            const projectSettings = document.getElementById('project-task-settings');
+            const isProjectTaskVisible = projectSettings && projectSettings.style.display !== 'none';
+            if (!isProjectTaskVisible) {
+                document.getElementById('project-id-input').removeAttribute('required');
+                document.getElementById('project-name-input').removeAttribute('required');
+                console.log('🔧 [FORM] Removed required from PJ fields for non-PJ task');
+            }
             
             // 編集モード時は task-column-input の required 属性を一時的に削除
             const columnInput = document.getElementById('task-column-input');
