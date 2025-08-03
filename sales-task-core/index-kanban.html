@@ -1479,6 +1479,29 @@
             return task;
         });
         
+        // 停滞タスクのテスト用サンプルを追加（初回のみ）
+        const hasStaleTestTask = tasks.some(task => task.title.includes('【停滞テスト】'));
+        if (!hasStaleTestTask) {
+            const staleDate = new Date();
+            staleDate.setDate(staleDate.getDate() - 4); // 4日前
+            
+            const staleTestTask = {
+                id: Date.now(),
+                title: '【停滞テスト】4日前から進行中のタスク',
+                deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3日後期限
+                priority: 'high',
+                columnId: 'inprogress',
+                assignee: '佐藤課長',
+                assignees: ['佐藤課長'],
+                memo: '重要な案件です。4日前から進行中ですが、何らかの理由で停滞しています。',
+                createdAt: staleDate.toISOString(),
+                isMainTask: false
+            };
+            
+            tasks.push(staleTestTask);
+            console.log('📊 [INIT] Added stale test task for demonstration');
+        }
+        
         // 変更があった場合は保存
         localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
         
