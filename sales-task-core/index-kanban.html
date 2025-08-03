@@ -2844,12 +2844,18 @@
                 mentions.forEach(mention => {
                     const mentionedUser = mention.substring(1); // @を除去
                     
-                    // メンションされたユーザーが担当者リストに存在し、コメント作成者と異なる場合
-                    if (assignees.includes(mentionedUser) && mentionedUser !== author) {
+                    // メンションされたユーザーが担当者リストに存在する場合（テスト用に自己メンションも許可）
+                    if (assignees.includes(mentionedUser)) {
                         // デモ用: 通知を表示
+                        // 自分自身へのメンションかどうかで通知内容を変更
+                        const notificationTitle = mentionedUser === author ? '💬 セルフメンション（テスト）' : '💬 メンション通知';
+                        const notificationBody = mentionedUser === author 
+                            ? `「${task.title}」でセルフメンション - 通知テスト成功！`
+                            : `${author}さんが「${task.title}」であなたをメンションしました`;
+                        
                         showNotification(
-                            '💬 メンション通知',
-                            `${author}さんが「${task.title}」であなたをメンションしました`,
+                            notificationTitle,
+                            notificationBody,
                             { 
                                 tag: `mention-${Date.now()}`,
                                 taskId: task.id,
