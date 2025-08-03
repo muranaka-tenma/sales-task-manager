@@ -4843,7 +4843,13 @@
             // デフォルト設定（ユーザー統一）
             const currentUser = localStorage.getItem('currentUser') || 'ユーザー';
             const defaultAssignee = currentUser;
-            const defaultDeadline = new Date().toISOString().split('T')[0];
+            
+            // デフォルト期限を今日+3時間に設定
+            const now = new Date();
+            const futureDate = new Date(now.getTime() + (3 * 60 * 60 * 1000)); // 3時間後
+            const defaultDeadline = futureDate.toISOString().split('T')[0];
+            const defaultTime = getDefaultTimeString(); // 現在時刻+3時間
+            
             const defaultPriority = 'medium';
             const defaultColumn = 'todo';
             
@@ -4913,6 +4919,7 @@
                     title: taskText,
                     assignee: assignee,
                     deadline: deadline,
+                    time: defaultTime, // 時間情報を追加
                     priority: priority,
                     columnId: defaultColumn,
                     originalLine: line,
@@ -5087,10 +5094,11 @@
                                     <input type="text" onchange="updateTaskAssignee(${index}, this.value)" value="${task.assignee}" style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white;" placeholder="担当者名" id="assignee-input-${index}">
                                 </div>
                                 
-                                <!-- 期限設定 -->
+                                <!-- 期限・時間設定 -->
                                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                                     <label style="font-weight: 600; min-width: 60px; font-size: 0.85rem; color: #333;">期限:</label>
                                     <input type="date" onchange="updateTaskDeadline(${index}, this.value)" value="${task.deadline}" style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white;" id="deadline-input-${index}">
+                                    <input type="time" onchange="updateTaskTime(${index}, this.value)" value="${task.time}" style="flex: 0.8; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white;" id="time-input-${index}">
                                 </div>
                                 `}
                             </div>
@@ -5166,6 +5174,12 @@
         function updateTaskDeadline(index, deadline) {
             if (previewTasks[index]) {
                 previewTasks[index].deadline = deadline;
+            }
+        }
+        
+        function updateTaskTime(index, time) {
+            if (previewTasks[index]) {
+                previewTasks[index].time = time;
             }
         }
         
@@ -5475,7 +5489,7 @@
                 const newTask = {
                     id: taskId,
                     title: previewTask.title,
-                    deadline: new Date(`${previewTask.deadline}T17:00`).toISOString(),
+                    deadline: new Date(`${previewTask.deadline}T${previewTask.time || '17:00'}`).toISOString(),
                     priority: previewTask.priority,
                     assignees: [previewTask.assignee],
                     assignee: previewTask.assignee,
