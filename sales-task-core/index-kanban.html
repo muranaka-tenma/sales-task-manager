@@ -2838,10 +2838,11 @@
             const fileInput = document.getElementById('task-files-input');
             
             // Phase 2: PJタスク関連の入力値取得
-            const isProjectTask = isPJTaskMode();
-            const projectId = document.getElementById('project-id-input').value.trim();
-            const projectName = document.getElementById('project-name-input').value.trim();
-            const selectedApprovers = getSelectedApprovers();
+            // PJ作成は別ページに移動したため、常にfalse
+            const isProjectTask = false;
+            const projectId = '';
+            const projectName = '';
+            const selectedApprovers = [];
             
             if (!title || !date) {
                 alert('タスク名と期限日は必須です');
