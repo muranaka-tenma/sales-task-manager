@@ -1882,7 +1882,7 @@
                 document.getElementById('modal-title').textContent = '新しいPJタスク';
                 titleInput.value = '';
                 dateInput.value = getDefaultDeadlineString();
-                timeInput.value = '17:00';
+                timeInput.value = getDefaultTimeString();
                 priorityInput.value = 'medium';
                 memoInput.value = '';
                 
@@ -2303,6 +2303,13 @@
             return now.toISOString().split('T')[0];
         }
         
+        function getDefaultTimeString() {
+            // 現在時刻+3時間をデフォルト時刻として設定
+            const now = new Date();
+            now.setHours(now.getHours() + 3);
+            return now.toTimeString().slice(0, 5); // HH:MM形式
+        }
+        
         // 統一カード作成関数（画面上部のボタン用）
         function createTaskUnified() {
             console.log('📝 [CREATE UNIFIED] Starting unified task creation...');
@@ -2310,7 +2317,7 @@
             document.getElementById('modal-title').textContent = '新しいタスク';
             document.getElementById('task-title-input').value = '';
             document.getElementById('task-date-input').value = getDefaultDeadlineString();
-            document.getElementById('task-time-input').value = '17:00';
+            document.getElementById('task-time-input').value = getDefaultTimeString();
             document.getElementById('task-priority-input').value = 'medium';
             document.getElementById('task-memo-input').value = '';
             document.getElementById('task-files-input').value = '';
@@ -2385,7 +2392,7 @@
             document.getElementById('modal-title').textContent = '新しいタスク';
             document.getElementById('task-title-input').value = '';
             document.getElementById('task-date-input').value = getDefaultDeadlineString();
-            document.getElementById('task-time-input').value = '17:00';
+            document.getElementById('task-time-input').value = getDefaultTimeString();
             document.getElementById('task-priority-input').value = 'medium';
             document.getElementById('task-memo-input').value = '';
             document.getElementById('task-files-input').value = '';
@@ -2867,8 +2874,7 @@
                 saveTasks();
                 displayComments(editingTask.comments);
                 
-                // メンション通知をチェック
-                checkMentionNotifications(commentText, currentUser, editingTask);
+                // メンション通知は編集保存時に実行するため、ここでは実行しない
             }
             
             // 入力欄をクリア
@@ -3204,6 +3210,14 @@
             
             saveTasks();
             render();
+            
+            // 編集保存時のメンション通知チェック
+            if (editingTask && editingTask.comments && editingTask.comments.length > 0) {
+                // 最新のコメントでメンション通知をチェック
+                const latestComment = editingTask.comments[editingTask.comments.length - 1];
+                console.log(`🔔 [SAVE] 最新コメントのメンション通知チェック: "${latestComment.text}"`);
+                checkMentionNotifications(latestComment.text, latestComment.author, editingTask);
+            }
             
             // タスク作成・編集後に即座に期限チェック
             setTimeout(() => checkDeadlines(), 100);
