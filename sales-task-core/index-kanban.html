@@ -4807,6 +4807,9 @@
         
         // 担当者選択の変更イベント
         document.addEventListener('DOMContentLoaded', () => {
+            // ハンバーガーメニューを初期化
+            updateHamburgerMenu();
+            
             const assigneeSelect = document.getElementById('task-assignee-input');
             if (assigneeSelect) {
                 assigneeSelect.addEventListener('change', function() {

@@ -628,6 +628,11 @@
                                            border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
                                 🚀 デプロイ記録
                             </button>
+                            <button onclick="autoUpdateDeployHistory()" 
+                                    style="padding: 0.75rem 1.2rem; background: #20c997; color: white; border: none; 
+                                           border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
+                                🔄 自動更新
+                            </button>
                             <button onclick="generateHandoverSummary()" 
                                     style="padding: 0.75rem 1.2rem; background: #fd7e14; color: white; border: none; 
                                            border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
@@ -717,6 +722,58 @@ ${remainingTasks}
             if (logContent) {
                 logContent.value = localStorage.getItem('developmentLog') || '';
             }
+        }
+        
+        // 自動デプロイ履歴更新機能
+        function autoUpdateDeployHistory() {
+            const now = new Date();
+            const timestamp = now.toLocaleString('ja-JP');
+            
+            // 現在の要件リスト（更新すべき項目を定義）
+            const currentRequirements = [
+                '次のセッション向け改善項目を随時追記',
+                'ユーザビリティ向上案の検討',
+                'パフォーマンス最適化の実施',
+                'セキュリティ強化策の検討',
+                'レスポンシブデザインの改善'
+            ];
+            
+            // 最新のデプロイ内容（この関数が呼ばれた文脈での実装内容）
+            const latestDeployment = `⏰ OCR期限設定改善完了 - ${timestamp}`;
+            const remainingItems = currentRequirements.map(item => `- ${item}`).join('\n');
+            
+            // デプロイ記録を追加
+            addDeploymentRecord(latestDeployment, remainingItems);
+            
+            // 機能改善書の内容を自動更新
+            const autoUpdateContent = `
+=== 🔄 自動更新 ${timestamp} ===
+✅ 最新デプロイ: ${latestDeployment}
+
+📋 現在の残り要件:
+${remainingItems}
+
+💡 次回セッションで対応予定:
+- ユーザーからのフィードバック対応
+- 新機能要求への対応
+- バグ修正・改善
+
+=== 更新完了 ===
+
+`;
+            
+            // 既存の内容と結合
+            const existingLog = localStorage.getItem('developmentLog') || '';
+            const updatedLog = autoUpdateContent + existingLog;
+            localStorage.setItem('developmentLog', updatedLog);
+            
+            // 画面に反映
+            const logContent = document.getElementById('devLogContent');
+            if (logContent) {
+                logContent.value = updatedLog;
+            }
+            
+            alert('🔄 デプロイ履歴と要件を自動更新しました！\n\n新しい要件や改善事項があれば追記してください。');
         }
         
         // 引き継ぎ用サマリー生成
