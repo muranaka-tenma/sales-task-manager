@@ -3,6 +3,7 @@
   
 [build.environment]
   NODE_VERSION = "18"
+  DEPLOY_TIME = "2025-08-03-16-59"
 
 [[redirects]]
   from = "/"
