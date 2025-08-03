@@ -20,13 +20,7 @@
             overflow-x: auto;
         }
         
-        /* PJタスク設定を完全に無効化（別ページに移動） */
-        #project-task-settings {
-            display: none !important;
-        }
-        #project-id-input, #project-name-input {
-            required: false !important;
-        }
+        /* PJタスク設定は別ページ（pj-create.html）に移動 */
         
         .header {
             background: var(--theme-color, #026aa7);
@@ -1032,29 +1026,7 @@
                 <!-- 左側: タスク詳細 -->
                 <div class="modal-left">
                     <form onsubmit="saveTask(event)">
-                        <!-- PJタスク専用設定（PJ作成時のみ表示） -->
-                        <div id="project-task-settings" class="form-group" style="background: #fff3e0; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid #ff9800; display: none;">
-                            <div style="margin-bottom: 1rem;">
-                                <h4 style="color: #f57c00; margin: 0 0 0.5rem 0;">👥 プロジェクト設定</h4>
-                                <p style="color: #666; font-size: 0.85rem; margin: 0;">Wチェック対象のプロジェクトタスクを作成します</p>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label" style="color: #f57c00;">📁 プロジェクトID *</label>
-                                    <input type="text" class="form-input" id="project-id-input" placeholder="例: PJ001" style="font-size: 0.9rem;">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" style="color: #f57c00;">📝 プロジェクト名 *</label>
-                                    <input type="text" class="form-input" id="project-name-input" placeholder="例: 新規システム導入PJ" style="font-size: 0.9rem;">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" style="color: #f57c00;">✅ 承認者（複数選択可）*</label>
-                                <div id="project-approvers" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
-                                    <!-- 承認者チェックボックスがここに動的追加される -->
-                                </div>
-                            </div>
-                        </div>
+                        <!-- PJタスク設定は別ページ（pj-create.html）に移動しました -->
                         
                         <!-- テンプレート選択 -->
                         <div class="form-group" style="background: #f8f9fa; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
@@ -1721,8 +1693,8 @@
             alert(helpText);
         }
         
-        // PJ作成機能
-        function createProjectTask() {
+        // PJ作成機能は別ページ（pj-create.html）に移動
+        // function createProjectTask() {
             try {
                 console.log('👥 [PJ CREATE] Starting PJ task creation...');
                 
@@ -1838,11 +1810,11 @@
                     console.log('👥 [PJ CREATE] Successfully opened PJ task creation modal');
                 }, 50);
                 
-            } catch (error) {
-                console.error('👥 [PJ CREATE ERROR]', error);
-                alert('PJタスク作成モーダルの起動に失敗しました: ' + error.message);
-            }
-        }
+        //     } catch (error) {
+        //         console.error('👥 [PJ CREATE ERROR]', error);
+        //         alert('PJタスク作成モーダルの起動に失敗しました: ' + error.message);
+        //     }
+        // }
         
         // ドロップダウン外クリックで閉じる
         document.addEventListener('click', function(event) {
@@ -2809,14 +2781,7 @@
                 console.log('🚀 [SAVE TASK] Starting saveTask function...');
                 event.preventDefault();
             
-            // PJフィールドのrequired属性を一時的に削除（PJタスクでない場合）
-            const projectSettings = document.getElementById('project-task-settings');
-            const isProjectTaskVisible = projectSettings && projectSettings.style.display !== 'none';
-            if (!isProjectTaskVisible) {
-                document.getElementById('project-id-input').removeAttribute('required');
-                document.getElementById('project-name-input').removeAttribute('required');
-                console.log('🔧 [FORM] Removed required from PJ fields for non-PJ task');
-            }
+            // PJフィールドは別ページに移動したため、この処理は不要
             
             // 編集モード時は task-column-input の required 属性を一時的に削除
             const columnInput = document.getElementById('task-column-input');
