@@ -2635,15 +2635,25 @@
             
             // Phase 2: PJタスクのバリデーション
             if (isProjectTask) {
+                console.log(`🔍 [PJ VALIDATION] ProjectID: "${projectId}", ProjectName: "${projectName}", Approvers: [${selectedApprovers.join(', ')}]`);
+                
                 if (!projectId || !projectName) {
                     alert('PJタスクの場合、プロジェクトIDとプロジェクト名は必須です');
+                    // required属性を復活させてからreturn
+                    if (wasRequired && isColumnSelectionHidden) {
+                        columnInput.setAttribute('required', '');
+                    }
                     return;
                 }
                 if (selectedApprovers.length === 0) {
-                    alert('PJタスクの場合、承認者を1名以上選択してください');
+                    alert('PJタスクの場合、承認者を1名以上選択してください\n\n※ 承認者一覧から1名以上チェックしてください');
+                    // required属性を復活させてからreturn
+                    if (wasRequired && isColumnSelectionHidden) {
+                        columnInput.setAttribute('required', '');
+                    }
                     return;
                 }
-                console.log(`🎯 [PJ TASK] Creating project task: ${projectId} - ${projectName}`);
+                console.log(`🎯 [PJ TASK] Creating project task: ${projectId} - ${projectName} with approvers: [${selectedApprovers.join(', ')}]`);
             }
             
             if (selectedAssignees.length === 0) {
