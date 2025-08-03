@@ -270,6 +270,39 @@
     </div>
     
     <script>
+        // 認証チェック（管理者権限も確認）
+        function checkAuthentication() {
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                if (new Date() > new Date(session.expiresAt)) {
+                    localStorage.removeItem('currentSession');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                
+                // 管理者権限チェック
+                if (session.user.role !== 'admin') {
+                    alert('この機能は管理者のみ利用可能です。');
+                    window.location.href = 'index-kanban.html';
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+        
+        // 認証チェックを実行
+        if (!checkAuthentication()) {
+            throw new Error('Authentication required');
+        }
+        
         // ユーザー管理システム
         let users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
         

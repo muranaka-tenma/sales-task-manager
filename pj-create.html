@@ -186,6 +186,31 @@
     </div>
     
     <script>
+        // 認証チェック
+        function checkAuthentication() {
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                if (new Date() > new Date(session.expiresAt)) {
+                    localStorage.removeItem('currentSession');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+        
+        // 認証チェックを実行
+        if (!checkAuthentication()) {
+            throw new Error('Authentication required');
+        }
+        
         // ページ読み込み時に初期化
         window.addEventListener('DOMContentLoaded', () => {
             loadAssignees();

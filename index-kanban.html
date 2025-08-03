@@ -1482,6 +1482,90 @@
     </div>
     
     <script>
+        // 認証チェック（ページ読み込み時）
+        function checkAuthentication() {
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (!session) {
+                    // ログインしていない場合はログイン画面にリダイレクト
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                
+                // セッション期限チェック
+                if (new Date() > new Date(session.expiresAt)) {
+                    localStorage.removeItem('currentSession');
+                    alert('セッションが期限切れです。再度ログインしてください。');
+                    window.location.href = 'login.html';
+                    return false;
+                }
+                
+                // ログイン済みの場合、ユーザー情報を表示
+                displayUserInfo(session.user);
+                return true;
+            } catch (error) {
+                console.error('認証チェックエラー:', error);
+                window.location.href = 'login.html';
+                return false;
+            }
+        }
+        
+        function displayUserInfo(user) {
+            // ヘッダーにユーザー情報を表示
+            const headerTitle = document.querySelector('.header-title');
+            if (headerTitle) {
+                headerTitle.innerHTML = `
+                    🎯 営業タスク管理
+                    <span style="font-size: 0.8rem; font-weight: normal; margin-left: 1rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.5rem; border-radius: 4px;">
+                        ${user.name} (${getRoleDisplayName(user.role)})
+                    </span>
+                `;
+            }
+            
+            // ログアウトボタンを追加
+            const headerRight = document.querySelector('.header').children[1];
+            if (headerRight && !document.getElementById('logout-btn')) {
+                const logoutBtn = document.createElement('button');
+                logoutBtn.id = 'logout-btn';
+                logoutBtn.innerHTML = '🚪 ログアウト';
+                logoutBtn.style.cssText = `
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    color: white;
+                    padding: 0.5rem 1rem;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 0.9rem;
+                    margin-left: 1rem;
+                `;
+                logoutBtn.onclick = function() {
+                    if (confirm('ログアウトしますか？')) {
+                        localStorage.removeItem('currentSession');
+                        window.location.href = 'login.html';
+                    }
+                };
+                headerRight.appendChild(logoutBtn);
+            }
+            
+            console.log('✅ ログイン確認:', user.name, user.role);
+        }
+        
+        function getRoleDisplayName(role) {
+            const roleNames = {
+                'admin': 'システム管理者',
+                'project_manager': 'プロジェクト管理者',
+                'user': '一般ユーザー',
+                'viewer': '閲覧者'
+            };
+            return roleNames[role] || role;
+        }
+        
+        // 認証チェックを実行（ページが読み込まれる前に）
+        if (!checkAuthentication()) {
+            // 認証失敗時は以降の処理を停止
+            throw new Error('Authentication required');
+        }
+        
         // グローバル変数
         let tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
         console.log('📊 [LOAD] 読み込まれたタスク数:', tasks.length);
