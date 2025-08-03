@@ -1771,6 +1771,42 @@
         const pjTasks = tasks.filter(t => t.projectId);
         console.log('👥 [LOAD] PJタスク数:', pjTasks.length, pjTasks.map(t => `${t.projectId}: ${t.title}`));
         
+        // データ移行対策：PJ設定データの互換性チェック
+        function migrateProjectData() {
+            try {
+                const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                let needsMigration = false;
+                
+                // 既存のプロジェクト設定がある場合は、必要フィールドを追加
+                Object.keys(projectSettings).forEach(projectId => {
+                    const project = projectSettings[projectId];
+                    if (!project.columns) {
+                        // デフォルトカラムを設定
+                        project.columns = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+                        needsMigration = true;
+                    }
+                    if (!project.createdAt) {
+                        project.createdAt = new Date().toISOString();
+                        needsMigration = true;
+                    }
+                    if (!project.createdBy) {
+                        project.createdBy = getCurrentUser().name || 'システム';
+                        needsMigration = true;
+                    }
+                });
+                
+                if (needsMigration) {
+                    localStorage.setItem('projectSettings', JSON.stringify(projectSettings));
+                    console.log('🔄 [MIGRATION] プロジェクト設定データを移行しました');
+                }
+            } catch (error) {
+                console.error('❌ [MIGRATION] プロジェクト設定データ移行エラー:', error);
+            }
+        }
+        
+        // データ移行実行
+        migrateProjectData();
+        
         // 既存タスクにcreatedAtがない場合は、現在時刻から遡って設定
         // （インポートされたタスクなど用）
         tasks = tasks.map((task, index) => {
