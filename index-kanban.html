@@ -1481,6 +1481,9 @@
     <script>
         // グローバル変数
         let tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+        console.log('📊 [LOAD] 読み込まれたタスク数:', tasks.length);
+        const pjTasks = tasks.filter(t => t.projectId);
+        console.log('👥 [LOAD] PJタスク数:', pjTasks.length, pjTasks.map(t => `${t.projectId}: ${t.title}`));
         
         // 既存タスクにcreatedAtがない場合は、現在時刻から遡って設定
         // （インポートされたタスクなど用）
