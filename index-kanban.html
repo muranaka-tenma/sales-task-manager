@@ -927,7 +927,7 @@
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
             <!-- PJ作成ボタン -->
-            <button onclick="window.location.href='pj-create.html'" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいPJタスクを作成">
+            <button onclick="navigateToPJCreate()" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいPJタスクを作成">
                 👥 PJ作成
             </button>
             <!-- 定期タスク管理ボタン -->
@@ -8846,6 +8846,12 @@
         
         window.createRecurringTemplate = createRecurringTemplate;
         window.generatePendingTasks = generatePendingTasks;
+        
+        // PJ作成ページへの遷移
+        function navigateToPJCreate() {
+            console.log('PJ作成ページに遷移します...');
+            window.location.href = 'pj-create.html';
+        }
         // デバッグ用: フォームバリデーション確認
         function debugFormValidation(event) {
             const form = event.target.form;
