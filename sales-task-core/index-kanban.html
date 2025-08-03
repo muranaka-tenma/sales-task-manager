@@ -38,6 +38,108 @@
             font-weight: 600;
         }
         
+        /* ハンバーガーメニュー */
+        .hamburger-menu {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 280px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            transition: left 0.3s ease;
+            z-index: 999;
+            overflow-y: auto;
+        }
+        
+        .hamburger-menu.active {
+            left: 0;
+        }
+        
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 998;
+        }
+        
+        .menu-overlay.active {
+            display: block;
+        }
+        
+        .menu-section {
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .menu-section-title {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #333;
+            text-decoration: none;
+            margin-bottom: 0.25rem;
+        }
+        
+        .menu-item:hover {
+            background: #f5f5f5;
+            transform: translateX(4px);
+        }
+        
+        .menu-item.active {
+            background: #e3f2fd;
+            color: #026aa7;
+            font-weight: 600;
+        }
+        
+        .user-menu-info {
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .user-menu-avatar {
+            width: 48px;
+            height: 48px;
+            background: var(--theme-color, #026aa7);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        
+        .user-menu-name {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .user-menu-role {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
         .settings-btn {
             background: rgba(255,255,255,0.2);
             border: none;
@@ -897,11 +999,33 @@
 </head>
 <body>
     <div class="header">
-        <div class="header-title">🎯 営業タスク管理 - Kanbanボード</div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <!-- ハンバーガーメニューボタン -->
+            <button class="hamburger-btn" onclick="toggleHamburgerMenu()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem;" title="メニュー">
+                ☰
+            </button>
+            <div class="header-title">🎯 営業タスク管理 - Kanbanボード</div>
+        </div>
         <div class="header-controls">
-            <button onclick="openSettingsModal()" class="settings-btn" title="設定">⚙️</button>
+            <button onclick="openSettingsModal()" class="settings-btn" title="設定" style="display: none;">⚙️</button>
         </div>
     </div>
+    
+    <!-- ハンバーガーメニュー -->
+    <div id="hamburger-menu" style="display: none; position: fixed; top: 0; left: 0; width: 280px; height: 100vh; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; overflow-y: auto;">
+        <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; color: #2d3748;">メニュー</h3>
+                <button onclick="toggleHamburgerMenu()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #2d3748;">×</button>
+            </div>
+        </div>
+        <div id="hamburger-menu-content" style="padding: 0;">
+            <!-- メニュー項目がここに動的に追加される -->
+        </div>
+    </div>
+    
+    <!-- メニュー表示時の背景オーバーレイ -->
+    <div id="hamburger-overlay" onclick="toggleHamburgerMenu()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999;"></div>
     
     
     <!-- 統計バー -->
@@ -1692,6 +1816,12 @@
                 } else {
                     console.log(`✅ [Phase 3] ${currentUser.role}権限: ユーザー管理ボタン表示維持`);
                 }
+                
+                // ハンバーガーメニューの更新
+                setTimeout(() => {
+                    updateHamburgerMenu();
+                    console.log('🍔 [Phase 3] ハンバーガーメニュー更新完了');
+                }, 200);
                 
             } catch (error) {
                 console.error('❌ [Phase 3] ユーザー管理ボタン制御エラー:', error);
@@ -9211,11 +9341,109 @@
             }
         }
         
+        // ハンバーガーメニューの切り替え
+        function toggleHamburgerMenu() {
+            const hamburgerMenu = document.getElementById('hamburger-menu');
+            const menuOverlay = document.getElementById('menu-overlay');
+            
+            hamburgerMenu.classList.toggle('active');
+            menuOverlay.classList.toggle('active');
+        }
+        
+        // ハンバーガーメニューの更新
+        function updateHamburgerMenu() {
+            const currentUser = getCurrentUser();
+            
+            if (currentUser.isLoggedIn) {
+                // ユーザー情報を表示
+                const avatar = document.getElementById('user-menu-avatar');
+                const name = document.getElementById('user-menu-name');
+                const role = document.getElementById('user-menu-role');
+                
+                if (avatar) avatar.textContent = currentUser.name ? currentUser.name.charAt(0) : '-';
+                if (name) name.textContent = currentUser.name || 'ゲスト';
+                
+                let roleText = 'ユーザー';
+                if (currentUser.role === 'developer') roleText = '開発者';
+                else if (currentUser.role === 'admin') roleText = '管理者';
+                if (role) role.textContent = roleText;
+                
+                // 管理機能の表示制御
+                const adminSection = document.getElementById('admin-menu-section');
+                if (adminSection) {
+                    if (currentUser.role === 'developer' || currentUser.role === 'admin') {
+                        adminSection.style.display = 'block';
+                    } else {
+                        adminSection.style.display = 'none';
+                    }
+                }
+            }
+        }
+        
+        // ログアウト関数
+        function logout() {
+            if (confirm('ログアウトしますか？')) {
+                localStorage.removeItem('currentSession');
+                window.location.href = 'login.html';
+            }
+        }
+        
         // グローバル関数として公開
         window.checkTaskEvidence = checkTaskEvidence;
         window.promptForEvidence = promptForEvidence;
         window.deleteTask = deleteTask;
+        window.toggleHamburgerMenu = toggleHamburgerMenu;
+        window.updateHamburgerMenu = updateHamburgerMenu;
+        window.logout = logout;
     </script>
+    
+    <!-- ハンバーガーメニュー -->
+    <div class="hamburger-menu" id="hamburger-menu">
+        <div class="user-menu-info">
+            <div class="user-menu-avatar" id="user-menu-avatar">-</div>
+            <div class="user-menu-name" id="user-menu-name">ゲスト</div>
+            <div class="user-menu-role" id="user-menu-role">未ログイン</div>
+        </div>
+        
+        <div class="menu-section">
+            <div class="menu-section-title">個人設定</div>
+            <a href="my-profile.html" class="menu-item">
+                <span>👤</span>
+                <span>マイページ</span>
+            </a>
+            <a href="#" class="menu-item" onclick="openSettings(); return false;">
+                <span>⚙️</span>
+                <span>設定</span>
+            </a>
+            <a href="#" class="menu-item" onclick="showTemplateModal(); return false;">
+                <span>📑</span>
+                <span>テンプレート設定</span>
+            </a>
+        </div>
+        
+        <div class="menu-section" id="admin-menu-section" style="display: none;">
+            <div class="menu-section-title">管理機能</div>
+            <a href="user-management.html" class="menu-item">
+                <span>👥</span>
+                <span>ユーザー管理</span>
+            </a>
+            <a href="admin-dashboard.html" class="menu-item">
+                <span>📊</span>
+                <span>管理者ダッシュボード</span>
+            </a>
+        </div>
+        
+        <div class="menu-section">
+            <div class="menu-section-title">その他</div>
+            <a href="#" class="menu-item" onclick="logout(); return false;">
+                <span>🚪</span>
+                <span>ログアウト</span>
+            </a>
+        </div>
+    </div>
+    
+    <!-- メニューオーバーレイ -->
+    <div class="menu-overlay" id="menu-overlay" onclick="toggleHamburgerMenu()"></div>
 </body>
 </html><!-- Cache bust: 1754211273 -->
 <!-- UI Update: 1754211273 -->

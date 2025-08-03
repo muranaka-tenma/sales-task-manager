@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👤 マイページ - 営業タスク管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f4f5f7;
+            color: #172b4d;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: var(--theme-color, #026aa7);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .profile-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            background: var(--theme-color, #026aa7);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .profile-name {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .profile-role {
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .profile-email {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #172b4d;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .action-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .action-card:hover {
+            border-color: var(--theme-color, #026aa7);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        
+        .action-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .action-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .action-desc {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        
+        .stats-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--theme-color, #026aa7);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .admin-section {
+            background: #fff3e0;
+            border: 1px solid #ffcc02;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .admin-section .section-title {
+            color: #e65100;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="header-title">👤 マイページ</h1>
+        <button onclick="window.location.href='index-kanban.html'" class="back-btn">← メインに戻る</button>
+    </div>
+    
+    <div class="container">
+        <!-- プロフィール情報 -->
+        <div class="profile-card">
+            <div class="profile-header">
+                <div class="profile-avatar" id="profile-avatar">-</div>
+                <div class="profile-info">
+                    <div class="profile-name" id="profile-name">ゲストユーザー</div>
+                    <div class="profile-role" id="profile-role">未ログイン</div>
+                    <div class="profile-email" id="profile-email">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 個人アクション -->
+        <div class="section-title">⚙️ 個人設定</div>
+        <div class="action-grid">
+            <div class="action-card" onclick="changePassword()">
+                <div class="action-icon">🔐</div>
+                <div class="action-title">パスワード変更</div>
+                <div class="action-desc">現在のパスワードを変更します</div>
+            </div>
+            
+            <div class="action-card" onclick="window.location.href='index-kanban.html'; setTimeout(() => openSettings(), 1000)">
+                <div class="action-icon">⚙️</div>
+                <div class="action-title">タスク設定</div>
+                <div class="action-desc">カラム設定、アラート設定など</div>
+            </div>
+            
+            <div class="action-card" onclick="window.location.href='index-kanban.html'; setTimeout(() => showTemplateModal(), 1000)">
+                <div class="action-icon">📑</div>
+                <div class="action-title">テンプレート管理</div>
+                <div class="action-desc">タスクテンプレートの作成・編集</div>
+            </div>
+        </div>
+        
+        <!-- 個人統計 -->
+        <div class="stats-section">
+            <div class="section-title">📊 個人統計</div>
+            <div class="stats-grid" id="personal-stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="my-total-tasks">-</div>
+                    <div class="stat-label">総タスク数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="my-completed-tasks">-</div>
+                    <div class="stat-label">完了タスク</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="my-pending-tasks">-</div>
+                    <div class="stat-label">進行中タスク</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="my-project-tasks">-</div>
+                    <div class="stat-label">PJタスク</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 管理者機能 -->
+        <div class="admin-section" id="admin-section" style="display: none;">
+            <div class="section-title">👥 管理機能</div>
+            <div class="action-grid">
+                <div class="action-card" onclick="window.location.href='user-management.html'">
+                    <div class="action-icon">👥</div>
+                    <div class="action-title">ユーザー管理</div>
+                    <div class="action-desc">ユーザーの追加・編集・削除</div>
+                </div>
+                
+                <div class="action-card" onclick="window.location.href='admin-dashboard.html'">
+                    <div class="action-icon">📊</div>
+                    <div class="action-title">管理者ダッシュボード</div>
+                    <div class="action-desc">全体統計とシステム管理</div>
+                </div>
+                
+                <div class="action-card" onclick="showTeamStats()">
+                    <div class="action-icon">📈</div>
+                    <div class="action-title">チーム統計</div>
+                    <div class="action-desc">メンバー別の統計情報</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 認証チェック
+        function checkAuthentication() {
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return null;
+                }
+                if (new Date() > new Date(session.expiresAt)) {
+                    localStorage.removeItem('currentSession');
+                    window.location.href = 'login.html';
+                    return null;
+                }
+                return session.user;
+            } catch (error) {
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
+        
+        // ページ読み込み時の初期化
+        window.addEventListener('DOMContentLoaded', () => {
+            const currentUser = checkAuthentication();
+            if (!currentUser) return;
+            
+            updateProfileInfo(currentUser);
+            loadPersonalStats(currentUser);
+            
+            // 管理者・開発者のみ管理機能を表示
+            if (currentUser.role === 'developer' || currentUser.role === 'admin') {
+                document.getElementById('admin-section').style.display = 'block';
+            }
+        });
+        
+        // プロフィール情報の更新
+        function updateProfileInfo(user) {
+            document.getElementById('profile-avatar').textContent = user.name ? user.name.charAt(0) : '-';
+            document.getElementById('profile-name').textContent = user.name || 'ゲストユーザー';
+            document.getElementById('profile-email').textContent = user.email || '-';
+            
+            let roleText = 'ユーザー';
+            if (user.role === 'developer') roleText = '開発者';
+            else if (user.role === 'admin') roleText = '管理者';
+            document.getElementById('profile-role').textContent = roleText;
+        }
+        
+        // 個人統計の読み込み
+        function loadPersonalStats(user) {
+            try {
+                const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+                
+                // 自分が担当者になっているタスクを抽出
+                const myTasks = tasks.filter(task => 
+                    task.assignees && task.assignees.includes(user.name)
+                );
+                
+                const completedTasks = myTasks.filter(task => task.columnId === 'done');
+                const pendingTasks = myTasks.filter(task => task.columnId !== 'done' && task.columnId !== 'trash');
+                const projectTasks = myTasks.filter(task => task.isProjectTask);
+                
+                document.getElementById('my-total-tasks').textContent = myTasks.length;
+                document.getElementById('my-completed-tasks').textContent = completedTasks.length;
+                document.getElementById('my-pending-tasks').textContent = pendingTasks.length;
+                document.getElementById('my-project-tasks').textContent = projectTasks.length;
+                
+            } catch (error) {
+                console.error('統計読み込みエラー:', error);
+            }
+        }
+        
+        // パスワード変更
+        function changePassword() {
+            const currentUser = checkAuthentication();
+            if (!currentUser) return;
+            
+            const currentPassword = prompt('現在のパスワードを入力してください:');
+            if (!currentPassword) return;
+            
+            // 現在のパスワード確認
+            const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const user = users.find(u => u.email === currentUser.email);
+            
+            if (!user || user.password !== currentPassword) {
+                alert('現在のパスワードが正しくありません');
+                return;
+            }
+            
+            const newPassword = prompt('新しいパスワードを入力してください:');
+            if (!newPassword || newPassword.length < 4) {
+                alert('パスワードは4文字以上で入力してください');
+                return;
+            }
+            
+            const confirmPassword = prompt('新しいパスワードを再度入力してください:');
+            if (newPassword !== confirmPassword) {
+                alert('パスワードが一致しません');
+                return;
+            }
+            
+            // パスワード更新
+            user.password = newPassword;
+            localStorage.setItem('systemUsers', JSON.stringify(users));
+            
+            alert('パスワードが正常に変更されました');
+        }
+        
+        // チーム統計表示（管理者・開発者のみ）
+        function showTeamStats() {
+            try {
+                const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+                const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                
+                let statsText = '📈 チーム統計\n\n';
+                
+                users.forEach(user => {
+                    const userTasks = tasks.filter(task => 
+                        task.assignees && task.assignees.includes(user.name)
+                    );
+                    const completedTasks = userTasks.filter(task => task.columnId === 'done');
+                    const pendingTasks = userTasks.filter(task => task.columnId !== 'done' && task.columnId !== 'trash');
+                    
+                    statsText += `👤 ${user.name} (${user.role})\n`;
+                    statsText += `   総タスク: ${userTasks.length}件\n`;
+                    statsText += `   完了: ${completedTasks.length}件\n`;
+                    statsText += `   進行中: ${pendingTasks.length}件\n\n`;
+                });
+                
+                alert(statsText);
+                
+            } catch (error) {
+                console.error('チーム統計エラー:', error);
+                alert('統計の読み込みに失敗しました');
+            }
+        }
+    </script>
+</body>
+</html>
