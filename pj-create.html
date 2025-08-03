@@ -236,6 +236,7 @@
         
         function createPJTask(event) {
             event.preventDefault();
+            console.log('PJタスク作成開始...');
             
             // 選択された担当者と承認者を取得
             const selectedAssignees = Array.from(document.querySelectorAll('input[name="assignee"]:checked'))
@@ -279,8 +280,10 @@
             
             // 既存のタスクを読み込んで追加（正しいキーを使用）
             const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+            console.log('既存タスク数:', tasks.length);
             tasks.push(task);
             localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+            console.log('保存後タスク数:', tasks.length);
             
             // 成功メッセージを表示
             document.getElementById('success-message').style.display = 'block';
