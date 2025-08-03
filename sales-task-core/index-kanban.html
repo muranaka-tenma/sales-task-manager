@@ -163,6 +163,24 @@
             border: 1px solid var(--column-border, rgba(255,255,255,0.2));
         }
         
+        /* ゴミ箱カラム専用スタイル */
+        .column[data-column-id="trash"] {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px dashed #6c757d;
+            opacity: 0.8;
+        }
+        
+        .column[data-column-id="trash"]:hover {
+            opacity: 1;
+            border-color: #dc3545;
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+        }
+        
+        .column[data-column-id="trash"] .task {
+            opacity: 0.6;
+            background: #f8f9fa;
+        }
+        
         .column-header {
             padding: 0.5rem 0.75rem;
             font-weight: 600;
@@ -928,10 +946,6 @@
             <button onclick="window.location.href='pj-create.html'" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいPJタスクを作成">
                 👥 PJ作成
             </button>
-            <!-- 定期タスク管理ボタン -->
-            <button onclick="showRecurringTasksInfo()" style="padding: 0.5rem 0.75rem; background: #805ad5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="定期タスクの状況">
-                🔄 定期タスク
-            </button>
             <button onclick="window.location.href='user-management.html'" style="padding: 0.5rem 0.75rem; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="ユーザー管理">
                 👥 ユーザー管理
             </button>
@@ -1672,7 +1686,7 @@
         migrateSampleDataToRealUser();
         
         // カラム定義
-        let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"📋 TODO","color":"#667eea"},{"id":"inprogress","title":"⚡ 進行中","color":"#f59e0b"},{"id":"waiting","title":"⏳ 連絡待ち","color":"#8b5cf6"},{"id":"done","title":"✅ Done","color":"#10b981"}]');
+        let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"📋 TODO","color":"#667eea"},{"id":"inprogress","title":"⚡ 進行中","color":"#f59e0b"},{"id":"waiting","title":"⏳ 連絡待ち","color":"#8b5cf6"},{"id":"done","title":"✅ Done","color":"#10b981"},{"id":"trash","title":"🗑️ ゴミ箱","color":"#6c757d"}]');
         
         // テンプレート管理
         let taskTemplates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
@@ -3492,10 +3506,19 @@
                      style="position: relative; cursor: ${isBulkMode ? 'pointer' : ((isFromOverdueColumn || isOverdueTask) ? 'default' : 'move')}; ${(isFromOverdueColumn || isOverdueTask) ? 'opacity: 0.9;' : ''} ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
                      title="${(isFromOverdueColumn || isOverdueTask) ? '期限切れタスクです。移動するには編集で期限を延長してください。' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
                     ${checkboxHtml}
-                    <div class="task-title">
-                        ${task.isRecurring ? '<span style="color: #2d3748; margin-right: 0.25rem;" title="定期タスク">🔄</span>' : ''}
-                        ${task.projectId ? '<span style="color: #2b6cb0; margin-right: 0.25rem;" title="PJタスク">👥</span>' : ''}
-                        ${task.title}
+                    <div class="task-title" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <span style="flex: 1;">
+                            ${task.isRecurring ? '<span style="color: #2d3748; margin-right: 0.25rem;" title="定期タスク">🔄</span>' : ''}
+                            ${task.projectId ? '<span style="color: #2b6cb0; margin-right: 0.25rem;" title="PJタスク">👥</span>' : ''}
+                            ${task.title}
+                        </span>
+                        <button onclick="deleteTask(${task.id}); event.stopPropagation();" 
+                                style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 0.9rem; padding: 2px; opacity: 0.7; margin-left: 8px;"
+                                title="ゴミ箱に移動"
+                                onmouseover="this.style.opacity='1'"
+                                onmouseout="this.style.opacity='0.7'">
+                            🗑️
+                        </button>
                     </div>
                     <div class="task-meta">
                         <div style="margin-bottom: 0.25rem;">
@@ -3980,23 +4003,44 @@
         }
         
         function showNotification(title, body, options = {}) {
-            if (notificationPermission && 'Notification' in window) {
-                const notification = new Notification(title, {
-                    body: body,
-                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">🎯</text></svg>',
-                    ...options
-                });
-                
-                // タスクIDが指定されている場合はクリックでそのタスクを開く
-                if (options.taskId) {
-                    notification.onclick = () => {
-                        window.focus(); // ブラウザウィンドウをアクティブに
-                        editTask(options.taskId); // タスクモーダルを開く
-                        notification.close();
-                    };
+            console.log(`🔔 通知試行: ${title} - ${body}`);
+            console.log(`🔔 通知許可状態: ${notificationPermission}`);
+            console.log(`🔔 Notification対応: ${'Notification' in window}`);
+            
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    console.log(`✅ 通知送信: ${title}`);
+                    const notification = new Notification(title, {
+                        body: body,
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">🎯</text></svg>',
+                        requireInteraction: true, // 通知を確実に表示
+                        ...options
+                    });
+                    
+                    // タスクIDが指定されている場合はクリックでそのタスクを開く
+                    if (options.taskId) {
+                        notification.onclick = () => {
+                            window.focus(); // ブラウザウィンドウをアクティブに
+                            editTask(options.taskId); // タスクモーダルを開く
+                            notification.close();
+                        };
+                    }
+                    
+                    return notification;
+                } else if (Notification.permission === 'default') {
+                    console.log(`⚠️ 通知許可要求中...`);
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            showNotification(title, body, options); // 再実行
+                        }
+                    });
+                } else {
+                    console.log(`❌ 通知が拒否されています`);
+                    alert(`通知: ${title}\n${body}`); // フォールバック
                 }
-                
-                return notification;
+            } else {
+                console.log(`❌ ブラウザが通知に対応していません`);
+                alert(`通知: ${title}\n${body}`); // フォールバック
             }
         }
         
@@ -8882,9 +8926,42 @@
             return true; // 証憑なしで強制移動
         }
         
+        // タスク削除機能（ゴミ箱移動）
+        function deleteTask(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const result = confirm(
+                `🗑️ タスクをゴミ箱に移動しますか？\n\n` +
+                `タスク: ${task.title}\n\n` +
+                `※ ゴミ箱からドラッグ&ドロップで復元可能です`
+            );
+            
+            if (result) {
+                // ゴミ箱に移動
+                task.columnId = 'trash';
+                task.deletedAt = new Date().toISOString();
+                task.previousColumn = task.columnId || 'todo'; // 復元用
+                
+                saveTasks();
+                render();
+                updateStats();
+                
+                console.log(`🗑️ タスク「${task.title}」をゴミ箱に移動しました`);
+                
+                // 削除通知
+                showNotification(
+                    '🗑️ タスク削除',
+                    `「${task.title}」をゴミ箱に移動しました`,
+                    { tag: `delete-${Date.now()}` }
+                );
+            }
+        }
+        
         // グローバル関数として公開
         window.checkTaskEvidence = checkTaskEvidence;
         window.promptForEvidence = promptForEvidence;
+        window.deleteTask = deleteTask;
     </script>
 </body>
 </html><!-- Cache bust: 1754211273 -->
