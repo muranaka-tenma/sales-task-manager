@@ -959,22 +959,6 @@
         <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
             <input type="text" id="quick-column-name" placeholder="新ステータス名" style="padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; width: 120px;">
             <button onclick="quickAddColumn()" style="padding: 0.4rem 0.8rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">＋ステータス</button>
-            
-            <span style="font-size: 0.75rem; color: #5e6c84; margin-left: 1rem;">👥 担当者:</span>
-            <div id="assignee-filter-container" style="position: relative;">
-                <button id="assignee-filter-btn" onclick="toggleAssigneeFilter()" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; border: 1px solid #dfe1e6; border-radius: 3px; background: white; cursor: pointer; min-width: 120px; text-align: left; display: flex; justify-content: space-between; align-items: center;">
-                    <span id="assignee-filter-text">全員</span>
-                    <span>▼</span>
-                </button>
-                <div id="assignee-filter-dropdown" style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #dfe1e6; border-radius: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: none; z-index: 1000; max-height: 200px; overflow-y: auto;">
-                    <div style="padding: 0.5rem;">
-                        <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; hover: background: #f5f5f5;">
-                            <input type="checkbox" value="" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;">
-                            <span>全員</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
     
@@ -1730,45 +1714,96 @@
         
         // PJ作成機能
         function createProjectTask() {
-            // 新規タスク作成モーダルを開き、PJタスクモードに設定
-            editingTask = null;
-            document.getElementById('modal-title').textContent = '新しいPJタスク';
-            document.getElementById('task-title-input').value = '';
-            document.getElementById('task-date-input').value = getDefaultDeadlineString();
-            document.getElementById('task-time-input').value = '17:00';
-            document.getElementById('task-priority-input').value = 'medium';
-            document.getElementById('task-memo-input').value = '';
-            
-            // カラム選択を表示
-            document.getElementById('column-selection-group').style.display = 'block';
-            document.getElementById('task-column-input').setAttribute('required', '');
-            
-            // 担当者選択肢を更新
-            updateAssigneeOptions();
-            setSelectedAssignees([]);
-            
-            // PJタスクモードに設定
-            document.getElementById('task-type-project').checked = true;
-            document.getElementById('task-type-personal').checked = false;
-            document.getElementById('project-task-settings').style.display = 'block';
-            
-            // PJ情報をクリア
-            document.getElementById('project-id-input').value = '';
-            document.getElementById('project-name-input').value = '';
-            
-            // 承認者を設定
-            populateApprovers();
-            
-            // ファイル・コメント関連をクリア
-            displayAttachedFiles([]);
-            document.getElementById('comments-section').innerHTML = '<div style="text-align: center; color: #5e6c84; padding: 2rem;">新しいタスクです。保存後にコメントを追加できます。</div>';
-            document.getElementById('comment-input').disabled = true;
-            
-            // 統一作成モードを設定
-            document.getElementById('task-modal').dataset.unifiedMode = 'true';
-            document.getElementById('task-modal').classList.add('show');
-            
-            console.log('👥 [PJ CREATE] Opened PJ task creation modal');
+            try {
+                console.log('👥 [PJ CREATE] Starting PJ task creation...');
+                
+                // 新規タスク作成モーダルを開き、PJタスクモードに設定
+                editingTask = null;
+                
+                // 基本入力項目をクリア
+                const titleInput = document.getElementById('task-title-input');
+                const dateInput = document.getElementById('task-date-input');
+                const timeInput = document.getElementById('task-time-input');
+                const priorityInput = document.getElementById('task-priority-input');
+                const memoInput = document.getElementById('task-memo-input');
+                
+                if (!titleInput || !dateInput || !timeInput || !priorityInput || !memoInput) {
+                    throw new Error('必要な入力要素が見つかりません');
+                }
+                
+                document.getElementById('modal-title').textContent = '新しいPJタスク';
+                titleInput.value = '';
+                dateInput.value = getDefaultDeadlineString();
+                timeInput.value = '17:00';
+                priorityInput.value = 'medium';
+                memoInput.value = '';
+                
+                // カラム選択を表示
+                const columnGroup = document.getElementById('column-selection-group');
+                const columnInput = document.getElementById('task-column-input');
+                if (columnGroup && columnInput) {
+                    columnGroup.style.display = 'block';
+                    columnInput.setAttribute('required', '');
+                }
+                
+                // 担当者選択肢を更新
+                updateAssigneeOptions();
+                setSelectedAssignees([]);
+                
+                // PJタスクモードに設定
+                const projectRadio = document.getElementById('task-type-project');
+                const personalRadio = document.getElementById('task-type-personal');
+                const projectSettings = document.getElementById('project-task-settings');
+                
+                if (!projectRadio || !personalRadio || !projectSettings) {
+                    throw new Error('PJタスク設定要素が見つかりません');
+                }
+                
+                projectRadio.checked = true;
+                personalRadio.checked = false;
+                projectSettings.style.display = 'block';
+                
+                // PJ情報をクリア
+                const projectIdInput = document.getElementById('project-id-input');
+                const projectNameInput = document.getElementById('project-name-input');
+                
+                if (!projectIdInput || !projectNameInput) {
+                    throw new Error('PJ情報入力要素が見つかりません');
+                }
+                
+                projectIdInput.value = '';
+                projectNameInput.value = '';
+                
+                // 承認者を設定
+                populateApprovers();
+                
+                // ファイル・コメント関連をクリア
+                displayAttachedFiles([]);
+                const commentsSection = document.getElementById('comments-section');
+                const commentInput = document.getElementById('comment-input');
+                
+                if (commentsSection) {
+                    commentsSection.innerHTML = '<div style="text-align: center; color: #5e6c84; padding: 2rem;">新しいタスクです。保存後にコメントを追加できます。</div>';
+                }
+                if (commentInput) {
+                    commentInput.disabled = true;
+                }
+                
+                // 統一作成モードを設定
+                const modal = document.getElementById('task-modal');
+                if (!modal) {
+                    throw new Error('タスクモーダルが見つかりません');
+                }
+                
+                modal.dataset.unifiedMode = 'true';
+                modal.classList.add('show');
+                
+                console.log('👥 [PJ CREATE] Successfully opened PJ task creation modal');
+                
+            } catch (error) {
+                console.error('👥 [PJ CREATE ERROR]', error);
+                alert('PJタスク作成モーダルの起動に失敗しました: ' + error.message);
+            }
         }
         
         // ドロップダウン外クリックで閉じる
@@ -3534,82 +3569,7 @@
             }
         }
         
-        function updateAssigneeFilter() {
-            const dropdownContainer = document.getElementById('assignee-filter-dropdown');
-            if (!dropdownContainer) return;
-            
-            // すべての担当者を取得（新旧フィールド両方から）
-            const allAssignees = [...new Set(
-                tasks.flatMap(t => {
-                    const assignees = [];
-                    // 新しいassigneesフィールドから
-                    if (t.assignees && Array.isArray(t.assignees)) {
-                        assignees.push(...t.assignees);
-                    }
-                    // 旧いassigneeフィールドから（後方互換性）
-                    if (t.assignee && t.assignee !== '未設定') {
-                        assignees.push(t.assignee);
-                    }
-                    return assignees;
-                }).filter(a => a && a !== '未設定')
-            )];
-            
-            // ドロップダウンのHTMLを再構築
-            dropdownContainer.innerHTML = `
-                <div style="padding: 0.5rem;">
-                    <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
-                        <input type="checkbox" value="" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.length === 0 ? 'checked' : ''}>
-                        <span>全員</span>
-                    </label>
-                    ${allAssignees.map(assignee => `
-                        <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
-                            <input type="checkbox" value="${assignee}" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.includes(assignee) ? 'checked' : ''}>
-                            <span>${assignee}</span>
-                        </label>
-                    `).join('')}
-                </div>
-            `;
-            
-            updateAssigneeFilterText();
-        }
         
-        function toggleAssigneeFilter() {
-            const dropdown = document.getElementById('assignee-filter-dropdown');
-            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-        }
-        
-        function updateAssigneeFilterSelection() {
-            const checkboxes = document.querySelectorAll('#assignee-filter-dropdown input[type="checkbox"]');
-            selectedAssigneeFilters = [];
-            
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked && checkbox.value) {
-                    selectedAssigneeFilters.push(checkbox.value);
-                }
-            });
-            
-            // 全員チェックボックスの制御
-            const allCheckbox = document.querySelector('#assignee-filter-dropdown input[value=""]');
-            if (selectedAssigneeFilters.length === 0) {
-                allCheckbox.checked = true;
-            } else {
-                allCheckbox.checked = false;
-            }
-            
-            updateAssigneeFilterText();
-            render();
-        }
-        
-        function updateAssigneeFilterText() {
-            const textElement = document.getElementById('assignee-filter-text');
-            if (selectedAssigneeFilters.length === 0) {
-                textElement.textContent = '全員';
-            } else if (selectedAssigneeFilters.length === 1) {
-                textElement.textContent = selectedAssigneeFilters[0];
-            } else {
-                textElement.textContent = `${selectedAssigneeFilters.length}名選択中`;
-            }
-        }
         
         function saveTasks() {
             localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
@@ -8608,6 +8568,41 @@
         
         // グローバルに公開（コンソールから呼び出し可能）
         window.createTestStaleTask = createTestStaleTask;
+        
+        // テスト用PJタスク作成
+        function createTestPJTask() {
+            const testPJTask = {
+                id: Date.now() + Math.floor(Math.random() * 1000),
+                title: '【テストPJ】新規システム導入 - 要件定義書作成',
+                deadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(), // 10日後の期限
+                priority: 'high',
+                columnId: 'todo',
+                assignee: '田中部長',
+                assignees: ['田中部長', '佐藤課長'],
+                memo: 'これはPJタスクのテストです。Wチェック体制の確認用。',
+                createdAt: new Date().toISOString(),
+                completed: false,
+                
+                // PJタスク専用フィールド
+                projectId: 'PJ001',
+                projectName: '新規システム導入プロジェクト',
+                personalStatus: 'todo',
+                projectStatus: 'todo',
+                pendingMove: null,
+                approvers: ['佐藤課長', '鈴木主任'],
+                lastApprovedBy: null,
+                approvedAt: null
+            };
+            
+            tasks.push(testPJTask);
+            saveTasks();
+            render();
+            updateStats();
+            
+            alert('テスト用PJタスクを作成しました。\n\nPJフィルターから「PJ001」を選択すると表示されます。\n\nプロジェクト名: 新規システム導入プロジェクト\nプロジェクトID: PJ001');
+        }
+        
+        window.createTestPJTask = createTestPJTask;
     </script>
 </body>
 </html><!-- Cache bust: 1754142681 -->
