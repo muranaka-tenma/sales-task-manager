@@ -907,19 +907,19 @@
         </div>
     </div>
     
-    <!-- Phase 2: モード切り替えバー -->
-    <div style="background: linear-gradient(135deg, #e8f5e8 0%, #f0f8ff 100%); padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+    <!-- フィルター・管理バー -->
+    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; gap: 1rem; align-items: center;">
-            <span style="font-weight: 600; color: #2d3748;">🎯 表示モード:</span>
-            <div style="display: flex; gap: 0.5rem;">
-                <button id="personal-mode-btn" onclick="switchViewMode('personal')" 
-                        style="padding: 0.5rem 1rem; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s;">
-                    👤 個人タスク
+            <span style="font-weight: 600; color: #2d3748;">👥 表示対象:</span>
+            <!-- 統合担当者・PJフィルター -->
+            <div style="position: relative;" id="assignee-filter-container">
+                <button onclick="toggleAssigneeFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; min-width: 150px;">
+                    <span id="assignee-filter-text">全員</span>
+                    <span>▼</span>
                 </button>
-                <button id="project-mode-btn" onclick="switchViewMode('project')" 
-                        style="padding: 0.5rem 1rem; background: #e2e8f0; color: #4a5568; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s;">
-                    👥 PJタスク
-                </button>
+                <div id="assignee-filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 1000; min-width: 250px;">
+                    <!-- 担当者・PJ選択肢がここに動的追加される -->
+                </div>
             </div>
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
@@ -927,21 +927,7 @@
             <button onclick="showRecurringTasksInfo()" style="padding: 0.5rem 0.75rem; background: #805ad5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="定期タスクの状況">
                 🔄 定期タスク
             </button>
-            <!-- Phase 2: PJフィルター -->
-            <div style="position: relative;" id="project-filter-container">
-                <button onclick="toggleProjectFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
-                    <span>🏗️</span>
-                    <span id="project-filter-text">全プロジェクト</span>
-                    <span>▼</span>
-                </button>
-                <div id="project-filter-dropdown" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 1000; min-width: 200px;">
-                    <!-- プロジェクト選択肢がここに動的追加される -->
-                </div>
-            </div>
-            <div id="current-mode-info" style="font-size: 0.85rem; color: #4a5568;">
-                個人タスクを表示中
-            </div>
-            <button onclick="showViewModeHelp()" style="background: none; border: none; color: #4a5568; cursor: pointer; font-size: 1rem;" title="表示モードの説明">
+            <button onclick="showFilterHelp()" style="background: none; border: none; color: #4a5568; cursor: pointer; font-size: 1rem;" title="フィルターの説明">
                 ❓
             </button>
         </div>
@@ -1641,70 +1627,21 @@
             return Array.from(checkboxes).map(cb => cb.value);
         }
         
-        // Phase 2: 表示モード切り替え機能
-        function switchViewMode(mode) {
-            viewMode = mode;
-            
-            // ボタンの状態を更新
-            const personalBtn = document.getElementById('personal-mode-btn');
-            const projectBtn = document.getElementById('project-mode-btn');
-            const infoText = document.getElementById('current-mode-info');
-            
-            if (mode === 'personal') {
-                personalBtn.style.background = '#38a169';
-                personalBtn.style.color = 'white';
-                projectBtn.style.background = '#e2e8f0';
-                projectBtn.style.color = '#4a5568';
-                infoText.textContent = '個人タスクを表示中';
-                console.log('👤 [VIEW MODE] Switched to Personal mode');
-            } else {
-                personalBtn.style.background = '#e2e8f0';
-                personalBtn.style.color = '#4a5568';
-                projectBtn.style.background = '#2b6cb0';
-                projectBtn.style.color = 'white';
-                infoText.textContent = 'PJタスクを表示中（Wチェック対象）';
-                console.log('👥 [VIEW MODE] Switched to Project mode');
-            }
-            
-            // 表示を更新
-            render();
-            updateStats();
-        }
-        
-        function showViewModeHelp() {
-            const helpText = `
-🎯 表示モードについて
-
-【👤 個人タスク】
-• 全てのタスクを表示
-• 通常の進捗管理モード
-• 即座にステータス変更可能
-
-【👥 PJタスク】
-• プロジェクトタスクのみを表示
-• Wチェック（二重承認）対象
-• 移動申請→承認が必要
-
-💡 同じタスクでも、モードによって見え方や操作が異なります。
-`;
-            alert(helpText);
-        }
-        
-        // Phase 2: PJフィルター機能
-        function toggleProjectFilterDropdown() {
-            const dropdown = document.getElementById('project-filter-dropdown');
+        // 統合フィルター機能（担当者 + PJ）
+        function toggleAssigneeFilterDropdown() {
+            const dropdown = document.getElementById('assignee-filter-dropdown');
             const isVisible = dropdown.style.display === 'block';
             
             if (isVisible) {
                 dropdown.style.display = 'none';
             } else {
-                populateProjectFilterOptions();
+                populateAssigneeFilterOptions();
                 dropdown.style.display = 'block';
             }
         }
         
-        function populateProjectFilterOptions() {
-            const dropdown = document.getElementById('project-filter-dropdown');
+        function populateAssigneeFilterOptions() {
+            const dropdown = document.getElementById('assignee-filter-dropdown');
             
             // 全プロジェクトを取得
             const allProjects = [...new Set(tasks
@@ -1714,60 +1651,99 @@
             
             dropdown.innerHTML = `
                 <div style="padding: 0.5rem;">
+                    <div style="font-weight: 600; color: #2d3748; margin-bottom: 0.5rem; padding: 0.25rem;">👤 担当者</div>
                     <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
-                        <input type="checkbox" value="" onchange="updateProjectFilterSelection()" style="margin-right: 0.5rem;" ${selectedProjectFilters.length === 0 ? 'checked' : ''}>
-                        <span>全プロジェクト</span>
+                        <input type="radio" name="filter-type" value="" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.length === 0 && selectedProjectFilters.length === 0 ? 'checked' : ''}>
+                        <span>全員</span>
                     </label>
-                    ${allProjects.map(project => `
+                    ${assignees.map(assignee => `
                         <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
-                            <input type="checkbox" value="${project.id}" onchange="updateProjectFilterSelection()" style="margin-right: 0.5rem;" ${selectedProjectFilters.includes(project.id) ? 'checked' : ''}>
-                            <span>${project.id} - ${project.name}</span>
+                            <input type="radio" name="filter-type" value="assignee:${assignee}" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.includes(assignee) && selectedProjectFilters.length === 0 ? 'checked' : ''}>
+                            <span>${assignee}</span>
                         </label>
                     `).join('')}
+                    
+                    ${allProjects.length > 0 ? `
+                        <div style="font-weight: 600; color: #2d3748; margin: 0.75rem 0 0.5rem 0; padding: 0.25rem; border-top: 1px solid #e2e8f0;">👥 プロジェクト</div>
+                        ${allProjects.map(project => `
+                            <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
+                                <input type="radio" name="filter-type" value="project:${project.id}" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedProjectFilters.includes(project.id) ? 'checked' : ''}>
+                                <span>${project.id} - ${project.name}</span>
+                            </label>
+                        `).join('')}
+                    ` : ''}
                 </div>
             `;
         }
         
-        function updateProjectFilterSelection() {
-            const checkboxes = document.querySelectorAll('#project-filter-dropdown input[type="checkbox"]');
+        function updateAssigneeFilterSelection() {
+            const selectedRadio = document.querySelector('#assignee-filter-dropdown input[name="filter-type"]:checked');
+            
+            // リセット
+            selectedAssigneeFilters = [];
             selectedProjectFilters = [];
+            viewMode = 'personal';
             
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked && checkbox.value) {
-                    selectedProjectFilters.push(checkbox.value);
+            if (selectedRadio && selectedRadio.value) {
+                const [type, value] = selectedRadio.value.split(':');
+                
+                if (type === 'assignee') {
+                    selectedAssigneeFilters = [value];
+                    console.log(`👤 [FILTER] Switched to assignee: ${value}`);
+                } else if (type === 'project') {
+                    selectedProjectFilters = [value];
+                    viewMode = 'project';
+                    console.log(`👥 [FILTER] Switched to project: ${value}`);
                 }
-            });
-            
-            // 全プロジェクトチェックボックスの制御
-            const allCheckbox = document.querySelector('#project-filter-dropdown input[value=""]');
-            if (selectedProjectFilters.length === 0) {
-                allCheckbox.checked = true;
             } else {
-                allCheckbox.checked = false;
+                console.log(`👥 [FILTER] Showing all tasks`);
             }
             
-            updateProjectFilterText();
+            updateAssigneeFilterText();
             render();
             updateStats();
         }
         
-        function updateProjectFilterText() {
-            const textElement = document.getElementById('project-filter-text');
-            if (selectedProjectFilters.length === 0) {
-                textElement.textContent = '全プロジェクト';
-            } else if (selectedProjectFilters.length === 1) {
+        function updateAssigneeFilterText() {
+            const textElement = document.getElementById('assignee-filter-text');
+            
+            if (selectedProjectFilters.length > 0) {
                 const projectTask = tasks.find(t => t.projectId === selectedProjectFilters[0]);
-                textElement.textContent = projectTask ? projectTask.projectId : selectedProjectFilters[0];
+                textElement.textContent = projectTask ? `👥 ${projectTask.projectId}` : selectedProjectFilters[0];
+            } else if (selectedAssigneeFilters.length > 0) {
+                textElement.textContent = `👤 ${selectedAssigneeFilters[0]}`;
             } else {
-                textElement.textContent = `${selectedProjectFilters.length}件選択中`;
+                textElement.textContent = '全員';
             }
+        }
+        
+        function showFilterHelp() {
+            const helpText = `
+👥 表示対象フィルターについて
+
+【👤 担当者選択】
+• 特定の担当者のタスクのみ表示
+• 個人の作業状況を確認
+
+【👥 プロジェクト選択】
+• 特定プロジェクトのタスクのみ表示
+• PJタスクのWチェック管理用
+• プロジェクト進捗の一元確認
+
+【全員】
+• 全てのタスクを表示
+• チーム全体の状況把握
+
+💡 個人表示とPJ表示は排他的です。
+`;
+            alert(helpText);
         }
         
         // ドロップダウン外クリックで閉じる
         document.addEventListener('click', function(event) {
-            const projectContainer = document.getElementById('project-filter-container');
-            if (projectContainer && !projectContainer.contains(event.target)) {
-                document.getElementById('project-filter-dropdown').style.display = 'none';
+            const assigneeContainer = document.getElementById('assignee-filter-container');
+            if (assigneeContainer && !assigneeContainer.contains(event.target)) {
+                document.getElementById('assignee-filter-dropdown').style.display = 'none';
             }
         });
         
@@ -2941,27 +2917,27 @@
             const board = document.getElementById('kanban-board');
             board.innerHTML = '';
             
-            // Phase 2: 表示モードに応じてタスクをフィルタリング
+            // 統合フィルターを適用
             let filteredTasks = tasks;
-            if (viewMode === 'project') {
-                // PJモード: プロジェクトタスクのみ表示
-                filteredTasks = tasks.filter(t => t.projectId && t.projectId !== null);
-                console.log(`👥 [RENDER] Project mode: showing ${filteredTasks.length} project tasks`);
-            } else {
-                // 個人モード: 全タスク表示
-                console.log(`👤 [RENDER] Personal mode: showing all ${filteredTasks.length} tasks`);
-            }
             
-            // PJフィルターを適用
             if (selectedProjectFilters.length > 0) {
-                filteredTasks = filteredTasks.filter(t => {
-                    if (t.projectId && t.projectId !== null) {
-                        return selectedProjectFilters.includes(t.projectId);
+                // PJフィルター: 特定プロジェクトのタスクのみ表示
+                filteredTasks = tasks.filter(t => 
+                    t.projectId && selectedProjectFilters.includes(t.projectId)
+                );
+                console.log(`👥 [RENDER] Project filter: showing ${filteredTasks.length} tasks for project ${selectedProjectFilters[0]}`);
+            } else if (selectedAssigneeFilters.length > 0) {
+                // 担当者フィルター: 特定担当者のタスクのみ表示
+                filteredTasks = tasks.filter(t => {
+                    if (t.assignees && Array.isArray(t.assignees)) {
+                        return t.assignees.some(a => selectedAssigneeFilters.includes(a));
                     }
-                    // 個人タスクは常に表示（PJフィルターは影響しない）
-                    return true;
+                    return selectedAssigneeFilters.includes(t.assignee);
                 });
-                console.log(`🏗️ [RENDER] Project filter applied: showing ${filteredTasks.length} tasks`);
+                console.log(`👤 [RENDER] Assignee filter: showing ${filteredTasks.length} tasks for ${selectedAssigneeFilters[0]}`);
+            } else {
+                // 全員: 全タスク表示
+                console.log(`👥 [RENDER] Showing all ${filteredTasks.length} tasks`);
             }
             
             // 期限切れタスクを抽出（フィルタリング後のタスクから）
@@ -2970,16 +2946,6 @@
                 t.deadline && 
                 isOverdue(t.deadline, t.columnId)
             );
-            
-            // 担当者フィルタを適用
-            if (selectedAssigneeFilters.length > 0) {
-                overdueTasks = overdueTasks.filter(t => {
-                    if (t.assignees && Array.isArray(t.assignees)) {
-                        return t.assignees.some(a => selectedAssigneeFilters.includes(a));
-                    }
-                    return selectedAssigneeFilters.includes(t.assignee);
-                });
-            }
             
             // 期限切れカラムを最初に表示
             if (overdueTasks.length > 0) {
@@ -3014,18 +2980,6 @@
                     }
                     return t.columnId === column.id;
                 });
-                
-                // 担当者フィルタを適用（複数選択対応）
-                if (selectedAssigneeFilters.length > 0) {
-                    columnTasks = columnTasks.filter(t => {
-                        // 新しいassigneesフィールドをチェック
-                        if (t.assignees && Array.isArray(t.assignees)) {
-                            return t.assignees.some(a => selectedAssigneeFilters.includes(a));
-                        }
-                        // 旧いassigneeフィールドもチェック（後方互換性）
-                        return selectedAssigneeFilters.includes(t.assignee);
-                    });
-                }
                 
                 // 期限順でソート
                 columnTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
