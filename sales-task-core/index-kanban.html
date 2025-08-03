@@ -1751,8 +1751,7 @@
                 projectSettings.style.display = 'block';
                 
                 // PJタスク作成時はrequired属性を設定
-                document.getElementById('project-id-input').setAttribute('required', '');
-                document.getElementById('project-name-input').setAttribute('required', '');
+                // PJフィールドは別ページに移動
                 
                 // PJ情報をクリア
                 const projectIdInput = document.getElementById('project-id-input');
@@ -2181,10 +2180,7 @@
             document.getElementById('comment-input').disabled = true;
             document.getElementById('comments-section').innerHTML = '<div style="text-align: center; color: #5e6c84; padding: 2rem;">新しいタスクです。保存後にコメントを追加できます。</div>';
             
-            // PJタスク設定を非表示にしてrequired属性を削除
-            document.getElementById('project-task-settings').style.display = 'none';
-            document.getElementById('project-id-input').removeAttribute('required');
-            document.getElementById('project-name-input').removeAttribute('required');
+            // PJタスク設定は別ページに移動したため、この処理は不要
             
             // 統一作成モードを設定
             document.getElementById('task-modal').dataset.unifiedMode = 'true';
@@ -2230,10 +2226,7 @@
             document.getElementById('column-selection-group').style.display = 'none';
             document.getElementById('task-column-input').removeAttribute('required');
             
-            // PJタスク設定を非表示にしてrequired属性を削除
-            document.getElementById('project-task-settings').style.display = 'none';
-            document.getElementById('project-id-input').removeAttribute('required');
-            document.getElementById('project-name-input').removeAttribute('required');
+            // PJタスク設定は別ページに移動したため、この処理は不要
             
             // 担当者選択肢を更新
             updateAssigneeOptions();
@@ -2380,7 +2373,7 @@
             setSelectedAssignees(editingTask.assignees || editingTask.assignee || []);
             
             // Phase 2: PJタスク編集時はPJ設定を非表示（作成時のみ使用）
-            document.getElementById('project-task-settings').style.display = 'none';
+            // PJタスク設定は別ページに移動
             
             // PJタスクの場合はタイトルに表示
             const isPJTask = editingTask.projectId && editingTask.projectId !== null;
@@ -3049,9 +3042,8 @@
             }
             
             // Phase 2: PJタスク設定を非表示に戻す
-            document.getElementById('project-task-settings').style.display = 'none';
-            document.getElementById('project-id-input').value = '';
-            document.getElementById('project-name-input').value = '';
+            // PJタスク設定は別ページに移動
+            // PJフィールドは別ページに移動
             
             // 承認者チェックボックスをクリア
             const approverCheckboxes = document.querySelectorAll('#project-approvers input[type="checkbox"]');
