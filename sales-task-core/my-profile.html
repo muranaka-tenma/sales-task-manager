@@ -361,6 +361,11 @@
                     showDevelopmentLog();
                 }, 500);
             }
+            
+            // 開発者の場合、デプロイ検出を実行
+            if (currentUser.role === 'developer') {
+                checkForNewDeployment();
+            }
         });
         
         // プロフィール情報の更新
@@ -586,20 +591,30 @@
                         <textarea id="devLogContent" placeholder="開発メモ・要件・改善ログを記入してください..."
                                   style="width: 100%; height: 300px; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; 
                                          font-family: monospace; font-size: 0.9rem; resize: vertical;">${existingLog}</textarea>
-                        <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
                             <button onclick="saveDevelopmentLog()" 
-                                    style="padding: 0.75rem 2rem; background: #026aa7; color: white; border: none; 
-                                           border-radius: 8px; cursor: pointer; font-size: 1rem;">
+                                    style="padding: 0.75rem 1.2rem; background: #026aa7; color: white; border: none; 
+                                           border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
                                 💾 保存
                             </button>
+                            <button onclick="addManualDeployRecord()" 
+                                    style="padding: 0.75rem 1.2rem; background: #17a2b8; color: white; border: none; 
+                                           border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
+                                🚀 デプロイ記録
+                            </button>
+                            <button onclick="generateHandoverSummary()" 
+                                    style="padding: 0.75rem 1.2rem; background: #fd7e14; color: white; border: none; 
+                                           border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
+                                📋 引き継ぎ
+                            </button>
                             <button onclick="exportDevelopmentLog()" 
-                                    style="padding: 0.75rem 2rem; background: #28a745; color: white; border: none; 
-                                           border-radius: 8px; cursor: pointer; font-size: 1rem;">
+                                    style="padding: 0.75rem 1.2rem; background: #28a745; color: white; border: none; 
+                                           border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
                                 📄 エクスポート
                             </button>
                             <button onclick="clearDevelopmentLog()" 
-                                    style="padding: 0.75rem 2rem; background: #dc3545; color: white; border: none; 
-                                           border-radius: 8px; cursor: pointer; font-size: 1rem;">
+                                    style="padding: 0.75rem 1.2rem; background: #dc3545; color: white; border: none; 
+                                           border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
                                 🗑️ クリア
                             </button>
                         </div>
@@ -614,7 +629,7 @@
         function saveDevelopmentLog() {
             const content = document.getElementById('devLogContent').value;
             const timestamp = new Date().toLocaleString('ja-JP');
-            const logEntry = `[${timestamp}] 保存\n${content}\n\n`;
+            const logEntry = `[${timestamp}] 手動保存\n${content}\n\n`;
             
             localStorage.setItem('developmentLog', content);
             localStorage.setItem('developmentLogHistory', 
@@ -622,6 +637,117 @@
             );
             
             alert('📝 機能改善書を保存しました');
+        }
+        
+        // デプロイ記録の自動追加
+        function addDeploymentRecord(commitMsg, remainingTasks) {
+            const timestamp = new Date().toLocaleString('ja-JP');
+            const deployRecord = `
+=== 🚀 デプロイ記録 [${timestamp}] ===
+コミット内容: ${commitMsg}
+
+残りタスク:
+${remainingTasks}
+
+次回開発予定:
+- (ここに次回の開発予定を記入)
+
+---
+
+`;
+            
+            const currentHistory = localStorage.getItem('developmentLogHistory') || '';
+            localStorage.setItem('developmentLogHistory', deployRecord + currentHistory);
+            
+            // 機能改善書にも自動更新
+            const currentLog = localStorage.getItem('developmentLog') || '';
+            const updatedLog = `最新デプロイ: ${timestamp}\n${commitMsg}\n\n${currentLog}`;
+            localStorage.setItem('developmentLog', updatedLog);
+        }
+        
+        // デプロイ記録手動追加
+        function addManualDeployRecord() {
+            const commitMsg = prompt('今回のデプロイ内容を入力してください:');
+            if (!commitMsg) return;
+            
+            const remainingTasks = prompt('残りタスクを入力してください (改行は \\n で区切る):');
+            if (remainingTasks === null) return;
+            
+            const formattedTasks = remainingTasks.replace(/\\n/g, '\n- ');
+            addDeploymentRecord(commitMsg, '- ' + formattedTasks);
+            
+            alert('📝 デプロイ記録を追加しました');
+            
+            // 機能改善書が開いている場合は更新
+            const logContent = document.getElementById('devLogContent');
+            if (logContent) {
+                logContent.value = localStorage.getItem('developmentLog') || '';
+            }
+        }
+        
+        // 引き継ぎ用サマリー生成
+        function generateHandoverSummary() {
+            const timestamp = new Date().toLocaleString('ja-JP');
+            const history = localStorage.getItem('developmentLogHistory') || '';
+            const currentLog = localStorage.getItem('developmentLog') || '';
+            
+            const summary = `# 営業タスク管理ツール - 開発引き継ぎサマリー
+生成日時: ${timestamp}
+
+## 🏗️ プロジェクト概要
+- URL: https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/index-kanban.html  
+- 技術: HTML/CSS/JavaScript (Vanilla), Netlify, LocalStorage
+- 権限: developer(全権限) > admin(管理) > user(基本)
+
+## 📦 主要機能（実装済み）
+✅ タスク管理 (Kanbanボード方式)
+✅ PJタスク管理 (承認フロー付き)
+✅ ユーザー権限管理 (3段階)
+✅ 詳細統計・分析機能
+✅ OCR文字認識 (Tesseract.js)
+✅ デスクトップ通知
+✅ ハンバーガーメニュー
+✅ マイページ (個人統計・パスワード変更)
+✅ 機能改善書 (開発者専用)
+
+## 🔧 最近の実装内容
+${history ? history.split('===').slice(0, 3).join('===') : '記録なし'}
+
+## 📝 現在の開発メモ
+${currentLog || '記録なし'}
+
+## 🚀 次回開発者への指示
+1. この内容をコピーして機能改善書に貼り付け
+2. 新しい要件や修正が必要な箇所があれば追記
+3. デプロイ時は「🚀 デプロイ記録」ボタンで履歴を更新
+
+## 🔑 重要なデータ構造
+- salesTasksKanban: メインタスクデータ
+- systemUsers: ユーザー情報
+- currentSession: ログインセッション  
+- developmentLog: 開発メモ
+
+## 🎯 推奨開発フロー
+1. 機能改善書で現状確認
+2. 要件・改善点をメモに記録
+3. 実装・テスト
+4. デプロイ記録で履歴更新
+5. 次回開発予定を記載`;
+
+            // クリップボードにコピー
+            navigator.clipboard.writeText(summary).then(() => {
+                alert('📋 引き継ぎサマリーをクリップボードにコピーしました！\\n\\n次の開発者がスムーズに継続できます。');
+            }).catch(() => {
+                // クリップボードが使えない場合はダウンロード
+                const blob = new Blob([summary], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = \`引き継ぎサマリー_\${timestamp.replace(/[:/]/g, '-')}.txt\`;
+                a.click();
+                URL.revokeObjectURL(url);
+                alert('📋 引き継ぎサマリーをダウンロードしました！');
+            });
         }
         
         // 開発ログエクスポート
