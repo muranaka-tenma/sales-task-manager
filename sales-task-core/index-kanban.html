@@ -9022,10 +9022,10 @@
             addMyProfileButton();
         }, 1500); // 1.5秒後に安全に実行
         
-        // Phase 3: ユーザー管理ボタン制御実行
+        // Phase 3: ユーザー管理ボタン制御実行（高速化）
         setTimeout(() => {
             hideUserManagementForUsers();
-        }, 2000); // 2秒後に安全に実行
+        }, 300); // 0.3秒後に高速実行
         
         // テスト用: 停滞タスクを作成（コンソールから実行可能）
         function createTestStaleTask() {
