@@ -322,16 +322,6 @@
             try {
                 const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
                 if (session && session.user) {
-                    // セッション期限チェック
-                    if (new Date() > new Date(session.expiresAt)) {
-                        localStorage.removeItem('currentSession');
-                        return {
-                            name: null,
-                            email: null,
-                            role: null,
-                            isLoggedIn: false
-                        };
-                    }
                     return {
                         name: session.user.name,
                         email: session.user.email,
