@@ -2749,14 +2749,37 @@
                     return;
                 }
                 if (selectedApprovers.length === 0) {
-                    alert('PJタスクの場合、承認者を1名以上選択してください\n\n※ 承認者一覧から1名以上チェックしてください');
-                    // required属性を復活させてからreturn
-                    if (wasRequired && isColumnSelectionHidden) {
-                        columnInput.setAttribute('required', '');
+                    // 承認者が選択されていない場合は自動で担当者を承認者に設定
+                    if (selectedAssignees.length > 0) {
+                        console.log(`⚠️ [PJ VALIDATION] No approvers selected, using assignees as approvers: [${selectedAssignees.join(', ')}]`);
+                        // 承認者を自動設定（担当者の中から）
+                        const approverCheckboxes = document.querySelectorAll('#project-approvers input[type="checkbox"]');
+                        approverCheckboxes.forEach(cb => {
+                            if (selectedAssignees.includes(cb.value)) {
+                                cb.checked = true;
+                            }
+                        });
+                        // 再度取得
+                        const autoSelectedApprovers = getSelectedApprovers();
+                        if (autoSelectedApprovers.length === 0) {
+                            alert('PJタスクの場合、承認者を1名以上選択してください\n\n※ 承認者一覧から1名以上チェックしてください\n※ または担当者を先に選択してください');
+                            // required属性を復活させてからreturn
+                            if (wasRequired && isColumnSelectionHidden) {
+                                columnInput.setAttribute('required', '');
+                            }
+                            return;
+                        }
+                    } else {
+                        alert('PJタスクの場合、承認者を1名以上選択してください\n\n※ 承認者一覧から1名以上チェックしてください\n※ または担当者を先に選択してください');
+                        // required属性を復活させてからreturn
+                        if (wasRequired && isColumnSelectionHidden) {
+                            columnInput.setAttribute('required', '');
+                        }
+                        return;
                     }
-                    return;
                 }
-                console.log(`🎯 [PJ TASK] Creating project task: ${projectId} - ${projectName} with approvers: [${selectedApprovers.join(', ')}]`);
+                const finalApprovers = getSelectedApprovers(); // 最新の承認者を取得
+                console.log(`🎯 [PJ TASK] Creating project task: ${projectId} - ${projectName} with approvers: [${finalApprovers.join(', ')}]`);
             }
             
             if (selectedAssignees.length === 0) {
@@ -2891,13 +2914,13 @@
                     personalStatus: targetColumn,
                     projectStatus: targetColumn,
                     pendingMove: null,
-                    approvers: isProjectTask ? selectedApprovers : [],
+                    approvers: isProjectTask ? finalApprovers : [],
                     lastApprovedBy: null,
                     approvedAt: null
                 };
                 
                 if (isProjectTask) {
-                    console.log(`🎯 [PJ TASK CREATE] Created new PJ task: ${projectId} - ${projectName}, approvers: ${selectedApprovers.join(', ')}`);
+                    console.log(`🎯 [PJ TASK CREATE] Created new PJ task: ${projectId} - ${projectName}, approvers: ${finalApprovers.join(', ')}`);
                 } else {
                     console.log(`👤 [PERSONAL TASK CREATE] Created new personal task: ${title}`);
                 }
