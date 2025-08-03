@@ -1613,6 +1613,61 @@
             return currentUser;
         }
         
+        // Phase 2: マイページボタンの追加（安全な新機能）
+        function addMyProfileButton() {
+            try {
+                const currentUser = getCurrentUser();
+                if (!currentUser.isLoggedIn) {
+                    console.log('❌ [Phase 2] 未ログイン: マイページボタン追加スキップ');
+                    return;
+                }
+                
+                // ヘッダーの設定ボタンの親要素を取得
+                const settingsBtn = document.querySelector('.header .settings-btn');
+                if (!settingsBtn || !settingsBtn.parentElement) {
+                    console.log('❌ [Phase 2] ヘッダー要素が見つかりません');
+                    return;
+                }
+                
+                const headerRight = settingsBtn.parentElement;
+                
+                // 既存のマイページボタンがあるかチェック
+                if (document.getElementById('my-profile-btn')) {
+                    console.log('⚠️ [Phase 2] マイページボタンは既に存在します');
+                    return;
+                }
+                
+                // マイページボタンを作成
+                const myProfileBtn = document.createElement('button');
+                myProfileBtn.id = 'my-profile-btn';
+                myProfileBtn.innerHTML = '👤 マイページ';
+                myProfileBtn.onclick = () => {
+                    console.log('📱 [Phase 2] マイページボタンクリック（まだmy-profile.htmlなし）');
+                    alert('マイページ機能は準備中です');
+                };
+                myProfileBtn.style.cssText = `
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 0.9rem;
+                    transition: all 0.2s;
+                    color: white;
+                    margin-right: 0.5rem;
+                `;
+                myProfileBtn.onmouseover = () => myProfileBtn.style.background = 'rgba(255,255,255,0.3)';
+                myProfileBtn.onmouseout = () => myProfileBtn.style.background = 'rgba(255,255,255,0.2)';
+                
+                // 設定ボタンの前に挿入
+                headerRight.insertBefore(myProfileBtn, settingsBtn);
+                console.log('✅ [Phase 2] マイページボタン追加完了');
+                
+            } catch (error) {
+                console.error('❌ [Phase 2] マイページボタン追加エラー:', error);
+            }
+        }
+        
         // 認証チェックを実行（ページが読み込まれる前に）
         if (!checkAuthentication()) {
             // 認証失敗時は以降の処理を停止
@@ -8932,6 +8987,11 @@
         setTimeout(() => {
             checkUserPermission();
         }, 1000); // 1秒後に安全に実行
+        
+        // Phase 2: マイページボタン追加実行
+        setTimeout(() => {
+            addMyProfileButton();
+        }, 1500); // 1.5秒後に安全に実行
         
         // テスト用: 停滞タスクを作成（コンソールから実行可能）
         function createTestStaleTask() {
