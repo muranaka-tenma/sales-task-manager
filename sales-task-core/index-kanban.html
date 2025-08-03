@@ -1011,21 +1011,6 @@
         </div>
     </div>
     
-    <!-- ハンバーガーメニュー -->
-    <div id="hamburger-menu" style="display: none; position: fixed; top: 0; left: 0; width: 280px; height: 100vh; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1000; overflow-y: auto;">
-        <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; color: #2d3748;">メニュー</h3>
-                <button onclick="toggleHamburgerMenu()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #2d3748;">×</button>
-            </div>
-        </div>
-        <div id="hamburger-menu-content" style="padding: 0;">
-            <!-- メニュー項目がここに動的に追加される -->
-        </div>
-    </div>
-    
-    <!-- メニュー表示時の背景オーバーレイ -->
-    <div id="hamburger-overlay" onclick="toggleHamburgerMenu()" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999;"></div>
     
     
     <!-- 統計バー -->
@@ -1738,58 +1723,16 @@
             return currentUser;
         }
         
-        // Phase 2: マイページボタンの追加（安全な新機能）
-        function addMyProfileButton() {
+        // Phase 2: マイページボタンの削除（ハンバーガーメニューに移行）
+        function removeMyProfileButton() {
             try {
-                const currentUser = getCurrentUser();
-                if (!currentUser.isLoggedIn) {
-                    console.log('❌ [Phase 2] 未ログイン: マイページボタン追加スキップ');
-                    return;
+                const myProfileBtn = document.getElementById('my-profile-btn');
+                if (myProfileBtn) {
+                    myProfileBtn.remove();
+                    console.log('🗑️ [Phase 2] マイページボタンを削除（ハンバーガーメニューに移行）');
                 }
-                
-                // ヘッダーの設定ボタンの親要素を取得
-                const settingsBtn = document.querySelector('.header .settings-btn');
-                if (!settingsBtn || !settingsBtn.parentElement) {
-                    console.log('❌ [Phase 2] ヘッダー要素が見つかりません');
-                    return;
-                }
-                
-                const headerRight = settingsBtn.parentElement;
-                
-                // 既存のマイページボタンがあるかチェック
-                if (document.getElementById('my-profile-btn')) {
-                    console.log('⚠️ [Phase 2] マイページボタンは既に存在します');
-                    return;
-                }
-                
-                // マイページボタンを作成
-                const myProfileBtn = document.createElement('button');
-                myProfileBtn.id = 'my-profile-btn';
-                myProfileBtn.innerHTML = '👤 マイページ';
-                myProfileBtn.onclick = () => {
-                    console.log('📱 [Phase 2] マイページボタンクリック（まだmy-profile.htmlなし）');
-                    alert('マイページ機能は準備中です');
-                };
-                myProfileBtn.style.cssText = `
-                    background: rgba(255,255,255,0.2);
-                    border: none;
-                    padding: 0.5rem 1rem;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 0.9rem;
-                    transition: all 0.2s;
-                    color: white;
-                    margin-right: 0.5rem;
-                `;
-                myProfileBtn.onmouseover = () => myProfileBtn.style.background = 'rgba(255,255,255,0.3)';
-                myProfileBtn.onmouseout = () => myProfileBtn.style.background = 'rgba(255,255,255,0.2)';
-                
-                // 設定ボタンの前に挿入
-                headerRight.insertBefore(myProfileBtn, settingsBtn);
-                console.log('✅ [Phase 2] マイページボタン追加完了');
-                
             } catch (error) {
-                console.error('❌ [Phase 2] マイページボタン追加エラー:', error);
+                console.error('❌ [Phase 2] マイページボタン削除エラー:', error);
             }
         }
         
@@ -9146,11 +9089,13 @@
         // Phase 1: 権限チェックのみ実行（制御なし）
         setTimeout(() => {
             checkUserPermission();
+            // ハンバーガーメニューも初期化
+            updateHamburgerMenu();
         }, 1000); // 1秒後に安全に実行
         
-        // Phase 2: マイページボタン追加実行
+        // Phase 2: マイページボタン削除実行
         setTimeout(() => {
-            addMyProfileButton();
+            removeMyProfileButton();
         }, 1500); // 1.5秒後に安全に実行
         
         // Phase 3: ユーザー管理ボタン制御実行（マイページ移植のため不要）
@@ -9343,11 +9288,31 @@
         
         // ハンバーガーメニューの切り替え
         function toggleHamburgerMenu() {
+            console.log('🍔 ハンバーガーメニュー切り替え開始...');
+            
             const hamburgerMenu = document.getElementById('hamburger-menu');
             const menuOverlay = document.getElementById('menu-overlay');
             
-            hamburgerMenu.classList.toggle('active');
-            menuOverlay.classList.toggle('active');
+            if (!hamburgerMenu) {
+                console.error('❌ hamburger-menu要素が見つかりません');
+                return;
+            }
+            if (!menuOverlay) {
+                console.error('❌ menu-overlay要素が見つかりません');
+                return;
+            }
+            
+            const isActive = hamburgerMenu.classList.contains('active');
+            
+            if (isActive) {
+                hamburgerMenu.classList.remove('active');
+                menuOverlay.classList.remove('active');
+                console.log('🍔 メニューを閉じました');
+            } else {
+                hamburgerMenu.classList.add('active');
+                menuOverlay.classList.add('active');
+                console.log('🍔 メニューを開きました');
+            }
         }
         
         // ハンバーガーメニューの更新
@@ -9407,15 +9372,15 @@
         
         <div class="menu-section">
             <div class="menu-section-title">個人設定</div>
-            <a href="my-profile.html" class="menu-item">
+            <a href="my-profile.html" class="menu-item" onclick="toggleHamburgerMenu();">
                 <span>👤</span>
                 <span>マイページ</span>
             </a>
-            <a href="#" class="menu-item" onclick="openSettings(); return false;">
+            <a href="#" class="menu-item" onclick="openSettingsModal(); toggleHamburgerMenu(); return false;">
                 <span>⚙️</span>
                 <span>設定</span>
             </a>
-            <a href="#" class="menu-item" onclick="showTemplateModal(); return false;">
+            <a href="#" class="menu-item" onclick="alert('テンプレート機能は準備中です'); toggleHamburgerMenu(); return false;">
                 <span>📑</span>
                 <span>テンプレート設定</span>
             </a>
@@ -9423,11 +9388,11 @@
         
         <div class="menu-section" id="admin-menu-section" style="display: none;">
             <div class="menu-section-title">管理機能</div>
-            <a href="user-management.html" class="menu-item">
+            <a href="user-management.html" class="menu-item" onclick="toggleHamburgerMenu();">
                 <span>👥</span>
                 <span>ユーザー管理</span>
             </a>
-            <a href="admin-dashboard.html" class="menu-item">
+            <a href="admin-dashboard.html" class="menu-item" onclick="toggleHamburgerMenu();">
                 <span>📊</span>
                 <span>管理者ダッシュボード</span>
             </a>
@@ -9435,7 +9400,7 @@
         
         <div class="menu-section">
             <div class="menu-section-title">その他</div>
-            <a href="#" class="menu-item" onclick="logout(); return false;">
+            <a href="#" class="menu-item" onclick="logout(); toggleHamburgerMenu(); return false;">
                 <span>🚪</span>
                 <span>ログアウト</span>
             </a>
