@@ -1566,12 +1566,51 @@
         
         function getRoleDisplayName(role) {
             const roleNames = {
+                'developer': '開発者',
                 'admin': 'システム管理者',
                 'project_manager': 'プロジェクト管理者',
                 'user': '一般ユーザー',
                 'viewer': '閲覧者'
             };
             return roleNames[role] || role;
+        }
+        
+        // Phase 1: 権限取得機能のみ（表示制御なし）
+        function getCurrentUser() {
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (session && session.user) {
+                    return {
+                        name: session.user.name,
+                        email: session.user.email,
+                        role: session.user.role,
+                        isLoggedIn: true
+                    };
+                }
+            } catch (error) {
+                console.error('セッション取得エラー:', error);
+            }
+            return {
+                name: null,
+                email: null,
+                role: null,
+                isLoggedIn: false
+            };
+        }
+        
+        // Phase 1: 権限チェック機能のみ（制御なし）
+        function checkUserPermission() {
+            const currentUser = getCurrentUser();
+            console.log('🔐 [Phase 1] 現在のユーザー情報:', currentUser);
+            
+            if (currentUser.isLoggedIn) {
+                console.log(`✅ [Phase 1] ログイン確認: ${currentUser.name} (${currentUser.role})`);
+            } else {
+                console.log('❌ [Phase 1] 未ログイン状態');
+            }
+            
+            // この段階では何も制御しない
+            return currentUser;
         }
         
         // 認証チェックを実行（ページが読み込まれる前に）
@@ -8888,6 +8927,11 @@
         
         // 初期化実行
         init();
+        
+        // Phase 1: 権限チェックのみ実行（制御なし）
+        setTimeout(() => {
+            checkUserPermission();
+        }, 1000); // 1秒後に安全に実行
         
         // テスト用: 停滞タスクを作成（コンソールから実行可能）
         function createTestStaleTask() {
