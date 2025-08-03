@@ -132,14 +132,40 @@
                 <input type="text" class="form-input" id="task-title" required>
             </div>
             
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">📁 プロジェクトID *</label>
-                    <input type="text" class="form-input" id="project-id" placeholder="例: PJ001" required>
+            <!-- プロジェクト選択 -->
+            <div class="form-group">
+                <label class="form-label">📂 プロジェクト設定 *</label>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; margin-bottom: 0.5rem; cursor: pointer;">
+                        <input type="radio" name="project-type" value="existing" onchange="toggleProjectInputs()" style="margin-right: 0.5rem;">
+                        <span>📁 既存プロジェクトに追加</span>
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="project-type" value="new" onchange="toggleProjectInputs()" style="margin-right: 0.5rem;" checked>
+                        <span>✨ 新規プロジェクト作成</span>
+                    </label>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">📋 プロジェクト名 *</label>
-                    <input type="text" class="form-input" id="project-name" placeholder="例: 新規システム導入PJ" required>
+                
+                <!-- 既存プロジェクト選択 -->
+                <div id="existing-project-section" style="display: none;">
+                    <label class="form-label">既存プロジェクトを選択:</label>
+                    <select class="form-select" id="existing-project-select" onchange="selectExistingProject()">
+                        <option value="">-- プロジェクトを選択してください --</option>
+                    </select>
+                </div>
+                
+                <!-- 新規プロジェクト作成 -->
+                <div id="new-project-section">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">📁 プロジェクトID *</label>
+                            <input type="text" class="form-input" id="project-id" placeholder="例: PJ001" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">📋 プロジェクト名 *</label>
+                            <input type="text" class="form-input" id="project-name" placeholder="例: 新規システム導入PJ" required>
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -215,6 +241,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             loadAssignees();
             setDefaultDeadline();
+            loadExistingProjects();
         });
         
         function loadAssignees() {
@@ -277,6 +304,81 @@
             document.getElementById('deadline-time').value = timeString;
         }
         
+        // 既存プロジェクト一覧を読み込み
+        function loadExistingProjects() {
+            const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+            const projectMap = new Map();
+            
+            // プロジェクトタスクから既存PJを抽出
+            tasks.filter(t => t.projectId && t.projectId !== null)
+                 .forEach(t => {
+                     if (!projectMap.has(t.projectId)) {
+                         projectMap.set(t.projectId, {
+                             id: t.projectId, 
+                             name: t.projectName || t.projectId,
+                             taskCount: 1
+                         });
+                     } else {
+                         projectMap.get(t.projectId).taskCount++;
+                     }
+                 });
+            
+            const existingProjects = Array.from(projectMap.values());
+            const selectElement = document.getElementById('existing-project-select');
+            
+            // 既存のオプションをクリア（最初のデフォルトオプション以外）
+            selectElement.innerHTML = '<option value="">-- プロジェクトを選択してください --</option>';
+            
+            // 既存プロジェクトをオプションに追加
+            existingProjects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = `${project.id}|${project.name}`;
+                option.textContent = `${project.id} - ${project.name} (${project.taskCount}件)`;
+                selectElement.appendChild(option);
+            });
+            
+            console.log(`📂 既存PJ読み込み完了: ${existingProjects.length}件`, existingProjects);
+        }
+        
+        // プロジェクト入力方式の切り替え
+        function toggleProjectInputs() {
+            const selectedType = document.querySelector('input[name="project-type"]:checked').value;
+            const existingSection = document.getElementById('existing-project-section');
+            const newSection = document.getElementById('new-project-section');
+            const projectIdInput = document.getElementById('project-id');
+            const projectNameInput = document.getElementById('project-name');
+            
+            if (selectedType === 'existing') {
+                existingSection.style.display = 'block';
+                newSection.style.display = 'none';
+                // 既存PJ選択時は必須チェックを外す
+                projectIdInput.removeAttribute('required');
+                projectNameInput.removeAttribute('required');
+            } else {
+                existingSection.style.display = 'none';
+                newSection.style.display = 'block';
+                // 新規PJ作成時は必須チェックを追加
+                projectIdInput.setAttribute('required', '');
+                projectNameInput.setAttribute('required', '');
+            }
+        }
+        
+        // 既存プロジェクトを選択
+        function selectExistingProject() {
+            const selectElement = document.getElementById('existing-project-select');
+            const selectedValue = selectElement.value;
+            
+            if (selectedValue) {
+                const [projectId, projectName] = selectedValue.split('|');
+                document.getElementById('project-id').value = projectId;
+                document.getElementById('project-name').value = projectName;
+                console.log(`📂 既存PJ選択: ${projectId} - ${projectName}`);
+            } else {
+                document.getElementById('project-id').value = '';
+                document.getElementById('project-name').value = '';
+            }
+        }
+        
         function createPJTask(event) {
             event.preventDefault();
             console.log('PJタスク作成開始...');
@@ -334,6 +436,8 @@
             // フォームをリセット
             document.getElementById('pj-form').reset();
             setDefaultDeadline();
+            loadExistingProjects();
+            toggleProjectInputs(); // ラジオボタンの初期状態に戻す
             
             // 2秒後にメインページに戻る
             setTimeout(() => {
