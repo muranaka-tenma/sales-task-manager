@@ -148,24 +148,19 @@
             font-weight: 500;
         }
         
+        .role-developer {
+            background: #fbb6ce;
+            color: #97266d;
+        }
+        
         .role-admin {
             background: #fed7d7;
             color: #c53030;
         }
         
-        .role-project_manager {
-            background: #bee3f8;
-            color: #2b6cb0;
-        }
-        
         .role-user {
             background: #c6f6d5;
             color: #38a169;
-        }
-        
-        .role-viewer {
-            background: #e2e8f0;
-            color: #4a5568;
         }
         
         .actions {
@@ -225,9 +220,8 @@
                                 <label class="form-label">権限 *</label>
                                 <select class="form-select" id="user-role" required>
                                     <option value="user">一般ユーザー</option>
-                                    <option value="project_manager">プロジェクト管理者</option>
-                                    <option value="admin">システム管理者</option>
-                                    <option value="viewer">閲覧者</option>
+                                    <option value="admin">管理者</option>
+                                    <option value="developer">開発者</option>
                                 </select>
                             </div>
                         </div>
@@ -285,7 +279,7 @@
                 }
                 
                 // 管理者権限チェック
-                if (session.user.role !== 'admin') {
+                if (!['admin', 'developer'].includes(session.user.role)) {
                     alert('この機能は管理者のみ利用可能です。');
                     window.location.href = 'index-kanban.html';
                     return false;
@@ -320,12 +314,21 @@
                 },
                 {
                     id: Date.now() + 1,
-                    name: 'ユーザー様', // ここにあなたの名前を入力してください
-                    email: 'user@company.com', // ここにあなたのメールアドレスを入力してください
-                    role: 'admin', // 管理者権限で作成
+                    name: '村中天馬',
+                    email: 'muranaka-tenma@terracom.co.jp',
+                    role: 'developer',
+                    department: '開発部',
+                    createdAt: new Date().toISOString(),
+                    password: 'dev123'
+                },
+                {
+                    id: Date.now() + 2,
+                    name: 'テストユーザー',
+                    email: 'test@company.com',
+                    role: 'user',
                     department: '営業部',
                     createdAt: new Date().toISOString(),
-                    password: 'user123' // 初期パスワード
+                    password: 'test123'
                 }
             ];
             users.push(...defaultUsers);
@@ -412,10 +415,9 @@
         
         function getRoleDisplayName(role) {
             const roleNames = {
-                'admin': 'システム管理者',
-                'project_manager': 'プロジェクト管理者',
-                'user': '一般ユーザー',
-                'viewer': '閲覧者'
+                'developer': '開発者',
+                'admin': '管理者',
+                'user': '一般ユーザー'
             };
             return roleNames[role] || role;
         }
@@ -424,9 +426,9 @@
             const user = users.find(u => u.id === userId);
             if (!user) return;
             
-            const newRole = prompt('新しい権限を選択してください:\nadmin: システム管理者\nproject_manager: プロジェクト管理者\nuser: 一般ユーザー\nviewer: 閲覧者', user.role);
+            const newRole = prompt('新しい権限を選択してください:\ndeveloper: 開発者\nadmin: 管理者\nuser: 一般ユーザー', user.role);
             
-            if (newRole && ['admin', 'project_manager', 'user', 'viewer'].includes(newRole)) {
+            if (newRole && ['developer', 'admin', 'user'].includes(newRole)) {
                 user.role = newRole;
                 user.updatedAt = new Date().toISOString();
                 saveUsers();
