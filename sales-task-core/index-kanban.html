@@ -2297,15 +2297,21 @@
         }
         
         function getDefaultDeadlineString() {
-            // 日付は今日を設定
-            return new Date().toISOString().split('T')[0];
+            // 日付は今日を設定（日本時間基準）
+            const now = new Date();
+            const japanOffset = 9 * 60; // JST = UTC+9
+            const japanTime = new Date(now.getTime() + (japanOffset * 60000));
+            return japanTime.toISOString().split('T')[0];
         }
         
         function getDefaultTimeString() {
-            // 現在時刻+3時間をデフォルト時刻として設定（日付変更を避ける）
+            // 現在時刻+3時間をデフォルト時刻として設定（日本時間基準）
             const now = new Date();
-            let hours = now.getHours() + 3;
-            let minutes = now.getMinutes();
+            const japanOffset = 9 * 60; // JST = UTC+9
+            const japanTime = new Date(now.getTime() + (japanOffset * 60000));
+            
+            let hours = japanTime.getHours() + 3;
+            let minutes = japanTime.getMinutes();
             
             // 24時間を超える場合は23:59に制限
             if (hours >= 24) {
@@ -4077,9 +4083,14 @@
                     const notification = new Notification(title, {
                         body: body,
                         icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">🎯</text></svg>',
-                        requireInteraction: true, // 通知を確実に表示
+                        requireInteraction: false, // 3秒で自動消去するため変更
                         ...options
                     });
+                    
+                    // 3秒後に自動で通知を閉じる
+                    setTimeout(() => {
+                        notification.close();
+                    }, 3000);
                     
                     // タスクIDが指定されている場合はクリックでそのタスクを開く
                     if (options.taskId) {
