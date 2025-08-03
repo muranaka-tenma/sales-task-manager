@@ -3411,6 +3411,7 @@
                 // 後方互換性のため古いassigneeフィールドも保持
                 editingTask.assignee = selectedAssignees.length > 0 ? selectedAssignees[0] : '未設定';
                 editingTask.memo = memo;
+                editingTask.updatedAt = new Date().toISOString(); // 更新時刻を記録
                 
                 // Phase 2: PJタスクの編集ではPJ情報は変更しない
                 console.log(`📝 [TASK EDIT] Updated task: ${editingTask.title}`);
@@ -3582,9 +3583,9 @@
                     
                     console.log(`🟡 [MAIN] Moving "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
                     
-                    // PJタスクの証憑チェック
+                    // PJタスクの証憑チェック（移動のたびに必須）
                     if (draggedTask.projectId && draggedTask.projectName) {
-                        const hasEvidence = checkTaskEvidence(draggedTask);
+                        const hasEvidence = checkTaskEvidence(draggedTask, true); // 移動時フラグをtrue
                         if (!hasEvidence) {
                             const evidenceResult = promptForEvidence(draggedTask);
                             if (!evidenceResult) {
@@ -3605,6 +3606,16 @@
                     
                     draggedTask.columnId = columnId;
                     draggedTask.completed = (columnId === 'done');
+                    
+                    // PJタスクの場合、最後の移動時刻を記録し、通知を送信
+                    if (draggedTask.projectId && draggedTask.projectName) {
+                        draggedTask.lastMovedAt = new Date().toISOString();
+                        console.log(`📅 [PJ MOVE] Recorded move time: ${draggedTask.lastMovedAt}`);
+                        
+                        // 承認者・担当者への移動通知
+                        sendPJMoveNotification(draggedTask, columnId);
+                    }
+                    
                     saveTasks();
                     render();
                     updateStats();
@@ -4798,7 +4809,10 @@
                         // 承認者設定
                         approvers: [],             // このPJの承認者リスト
                         lastApprovedBy: null,      // 最後に承認した人
-                        approvedAt: null           // 承認日時
+                        approvedAt: null,          // 承認日時
+                        
+                        // 移動時刻記録（証憑チェック用）
+                        lastMovedAt: null          // 最後の移動時刻
                     };
                 }
                 return task;
@@ -9307,13 +9321,45 @@
         window.createRecurringTemplate = createRecurringTemplate;
         window.generatePendingTasks = generatePendingTasks;
         
-        // PJタスク証憑チェック機能
-        function checkTaskEvidence(task) {
+        // PJタスク証憑チェック機能（移動のたびに新しい証憑が必要）
+        function checkTaskEvidence(task, isMoving = false) {
             // 証憑の存在確認
             const hasComments = task.comments && task.comments.length > 0;
             const hasAttachments = task.attachments && task.attachments.length > 0;
             const hasDetailedMemo = task.memo && task.memo.trim().length > 10; // 10文字以上の詳細メモ
             
+            // 移動時は、前回移動後に新しい証憑が追加されているかチェック
+            if (isMoving && task.lastMovedAt) {
+                const lastMoveTime = new Date(task.lastMovedAt).getTime();
+                
+                // 前回移動後のコメント確認
+                const recentComments = task.comments ? task.comments.filter(comment => 
+                    new Date(comment.timestamp).getTime() > lastMoveTime
+                ).length > 0 : false;
+                
+                // 前回移動後の添付ファイル確認
+                const recentAttachments = task.attachments ? task.attachments.filter(file =>
+                    new Date(file.uploadedAt || file.timestamp || 0).getTime() > lastMoveTime
+                ).length > 0 : false;
+                
+                // メモの更新確認（updatedAtがlastMovedAtより新しい）
+                const recentMemoUpdate = task.updatedAt && 
+                    new Date(task.updatedAt).getTime() > lastMoveTime &&
+                    task.memo && task.memo.trim().length > 10;
+                
+                const hasRecentEvidence = recentComments || recentAttachments || recentMemoUpdate;
+                
+                console.log(`🔍 [EVIDENCE CHECK] Task: ${task.title}`);
+                console.log(`🔍 [EVIDENCE CHECK] Last moved: ${task.lastMovedAt}`);
+                console.log(`🔍 [EVIDENCE CHECK] Recent comments: ${recentComments}`);
+                console.log(`🔍 [EVIDENCE CHECK] Recent attachments: ${recentAttachments}`);
+                console.log(`🔍 [EVIDENCE CHECK] Recent memo update: ${recentMemoUpdate}`);
+                console.log(`🔍 [EVIDENCE CHECK] Has recent evidence: ${hasRecentEvidence}`);
+                
+                return hasRecentEvidence;
+            }
+            
+            // 初回移動時は既存の証憑をチェック
             return hasComments || hasAttachments || hasDetailedMemo;
         }
         
@@ -9337,6 +9383,67 @@
             }
             
             return true; // 証憑なしで強制移動
+        }
+        
+        // PJタスク移動時の通知機能
+        function sendPJMoveNotification(task, newColumnId) {
+            try {
+                const currentUser = getCurrentUser();
+                const column = columns.find(c => c.id === newColumnId);
+                const columnTitle = column ? column.title : newColumnId;
+                
+                // 通知対象者を集める（承認者 + 担当者）
+                const notifyUsers = new Set();
+                
+                // 承認者を追加
+                if (task.approvers && task.approvers.length > 0) {
+                    task.approvers.forEach(approver => notifyUsers.add(approver));
+                }
+                
+                // 担当者を追加
+                if (task.assignees && task.assignees.length > 0) {
+                    task.assignees.forEach(assignee => notifyUsers.add(assignee));
+                } else if (task.assignee) {
+                    notifyUsers.add(task.assignee);
+                }
+                
+                // 移動者自身は通知対象から除外（自分の操作なので）
+                notifyUsers.delete(currentUser.name);
+                
+                const notifyUsersList = Array.from(notifyUsers);
+                
+                if (notifyUsersList.length === 0) {
+                    console.log(`📧 [PJ NOTIFY] No users to notify for task ${task.id}`);
+                    return;
+                }
+                
+                // 通知メッセージ作成
+                const notificationTitle = `🏗️ PJタスク移動通知`;
+                const notificationBody = 
+                    `${task.projectId}: ${task.title}\n` +
+                    `→ ${columnTitle} に移動\n` +
+                    `移動者: ${currentUser.name}`;
+                
+                // 各対象者に通知を送信
+                notifyUsersList.forEach(user => {
+                    console.log(`📧 [PJ NOTIFY] Sending notification to ${user}`);
+                    
+                    showNotification(
+                        notificationTitle,
+                        `${user}さんへ\n${notificationBody}`,
+                        {
+                            tag: `pj-move-${task.id}-${Date.now()}`,
+                            taskId: task.id,
+                            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">🏗️</text></svg>'
+                        }
+                    );
+                });
+                
+                console.log(`📧 [PJ NOTIFY] Sent notifications to: ${notifyUsersList.join(', ')}`);
+                
+            } catch (error) {
+                console.error('❌ [PJ NOTIFY] Error sending notifications:', error);
+            }
         }
         
         // タスク削除機能（ゴミ箱移動）
@@ -9483,10 +9590,19 @@
                 // 管理機能の表示制御
                 const adminSection = document.getElementById('admin-menu-section');
                 if (adminSection) {
+                    // PJ設定は全ユーザーアクセス可能、その他管理機能はadmin以上
+                    adminSection.style.display = 'block';
+                    
+                    // ユーザー管理と管理ダッシュボードはadmin以上のみ
+                    const userManagementLink = adminSection.querySelector('a[href="user-management.html"]');
+                    const adminDashboardLink = adminSection.querySelector('a[href="admin-dashboard.html"]');
+                    
                     if (currentUser.role === 'developer' || currentUser.role === 'admin') {
-                        adminSection.style.display = 'block';
+                        if (userManagementLink) userManagementLink.style.display = 'block';
+                        if (adminDashboardLink) adminDashboardLink.style.display = 'block';
                     } else {
-                        adminSection.style.display = 'none';
+                        if (userManagementLink) userManagementLink.style.display = 'none';
+                        if (adminDashboardLink) adminDashboardLink.style.display = 'none';
                     }
                 }
             }

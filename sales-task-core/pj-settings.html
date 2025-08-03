@@ -599,14 +599,14 @@
             alert(`プロジェクト「${project.name}」を削除しました`);
         }
         
-        // 権限チェック
+        // 権限チェック（全ユーザーアクセス可能）
         function checkPermissions() {
             const currentUser = getCurrentUser();
-            const isAuthorized = ['admin', 'developer'].includes(currentUser.role);
             
-            if (!isAuthorized) {
-                alert('この機能を利用する権限がありません');
-                window.location.href = 'index-kanban.html';
+            // 全ユーザーがPJ設定にアクセス可能
+            if (!currentUser.isLoggedIn) {
+                alert('ログインが必要です');
+                window.location.href = 'login.html';
                 return false;
             }
             
