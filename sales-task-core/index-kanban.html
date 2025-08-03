@@ -907,6 +907,42 @@
         </div>
     </div>
     
+    <!-- Phase 2: モード切り替えバー -->
+    <div style="background: linear-gradient(135deg, #e8f5e8 0%, #f0f8ff 100%); padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <span style="font-weight: 600; color: #2d3748;">🎯 表示モード:</span>
+            <div style="display: flex; gap: 0.5rem;">
+                <button id="personal-mode-btn" onclick="switchViewMode('personal')" 
+                        style="padding: 0.5rem 1rem; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s;">
+                    👤 個人タスク
+                </button>
+                <button id="project-mode-btn" onclick="switchViewMode('project')" 
+                        style="padding: 0.5rem 1rem; background: #e2e8f0; color: #4a5568; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s;">
+                    👥 PJタスク
+                </button>
+            </div>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <!-- Phase 2: PJフィルター -->
+            <div style="position: relative;" id="project-filter-container">
+                <button onclick="toggleProjectFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>🏗️</span>
+                    <span id="project-filter-text">全プロジェクト</span>
+                    <span>▼</span>
+                </button>
+                <div id="project-filter-dropdown" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 1000; min-width: 200px;">
+                    <!-- プロジェクト選択肢がここに動的追加される -->
+                </div>
+            </div>
+            <div id="current-mode-info" style="font-size: 0.85rem; color: #4a5568;">
+                個人タスクを表示中
+            </div>
+            <button onclick="showViewModeHelp()" style="background: none; border: none; color: #4a5568; cursor: pointer; font-size: 1rem;" title="表示モードの説明">
+                ❓
+            </button>
+        </div>
+    </div>
+    
     <!-- 分析サマリーバー -->
     <div class="analytics-summary" id="analytics-summary">
         <div class="analytics-left">
@@ -1598,6 +1634,136 @@
             return Array.from(checkboxes).map(cb => cb.value);
         }
         
+        // Phase 2: 表示モード切り替え機能
+        function switchViewMode(mode) {
+            viewMode = mode;
+            
+            // ボタンの状態を更新
+            const personalBtn = document.getElementById('personal-mode-btn');
+            const projectBtn = document.getElementById('project-mode-btn');
+            const infoText = document.getElementById('current-mode-info');
+            
+            if (mode === 'personal') {
+                personalBtn.style.background = '#38a169';
+                personalBtn.style.color = 'white';
+                projectBtn.style.background = '#e2e8f0';
+                projectBtn.style.color = '#4a5568';
+                infoText.textContent = '個人タスクを表示中';
+                console.log('👤 [VIEW MODE] Switched to Personal mode');
+            } else {
+                personalBtn.style.background = '#e2e8f0';
+                personalBtn.style.color = '#4a5568';
+                projectBtn.style.background = '#2b6cb0';
+                projectBtn.style.color = 'white';
+                infoText.textContent = 'PJタスクを表示中（Wチェック対象）';
+                console.log('👥 [VIEW MODE] Switched to Project mode');
+            }
+            
+            // 表示を更新
+            render();
+            updateStats();
+        }
+        
+        function showViewModeHelp() {
+            const helpText = `
+🎯 表示モードについて
+
+【👤 個人タスク】
+• 全てのタスクを表示
+• 通常の進捗管理モード
+• 即座にステータス変更可能
+
+【👥 PJタスク】
+• プロジェクトタスクのみを表示
+• Wチェック（二重承認）対象
+• 移動申請→承認が必要
+
+💡 同じタスクでも、モードによって見え方や操作が異なります。
+`;
+            alert(helpText);
+        }
+        
+        // Phase 2: PJフィルター機能
+        function toggleProjectFilterDropdown() {
+            const dropdown = document.getElementById('project-filter-dropdown');
+            const isVisible = dropdown.style.display === 'block';
+            
+            if (isVisible) {
+                dropdown.style.display = 'none';
+            } else {
+                populateProjectFilterOptions();
+                dropdown.style.display = 'block';
+            }
+        }
+        
+        function populateProjectFilterOptions() {
+            const dropdown = document.getElementById('project-filter-dropdown');
+            
+            // 全プロジェクトを取得
+            const allProjects = [...new Set(tasks
+                .filter(t => t.projectId && t.projectId !== null)
+                .map(t => ({id: t.projectId, name: t.projectName}))
+            )];
+            
+            dropdown.innerHTML = `
+                <div style="padding: 0.5rem;">
+                    <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
+                        <input type="checkbox" value="" onchange="updateProjectFilterSelection()" style="margin-right: 0.5rem;" ${selectedProjectFilters.length === 0 ? 'checked' : ''}>
+                        <span>全プロジェクト</span>
+                    </label>
+                    ${allProjects.map(project => `
+                        <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
+                            <input type="checkbox" value="${project.id}" onchange="updateProjectFilterSelection()" style="margin-right: 0.5rem;" ${selectedProjectFilters.includes(project.id) ? 'checked' : ''}>
+                            <span>${project.id} - ${project.name}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function updateProjectFilterSelection() {
+            const checkboxes = document.querySelectorAll('#project-filter-dropdown input[type="checkbox"]');
+            selectedProjectFilters = [];
+            
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked && checkbox.value) {
+                    selectedProjectFilters.push(checkbox.value);
+                }
+            });
+            
+            // 全プロジェクトチェックボックスの制御
+            const allCheckbox = document.querySelector('#project-filter-dropdown input[value=""]');
+            if (selectedProjectFilters.length === 0) {
+                allCheckbox.checked = true;
+            } else {
+                allCheckbox.checked = false;
+            }
+            
+            updateProjectFilterText();
+            render();
+            updateStats();
+        }
+        
+        function updateProjectFilterText() {
+            const textElement = document.getElementById('project-filter-text');
+            if (selectedProjectFilters.length === 0) {
+                textElement.textContent = '全プロジェクト';
+            } else if (selectedProjectFilters.length === 1) {
+                const projectTask = tasks.find(t => t.projectId === selectedProjectFilters[0]);
+                textElement.textContent = projectTask ? projectTask.projectId : selectedProjectFilters[0];
+            } else {
+                textElement.textContent = `${selectedProjectFilters.length}件選択中`;
+            }
+        }
+        
+        // ドロップダウン外クリックで閉じる
+        document.addEventListener('click', function(event) {
+            const projectContainer = document.getElementById('project-filter-container');
+            if (projectContainer && !projectContainer.contains(event.target)) {
+                document.getElementById('project-filter-dropdown').style.display = 'none';
+            }
+        });
+        
         // 日付・時間ユーティリティ
         function getCurrentDateTime() {
             return new Date();
@@ -1819,6 +1985,37 @@
             // 担当者選択肢を更新してから値を設定
             updateAssigneeOptions();
             setSelectedAssignees(editingTask.assignees || editingTask.assignee || []);
+            
+            // Phase 2: PJタスク情報の表示設定
+            const isPJTask = editingTask.projectId && editingTask.projectId !== null;
+            if (isPJTask) {
+                // PJタスクモードに設定
+                document.getElementById('task-type-project').checked = true;
+                document.getElementById('task-type-personal').checked = false;
+                document.getElementById('project-task-settings').style.display = 'block';
+                
+                // PJ情報を設定
+                document.getElementById('project-id-input').value = editingTask.projectId || '';
+                document.getElementById('project-name-input').value = editingTask.projectName || '';
+                
+                // 承認者を設定
+                populateApprovers();
+                setTimeout(() => {
+                    const approvers = editingTask.approvers || [];
+                    const checkboxes = document.querySelectorAll('#project-approvers input[type="checkbox"]');
+                    checkboxes.forEach(cb => {
+                        cb.checked = approvers.includes(cb.value);
+                    });
+                }, 100);
+                
+                console.log(`🎯 [EDIT] Loading PJ task: ${editingTask.projectId} - ${editingTask.projectName}`);
+            } else {
+                // 個人タスクモードに設定
+                document.getElementById('task-type-personal').checked = true;
+                document.getElementById('task-type-project').checked = false;
+                document.getElementById('project-task-settings').style.display = 'none';
+                console.log(`👤 [EDIT] Loading personal task: ${editingTask.title}`);
+            }
             
             // 添付ファイル表示
             displayAttachedFiles(editingTask.attachments || []);
@@ -2555,8 +2752,31 @@
             const board = document.getElementById('kanban-board');
             board.innerHTML = '';
             
-            // 期限切れタスクを抽出
-            let overdueTasks = tasks.filter(t => 
+            // Phase 2: 表示モードに応じてタスクをフィルタリング
+            let filteredTasks = tasks;
+            if (viewMode === 'project') {
+                // PJモード: プロジェクトタスクのみ表示
+                filteredTasks = tasks.filter(t => t.projectId && t.projectId !== null);
+                console.log(`👥 [RENDER] Project mode: showing ${filteredTasks.length} project tasks`);
+            } else {
+                // 個人モード: 全タスク表示
+                console.log(`👤 [RENDER] Personal mode: showing all ${filteredTasks.length} tasks`);
+            }
+            
+            // PJフィルターを適用
+            if (selectedProjectFilters.length > 0) {
+                filteredTasks = filteredTasks.filter(t => {
+                    if (t.projectId && t.projectId !== null) {
+                        return selectedProjectFilters.includes(t.projectId);
+                    }
+                    // 個人タスクは常に表示（PJフィルターは影響しない）
+                    return true;
+                });
+                console.log(`🏗️ [RENDER] Project filter applied: showing ${filteredTasks.length} tasks`);
+            }
+            
+            // 期限切れタスクを抽出（フィルタリング後のタスクから）
+            let overdueTasks = filteredTasks.filter(t => 
                 t.columnId !== 'done' && 
                 t.deadline && 
                 isOverdue(t.deadline, t.columnId)
@@ -2598,7 +2818,7 @@
             
             // 通常のカラムを表示
             columns.forEach(column => {
-                let columnTasks = tasks.filter(t => {
+                let columnTasks = filteredTasks.filter(t => {
                     // 期限切れタスクは期限切れカラムに表示するので除外
                     if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
                         return false;
