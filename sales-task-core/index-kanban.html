@@ -1806,6 +1806,9 @@
                 modal.dataset.unifiedMode = 'true';
                 modal.classList.add('show');
                 
+                // ページトップにスクロール
+                window.scrollTo(0, 0);
+                
                 console.log('👥 [PJ CREATE] Successfully opened PJ task creation modal');
                 
             } catch (error) {
@@ -2184,6 +2187,9 @@
             document.getElementById('task-modal').dataset.unifiedMode = 'true';
             document.getElementById('task-modal').classList.add('show');
             
+            // ページトップにスクロール
+            window.scrollTo(0, 0);
+            
             // メンション機能を初期化
             setTimeout(() => initMentionListeners(), 100);
         }
@@ -2219,6 +2225,9 @@
             document.getElementById('task-modal').dataset.targetColumn = columnId;
             document.getElementById('task-modal').dataset.unifiedMode = 'false';
             document.getElementById('task-modal').classList.add('show');
+            
+            // ページトップにスクロール
+            window.scrollTo(0, 0);
             
             // メンション機能を初期化
             setTimeout(() => initMentionListeners(), 100);
@@ -2351,6 +2360,9 @@
             document.getElementById('comment-input').disabled = false;
             
             document.getElementById('task-modal').classList.add('show');
+            
+            // ページトップにスクロール
+            window.scrollTo(0, 0);
             
             // メンション機能を初期化
             setTimeout(() => initMentionListeners(), 100);
@@ -2704,7 +2716,9 @@
         }
         
         async function saveTask(event) {
-            event.preventDefault();
+            try {
+                console.log('🚀 [SAVE TASK] Starting saveTask function...');
+                event.preventDefault();
             
             // 編集モード時は task-column-input の required 属性を一時的に削除
             const columnInput = document.getElementById('task-column-input');
@@ -2944,6 +2958,15 @@
             
             closeModal();
             
+            } catch (error) {
+                console.error('🚨 [SAVE TASK ERROR]', error);
+                alert('タスクの保存中にエラーが発生しました: ' + error.message);
+                
+                // エラー時もrequired属性を復活
+                if (wasRequired && isColumnSelectionHidden) {
+                    columnInput.setAttribute('required', '');
+                }
+            }
         }
         
         function closeModal() {
