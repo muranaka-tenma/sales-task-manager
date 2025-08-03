@@ -323,6 +323,14 @@
             </div>
             <form id="project-form">
                 <div class="form-group">
+                    <label class="form-label">プロジェクトID *</label>
+                    <input type="text" id="project-id" class="form-input" required placeholder="例: PJ001, PROJECT_2025_001" maxlength="20">
+                    <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
+                        英数字・アンダースコアのみ使用可能（20文字以内）
+                    </div>
+                </div>
+                
+                <div class="form-group">
                     <label class="form-label">プロジェクト名 *</label>
                     <input type="text" id="project-name" class="form-input" required placeholder="例: 新規システム導入PJ">
                 </div>
@@ -372,11 +380,11 @@
             localStorage.setItem('projectSettings', JSON.stringify(settings));
         }
         
-        // ユニークなプロジェクトIDの生成
-        function generateProjectId() {
-            const timestamp = Date.now();
-            const random = Math.random().toString(36).substr(2, 5);
-            return `PJ${timestamp.toString().slice(-6)}_${random}`;
+        // プロジェクトIDの検証
+        function validateProjectId(projectId) {
+            // 英数字・アンダースコアのみ許可
+            const validPattern = /^[a-zA-Z0-9_]+$/;
+            return validPattern.test(projectId) && projectId.length <= 20;
         }
         
         // 現在のユーザー情報を取得
@@ -442,6 +450,8 @@
         function openCreateModal() {
             currentEditingProjectId = null;
             document.getElementById('modal-title').textContent = '新規PJ作成';
+            document.getElementById('project-id').value = '';
+            document.getElementById('project-id').readOnly = false;
             document.getElementById('project-name').value = '';
             document.getElementById('project-description').value = '';
             loadDefaultColumns();
@@ -457,6 +467,8 @@
             
             currentEditingProjectId = projectId;
             document.getElementById('modal-title').textContent = 'PJ編集';
+            document.getElementById('project-id').value = projectId;
+            document.getElementById('project-id').readOnly = true; // 編集時はID変更不可
             document.getElementById('project-name').value = project.name;
             document.getElementById('project-description').value = project.description || '';
             loadColumns(project.columns);
@@ -523,9 +535,20 @@
         function saveProject(event) {
             event.preventDefault();
             
+            const projectId = document.getElementById('project-id').value.trim();
             const name = document.getElementById('project-name').value.trim();
             const description = document.getElementById('project-description').value.trim();
             const columns = getCurrentColumns();
+            
+            if (!projectId) {
+                alert('プロジェクトIDを入力してください');
+                return;
+            }
+            
+            if (!validateProjectId(projectId)) {
+                alert('プロジェクトIDは英数字・アンダースコアのみ使用可能です（20文字以内）');
+                return;
+            }
             
             if (!name) {
                 alert('プロジェクト名を入力してください');
@@ -539,17 +562,27 @@
             
             const settings = getProjectSettings();
             const currentUser = getCurrentUser();
-            const projectId = currentEditingProjectId || generateProjectId();
+            
+            // 新規作成時のID重複チェック
+            if (!currentEditingProjectId && settings[projectId]) {
+                alert(`プロジェクトID「${projectId}」は既に使用されています。別のIDを指定してください。`);
+                return;
+            }
             
             const projectData = {
                 name: name,
                 description: description,
                 columns: columns,
-                createdAt: currentEditingProjectId ? settings[projectId].createdAt : new Date().toISOString(),
-                createdBy: currentEditingProjectId ? settings[projectId].createdBy : currentUser.name,
+                createdAt: currentEditingProjectId ? settings[currentEditingProjectId].createdAt : new Date().toISOString(),
+                createdBy: currentEditingProjectId ? settings[currentEditingProjectId].createdBy : currentUser.name,
                 updatedAt: new Date().toISOString(),
                 updatedBy: currentUser.name
             };
+            
+            // 編集時にIDが変更されている場合は古いIDを削除
+            if (currentEditingProjectId && currentEditingProjectId !== projectId) {
+                delete settings[currentEditingProjectId];
+            }
             
             settings[projectId] = projectData;
             saveProjectSettings(settings);
