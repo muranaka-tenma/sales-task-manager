@@ -114,26 +114,28 @@
         /* フローキャンバス */
         .flow-canvas {
             position: relative;
-            height: 600px;
+            min-height: 400px;
             background: 
                 radial-gradient(circle, #e2e8f0 1px, transparent 1px),
                 linear-gradient(90deg, rgba(226, 232, 240, 0.3) 1px, transparent 1px),
                 linear-gradient(0deg, rgba(226, 232, 240, 0.3) 1px, transparent 1px);
             background-size: 20px 20px;
-            cursor: crosshair;
-            overflow: hidden;
+            padding: 20px;
         }
         
         /* フェーズウィンドウ */
         .phase-window {
-            position: absolute;
+            position: relative;
+            display: inline-block;
+            vertical-align: top;
             background: white;
             border-radius: 12px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0;
+            border: 2px solid #667eea;
             padding: 1rem;
+            margin: 1rem;
             min-width: 200px;
-            min-height: 120px;
+            min-height: 250px;
             cursor: move;
             user-select: none;
             transition: all 0.15s ease;
@@ -781,9 +783,10 @@
         function createPhaseElement(phase) {
             const div = document.createElement('div');
             div.className = 'phase-window';
-            div.style.left = `${phase.x}px`;
-            div.style.top = `${phase.y}px`;
             div.draggable = true;
+            
+            // デバッグ用ログ
+            console.log(`Creating phase: ${phase.name}`);
             
             const phaseTasks = tasks.filter(task => task.phaseId === phase.id);
             const taskCount = phaseTasks.length;
@@ -1123,10 +1126,10 @@
             taskCounter = 0;
             
             currentFlow.phases = [
-                { id: 'phase-1', name: '見積作成', x: 100, y: 100, color: colors[0], description: '顧客要件に基づく見積もり' },
-                { id: 'phase-2', name: '相手確認', x: 350, y: 100, color: colors[1], description: '顧客による内容確認' },
-                { id: 'phase-3', name: '承認待ち', x: 600, y: 100, color: colors[2], description: '社内承認プロセス' },
-                { id: 'phase-4', name: '完了', x: 850, y: 100, color: colors[3], description: '案件完了' }
+                { id: 'phase-1', name: '見積作成', x: 50, y: 50, color: colors[0], description: '顧客要件に基づく見積もり' },
+                { id: 'phase-2', name: '相手確認', x: 300, y: 50, color: colors[1], description: '顧客による内容確認' },
+                { id: 'phase-3', name: '承認待ち', x: 550, y: 50, color: colors[2], description: '社内承認プロセス' },
+                { id: 'phase-4', name: '完了', x: 800, y: 50, color: colors[3], description: '案件完了' }
             ];
             phaseCounter = 4;
             

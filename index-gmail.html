@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 営業タスク管理 - Gmail連携版</title>
+    
+    <!-- Gmail API -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #2d3748;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .container {
+            padding: 0.75rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        /* Gmail連携パネル */
+        .gmail-panel {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        
+        .gmail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .gmail-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .gmail-auth-btn {
+            background: linear-gradient(135deg, #ea4335 0%, #d33b2c 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.6rem 1.2rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .gmail-auth-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
+        }
+        
+        .gmail-auth-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .gmail-status {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        
+        /* TODO候補リスト */
+        .todo-candidates {
+            display: none;
+            margin-top: 1rem;
+        }
+        
+        .candidate-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .candidate-content {
+            flex: 1;
+        }
+        
+        .candidate-title {
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+            color: #1a202c;
+        }
+        
+        .candidate-meta {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-bottom: 0.3rem;
+        }
+        
+        .candidate-preview {
+            font-size: 0.8rem;
+            color: #4a5568;
+            font-style: italic;
+            line-height: 1.3;
+        }
+        
+        .candidate-actions {
+            display: flex;
+            gap: 0.3rem;
+            margin-left: 0.5rem;
+        }
+        
+        .candidate-add {
+            background: #38a169;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        
+        .candidate-dismiss {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        
+        /* 拡張カンバンレイアウト */
+        .extended-kanban {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 1rem;
+        }
+        
+        .candidates-column {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            padding: 0.75rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .kanban-main {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 0.75rem;
+        }
+        
+        @media (max-width: 768px) {
+            .extended-kanban {
+                grid-template-columns: 1fr;
+            }
+            
+            .candidates-column {
+                max-height: 300px;
+            }
+        }
+        
+        /* 既存のカンバンスタイルを簡略化 */
+        .column {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            padding: 0.75rem;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            min-height: 450px;
+        }
+        
+        .column-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding: 0.4rem 0.6rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        
+        .column-header.new { background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e0 100%); color: #2d3748; }
+        .column-header.progress { background: linear-gradient(135deg, #bee3f8 0%, #90cdf4 100%); color: #2b6cb0; }
+        .column-header.waiting { background: linear-gradient(135deg, #fef5e7 0%, #f6e05e 100%); color: #d69e2e; }
+        .column-header.completed { background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%); color: #2f855a; }
+        
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">🎯 営業タスク管理 - Gmail連携版</div>
+        <div style="font-size: 0.9rem; opacity: 0.9;">
+            <a href="./index.html" style="color: white; text-decoration: none;">← 通常版に戻る</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Gmail連携パネル -->
+        <div class="gmail-panel">
+            <div class="gmail-header">
+                <div class="gmail-title">
+                    📧 Gmail連携
+                </div>
+                <button id="gmail-auth-btn" class="gmail-auth-btn" onclick="handleGmailAuth()">
+                    Gmail認証
+                </button>
+            </div>
+            
+            <div class="gmail-status" id="gmail-status">
+                Gmail認証が必要です。認証後、受信メールからTODO候補を抽出できます。
+            </div>
+            
+            <div id="error-container"></div>
+        </div>
+        
+        <!-- 拡張カンバンレイアウト -->
+        <div class="extended-kanban">
+            <!-- TODO候補カラム -->  
+            <div class="candidates-column">
+                <div class="column-header new">
+                    <span>📥 TODO候補</span>
+                    <span id="candidates-count">0</span>
+                </div>
+                <div id="todo-candidates" class="todo-candidates">
+                    <div style="text-align: center; color: #6b7280; padding: 2rem; font-size: 0.9rem;">
+                        Gmail認証後、TODO候補が表示されます
+                    </div>
+                </div>
+            </div>
+            
+            <!-- メインカンバンボード -->
+            <div class="kanban-main">
+                <div class="column">
+                    <div class="column-header new">
+                        <span>📋 新規</span>
+                        <span>0</span>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div class="column-header progress">
+                        <span>🔄 進行中</span>
+                        <span>0</span>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div class="column-header waiting">
+                        <span>⏳ 待機中</span>
+                        <span>0</span>
+                    </div>
+                </div>
+                
+                <div class="column">
+                    <div class="column-header completed">
+                        <span>✅ 完了</span>
+                        <span>0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Gmail API設定
+        const CLIENT_ID = 'your-client-id.googleusercontent.com';
+        const API_KEY = 'your-api-key';
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest';
+        const SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
+        
+        let gapi;
+        let tokenClient;
+        let isGmailAuthorized = false;
+        
+        // 初期化
+        async function initializeGmailAPI() {
+            try {
+                await new Promise((resolve) => {
+                    gapi.load('client', resolve);
+                });
+                
+                await gapi.client.init({
+                    apiKey: API_KEY,
+                    discoveryDocs: [DISCOVERY_DOC],
+                });
+                
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: CLIENT_ID,
+                    scope: SCOPES,
+                    callback: (tokenResponse) => {
+                        if (tokenResponse.access_token) {
+                            handleAuthSuccess();
+                        }
+                    },
+                });
+                
+                updateGmailStatus('Gmail API初期化完了。認証してください。');
+            } catch (error) {
+                showError('Gmail API初期化エラー: ' + error.message);
+            }
+        }
+        
+        // Gmail認証
+        function handleGmailAuth() {
+            if (!isGmailAuthorized) {
+                if (tokenClient) {
+                    tokenClient.requestAccessToken();
+                } else {
+                    showError('Gmail APIが初期化されていません');
+                }
+            } else {
+                // 既に認証済みの場合はTODO候補を再取得
+                fetchTodoCandidates();
+            }
+        }
+        
+        // 認証成功時の処理
+        function handleAuthSuccess() {
+            isGmailAuthorized = true;
+            document.getElementById('gmail-auth-btn').textContent = 'TODO候補を取得';
+            updateGmailStatus('Gmail認証成功！TODO候補を取得中...');
+            fetchTodoCandidates();
+        }
+        
+        // TODO候補の取得
+        async function fetchTodoCandidates() {
+            try {
+                updateGmailStatus('メールを解析中...');
+                
+                // 最新20件のメールを取得
+                const response = await gapi.client.gmail.users.messages.list({
+                    userId: 'me',
+                    maxResults: 20,
+                    q: 'is:unread' // 未読メールのみ
+                });
+                
+                if (!response.result.messages) {
+                    updateGmailStatus('未読メールはありません');
+                    return;
+                }
+                
+                const candidates = [];
+                
+                // 各メールの詳細を取得して解析
+                for (const message of response.result.messages.slice(0, 10)) {
+                    try {
+                        const messageDetail = await gapi.client.gmail.users.messages.get({
+                            userId: 'me',
+                            id: message.id
+                        });
+                        
+                        const candidate = analyzeEmailForTodo(messageDetail.result);
+                        if (candidate) {
+                            candidates.push(candidate);
+                        }
+                    } catch (error) {
+                        console.error('メール取得エラー:', error);
+                    }
+                }
+                
+                displayTodoCandidates(candidates);
+                updateGmailStatus(`${candidates.length}件のTODO候補を発見`);
+                
+            } catch (error) {
+                showError('TODO候補取得エラー: ' + error.message);
+            }
+        }
+        
+        // メール解析してTODO候補を抽出
+        function analyzeEmailForTodo(message) {
+            const payload = message.payload;
+            let subject = '';
+            let from = '';
+            let body = '';
+            
+            // ヘッダー情報を取得
+            if (payload.headers) {
+                for (const header of payload.headers) {
+                    if (header.name === 'Subject') {
+                        subject = header.value;
+                    } else if (header.name === 'From') {
+                        from = header.value;
+                    }
+                }
+            }
+            
+            // 本文を取得
+            if (payload.body && payload.body.data) {
+                body = atob(payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+            } else if (payload.parts) {
+                for (const part of payload.parts) {
+                    if (part.mimeType === 'text/plain' && part.body.data) {
+                        body = atob(part.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+                        break;
+                    }
+                }
+            }
+            
+            // TODO候補の判定ロジック
+            const todoKeywords = [
+                '作成してください', '作成をお願い', '準備してください', '準備をお願い',
+                '確認してください', '確認をお願い', '対応してください', '対応をお願い',
+                'までに', 'まで', '期限', '締切', '提出', '納期'
+            ];
+            
+            const hasTodoKeyword = todoKeywords.some(keyword => 
+                subject.includes(keyword) || body.includes(keyword)
+            );
+            
+            if (!hasTodoKeyword) {
+                return null;
+            }
+            
+            // 期限抽出の簡易実装
+            const dateRegex = /(\d{1,2}[\/月]\d{1,2}[日\/]?|\d{4}[\/年]\d{1,2}[\/月]\d{1,2}[日]?)/g;
+            const dates = body.match(dateRegex) || subject.match(dateRegex) || [];
+            
+            return {
+                id: message.id,
+                title: subject.substring(0, 50) + (subject.length > 50 ? '...' : ''),
+                from: from,
+                preview: body.substring(0, 100) + (body.length > 100 ? '...' : ''),
+                extractedDate: dates[0] || null,
+                originalMessage: message
+            };
+        }
+        
+        // TODO候補を表示
+        function displayTodoCandidates(candidates) {
+            const container = document.getElementById('todo-candidates');
+            document.getElementById('candidates-count').textContent = candidates.length;
+            
+            if (candidates.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; padding: 2rem; font-size: 0.9rem;">
+                        TODO候補が見つかりませんでした
+                    </div>
+                `;
+                container.style.display = 'block';
+                return;
+            }
+            
+            container.innerHTML = candidates.map((candidate, index) => `
+                <div class="candidate-item">
+                    <div class="candidate-content">
+                        <div class="candidate-title">${candidate.title}</div>
+                        <div class="candidate-meta">
+                            送信者: ${candidate.from}
+                            ${candidate.extractedDate ? ` | 期限: ${candidate.extractedDate}` : ''}
+                        </div>
+                        <div class="candidate-preview">${candidate.preview}</div>
+                    </div>
+                    <div class="candidate-actions">
+                        <button class="candidate-add" onclick="addTodoFromCandidate(${index})">
+                            追加
+                        </button>
+                        <button class="candidate-dismiss" onclick="dismissCandidate(${index})">
+                            却下
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.style.display = 'block';
+            
+            // グローバルに保存
+            window.todoCandidates = candidates;
+        }
+        
+        // TODO候補からタスクを追加
+        function addTodoFromCandidate(index) {
+            const candidate = window.todoCandidates[index];
+            if (!candidate) return;
+            
+            // 簡易実装：アラートで確認
+            const taskTitle = prompt('タスク名を確認・編集してください:', candidate.title);
+            if (taskTitle) {
+                alert(`TODO「${taskTitle}」を追加しました！\n\n※実際のタスク追加機能は今後実装予定です`);
+                dismissCandidate(index);
+            }
+        }
+        
+        // 候補を却下
+        function dismissCandidate(index) {
+            window.todoCandidates.splice(index, 1);
+            displayTodoCandidates(window.todoCandidates);
+        }
+        
+        // ステータス更新
+        function updateGmailStatus(message) {
+            document.getElementById('gmail-status').textContent = message;
+        }
+        
+        // エラー表示
+        function showError(message) {
+            const container = document.getElementById('error-container');
+            container.innerHTML = `<div class="error-message">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+        
+        // ページ読み込み時の初期化
+        window.onload = function() {
+            // Gmail API初期化は開発時にAPI keyが必要なので、現在はデモモード
+            updateGmailStatus('デモモード: Gmail API キーが必要です');
+            
+            // デモ用のサンプル候補を表示
+            setTimeout(() => {
+                const sampleCandidates = [
+                    {
+                        id: 'demo1',
+                        title: 'A社への提案書作成をお願いします',
+                        from: 'manager@company.com',
+                        preview: '田中様、A社への提案書を来週金曜日までに作成してください。要件は添付ファイルをご確認ください。',
+                        extractedDate: '来週金曜日'
+                    },
+                    {
+                        id: 'demo2', 
+                        title: '月次報告書の確認をお願いします',
+                        from: 'admin@company.com',
+                        preview: '佐藤様、月次報告書の内容確認を12月5日までにお願いします。修正点があれば連絡ください。',
+                        extractedDate: '12月5日'
+                    }
+                ];
+                
+                displayTodoCandidates(sampleCandidates);
+                updateGmailStatus('デモモード: サンプル候補を表示中');
+            }, 2000);
+        };
+    </script>
+</body>
+</html>

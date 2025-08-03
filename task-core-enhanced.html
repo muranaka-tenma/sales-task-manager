@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎯 営業タスク管理 - 新サイト</title>
+    <title>🎯 営業タスク管理 - 強化版</title>
     <style>
         * {
             margin: 0;
@@ -51,11 +51,17 @@
             cursor: pointer;
             transition: all 0.2s ease;
             position: relative;
+            draggable: true;
         }
         
         .task-card:active {
             transform: scale(0.98);
             box-shadow: 0 4px 20px rgba(102, 126, 234, 0.2);
+        }
+        
+        .task-card.dragging {
+            opacity: 0.6;
+            transform: rotate(2deg);
         }
         
         /* 期限切れタスク */
@@ -99,10 +105,46 @@
         .task-meta {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.8rem;
+            gap: 0.5rem;
             font-size: 0.85rem;
             color: #4a5568;
             align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* ステータスバッジ（V6から統合） */
+        .status-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .status-badge {
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge-urgent {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .badge-review {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .badge-done {
+            background: #d4edda;
+            color: #155724;
         }
         
         .deadline {
@@ -171,7 +213,7 @@
             font-size: 0.9rem;
         }
         
-        .form-input, .form-select {
+        .form-input, .form-select, .form-textarea {
             width: 100%;
             padding: 0.8rem;
             border: 2px solid #e2e8f0;
@@ -181,7 +223,7 @@
             font-family: inherit;
         }
         
-        .form-input:focus, .form-select:focus {
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -191,6 +233,34 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
+        }
+        
+        /* ステータス選択 */
+        .status-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .status-option {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+        
+        .status-option:hover {
+            border-color: #667eea;
+        }
+        
+        .status-option.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
         }
         
         .add-btn {
@@ -261,14 +331,36 @@
             color: #2f855a;
         }
         
-        .success-message {
-            background: #c6f6d5;
-            color: #2f855a;
-            padding: 1rem;
-            border-radius: 12px;
+        /* ドロップゾーン */
+        .drop-zones {
+            display: flex;
+            gap: 1rem;
             margin: 1rem 0;
+            padding: 1rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        
+        .drop-zone {
+            flex: 1;
+            padding: 1rem;
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
             text-align: center;
+            color: #64748b;
             font-weight: 600;
+            transition: all 0.2s ease;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
         }
         
         /* レスポンシブ */
@@ -281,12 +373,16 @@
                 grid-template-columns: 1fr;
                 gap: 0.8rem;
             }
+            
+            .drop-zones {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="header-title">🎯 営業タスク管理 - 新バージョン</div>
+        <div class="header-title">🎯 営業タスク管理 - 強化版</div>
     </div>
     
     <div class="container">
@@ -309,23 +405,39 @@
             </div>
         </div>
         
+        <!-- ドロップゾーン -->
+        <div class="drop-zones">
+            <div class="drop-zone" data-status="waiting">
+                ⏳ 連絡待ち
+            </div>
+            <div class="drop-zone" data-status="urgent">
+                🔥 緊急対応
+            </div>
+            <div class="drop-zone" data-status="review">
+                👀 確認中
+            </div>
+            <div class="drop-zone" data-status="done">
+                ✅ 完了
+            </div>
+        </div>
+        
         <!-- タスク追加フォーム -->
         <div class="add-task-section">
             <div class="section-title">➕ 新しいタスクを追加</div>
             
             <div class="form-group">
-                <label class="form-label">タスク名 *</label>
-                <input type="text" id="task-title" class="form-input" placeholder="例: A社への提案書作成" required>
+                <label class="form-label">タスク名</label>
+                <input type="text" id="task-title" class="form-input" placeholder="例: A社への提案書作成">
             </div>
             
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">期限日 *</label>
-                    <input type="date" id="task-date" class="form-input" required>
+                    <label class="form-label">期限日</label>
+                    <input type="date" id="task-date" class="form-input">
                 </div>
                 <div class="form-group">
                     <label class="form-label">期限時刻</label>
-                    <input type="time" id="task-time" class="form-input" value="17:00">
+                    <input type="time" id="task-time" class="form-input">
                 </div>
             </div>
             
@@ -344,23 +456,30 @@
                 </div>
             </div>
             
-            <button class="add-btn" onclick="addTask()">タスクを追加</button>
+            <div class="form-group">
+                <label class="form-label">状態・備考</label>
+                <div class="status-options" id="status-options">
+                    <div class="status-option" data-status="waiting">⏳ 連絡待ち</div>
+                    <div class="status-option" data-status="urgent">🔥 緊急</div>
+                    <div class="status-option" data-status="review">👀 確認中</div>
+                    <div class="status-option" data-status="done">✅ 完了</div>
+                </div>
+            </div>
             
-            <div id="success-message" class="success-message" style="display: none;"></div>
+            <button class="add-btn" onclick="addTask()">タスクを追加</button>
         </div>
         
         <!-- タスク一覧 -->
         <div class="section-title">✅ タスク一覧</div>
         <div id="task-list">
-            <div style="text-align: center; padding: 2rem; color: #4a5568;">
-                まだタスクがありません。上記のフォームから追加してください。
-            </div>
+            <!-- タスクがここに表示される -->
         </div>
     </div>
     
     <script>
         // タスクデータを管理
-        let tasks = JSON.parse(localStorage.getItem('salesTasksNew') || '[]');
+        let tasks = JSON.parse(localStorage.getItem('salesTasksEnhanced')) || [];
+        let draggedTask = null;
         
         // 現在の日時を取得
         function getCurrentDateTime() {
@@ -380,15 +499,12 @@
             return today.toDateString() === deadlineDate.toDateString();
         }
         
-        // 成功メッセージを表示
-        function showMessage(text, duration = 3000) {
-            const messageEl = document.getElementById('success-message');
-            messageEl.textContent = text;
-            messageEl.style.display = 'block';
-            setTimeout(() => {
-                messageEl.style.display = 'none';
-            }, duration);
-        }
+        // ステータス選択
+        document.getElementById('status-options').addEventListener('click', (e) => {
+            if (e.target.classList.contains('status-option')) {
+                e.target.classList.toggle('selected');
+            }
+        });
         
         // タスクを追加
         function addTask() {
@@ -410,12 +526,19 @@
             
             const deadline = new Date(`${date}T${time || '23:59'}`);
             
+            // 選択されたステータスを取得
+            const selectedStatuses = [];
+            document.querySelectorAll('.status-option.selected').forEach(option => {
+                selectedStatuses.push(option.dataset.status);
+            });
+            
             const newTask = {
                 id: Date.now(),
                 title: title,
                 deadline: deadline.toISOString(),
                 priority: priority,
                 assignee: assignee || '未設定',
+                status: selectedStatuses,
                 completed: false,
                 createdAt: new Date().toISOString()
             };
@@ -427,16 +550,19 @@
             
             // フォームをクリア
             document.getElementById('task-title').value = '';
-            document.getElementById('task-date').value = getTodayString();
-            document.getElementById('task-time').value = '17:00';
+            document.getElementById('task-date').value = '';
+            document.getElementById('task-time').value = '';
             document.getElementById('task-assignee').value = '';
+            document.querySelectorAll('.status-option.selected').forEach(option => {
+                option.classList.remove('selected');
+            });
             
-            showMessage(`✅ タスク「${title}」を追加しました！`);
+            alert('タスクが追加されました！');
         }
         
         // タスクを保存
         function saveTasks() {
-            localStorage.setItem('salesTasksNew', JSON.stringify(tasks));
+            localStorage.setItem('salesTasksEnhanced', JSON.stringify(tasks));
         }
         
         // タスクの完了状態を切り替え
@@ -448,26 +574,44 @@
                 renderTasks();
                 updateStats();
                 
-                const statusText = task.completed ? '✅ 完了しました！' : '🔄 未完了に戻しました';
-                showMessage(statusText);
+                const statusText = task.completed ? '完了しました！' : '未完了に戻しました';
+                alert(statusText);
             }
         }
         
         // タスクを削除
         function deleteTask(taskId) {
             if (confirm('このタスクを削除しますか？')) {
-                const task = tasks.find(t => t.id === taskId);
                 tasks = tasks.filter(t => t.id !== taskId);
                 saveTasks();
                 renderTasks();
                 updateStats();
-                showMessage(`🗑️ タスク「${task.title}」を削除しました`);
             }
         }
         
-        // 今日の日付文字列を取得
-        function getTodayString() {
-            return new Date().toISOString().split('T')[0];
+        // ドラッグ開始
+        function handleDragStart(e, taskId) {
+            draggedTask = tasks.find(t => t.id === taskId);
+            e.target.classList.add('dragging');
+        }
+        
+        // ドラッグ終了
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedTask = null;
+        }
+        
+        // ステータス更新
+        function updateTaskStatus(taskId, newStatus) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                if (!task.status.includes(newStatus)) {
+                    task.status.push(newStatus);
+                }
+                saveTasks();
+                renderTasks();
+                updateStats();
+            }
         }
         
         // タスクを表示
@@ -514,9 +658,25 @@
                     deadlineIcon = '⏰';
                 }
                 
+                // ステータスバッジを生成
+                const statusBadges = task.status.map(s => {
+                    const badges = {
+                        waiting: '<span class="status-badge badge-waiting">⏳ 連絡待ち</span>',
+                        urgent: '<span class="status-badge badge-urgent">🔥 緊急</span>',
+                        review: '<span class="status-badge badge-review">👀 確認中</span>',
+                        done: '<span class="status-badge badge-done">✅ 完了</span>'
+                    };
+                    return badges[s] || '';
+                }).join('');
+                
                 return `
-                    <div class="${cardClass}" onclick="toggleTask(${task.id})">
+                    <div class="${cardClass}" 
+                         draggable="true"
+                         ondragstart="handleDragStart(event, ${task.id})"
+                         ondragend="handleDragEnd(event)"
+                         onclick="toggleTask(${task.id})">
                         <div class="task-title">${task.title}</div>
+                        ${statusBadges ? `<div class="status-badges">${statusBadges}</div>` : ''}
                         <div class="task-meta">
                             <span class="${deadlineClass}">
                                 ${deadlineIcon} ${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
@@ -543,20 +703,43 @@
             document.getElementById('completed-count').textContent = completedCount;
         }
         
+        // ドロップゾーンの設定
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+            
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+            
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                
+                if (draggedTask) {
+                    const status = zone.dataset.status;
+                    updateTaskStatus(draggedTask.id, status);
+                    alert(`タスク「${draggedTask.title}」に「${zone.textContent.trim()}」を設定しました`);
+                }
+            });
+        });
+        
         // 初期化
         function init() {
-            document.getElementById('task-date').value = getTodayString();
+            const today = new Date();
+            document.getElementById('task-date').value = today.toISOString().split('T')[0];
+            
             renderTasks();
             updateStats();
             
-            // 1分ごとに統計と表示を更新
             setInterval(() => {
                 renderTasks();
                 updateStats();
             }, 60000);
         }
         
-        // Enter キーでタスク追加
         document.getElementById('task-title').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 addTask();
