@@ -1464,6 +1464,24 @@
     <script>
         // グローバル変数
         let tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+        
+        // 既存タスクにcreatedAtがない場合は、現在時刻から遡って設定
+        // （インポートされたタスクなど用）
+        tasks = tasks.map((task, index) => {
+            if (!task.createdAt) {
+                // インポート順を考慮して、古いタスクは7日前、新しいタスクは今日として設定
+                const daysAgo = Math.floor((tasks.length - index - 1) / Math.max(1, tasks.length / 7));
+                const createdDate = new Date();
+                createdDate.setDate(createdDate.getDate() - daysAgo);
+                task.createdAt = createdDate.toISOString();
+                console.log(`📅 [MIGRATION] Added createdAt to task ${task.id}: ${daysAgo} days ago`);
+            }
+            return task;
+        });
+        
+        // 変更があった場合は保存
+        localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+        
         let draggedTask = null;
         let editingTask = null;
         let taskCounter = tasks.length || 0;
