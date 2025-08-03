@@ -300,25 +300,6 @@
         // ユーザー管理システム
         let users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
         
-        // ユーザー管理とtaskAssigneesの同期を確保
-        function syncUsersWithAssignees() {
-            const assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
-            let updated = false;
-            
-            // 全ユーザーが担当者リストに含まれているかチェック
-            users.forEach(user => {
-                if (!assignees.includes(user.name)) {
-                    assignees.push(user.name);
-                    updated = true;
-                    console.log('📝 担当者リストに追加:', user.name);
-                }
-            });
-            
-            if (updated) {
-                localStorage.setItem('taskAssignees', JSON.stringify(assignees));
-                console.log('✅ 担当者リスト同期完了:', assignees);
-            }
-        }
         
         // 初回起動時にデフォルトユーザーを作成
         if (users.length === 0) {
@@ -334,7 +315,7 @@
                 },
                 {
                     id: Date.now() + 1,
-                    name: '村中天馬',
+                    name: '邨中天真',
                     email: 'muranaka-tenma@terracom.co.jp',
                     role: 'developer',
                     department: '開発部',
@@ -354,9 +335,6 @@
             users.push(...defaultUsers);
             saveUsers();
         }
-        
-        // ページ読み込み時に同期
-        syncUsersWithAssignees();
         
         // ページ読み込み時に実行
         window.addEventListener('DOMContentLoaded', () => {

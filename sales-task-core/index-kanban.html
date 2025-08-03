@@ -1619,6 +1619,58 @@
         // 担当者リスト
         let assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
         
+        // 一回限りのサンプルデータ置換処理
+        function migrateSampleDataToRealUser() {
+            const migrationKey = 'sampleDataMigrated';
+            if (localStorage.getItem(migrationKey)) return; // 既に実行済み
+            
+            // 既存ユーザーデータから実ユーザーを取得
+            const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const currentSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
+            
+            let realUser = null;
+            if (currentSession && currentSession.user) {
+                realUser = currentSession.user.name; // ログイン中ユーザー
+            } else if (systemUsers.length > 0) {
+                // 開発者権限ユーザーを優先的に選択
+                const developerUser = systemUsers.find(u => u.role === 'developer');
+                realUser = developerUser ? developerUser.name : systemUsers[0].name;
+            } else {
+                realUser = '邨中天真'; // フォールバック
+            }
+            
+            const sampleUsers = ['田中部長', '佐藤課長', '鈴木主任', '山田さん', '山田主任', '鈴木係長'];
+            let updated = false;
+            
+            // 担当者リストの置換
+            assignees = assignees.map(name => {
+                if (sampleUsers.includes(name)) {
+                    updated = true;
+                    console.log(`🔄 置換: ${name} → ${realUser}`);
+                    return realUser;
+                }
+                return name;
+            });
+            
+            // 重複を削除し、実ユーザーが含まれていない場合は追加
+            assignees = [...new Set(assignees)];
+            if (!assignees.includes(realUser)) {
+                assignees.push(realUser);
+                updated = true;
+            }
+            
+            if (updated) {
+                localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                console.log(`✅ サンプルデータを実ユーザー「${realUser}」に置換完了:`, assignees);
+            }
+            
+            // マイグレーション完了フラグを設定
+            localStorage.setItem(migrationKey, 'true');
+        }
+        
+        // マイグレーション実行
+        migrateSampleDataToRealUser();
+        
         // カラム定義
         let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"📋 TODO","color":"#667eea"},{"id":"inprogress","title":"⚡ 進行中","color":"#f59e0b"},{"id":"waiting","title":"⏳ 連絡待ち","color":"#8b5cf6"},{"id":"done","title":"✅ Done","color":"#10b981"}]');
         
