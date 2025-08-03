@@ -4856,10 +4856,10 @@
             const currentUser = localStorage.getItem('currentUser') || 'ユーザー';
             const defaultAssignee = currentUser;
             
-            // デフォルト期限を今日+3時間に設定
-            const defaultDateTime = getDefaultDateTimeAfter3Hours();
-            const defaultDeadline = defaultDateTime.date;
-            const defaultTime = defaultDateTime.time;
+            // デフォルト期限を今日の日付+3時間後の時間に設定
+            const now = new Date();
+            const defaultDeadline = now.toISOString().split('T')[0]; // 今日の日付
+            const defaultTime = getDefaultTimeString(); // 現在時刻+3時間
             
             const defaultPriority = 'medium';
             const defaultColumn = 'todo';
