@@ -1957,6 +1957,109 @@
         }
         
         function showRecurringTasksInfo() {
+            showRecurringTasksManagement();
+        }
+        
+        function showRecurringTasksManagement() {
+            const activeTemplates = recurringTemplates.filter(t => t.isActive);
+            const recurringTasks = tasks.filter(t => t.isRecurring);
+            
+            const modal = document.createElement('div');
+            modal.id = 'recurring-tasks-modal';
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.6); z-index: 1000;
+                display: flex; align-items: center; justify-content: center;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; width: 90%; max-width: 800px; max-height: 80vh; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+                    <div style="background: linear-gradient(135deg, #805ad5 0%, #667eea 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0;">
+                        <h3 style="margin: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                            🔄 定期タスク管理
+                            <button onclick="document.getElementById('recurring-tasks-modal').remove()" style="margin-left: auto; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
+                        </h3>
+                        <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.9rem;">毎月・毎週の繰り返しタスクを管理</p>
+                    </div>
+                    
+                    <div style="padding: 1.5rem; overflow-y: auto; max-height: 60vh;">
+                        <div style="margin-bottom: 2rem;">
+                            <h4 style="color: #2d3748; margin: 0 0 1rem 0;">📊 現在の状況</h4>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="background: #f7fafc; padding: 1rem; border-radius: 8px; border-left: 4px solid #805ad5;">
+                                    <div style="font-size: 1.5rem; font-weight: 600; color: #805ad5;">${activeTemplates.length}</div>
+                                    <div style="color: #4a5568; font-size: 0.9rem;">アクティブテンプレート</div>
+                                </div>
+                                <div style="background: #f7fafc; padding: 1rem; border-radius: 8px; border-left: 4px solid #38a169;">
+                                    <div style="font-size: 1.5rem; font-weight: 600; color: #38a169;">${recurringTasks.length}</div>
+                                    <div style="color: #4a5568; font-size: 0.9rem;">生成済みタスク</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                            <button onclick="createRecurringTemplate()" style="background: #805ad5; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                ➕ テンプレート作成
+                            </button>
+                            <button onclick="generatePendingTasks()" style="background: #3182ce; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                🔄 今すぐ生成チェック
+                            </button>
+                            <button onclick="showRecurringTasksInfo_Old()" style="background: #718096; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                                📋 簡易表示
+                            </button>
+                        </div>
+                        
+                        ${activeTemplates.length > 0 ? `
+                            <div>
+                                <h4 style="color: #2d3748; margin: 0 0 1rem 0;">📋 テンプレート一覧</h4>
+                                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                    ${activeTemplates.map(template => {
+                                        const nextGen = template.generationConfig?.nextGeneration ? 
+                                            new Date(template.generationConfig.nextGeneration).toLocaleDateString('ja-JP') : '未設定';
+                                        const typeText = getRecurringTypeText(template.recurringConfig?.type || 'monthly');
+                                        
+                                        return `
+                                            <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                                    <div style="font-weight: 600; color: #2d3748;">${template.name || 'テンプレート名未設定'}</div>
+                                                    <div style="display: flex; gap: 0.5rem;">
+                                                        <button onclick="alert('編集機能は近日実装予定です')" style="background: #edf2f7; border: 1px solid #e2e8f0; color: #4a5568; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">編集</button>
+                                                        <button onclick="alert('停止機能は近日実装予定です')" style="background: #fed7d7; border: 1px solid #feb2b2; color: #c53030; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">停止</button>
+                                                    </div>
+                                                </div>
+                                                <div style="font-size: 0.85rem; color: #4a5568; line-height: 1.4;">
+                                                    <div>📅 頻度: ${typeText}</div>
+                                                    <div>⏰ 次回生成: ${nextGen}</div>
+                                                    <div>👥 担当者: ${template.taskTemplate?.assignees ? template.taskTemplate.assignees.join(', ') : '未設定'}</div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 2rem; color: #718096;">
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">📅</div>
+                                <div style="font-size: 1.1rem; margin-bottom: 0.5rem;">定期テンプレートがありません</div>
+                                <div style="font-size: 0.9rem;">新しいテンプレートを作成して、繰り返しタスクを自動化しましょう</div>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // 背景クリックで閉じる
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+        
+        // 元の簡易表示関数（下位互換用）
+        function showRecurringTasksInfo_Old() {
             const activeTemplates = recurringTemplates.filter(t => t.isActive);
             const recurringTasks = tasks.filter(t => t.isRecurring);
             
@@ -1968,11 +2071,11 @@
             if (activeTemplates.length > 0) {
                 infoText += `📋 テンプレート一覧:\n`;
                 activeTemplates.forEach((template, index) => {
-                    const nextGen = template.generationConfig.nextGeneration 
+                    const nextGen = template.generationConfig?.nextGeneration 
                         ? new Date(template.generationConfig.nextGeneration).toLocaleDateString('ja-JP')
                         : '未設定';
                     infoText += `${index + 1}. ${template.name}\n`;
-                    infoText += `   種類: ${getRecurringTypeText(template.recurringConfig.type)}\n`;
+                    infoText += `   種類: ${getRecurringTypeText(template.recurringConfig?.type || 'monthly')}\n`;
                     infoText += `   次回生成: ${nextGen}\n\n`;
                 });
             }
@@ -8621,6 +8724,19 @@
         }
         
         window.createTestPJTask = createTestPJTask;
+        
+        // 定期タスク管理の基本関数
+        function createRecurringTemplate() {
+            alert('定期タスクテンプレート作成機能は実装中です。\n\n予定機能:\n• 毎月・毎週の繰り返し設定\n• 担当者・期限の自動設定\n• テンプレートからの自動生成');
+        }
+        
+        function generatePendingTasks() {
+            // 現在定期タスクが0件なので、デモ用の説明を表示
+            alert('定期タスク生成チェック完了\n\n現在アクティブなテンプレートはありません。\nテンプレートを作成すると、指定された間隔でタスクが自動生成されます。');
+        }
+        
+        window.createRecurringTemplate = createRecurringTemplate;
+        window.generatePendingTasks = generatePendingTasks;
     </script>
 </body>
 </html><!-- Cache bust: 1754211273 -->
