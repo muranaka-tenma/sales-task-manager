@@ -1804,12 +1804,22 @@
                 }
                 
                 modal.dataset.unifiedMode = 'true';
-                modal.classList.add('show');
-                
-                // ページトップにスクロール
+                // ページトップにスクロールしてからモーダル表示
                 window.scrollTo(0, 0);
                 
-                console.log('👥 [PJ CREATE] Successfully opened PJ task creation modal');
+                // 少し遅延してモーダル表示（スクロールを確実に）
+                setTimeout(() => {
+                    modal.classList.add('show');
+                    
+                    // モーダル表示後に再度トップスクロール（確実に）
+                    setTimeout(() => {
+                        window.scrollTo(0, 0);
+                        document.body.scrollTop = 0; // Safariにも対応
+                        document.documentElement.scrollTop = 0; // IEにも対応
+                    }, 10);
+                    
+                    console.log('👥 [PJ CREATE] Successfully opened PJ task creation modal');
+                }, 50);
                 
             } catch (error) {
                 console.error('👥 [PJ CREATE ERROR]', error);
@@ -2185,13 +2195,22 @@
             
             // 統一作成モードを設定
             document.getElementById('task-modal').dataset.unifiedMode = 'true';
-            document.getElementById('task-modal').classList.add('show');
-            
-            // ページトップにスクロール
+            // ページトップにスクロールしてからモーダル表示
             window.scrollTo(0, 0);
             
-            // メンション機能を初期化
-            setTimeout(() => initMentionListeners(), 100);
+            setTimeout(() => {
+                document.getElementById('task-modal').classList.add('show');
+                
+                // モーダル表示後に再度トップスクロール（確実に）
+                setTimeout(() => {
+                    window.scrollTo(0, 0);
+                    document.body.scrollTop = 0; // Safariにも対応
+                    document.documentElement.scrollTop = 0; // IEにも対応
+                }, 10);
+                
+                // メンション機能を初期化
+                setTimeout(() => initMentionListeners(), 100);
+            }, 50);
         }
         
         // タスク作成・編集
@@ -2224,13 +2243,22 @@
             // カラム情報を保存
             document.getElementById('task-modal').dataset.targetColumn = columnId;
             document.getElementById('task-modal').dataset.unifiedMode = 'false';
-            document.getElementById('task-modal').classList.add('show');
-            
-            // ページトップにスクロール
+            // ページトップにスクロールしてからモーダル表示
             window.scrollTo(0, 0);
             
-            // メンション機能を初期化
-            setTimeout(() => initMentionListeners(), 100);
+            setTimeout(() => {
+                document.getElementById('task-modal').classList.add('show');
+                
+                // モーダル表示後に再度トップスクロール（確実に）
+                setTimeout(() => {
+                    window.scrollTo(0, 0);
+                    document.body.scrollTop = 0; // Safariにも対応
+                    document.documentElement.scrollTop = 0; // IEにも対応
+                }, 10);
+                
+                // メンション機能を初期化
+                setTimeout(() => initMentionListeners(), 100);
+            }, 50);
         }
         
         function updateAssigneeOptions() {
@@ -2359,13 +2387,22 @@
             // コメント入力を有効化
             document.getElementById('comment-input').disabled = false;
             
-            document.getElementById('task-modal').classList.add('show');
-            
-            // ページトップにスクロール
+            // ページトップにスクロールしてからモーダル表示
             window.scrollTo(0, 0);
             
-            // メンション機能を初期化
-            setTimeout(() => initMentionListeners(), 100);
+            setTimeout(() => {
+                document.getElementById('task-modal').classList.add('show');
+                
+                // モーダル表示後に再度トップスクロール（確実に）
+                setTimeout(() => {
+                    window.scrollTo(0, 0);
+                    document.body.scrollTop = 0; // Safariにも対応
+                    document.documentElement.scrollTop = 0; // IEにも対応
+                }, 10);
+                
+                // メンション機能を初期化
+                setTimeout(() => initMentionListeners(), 100);
+            }, 50);
         }
         
         function displayAttachedFiles(attachments) {
