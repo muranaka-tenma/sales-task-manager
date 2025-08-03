@@ -1296,22 +1296,6 @@
                 </div>
                 
 
-                <!-- タスクテンプレート管理 -->
-                <div class="setting-section" style="margin-top: 2rem; background: #f0f9ff; padding: 2rem; border-radius: 12px; border: 1px solid #bae6fd;">
-                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #0ea5e9;">📋 タスクテンプレート</h3>
-                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <span style="font-weight: 500;">保存済みテンプレート</span>
-                            <button onclick="showCreateTemplateModal()" style="padding: 0.5rem 1rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
-                                ➕ 新規テンプレート
-                            </button>
-                        </div>
-                        <div id="template-list" style="min-height: 100px;">
-                            <!-- テンプレート一覧がここに表示される -->
-                        </div>
-                    </div>
-                </div>
-
                 <!-- 表示設定 -->
                 <div class="setting-section" style="margin-top: 2rem; background: #f0fdf4; padding: 2rem; border-radius: 12px; border: 1px solid #bbf7d0;">
                     <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #22c55e;">🎯 表示設定</h3>
@@ -1855,7 +1839,21 @@
         if (assignees.length === 0) {
             // 担当者が空の場合、システムユーザーから取得
             const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-            assignees = users.map(user => user.name);
+            if (users.length > 0) {
+                assignees = users.map(user => user.name);
+                console.log('👥 [ASSIGNEE CLEANUP] システムユーザーから担当者を復元:', assignees);
+            } else {
+                // システムユーザーも空の場合、現在のユーザーを追加
+                const currentUser = getCurrentUser();
+                if (currentUser && currentUser.name && currentUser.name !== 'ゲスト') {
+                    assignees = [currentUser.name];
+                    console.log('👤 [ASSIGNEE CLEANUP] 現在のユーザーを担当者として設定:', assignees);
+                } else {
+                    // 最後の手段として「未設定」を追加
+                    assignees = ['未設定'];
+                    console.log('⚠️ [ASSIGNEE CLEANUP] フォールバック担当者を設定:', assignees);
+                }
+            }
         }
         localStorage.setItem('taskAssignees', JSON.stringify(assignees));
         
@@ -2922,6 +2920,12 @@
         function removeAttachment(index) {
             if (editingTask && editingTask.attachments) {
                 editingTask.attachments.splice(index, 1);
+                // タスクリストも更新
+                const taskIndex = tasks.findIndex(t => t.id === editingTask.id);
+                if (taskIndex !== -1) {
+                    tasks[taskIndex].attachments = editingTask.attachments;
+                    saveTasks();
+                }
                 displayAttachedFiles(editingTask.attachments);
             }
         }
@@ -3131,6 +3135,13 @@
                 // 編集中のタスクにコメント追加
                 if (!editingTask.comments) editingTask.comments = [];
                 editingTask.comments.push(newComment);
+                
+                // tasksリストも更新
+                const taskIndex = tasks.findIndex(t => t.id === editingTask.id);
+                if (taskIndex !== -1) {
+                    tasks[taskIndex].comments = editingTask.comments;
+                }
+                
                 saveTasks();
                 displayComments(editingTask.comments);
                 
@@ -9631,6 +9642,148 @@
             window.location.href = 'my-profile.html#development-log';
         }
         
+        // ファイルインポート処理
+        function handleFileImport(event) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+            
+            console.log(`📁 [IMPORT] ${files.length} files selected`);
+            
+            for (let file of files) {
+                const fileType = file.type;
+                const fileName = file.name.toLowerCase();
+                
+                if (fileName.endsWith('.csv') || fileName.endsWith('.txt')) {
+                    // CSVファイル処理
+                    importCSV(file);
+                } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                    // Excelファイル処理
+                    alert('Excel形式のインポートは現在対応していません。CSV形式でエクスポートしてください。');
+                } else if (fileType.startsWith('image/')) {
+                    // 画像ファイル処理（OCR）
+                    importImageWithOCR(file);
+                } else {
+                    alert(`サポートされていないファイル形式です: ${file.name}`);
+                }
+            }
+            
+            // ファイル選択をリセット
+            event.target.value = '';
+        }
+        
+        // CSV インポート処理
+        function importCSV(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const csv = e.target.result;
+                    const lines = csv.split('\n').filter(line => line.trim());
+                    
+                    if (lines.length < 2) {
+                        alert('CSVファイルにデータが不足しています');
+                        return;
+                    }
+                    
+                    // 簡単なCSV解析（タスク名, 期限, 担当者, 優先度, メモの順）
+                    let importedCount = 0;
+                    const currentTime = new Date();
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        const columns = lines[i].split(',').map(col => col.trim().replace(/"/g, ''));
+                        
+                        if (columns.length >= 1 && columns[0]) {
+                            const taskTitle = columns[0];
+                            const deadline = columns[1] || new Date(currentTime.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                            const assignee = columns[2] || getCurrentUser().name;
+                            const priority = columns[3] || 'medium';
+                            const memo = columns[4] || '';
+                            
+                            const newTask = {
+                                id: Date.now() + i,
+                                title: taskTitle,
+                                deadline: new Date(deadline + 'T23:59:59').toISOString(),
+                                priority: ['high', 'medium', 'low'].includes(priority) ? priority : 'medium',
+                                assignees: [assignee],
+                                assignee: assignee,
+                                memo: memo,
+                                columnId: 'todo',
+                                completed: false,
+                                createdAt: new Date().toISOString(),
+                                comments: [],
+                                attachments: []
+                            };
+                            
+                            tasks.unshift(newTask);
+                            importedCount++;
+                        }
+                    }
+                    
+                    if (importedCount > 0) {
+                        saveTasks();
+                        render();
+                        alert(`${importedCount}件のタスクをインポートしました`);
+                    } else {
+                        alert('インポート可能なデータが見つかりませんでした');
+                    }
+                    
+                } catch (error) {
+                    console.error('CSV import error:', error);
+                    alert('CSVファイルの読み込みに失敗しました');
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        // 画像OCRインポート処理
+        function importImageWithOCR(file) {
+            if (typeof Tesseract === 'undefined') {
+                alert('画像読み取り機能が利用できません');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageData = e.target.result;
+                
+                // OCR処理のローディング表示
+                const loadingMsg = alert('画像からテキストを読み取り中...');
+                
+                Tesseract.recognize(imageData, 'jpn+eng')
+                    .then(result => {
+                        const text = result.data.text.trim();
+                        if (text) {
+                            // 読み取ったテキストからタスクを作成
+                            const newTask = {
+                                id: Date.now(),
+                                title: `📷 ${file.name}から読み取り`,
+                                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                                priority: 'medium',
+                                assignees: [getCurrentUser().name],
+                                assignee: getCurrentUser().name,
+                                memo: `画像から読み取ったテキスト:\n${text}`,
+                                columnId: 'todo',
+                                completed: false,
+                                createdAt: new Date().toISOString(),
+                                comments: [],
+                                attachments: []
+                            };
+                            
+                            tasks.unshift(newTask);
+                            saveTasks();
+                            render();
+                            alert(`画像からタスクを作成しました:\n${text.substring(0, 100)}...`);
+                        } else {
+                            alert('画像からテキストを読み取れませんでした');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('OCR error:', error);
+                        alert('画像の読み取りに失敗しました');
+                    });
+            };
+            reader.readAsDataURL(file);
+        }
+        
         // グローバル関数として公開
         window.checkTaskEvidence = checkTaskEvidence;
         window.promptForEvidence = promptForEvidence;
@@ -9638,6 +9791,7 @@
         window.toggleHamburgerMenu = toggleHamburgerMenu;
         window.updateHamburgerMenu = updateHamburgerMenu;
         window.logout = logout;
+        window.handleFileImport = handleFileImport;
     </script>
     
     <!-- ハンバーガーメニュー -->
@@ -9683,13 +9837,18 @@
             </a>
         </div>
         
-        <div class="menu-section" id="admin-menu-section" style="display: none;">
-            <div class="menu-section-title">管理機能</div>
+        <!-- PJ設定は全ユーザーアクセス可能 -->
+        <div class="menu-section">
+            <div class="menu-section-title">プロジェクト</div>
             <a href="pj-settings.html" class="menu-item" onclick="toggleHamburgerMenu();">
                 <span>🏗️</span>
                 <span>PJ設定・管理</span>
                 <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">プロジェクト作成・カラム設定</div>
             </a>
+        </div>
+
+        <div class="menu-section" id="admin-menu-section" style="display: none;">
+            <div class="menu-section-title">管理機能</div>
             <a href="user-management.html" class="menu-item" onclick="toggleHamburgerMenu();">
                 <span>👥</span>
                 <span>ユーザー管理</span>
@@ -9711,6 +9870,9 @@
     
     <!-- メニューオーバーレイ -->
     <div class="menu-overlay" id="menu-overlay" onclick="toggleHamburgerMenu()"></div>
+    
+    <!-- 隠しファイル入力 -->
+    <input type="file" id="file-import" accept=".csv,.xlsx,.xls,.txt,.png,.jpg,.jpeg" multiple style="display: none;" onchange="handleFileImport(event)">
 </body>
 </html><!-- Cache bust: 1754211273 -->
 <!-- UI Update: 1754211273 -->

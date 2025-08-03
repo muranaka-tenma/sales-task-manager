@@ -324,9 +324,9 @@
             <form id="project-form">
                 <div class="form-group">
                     <label class="form-label">プロジェクトID *</label>
-                    <input type="text" id="project-id" class="form-input" required placeholder="例: PJ001, PROJECT_2025_001" maxlength="20">
+                    <input type="number" id="project-id" class="form-input" required placeholder="例: 001, 2025001" min="1" max="999999">
                     <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
-                        英数字・アンダースコアのみ使用可能（20文字以内）
+                        数字のみ（6桁以内）
                     </div>
                 </div>
                 
@@ -351,7 +351,7 @@
                 </div>
                 
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-success" id="save-project-btn">
                         💾 保存
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">
@@ -382,9 +382,9 @@
         
         // プロジェクトIDの検証
         function validateProjectId(projectId) {
-            // 英数字・アンダースコアのみ許可
-            const validPattern = /^[a-zA-Z0-9_]+$/;
-            return validPattern.test(projectId) && projectId.length <= 20;
+            // 数字のみ許可（1-999999）
+            const numId = parseInt(projectId);
+            return !isNaN(numId) && numId >= 1 && numId <= 999999;
         }
         
         // 現在のユーザー情報を取得
@@ -424,6 +424,10 @@
                 const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
                 const projectTasks = tasks.filter(task => task.projectId === projectId);
                 
+                // 削除ボタンの表示制御
+                const currentUser = getCurrentUser();
+                const canDelete = currentUser.role !== 'user';
+                
                 return `
                     <div class="project-item">
                         <div class="project-info">
@@ -437,9 +441,11 @@
                             <button class="btn btn-secondary" onclick="editProject('${projectId}')">
                                 ✏️ 編集
                             </button>
-                            <button class="btn btn-danger" onclick="deleteProject('${projectId}')">
-                                🗑️ 削除
-                            </button>
+                            ${canDelete ? `
+                                <button class="btn btn-danger" onclick="deleteProject('${projectId}')">
+                                    🗑️ 削除
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -533,6 +539,7 @@
         
         // プロジェクト保存
         function saveProject(event) {
+            console.log('🔍 [PJ SAVE] Function called');
             event.preventDefault();
             
             const projectId = document.getElementById('project-id').value.trim();
@@ -546,7 +553,7 @@
             }
             
             if (!validateProjectId(projectId)) {
-                alert('プロジェクトIDは英数字・アンダースコアのみ使用可能です（20文字以内）');
+                alert('プロジェクトIDは1〜999999の数字で入力してください');
                 return;
             }
             
@@ -596,6 +603,14 @@
         
         // プロジェクト削除
         function deleteProject(projectId) {
+            const currentUser = getCurrentUser();
+            
+            // 一般ユーザーは削除不可
+            if (currentUser.role === 'user') {
+                alert('プロジェクトの削除権限がありません。管理者にお問い合わせください。');
+                return;
+            }
+            
             const settings = getProjectSettings();
             const project = settings[projectId];
             
@@ -647,7 +662,10 @@
         }
         
         // フォームサブミット処理
-        document.getElementById('project-form').addEventListener('submit', saveProject);
+        document.getElementById('project-form').addEventListener('submit', function(e) {
+            console.log('🔍 [PJ SAVE] Form submit event triggered');
+            saveProject(e);
+        });
         
         // モーダル外クリックで閉じる
         document.getElementById('project-modal').addEventListener('click', function(e) {
