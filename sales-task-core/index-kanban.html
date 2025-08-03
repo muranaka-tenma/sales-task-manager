@@ -2494,20 +2494,29 @@
             console.log(`🎴 [CARD] Task ${task.id} - Current time: ${now.toISOString()}, deadline < now: ${deadline < now}`);
             console.log(`🎴 [CARD] Task ${task.id} - isOverdueTask: ${isOverdueTask}, draggable: ${!isBulkMode}`);
             
-            // 経過日数を計算
+            // 経過時間を計算
             let daysSinceCreated = 0;
-            let daysText = '';
+            let elapsedText = '';
+            let isStale = false; // 3日以上停滞フラグ
+            
             if (task.createdAt) {
                 const createdDate = new Date(task.createdAt);
                 const now = new Date();
-                daysSinceCreated = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+                const timeDiff = now - createdDate;
+                const hoursDiff = Math.floor(timeDiff / (1000 * 60 * 60));
+                daysSinceCreated = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
                 
-                if (daysSinceCreated === 0) {
-                    daysText = '今日作成';
-                } else if (daysSinceCreated === 1) {
-                    daysText = '1日前';
+                if (hoursDiff < 24) {
+                    // 24時間以内は時間表示
+                    elapsedText = `${String(hoursDiff).padStart(2, '0')}h`;
                 } else {
-                    daysText = `${daysSinceCreated}日前`;
+                    // 24時間以上は日数表示
+                    elapsedText = `${daysSinceCreated}d`;
+                }
+                
+                // 3日以上で完了していないタスクは停滞フラグ
+                if (daysSinceCreated >= 3 && task.columnId !== 'done') {
+                    isStale = true;
                 }
             }
             
@@ -2546,8 +2555,8 @@
                      draggable="${!isBulkMode && !(isFromOverdueColumn || isOverdueTask)}"
                      ${(!isBulkMode && !(isFromOverdueColumn || isOverdueTask)) ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
                      onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
-                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : ((isFromOverdueColumn || isOverdueTask) ? 'default' : 'move')}; ${(isFromOverdueColumn || isOverdueTask) ? 'opacity: 0.9;' : ''}"
-                     title="${(isFromOverdueColumn || isOverdueTask) ? '期限切れタスクです。移動するには編集で期限を延長してください。' : ''}">
+                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : ((isFromOverdueColumn || isOverdueTask) ? 'default' : 'move')}; ${(isFromOverdueColumn || isOverdueTask) ? 'opacity: 0.9;' : ''} ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
+                     title="${(isFromOverdueColumn || isOverdueTask) ? '期限切れタスクです。移動するには編集で期限を延長してください。' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
                     ${checkboxHtml}
                     <div class="task-title">${task.title}</div>
                     <div class="task-meta">
@@ -2556,7 +2565,10 @@
                                 ${deadlineIcon} ${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
                             </span>
                         </div>
-                        ${daysText ? `<div style="font-size: 0.65rem; color: #a0aec0; margin-bottom: 0.25rem;">📅 ${daysText}</div>` : ''}
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            ${elapsedText ? `<span style="font-size: 0.75rem; color: ${isStale ? '#e53e3e' : '#718096'}; font-weight: ${isStale ? '600' : '400'};">⏱️ ${elapsedText}</span>` : ''}
+                            ${isStale ? '<span style="font-size: 0.75rem; color: #e53e3e;">🚨 停滞中</span>' : ''}
+                        </div>
                         <span class="task-priority-badge priority-${task.priority}">
                             ${priorityText}
                         </span>
@@ -7899,6 +7911,37 @@
         
         // 初期化実行
         init();
+        
+        // テスト用: 停滞タスクを作成（コンソールから実行可能）
+        function createTestStaleTask() {
+            const staleDate = new Date();
+            staleDate.setDate(staleDate.getDate() - 5); // 5日前
+            
+            const testTask = {
+                id: Date.now(),
+                title: '【テスト】5日前に作成されたタスク',
+                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7日後の期限
+                priority: 'medium',
+                columnId: 'todo',
+                assignee: '田中部長',
+                assignees: ['田中部長'],
+                memo: 'これは停滞タスクのテスト用です。3日以上経過しているため赤枠表示されます。',
+                createdAt: staleDate.toISOString(),
+                isMainTask: false
+            };
+            
+            tasks.push(testTask);
+            taskCounter++;
+            
+            saveTasks();
+            renderKanban();
+            updateStats();
+            
+            alert('5日前に作成されたテストタスクを追加しました。\n赤枠で表示され、停滞中カウントに含まれます。');
+        }
+        
+        // グローバルに公開（コンソールから呼び出し可能）
+        window.createTestStaleTask = createTestStaleTask;
     </script>
 </body>
 </html><!-- Cache bust: 1754142681 -->
