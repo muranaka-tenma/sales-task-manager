@@ -5470,7 +5470,7 @@
                 // スクリーンショット表示時は縦列レイアウト用にスタイル調整
                 const cardStyle = originalImageDataUrl ? 
                     `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; margin-bottom: 0;` :
-                    `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content; width: 100%;`;
+                    `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content; width: 100%; min-width: 320px;`;
                 
                 content += `
                     <div style="${cardStyle}" 
@@ -5512,7 +5512,7 @@
                             <div style="display: flex; flex-direction: column; gap: 0.6rem;">
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                                     <label style="font-weight: 600; min-width: 80px; font-size: 0.9rem; color: #333; flex-shrink: 0;">種類:</label>
-                                    <select onchange="updateTaskType(${index}, this.value)" style="flex: 1; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white; min-width: 0;">
+                                    <select onchange="updateTaskType(${index}, this.value)" style="flex: 1; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: white; min-width: 120px; width: auto;">
                                         <option value="main" ${task.isMainTask ? 'selected' : ''}>📋 メイン</option>
                                         <option value="comment" ${!task.isMainTask ? 'selected' : ''}>💬 コメント</option>
                                         <option value="skip">⏭️ スキップ</option>
@@ -5522,7 +5522,7 @@
                                 ${!task.isMainTask ? `
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                                     <label style="font-weight: 600; min-width: 80px; font-size: 0.9rem; color: #333; flex-shrink: 0;">親:</label>
-                                    <select onchange="updateTaskParent(${index}, this.value)" style="flex: 1; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white; min-width: 0;" id="parent-select-${index}">
+                                    <select onchange="updateTaskParent(${index}, this.value)" style="flex: 1; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; background: white; min-width: 150px; width: auto;" id="parent-select-${index}">
                                         <option value="">－</option>
                                         ${mainTaskOptions}
                                     </select>
@@ -5530,7 +5530,7 @@
                                 ` : `
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                                     <label style="font-weight: 600; min-width: 80px; font-size: 0.9rem; color: #333; flex-shrink: 0;">列:</label>
-                                    <select onchange="updateTaskColumn(${index}, this.value)" style="flex: 1; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white; min-width: 0;" id="column-select-${index}">
+                                    <select onchange="updateTaskColumn(${index}, this.value)" style="flex: 1; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: white; min-width: 130px; width: auto;" id="column-select-${index}">
                                         ${columns.map(c => `<option value="${c.id}" ${task.columnId === c.id ? 'selected' : ''}>${c.title}</option>`).join('')}
                                     </select>
                                 </div>
@@ -5538,15 +5538,15 @@
                                 <!-- 担当者設定 -->
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                                     <label style="font-weight: 600; min-width: 80px; font-size: 0.9rem; color: #333; flex-shrink: 0;">担当:</label>
-                                    <input type="text" onchange="updateTaskAssignee(${index}, this.value)" value="${task.assignee}" style="flex: 1; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white; min-width: 0;" placeholder="担当者名" id="assignee-input-${index}">
+                                    <input type="text" onchange="updateTaskAssignee(${index}, this.value)" value="${task.assignee}" style="flex: 1; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; background: white; min-width: 100px;" placeholder="担当者名" id="assignee-input-${index}">
                                 </div>
                                 
                                 <!-- 期限・時間設定 -->
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                                     <label style="font-weight: 600; min-width: 80px; font-size: 0.9rem; color: #333; flex-shrink: 0;">期限:</label>
-                                    <div style="display: flex; gap: 0.5rem; flex: 1;">
-                                        <input type="date" onchange="updateTaskDeadline(${index}, this.value)" value="${task.deadline}" style="flex: 1; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white; min-width: 0;" id="deadline-input-${index}">
-                                        <input type="time" onchange="updateTaskTime(${index}, this.value)" value="${task.time}" style="flex: 0 0 100px; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white;" id="time-input-${index}">
+                                    <div style="display: flex; gap: 0.5rem; flex: 1; min-width: 0;">
+                                        <input type="date" onchange="updateTaskDeadline(${index}, this.value)" value="${task.deadline}" style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; background: white; min-width: 130px;" id="deadline-input-${index}">
+                                        <input type="time" onchange="updateTaskTime(${index}, this.value)" value="${task.time}" style="flex: 0 0 90px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; background: white;" id="time-input-${index}">
                                     </div>
                                 </div>
                                 `}
