@@ -1423,6 +1423,24 @@
                     </div>
                 </div>
                 
+                <div class="setting-section" style="margin-top: 2rem; background: #f0f9ff; padding: 2rem; border-radius: 12px; border: 1px solid #93c5fd;">
+                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #3b82f6;">📋 タスクテンプレート管理</h3>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                            <button onclick="showCreateTemplateModal()" style="padding: 0.75rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+                                ➕ 新規テンプレート作成
+                            </button>
+                            <button onclick="loadTemplateList()" style="padding: 0.75rem 1.5rem; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+                                🔄 一覧を更新
+                            </button>
+                        </div>
+                        <div id="template-list" style="min-height: 200px; border: 1px solid #d1d5db; border-radius: 8px; background: white; padding: 1rem;">
+                            <!-- テンプレート一覧がここに動的に表示される -->
+                            <div style="text-align: center; color: #6b7280; padding: 2rem;">テンプレートを読み込み中...</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="setting-section" style="margin-top: 2rem; background: #fef2f2; padding: 2rem; border-radius: 12px; border: 1px solid #fecaca;">
                     <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #ef4444;">🔄 データ管理</h3>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
@@ -1853,28 +1871,12 @@
             return task;
         });
         
-        // 停滞タスクのテスト用サンプルを追加（初回のみ）
-        const hasStaleTestTask = tasks.some(task => task.title.includes('【停滞テスト】'));
-        if (!hasStaleTestTask) {
-            const staleDate = new Date();
-            staleDate.setDate(staleDate.getDate() - 4); // 4日前
-            
-            const staleTestTask = {
-                id: Date.now(),
-                title: '【停滞テスト】4日前から進行中のタスク',
-                deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3日後期限
-                priority: 'high',
-                columnId: 'inprogress',
-                assignee: '佐藤課長',
-                assignees: ['佐藤課長'],
-                memo: '重要な案件です。4日前から進行中ですが、何らかの理由で停滞しています。',
-                createdAt: staleDate.toISOString(),
-                isMainTask: false
-            };
-            
-            tasks.push(staleTestTask);
-            console.log('📊 [INIT] Added stale test task for demonstration');
-        }
+        // 停滞タスクのテスト用サンプルを追加（初回のみ）- 無効化
+        // const hasStaleTestTask = tasks.some(task => task.title.includes('【停滞テスト】'));
+        // if (!hasStaleTestTask) {
+        //     // 停滞テストタスクの自動生成を無効化 - ユーザーリクエストによる
+        //     console.log('🚫 [INIT] Stale test task creation disabled');
+        // }
         
         // 変更があった場合は保存
         localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
@@ -5010,44 +5012,11 @@
             // メンションシステムを初期化
             setupMentionSystem();
             
-            // 定期タスクのサンプルテンプレートを初期化
-            if (recurringTemplates.length === 0) {
-                const sampleTemplate = {
-                    id: "recurring_001",
-                    name: "月次営業レポート",
-                    taskTemplate: {
-                        title: "{{YYYY年MM月}} 営業レポート作成",
-                        priority: "high",
-                        assignees: [],
-                        memo: "前月実績をまとめて提出してください",
-                        projectId: null,
-                        projectName: null,
-                        approvers: []
-                    },
-                    recurringConfig: {
-                        type: "monthly",
-                        interval: 1,
-                        dayOfMonth: 25
-                    },
-                    deadlineConfig: {
-                        relativeDays: 5,
-                        timeOfDay: "17:00"
-                    },
-                    generationConfig: {
-                        advanceDays: 3,
-                        maxFutureGeneration: 2,
-                        lastGenerated: null,
-                        nextGeneration: new Date().toISOString()
-                    },
-                    isActive: true,
-                    createdAt: new Date().toISOString(),
-                    createdBy: "システム"
-                };
-                
-                recurringTemplates.push(sampleTemplate);
-                saveRecurringTemplates();
-                console.log('🔄 [INIT] Created sample recurring template');
-            }
+            // 定期タスクのサンプルテンプレートを初期化 - 無効化
+            // if (recurringTemplates.length === 0) {
+            //     // サンプルテンプレートの自動生成を無効化 - ユーザーリクエストによる
+            //     console.log('🚫 [INIT] Sample recurring template creation disabled');
+            // }
             
             // 定期タスクの自動生成チェック
             checkAndGenerateRecurringTasks();
@@ -10064,15 +10033,15 @@
         
         <div class="menu-section">
             <div class="menu-section-title">タスク管理</div>
-            <a href="#" class="menu-item" onclick="showCreateTemplateModal(); toggleHamburgerMenu(); return false;">
+            <a href="#" class="menu-item" onclick="openSettingsModal(); setTimeout(() => { loadTemplateList(); document.querySelector('[href=\'#template-list\']')?.scrollIntoView(); }, 300); toggleHamburgerMenu(); return false;">
                 <span>📋</span>
-                <span>タスクテンプレート</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テンプレート作成・管理</div>
+                <span>テンプレート一覧</span>
+                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テンプレート表示・作成・管理</div>
             </a>
-            <a href="#" class="menu-item" onclick="document.getElementById('file-import').click(); toggleHamburgerMenu(); return false;">
-                <span>📂</span>
-                <span>ファイル・データ取込</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">CSV・Excel・画像読込</div>
+            <a href="#" class="menu-item" onclick="openSettingsModal(); setTimeout(() => document.getElementById('import-text').focus(), 300); toggleHamburgerMenu(); return false;">
+                <span>📝</span>
+                <span>テキスト・OCRインポート</span>
+                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テキスト・画像からタスク作成</div>
             </a>
         </div>
         
