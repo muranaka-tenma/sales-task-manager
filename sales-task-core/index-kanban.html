@@ -3495,6 +3495,14 @@
                 }
                 
                 // 編集
+                console.log('🔍 [EDIT] Before updating editingTask:', {
+                    id: editingTask.id,
+                    title: editingTask.title,
+                    projectId: editingTask.projectId,
+                    projectName: editingTask.projectName,
+                    columnId: editingTask.columnId
+                });
+                
                 editingTask.title = title;
                 editingTask.deadline = deadline.toISOString();
                 editingTask.priority = priority;
@@ -3504,6 +3512,14 @@
                 editingTask.memo = memo;
                 editingTask.updatedAt = new Date().toISOString(); // 更新時刻を記録
                 
+                console.log('🔍 [EDIT] After updating editingTask:', {
+                    id: editingTask.id,
+                    title: editingTask.title,
+                    projectId: editingTask.projectId,
+                    projectName: editingTask.projectName,
+                    columnId: editingTask.columnId
+                });
+                
                 // Phase 2: PJタスクの編集ではPJ情報は変更しない
                 console.log(`📝 [TASK EDIT] Updated task: ${editingTask.title}`);
                 
@@ -3511,6 +3527,25 @@
                 if (attachments.length > 0) {
                     if (!editingTask.attachments) editingTask.attachments = [];
                     editingTask.attachments.push(...attachments);
+                }
+                
+                // ★★★ 重要：tasks配列内の対応するタスクも更新 ★★★
+                const taskIndex = tasks.findIndex(t => t.id === editingTask.id);
+                console.log('🔍 [CRITICAL] Task index in tasks array:', taskIndex);
+                
+                if (taskIndex !== -1) {
+                    console.log('🔍 [CRITICAL] Before updating tasks array - Task exists:', !!tasks[taskIndex]);
+                    // editingTaskの全ての変更をtasks配列に反映
+                    tasks[taskIndex] = { ...editingTask };
+                    console.log('🔍 [CRITICAL] After updating tasks array - Updated task:', {
+                        id: tasks[taskIndex].id,
+                        title: tasks[taskIndex].title,
+                        projectId: tasks[taskIndex].projectId,
+                        columnId: tasks[taskIndex].columnId
+                    });
+                } else {
+                    console.error('❌ [CRITICAL] Task not found in tasks array! EditingTask ID:', editingTask.id);
+                    console.log('🔍 [CRITICAL] Current tasks array IDs:', tasks.map(t => t.id));
                 }
             } else {
                 // 新規作成
@@ -3556,7 +3591,18 @@
             }
             
             console.log('💾 [EDIT SAVE] About to save tasks and render');
+            console.log('🔍 [EDIT SAVE] Tasks count before save:', tasks.length);
+            console.log('🔍 [EDIT SAVE] EditingTask details:', editingTask ? {
+                id: editingTask.id,
+                title: editingTask.title,
+                projectId: editingTask.projectId,
+                projectName: editingTask.projectName,
+                columnId: editingTask.columnId
+            } : 'null');
+            
             saveTasks();
+            console.log('🔍 [EDIT SAVE] Tasks count after save:', tasks.length);
+            
             console.log('🎨 [EDIT SAVE] About to call render()');
             render();
             console.log('🎨 [EDIT SAVE] render() completed');
