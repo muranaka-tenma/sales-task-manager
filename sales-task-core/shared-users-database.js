@@ -207,9 +207,9 @@ window.authenticateFromSharedDB = authenticateFromSharedDB;
 window.addUserToSharedDB = addUserToSharedDB;
 window.getUsersFromSharedDB = getUsersFromSharedDB;
 
-// ページ読み込み時に自動初期化
-if (typeof window !== 'undefined') {
-    window.addEventListener('DOMContentLoaded', () => {
-        initializeSharedUserDatabase();
-    });
-}
+// ページ読み込み時に自動初期化 - 無効化（ユーザーデータ保護のため）
+// if (typeof window !== 'undefined') {
+//     window.addEventListener('DOMContentLoaded', () => {
+//         initializeSharedUserDatabase();
+//     });
+// }

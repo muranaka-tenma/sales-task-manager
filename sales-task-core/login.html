@@ -266,10 +266,10 @@
     <script>
         // ページ読み込み時にログイン状態をチェック
         window.addEventListener('DOMContentLoaded', () => {
-            // 共有ユーザーデータベースを強制初期化
-            if (typeof initializeSharedUserDatabase === 'function') {
-                initializeSharedUserDatabase();
-            }
+            // 共有ユーザーデータベースの初期化をスキップ（ユーザーデータ保護）
+            // if (typeof initializeSharedUserDatabase === 'function') {
+            //     initializeSharedUserDatabase();
+            // }
             
             const currentUser = getCurrentUser();
             if (currentUser) {
@@ -314,11 +314,8 @@
         }
         
         function authenticate(email, password) {
-            // 共有データベースから認証を試行
-            if (typeof authenticateFromSharedDB === 'function') {
-                console.log('🔐 [AUTH] 共有データベースから認証を試行...');
-                return authenticateFromSharedDB(email, password);
-            }
+            // LocalStorageから直接認証（共有データベースをスキップ）
+            console.log('🔐 [AUTH] LocalStorageから直接認証...');
             
             // フォールバック：従来のLocalStorage認証
             console.log('⚠️ [AUTH] 共有データベースが利用できません。LocalStorageで認証します...');

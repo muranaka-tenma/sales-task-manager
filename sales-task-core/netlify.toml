@@ -2,13 +2,8 @@
   publish = "."
 
 [[redirects]]
-  from = "/"
-  to = "/login.html"
-  status = 200
-
-[[redirects]]
-  from = "/login"
-  to = "/login.html"
+  from = "/*"
+  to = "/index-kanban.html"
   status = 200
 
 [[headers]]
