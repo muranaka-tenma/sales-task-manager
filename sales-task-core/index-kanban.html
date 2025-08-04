@@ -11587,6 +11587,19 @@
         // グローバル関数として公開
         window.checkTaskEvidence = checkTaskEvidence;
         window.promptForEvidence = promptForEvidence;
+        // タスクスキップ機能（設定画面用）
+        function toggleTaskSkipModal(index) {
+            if (previewTasks[index]) {
+                previewTasks[index].isSkip = !previewTasks[index].isSkip;
+                displayLineByLinePreviewModal();
+            }
+        }
+        
+        // executeImportFromModal関数の追加
+        function executeImportFromModal() {
+            executeImportModal();
+        }
+        
         window.deleteTask = deleteTask;
         window.toggleHamburgerMenu = toggleHamburgerMenu;
         window.updateHamburgerMenu = updateHamburgerMenu;
