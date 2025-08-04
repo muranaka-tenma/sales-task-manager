@@ -1407,7 +1407,7 @@
                         <h4 style="margin: 0 0 1rem 0; color: #374151; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
                             📝 テキストからタスク作成
                         </h4>
-                        <textarea id="import-text-modal" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @ユーザー名 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @担当者名&#10;　資料準備済み（全角スペース）&#10;		会議室予約（タブ）&#10;C社フォローアップ" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
+                        <textarea id="import-text-modal" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @ユーザー名 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @担当者名&#10;　資料準備済み（全角スペース1個）&#10;		会議室予約（タブ）&#10;①営業報告書作成&#10;②クライアント訪問" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
                         
                         <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                             <button onclick="processImportText(true)" style="flex: 1; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
@@ -1524,9 +1524,10 @@
                         <h4 style="margin: 0 0 1rem 0; color: #374151; font-weight: 600;">📖 使用方法</h4>
                         <div style="font-size: 0.9rem; color: #4b5563; line-height: 1.6;">
                             <strong>📝 テキスト形式:</strong><br>
-                            • <strong>・</strong>で主タスク開始<br>
-                            • <strong>行頭スペース</strong>でサブタスク（コメントに自動追加）<br>
-                            • <strong>@担当者</strong>、<strong>日付</strong>、<strong>!!!</strong>高優先度を自動認識<br><br>
+                            • メインタスクは行頭から開始<br>
+                            • <strong>半角スペース2個</strong>または<strong>全角スペース1個</strong>でサブタスク（コメントに自動追加）<br>
+                            • <strong>@担当者</strong>、<strong>日付</strong>、<strong>!!!</strong>高優先度を自動認識<br>
+                            • <strong>①②③○●</strong>などの記号文字も自動で数字に変換<br><br>
                             <strong>📸 OCR注意事項:</strong><br>
                             • プリント文字のみ推奨（手書きは精度低）<br>
                             • シンプルなレイアウトのみ（表・図は非推奨）<br>
@@ -9677,8 +9678,8 @@
                     .replace(/⑥/g, '6').replace(/⑦/g, '7').replace(/⑧/g, '8').replace(/⑨/g, '9').replace(/⑩/g, '10')
                     .replace(/○/g, '0').replace(/●/g, '1');
                 
-                // インデント判定（元の機能）
-                const hasIndent = line.match(/^(\s{2,}|　+|\t+)/);
+                // インデント判定（半角スペース2個・全角スペース1個・タブ）
+                const hasIndent = line.match(/^(\s{2,}|　|\t+)/);
                 const isMainTask = !hasIndent;
                 
                 // 担当者抽出
@@ -10159,7 +10160,7 @@
             const mainTaskCount = previewTasksModal.filter(t => !t.isSkip && t.isMainTask).length;
             const commentCount = previewTasksModal.filter(t => !t.isSkip && !t.isMainTask).length;
             
-            const modeInfo = `<div style="font-size: 0.9rem; margin-top: 0.5rem;">✨ インデント行は自動でコメントに設定済み（半角スペース2個以上・全角スペース・タブ）。</div>`;
+            const modeInfo = `<div style="font-size: 0.9rem; margin-top: 0.5rem;">✨ インデント行は自動でコメントに設定済み（半角スペース2個・全角スペース1個・タブ）。</div>`;
             
             let content = `
                 <div style="margin-bottom: 1rem; padding: 0.75rem; background: #e8f5e8; border-radius: 4px; color: #2f7d2f;">
@@ -10998,6 +10999,9 @@
         window.updateHamburgerMenu = updateHamburgerMenu;
         window.logout = logout;
         window.handleFileImport = handleFileImport;
+        window.processImportText = processImportText;
+        window.toggleTaskSkipModal = toggleTaskSkipModal;
+        window.executeImportFromModal = executeImportFromModal;
     </script>
     
     <!-- ハンバーガーメニュー -->
