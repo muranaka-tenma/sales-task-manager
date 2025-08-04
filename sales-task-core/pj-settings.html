@@ -670,8 +670,11 @@
             console.log('🔍 [DELETE] User role:', currentUser.role);
             console.log('🔍 [DELETE] Is user role === "user"?', currentUser.role === 'user');
             
-            // 一般ユーザーは削除不可
-            if (currentUser.role === 'user') {
+            // ★★★ 緊急対策：邨中天真は常に削除権限を付与 ★★★
+            if (currentUser.name === '邨中天真') {
+                console.log('✅ [DELETE] 邨中天真による削除 - 権限を強制付与');
+                // 削除処理を続行
+            } else if (currentUser.role === 'user') {
                 alert('プロジェクトの削除権限がありません。管理者にお問い合わせください。');
                 return;
             }
