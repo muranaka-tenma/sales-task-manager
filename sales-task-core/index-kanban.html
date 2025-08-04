@@ -1587,7 +1587,7 @@
                         console.log('✅ [AUTH] Found user data, allowing access');
                         // デフォルトセッション作成
                         const defaultSession = {
-                            user: { name: '邨中天真', role: 'user' },
+                            user: { name: '邨中天真', role: 'developer' },
                             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
                         };
                         localStorage.setItem('currentSession', JSON.stringify(defaultSession));
@@ -1598,7 +1598,7 @@
                     // 最後の手段：デフォルトユーザーでセッション作成
                     console.log('🔧 [AUTH] Creating default session');
                     const defaultSession = {
-                        user: { name: '邨中天真', role: 'user' },
+                        user: { name: '邨中天真', role: 'developer' },
                         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
                     };
                     localStorage.setItem('currentSession', JSON.stringify(defaultSession));
@@ -1610,7 +1610,7 @@
                 if (new Date() > new Date(session.expiresAt)) {
                     console.log('⚠️ [AUTH] Session expired, creating new default session');
                     const defaultSession = {
-                        user: { name: '邨中天真', role: 'user' },
+                        user: { name: '邨中天真', role: 'developer' },
                         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
                     };
                     localStorage.setItem('currentSession', JSON.stringify(defaultSession));
@@ -1624,7 +1624,7 @@
             } catch (error) {
                 console.error('❌ [AUTH] Authentication error, creating fallback session:', error);
                 const defaultSession = {
-                    user: { name: '邨中天真', role: 'user' },
+                    user: { name: '邨中天真', role: 'developer' },
                     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
                 };
                 localStorage.setItem('currentSession', JSON.stringify(defaultSession));
