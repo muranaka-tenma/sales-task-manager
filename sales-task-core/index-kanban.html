@@ -3666,6 +3666,15 @@
             
             if (draggedTask) {
                 console.log(`🔵 [MAIN] Current task column: ${draggedTask.columnId}, Target: ${columnId}`);
+                console.log(`🔍 [DROP DEBUG] Tasks count BEFORE move: ${tasks.length}`);
+                console.log(`🔍 [DROP DEBUG] DraggedTask details:`, JSON.stringify({
+                    id: draggedTask.id,
+                    title: draggedTask.title,
+                    projectId: draggedTask.projectId,
+                    projectName: draggedTask.projectName,
+                    hasComments: draggedTask.comments ? draggedTask.comments.length : 0,
+                    hasAttachments: draggedTask.attachments ? draggedTask.attachments.length : 0
+                }, null, 2));
                 
                 if (draggedTask.columnId !== columnId) {
                     // 期限切れタスクのdrag&dropは無効（期限延長でのみ移動可能）
@@ -3679,14 +3688,22 @@
                     
                     // PJタスクの証憑チェック（移動のたびに必須）
                     if (draggedTask.projectId && draggedTask.projectName) {
+                        console.log(`🔍 [PJ DEBUG] Before evidence check - Tasks count: ${tasks.length}`);
                         const hasEvidence = checkTaskEvidence(draggedTask, true); // 移動時フラグをtrue
+                        console.log(`🔍 [PJ DEBUG] Evidence check result: ${hasEvidence}, Tasks count: ${tasks.length}`);
+                        
                         if (!hasEvidence) {
+                            console.log(`🔍 [PJ DEBUG] Before promptForEvidence - Tasks count: ${tasks.length}`);
                             const evidenceResult = promptForEvidence(draggedTask);
+                            console.log(`🔍 [PJ DEBUG] After promptForEvidence - Result: ${evidenceResult}, Tasks count: ${tasks.length}`);
+                            
                             if (!evidenceResult) {
                                 console.log(`❌ [PJ] 証憑なしのため移動キャンセル: ${draggedTask.title}`);
+                                console.log(`🔍 [PJ DEBUG] Cancel move - Tasks count: ${tasks.length}`);
                                 return; // 移動をキャンセル
                             }
                         }
+                        console.log(`🔍 [PJ DEBUG] After all evidence checks - Tasks count: ${tasks.length}`);
                     }
                     
                     // Doneカラムに移動する場合、completedAtを記録
@@ -3698,8 +3715,10 @@
                         draggedTask.completedAt = null;
                     }
                     
+                    console.log(`🔍 [DROP DEBUG] Before column change - Tasks count: ${tasks.length}`);
                     draggedTask.columnId = columnId;
                     draggedTask.completed = (columnId === 'done');
+                    console.log(`🔍 [DROP DEBUG] After column change - Tasks count: ${tasks.length}`);
                     
                     // PJタスクの場合、最後の移動時刻を記録し、通知を送信
                     if (draggedTask.projectId && draggedTask.projectName) {
@@ -3707,12 +3726,22 @@
                         console.log(`📅 [PJ MOVE] Recorded move time: ${draggedTask.lastMovedAt}`);
                         
                         // 承認者・担当者への移動通知
+                        console.log(`🔍 [DROP DEBUG] Before notification - Tasks count: ${tasks.length}`);
                         sendPJMoveNotification(draggedTask, columnId);
+                        console.log(`🔍 [DROP DEBUG] After notification - Tasks count: ${tasks.length}`);
                     }
                     
+                    console.log(`🔍 [DROP DEBUG] Before saveTasks() - Tasks count: ${tasks.length}`);
                     saveTasks();
+                    console.log(`🔍 [DROP DEBUG] After saveTasks() - Tasks count: ${tasks.length}`);
+                    
+                    console.log(`🔍 [DROP DEBUG] Before render() - Tasks count: ${tasks.length}`);
                     render();
+                    console.log(`🔍 [DROP DEBUG] After render() - Tasks count: ${tasks.length}`);
+                    
+                    console.log(`🔍 [DROP DEBUG] Before updateStats() - Tasks count: ${tasks.length}`);
                     updateStats();
+                    console.log(`🔍 [DROP DEBUG] After updateStats() - Tasks count: ${tasks.length}`);
                     
                     console.log(`✅ [MAIN] Task moved successfully to ${columnId}`);
                 } else {
@@ -4449,7 +4478,10 @@
         
         
         function saveTasks() {
+            const stack = new Error().stack;
+            const caller = stack.split('\n')[2]?.trim() || 'unknown';
             console.log('💾 [SAVE] Saving tasks to localStorage, count:', tasks.length);
+            console.log('💾 [SAVE] Called from:', caller);
             localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
             console.log('💾 [SAVE] Tasks saved successfully');
         }
