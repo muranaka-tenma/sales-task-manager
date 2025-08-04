@@ -3555,8 +3555,11 @@
                 checkCollaborativeTaskNotifications(newTask, selectedAssignees);
             }
             
+            console.log('💾 [EDIT SAVE] About to save tasks and render');
             saveTasks();
+            console.log('🎨 [EDIT SAVE] About to call render()');
             render();
+            console.log('🎨 [EDIT SAVE] render() completed');
             
             // 編集保存時のメンション通知チェック
             if (editingTask && editingTask.comments && editingTask.comments.length > 0) {
@@ -3780,6 +3783,10 @@
             let filteredTasks = tasks;
             let currentColumns = columns; // デフォルトカラム
             
+            console.log('🔍 [RENDER] Before filtering - total tasks:', tasks.length);
+            console.log('🔍 [RENDER] selectedProjectFilters:', selectedProjectFilters);
+            console.log('🔍 [RENDER] selectedAssigneeFilters:', selectedAssigneeFilters);
+            
             if (selectedProjectFilters.length > 0) {
                 // PJフィルター: 特定プロジェクトのタスクのみ表示
                 filteredTasks = tasks.filter(t => 
@@ -3802,6 +3809,8 @@
                 // 全員: 全タスク表示
                 console.log(`👥 [RENDER] Showing all ${filteredTasks.length} tasks`);
             }
+            
+            console.log('🔍 [RENDER] After filtering - filteredTasks count:', filteredTasks.length);
             
             // 期限切れタスクを抽出（フィルタリング後のタスクから）
             let overdueTasks = filteredTasks.filter(t => 
