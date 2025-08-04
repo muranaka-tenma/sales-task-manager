@@ -513,13 +513,20 @@
             const unwantedEmails = ['admin@terracom.co.jp', 'test@terracom.co.jp'];
             const hasUnwantedUsers = currentUsers.some(u => unwantedEmails.includes(u.email));
             
+            // デバッグ情報出力
+            console.log('🔍 [DEBUG] 現在のユーザー数:', currentUsers.length);
+            console.log('🔍 [DEBUG] 不要ユーザー検出:', hasUnwantedUsers);
+            console.log('🔍 [DEBUG] ユーザーメール一覧:', currentUsers.map(u => u.email));
+            console.log('🔍 [DEBUG] 不要メール:', unwantedEmails);
+            
             if (currentUsers.length === 0) {
                 // 新規端末: 新しい7名構成を使用
                 localStorage.setItem('systemUsers', JSON.stringify(dynamicUsers));
                 console.log('✅ [INIT] 新規端末で新しい7名ユーザー構成を設定');
-            } else if (hasUnwantedUsers) {
-                // 不要ユーザーがある場合: 強制統合実行
-                console.log('🗑️ [CLEANUP] 不要ユーザーを検出しました。強制統合を実行します...');
+            } else if (hasUnwantedUsers || currentUsers.length === 9) {
+                // 不要ユーザーがある場合または9名の場合: 強制統合実行
+                console.log('🗑️ [CLEANUP] 統合条件満たし - 強制統合を実行します...');
+                console.log('🗑️ [CLEANUP] 不要ユーザー検出:', hasUnwantedUsers, 'ユーザー数:', currentUsers.length);
                 
                 // 完全バックアップ
                 createSafetyBackup(currentUsers, 'before_forced_cleanup');
