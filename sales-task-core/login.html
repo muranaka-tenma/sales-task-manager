@@ -263,6 +263,9 @@
     <script>
         // ページ読み込み時にログイン状態をチェック
         window.addEventListener('DOMContentLoaded', () => {
+            // まず確実にユーザーデータベースを初期化
+            initializeUserDatabase();
+            
             const currentUser = getCurrentUser();
             if (currentUser) {
                 // 既にログイン済みの場合はメインページにリダイレクト
@@ -306,16 +309,19 @@
         }
         
         function authenticate(email, password) {
-            // ユーザーデータベースを初期化（存在しない場合）
+            // ユーザーデータベースを再初期化（確実に存在させる）
             initializeUserDatabase();
             
             // ユーザーデータベースから認証
             const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            console.log('🔍 [AUTH] ユーザーデータベース:', users.length, '件');
+            console.log('🔍 [AUTH] 認証試行:', email);
+            
             const user = users.find(u => u.email === email && u.password === password);
             
             if (user) {
                 // ログイン成功時の処理
-                console.log('✅ ログイン成功:', user.name, user.role);
+                console.log('✅ [AUTH] ログイン成功:', user.name, user.role);
                 return {
                     success: true,
                     user: {
@@ -328,58 +334,82 @@
                 };
             } else {
                 // ログイン失敗 - 詳細なエラーメッセージ
-                console.log('❌ ログイン失敗:', email);
+                console.log('❌ [AUTH] ログイン失敗:', email);
+                console.log('🔍 [AUTH] 登録ユーザー一覧:');
+                users.forEach(u => console.log(`  - ${u.email} (${u.name})`));
+                
                 const userExists = users.find(u => u.email === email);
                 if (userExists) {
+                    console.log('❌ [AUTH] パスワード不一致');
                     return {
                         success: false,
                         message: 'パスワードが正しくありません'
                     };
                 } else {
+                    console.log('❌ [AUTH] ユーザー不存在');
                     return {
                         success: false,
-                        message: 'ユーザーが見つかりません。管理者にユーザー作成を依頼してください。'
+                        message: `ユーザー "${email}" が見つかりません。利用可能なテストアカウントを使用してください。`
                     };
                 }
             }
         }
         
-        // ユーザーデータベースの初期化
+        // ユーザーデータベースの初期化（強制的に全端末で実行）
         function initializeUserDatabase() {
+            console.log('🔧 [INIT] ユーザーデータベースを確認・初期化中...');
+            
+            // デフォルトユーザー定義
+            const defaultUsers = [
+                {
+                    id: 1,
+                    name: '邨中天真',
+                    email: 'muranaka-tenma@terracom.co.jp',
+                    password: 'admin123',
+                    role: 'developer',
+                    department: '開発部',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    id: 2,
+                    name: 'テストユーザー',
+                    email: 'test@terracom.co.jp',
+                    password: 'test123',
+                    role: 'user',
+                    department: '営業部',
+                    createdAt: new Date().toISOString()
+                }
+            ];
+            
             const existingUsers = localStorage.getItem('systemUsers');
             if (!existingUsers) {
-                console.log('🔧 [INIT] ユーザーデータベースを初期化中...');
-                
-                // デフォルトユーザーを作成
-                const defaultUsers = [
-                    {
-                        id: 1,
-                        name: '邨中天真',
-                        email: 'muranaka-tenma@terracom.co.jp',
-                        password: 'admin123',
-                        role: 'developer',
-                        department: '開発部',
-                        createdAt: new Date().toISOString()
-                    },
-                    {
-                        id: 2,
-                        name: 'テストユーザー',
-                        email: 'test@terracom.co.jp',
-                        password: 'test123',
-                        role: 'user',
-                        department: '営業部',
-                        createdAt: new Date().toISOString()
-                    }
-                ];
-                
+                // 新規端末：デフォルトユーザーを作成
                 localStorage.setItem('systemUsers', JSON.stringify(defaultUsers));
-                console.log('✅ [INIT] デフォルトユーザーを作成しました');
+                console.log('✅ [INIT] 新規端末でデフォルトユーザーを作成しました');
+            } else {
+                // 既存端末：デフォルトユーザーが存在するか確認し、不足分を追加
+                const users = JSON.parse(existingUsers);
+                let updated = false;
                 
-                // 担当者リストも初期化
-                const assignees = defaultUsers.map(u => u.name);
-                localStorage.setItem('taskAssignees', JSON.stringify(assignees));
-                console.log('✅ [INIT] 担当者リストを初期化しました');
+                defaultUsers.forEach(defaultUser => {
+                    const exists = users.find(u => u.email === defaultUser.email);
+                    if (!exists) {
+                        users.push(defaultUser);
+                        updated = true;
+                        console.log(`✅ [INIT] 不足ユーザーを追加: ${defaultUser.name}`);
+                    }
+                });
+                
+                if (updated) {
+                    localStorage.setItem('systemUsers', JSON.stringify(users));
+                }
             }
+            
+            // 担当者リストも同期
+            const users = JSON.parse(localStorage.getItem('systemUsers'));
+            const assignees = users.map(u => u.name);
+            localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+            console.log('✅ [INIT] 担当者リストを同期しました:', assignees);
         }
         
         function setCurrentUser(user) {
