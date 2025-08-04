@@ -9648,22 +9648,109 @@
         }
         
         function processImportText(showPreview) {
-            const text = document.getElementById('import-text-modal').value.trim();
-            if (!text) {
-                alert('テキストを入力してください');
+            const importText = document.getElementById('import-text-modal').value.trim();
+            if (!importText) {
+                alert('インポートするテキストを入力してください');
                 return;
             }
             
-            const parsedTasks = parseImportTextModal(text);
+            // 元の previewImport 機能を復元
+            const currentUser = getCurrentUser();
+            const defaultAssignee = currentUser ? currentUser.name : 'ユーザー';
+            const defaultDeadline = new Date().toISOString().split('T')[0];
+            const defaultPriority = 'medium';
+            const defaultColumn = 'todo';
+            
+            const lines = importText.split('\n');
+            previewTasksModal = [];
+            let lastMainTaskIndex = -1;
+            
+            lines.forEach((line, index) => {
+                if (!line.trim()) return;
+                
+                const trimmedLine = line.trim();
+                let taskText = trimmedLine;
+                
+                // 数字記号の修正（元の機能）
+                taskText = taskText
+                    .replace(/①/g, '1').replace(/②/g, '2').replace(/③/g, '3').replace(/④/g, '4').replace(/⑤/g, '5')
+                    .replace(/⑥/g, '6').replace(/⑦/g, '7').replace(/⑧/g, '8').replace(/⑨/g, '9').replace(/⑩/g, '10')
+                    .replace(/○/g, '0').replace(/●/g, '1');
+                
+                // インデント判定（元の機能）
+                const hasIndent = line.match(/^(\s{2,}|　+|\t+)/);
+                const isMainTask = !hasIndent;
+                
+                // 担当者抽出
+                const assigneeMatch = taskText.match(/@([^\s@]+)/g);
+                let assignee = defaultAssignee;
+                if (assigneeMatch && assigneeMatch.length > 0) {
+                    assignee = assigneeMatch[0].replace('@', '');
+                    taskText = taskText.replace(/@[^\s@]+/g, '').trim();
+                }
+                
+                // 日付抽出
+                const dateMatches = taskText.match(/(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})|(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})|(\d{1,2}月\d{1,2}日)/g);
+                let deadline = defaultDeadline;
+                if (dateMatches && dateMatches.length > 0) {
+                    let dateStr = dateMatches[0];
+                    if (dateStr.includes('月') && dateStr.includes('日')) {
+                        const year = new Date().getFullYear();
+                        const month = dateStr.match(/(\d{1,2})月/)[1].padStart(2, '0');
+                        const day = dateStr.match(/(\d{1,2})日/)[1].padStart(2, '0');
+                        deadline = `${year}-${month}-${day}`;
+                    } else {
+                        const parts = dateStr.split(/[-\/]/);
+                        if (parts[0].length === 4) {
+                            deadline = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                        } else {
+                            const year = parts[2].length === 4 ? parts[2] : new Date().getFullYear();
+                            deadline = `${year}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                        }
+                    }
+                    taskText = taskText.replace(/(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})|(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})|(\d{1,2}月\d{1,2}日)/g, '').trim();
+                }
+                
+                // 優先度抽出
+                let priority = defaultPriority;
+                if (taskText.match(/[!！]{2,}|高|緊急|urgent|URGENT|急/)) {
+                    priority = 'high';
+                    taskText = taskText.replace(/[!！]+|高|緊急|urgent|URGENT|急/g, '').trim();
+                } else if (taskText.match(/低|later|LATER|後で/)) {
+                    priority = 'low';
+                    taskText = taskText.replace(/低|later|LATER|後で/g, '').trim();
+                }
+                
+                taskText = taskText.replace(/\s+/g, ' ').trim();
+                
+                if (taskText && taskText.length > 1) {
+                    const task = {
+                        id: `preview_${index}`,
+                        title: taskText,
+                        assignee: assignee,
+                        deadline: deadline,
+                        priority: priority,
+                        columnId: defaultColumn,
+                        originalLine: line,
+                        lineIndex: index,
+                        isMainTask: isMainTask,
+                        parentIndex: isMainTask ? null : lastMainTaskIndex,
+                        isSkip: false,
+                        autoDetected: !isMainTask && hasIndent
+                    };
+                    
+                    if (isMainTask) {
+                        lastMainTaskIndex = previewTasksModal.length;
+                    }
+                    
+                    previewTasksModal.push(task);
+                }
+            });
             
             if (showPreview) {
-                previewTasksModal = parsedTasks;
-                showPreviewModal(parsedTasks);
+                displayLineByLinePreviewModal();
             } else {
-                importTasksModal(parsedTasks);
-                alert(`${parsedTasks.length}件のタスクをインポートしました！`);
-                closeTaskImportModal();
-                render();
+                executeImportFromModal();
             }
         }
         
@@ -10056,6 +10143,110 @@
         
         function testOCRDirectlyModal() {
             alert('OCRテスト機能は実装予定です');
+        }
+        
+        // 元の詳細プレビュー表示機能を復元
+        function displayLineByLinePreviewModal() {
+            const previewDiv = document.getElementById('import-preview-modal');
+            const contentDiv = document.getElementById('preview-content-modal');
+            
+            if (previewTasksModal.length === 0) {
+                alert('有効なタスクが見つかりませんでした。テキストを確認してください。');
+                return;
+            }
+            
+            const activeTaskCount = previewTasksModal.filter(t => !t.isSkip).length;
+            const mainTaskCount = previewTasksModal.filter(t => !t.isSkip && t.isMainTask).length;
+            const commentCount = previewTasksModal.filter(t => !t.isSkip && !t.isMainTask).length;
+            
+            const modeInfo = `<div style="font-size: 0.9rem; margin-top: 0.5rem;">✨ インデント行は自動でコメントに設定済み（半角スペース2個以上・全角スペース・タブ）。</div>`;
+            
+            let content = `
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background: #e8f5e8; border-radius: 4px; color: #2f7d2f;">
+                    <strong>📝 ${activeTaskCount}個のアイテム (📋 メイン: ${mainTaskCount}, 💬 コメント: ${commentCount})</strong>
+                    ${modeInfo}
+                </div>
+            `;
+            
+            // タスクを詳細表示
+            previewTasksModal.forEach((task, index) => {
+                if (task.isSkip) return;
+                
+                const priorityColor = task.priority === 'high' ? '#dc2626' : task.priority === 'medium' ? '#d97706' : '#059669';
+                const priorityText = task.priority === 'high' ? '🔴 高' : task.priority === 'medium' ? '🟡 中' : '🟢 低';
+                const taskTypeIcon = task.isMainTask ? '📋' : '💬';
+                const taskTypeText = task.isMainTask ? 'メインタスク' : 'コメント';
+                
+                // 親タスクの情報を取得
+                let parentInfo = '';
+                if (!task.isMainTask && task.parentIndex !== null && previewTasksModal[task.parentIndex]) {
+                    parentInfo = `<div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">↳ "${previewTasksModal[task.parentIndex].title}" のコメント</div>`;
+                }
+                
+                content += `
+                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; ${!task.isMainTask ? 'margin-left: 1.5rem; border-left: 3px solid #2196f3;' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                            <div style="font-weight: 600; color: #1f2937; display: flex; align-items: center; gap: 0.5rem;">
+                                ${taskTypeIcon} ${task.title}
+                                <span style="font-size: 0.75rem; background: #f3f4f6; color: #6b7280; padding: 0.125rem 0.5rem; border-radius: 12px;">${taskTypeText}</span>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <span style="background: ${priorityColor}; color: white; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.75rem;">${priorityText}</span>
+                                <span style="background: #3b82f6; color: white; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.75rem;">👤 ${task.assignee}</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">
+                            📅 期限: ${new Date(task.deadline).toLocaleDateString('ja-JP')}
+                        </div>
+                        ${parentInfo}
+                        <div style="font-size: 0.8rem; color: #9ca3af; font-family: monospace; background: #f9fafb; padding: 0.25rem 0.5rem; border-radius: 4px; margin-top: 0.5rem;">
+                            元のテキスト: "${task.originalLine}"
+                        </div>
+                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+                            <button onclick="toggleTaskSkipModal(${index})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: ${task.isSkip ? '#ef4444' : '#10b981'}; color: white; cursor: pointer;">
+                                ${task.isSkip ? '❌ スキップ中' : '✅ 有効'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            contentDiv.innerHTML = content;
+            previewDiv.style.display = 'block';
+        }
+        
+        // タスクのスキップ切り替え
+        function toggleTaskSkipModal(index) {
+            if (previewTasksModal[index]) {
+                previewTasksModal[index].isSkip = !previewTasksModal[index].isSkip;
+                displayLineByLinePreviewModal(); // プレビューを再表示
+            }
+        }
+        
+        function executeImportFromModal() {
+            if (previewTasksModal.length === 0) {
+                alert('インポートするタスクがありません');
+                return;
+            }
+            
+            const activeTasksModal = previewTasksModal.filter(t => !t.isSkip);
+            if (activeTasksModal.length === 0) {
+                alert('有効なタスクがありません。スキップされていないタスクを確認してください。');
+                return;
+            }
+            
+            const importedCount = importTasksModal(activeTasksModal);
+            const mainCount = activeTasksModal.filter(t => t.isMainTask).length;
+            const commentCount = activeTasksModal.filter(t => !t.isMainTask).length;
+            
+            alert(`🎉 タスク追加が完了しました！\n\n📋 ${mainCount}個のタスクを追加\n💬 ${commentCount}個のコメントを追加\n\n合計: ${importedCount}件`);
+            
+            // モーダルを閉じてメイン画面を更新
+            closeTaskImportModal();
+            render();
+            
+            // 期限チェックも実行
+            setTimeout(() => checkDeadlines(), 100);
         }
         
         // ============ タスクインポートモーダル関数群 終了 ============
