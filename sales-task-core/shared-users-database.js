@@ -8,7 +8,6 @@
  */
 
 // 全デバイス共通のユーザーデータベース（本来はサーバーサイドで管理すべき）
-// 手動追加されたすべてのユーザーをデフォルトユーザーとしてハードコード化
 const SHARED_USERS_DATABASE = [
     {
         id: 1,
@@ -39,59 +38,8 @@ const SHARED_USERS_DATABASE = [
         department: 'システム部',
         createdAt: '2025-08-04T00:00:00.000Z',
         isActive: true
-    },
-    {
-        id: 4,
-        name: '田中太郎',
-        email: 'tanaka@terracom.co.jp',
-        password: 'tanaka123',
-        role: 'user',
-        department: '営業部',
-        createdAt: '2025-08-04T00:00:00.000Z',
-        isActive: true
-    },
-    {
-        id: 5,
-        name: '佐藤花子',
-        email: 'sato@terracom.co.jp',
-        password: 'sato123',
-        role: 'user',
-        department: '営業部',
-        createdAt: '2025-08-04T00:00:00.000Z',
-        isActive: true
-    },
-    {
-        id: 6,
-        name: '山田次郎',
-        email: 'yamada@terracom.co.jp',
-        password: 'yamada123',
-        role: 'admin',
-        department: '管理部',
-        createdAt: '2025-08-04T00:00:00.000Z',
-        isActive: true
-    },
-    {
-        id: 7,
-        name: '鈴木三郎',
-        email: 'suzuki@terracom.co.jp',
-        password: 'suzuki123',
-        role: 'user',
-        department: '営業部',
-        createdAt: '2025-08-04T00:00:00.000Z',
-        isActive: true
-    },
-    {
-        id: 8,
-        name: '高橋美咲',
-        email: 'takahashi@terracom.co.jp',
-        password: 'takahashi123',
-        role: 'user',
-        department: '企画部',
-        createdAt: '2025-08-04T00:00:00.000Z',
-        isActive: true
     }
-    // ここに今後追加されるユーザーも記載
-    // ※ 本番環境では環境変数や外部DBから読み込む
+    // 今後手動追加されるユーザーもここに追加してマルチデバイス対応
 ];
 
 /**

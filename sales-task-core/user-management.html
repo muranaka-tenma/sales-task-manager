@@ -301,7 +301,7 @@
         let users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
         
         
-        // 初回起動時にデフォルトユーザーを作成（手動追加されたすべてのユーザーを含む）
+        // 初回起動時にデフォルトユーザーを作成
         if (users.length === 0) {
             const defaultUsers = [
                 {
@@ -330,51 +330,6 @@
                     department: 'システム部',
                     createdAt: '2025-08-04T00:00:00.000Z',
                     password: 'admin123'
-                },
-                {
-                    id: 4,
-                    name: '田中太郎',
-                    email: 'tanaka@terracom.co.jp',
-                    role: 'user',
-                    department: '営業部',
-                    createdAt: '2025-08-04T00:00:00.000Z',
-                    password: 'tanaka123'
-                },
-                {
-                    id: 5,
-                    name: '佐藤花子',
-                    email: 'sato@terracom.co.jp',
-                    role: 'user',
-                    department: '営業部',
-                    createdAt: '2025-08-04T00:00:00.000Z',
-                    password: 'sato123'
-                },
-                {
-                    id: 6,
-                    name: '山田次郎',
-                    email: 'yamada@terracom.co.jp',
-                    role: 'admin',
-                    department: '管理部',
-                    createdAt: '2025-08-04T00:00:00.000Z',
-                    password: 'yamada123'
-                },
-                {
-                    id: 7,
-                    name: '鈴木三郎',
-                    email: 'suzuki@terracom.co.jp',
-                    role: 'user',
-                    department: '営業部',
-                    createdAt: '2025-08-04T00:00:00.000Z',
-                    password: 'suzuki123'
-                },
-                {
-                    id: 8,
-                    name: '高橋美咲',
-                    email: 'takahashi@terracom.co.jp',
-                    role: 'user',
-                    department: '企画部',
-                    createdAt: '2025-08-04T00:00:00.000Z',
-                    password: 'takahashi123'
                 }
             ];
             users.push(...defaultUsers);
