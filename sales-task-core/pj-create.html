@@ -137,17 +137,17 @@
                 <label class="form-label">📂 プロジェクト設定 *</label>
                 <div style="margin-bottom: 1rem;">
                     <label style="display: flex; align-items: center; margin-bottom: 0.5rem; cursor: pointer;">
-                        <input type="radio" name="project-type" value="existing" onchange="toggleProjectInputs()" style="margin-right: 0.5rem;">
+                        <input type="radio" name="project-type" value="existing" onchange="toggleProjectInputs()" style="margin-right: 0.5rem;" checked>
                         <span>📁 既存プロジェクトに追加</span>
                     </label>
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="project-type" value="new" onchange="toggleProjectInputs()" style="margin-right: 0.5rem;" checked>
-                        <span>✨ 新規プロジェクト作成</span>
+                    <label style="display: flex; align-items: center; cursor: not-allowed; opacity: 0.5;">
+                        <input type="radio" name="project-type" value="new" onchange="toggleProjectInputs()" style="margin-right: 0.5rem;" disabled>
+                        <span>✨ 新規プロジェクト作成（無効化済み - PJ設定で事前作成してください）</span>
                     </label>
                 </div>
                 
                 <!-- 既存プロジェクト選択 -->
-                <div id="existing-project-section" style="display: none;">
+                <div id="existing-project-section" style="display: block;">
                     <label class="form-label">既存プロジェクトを選択:</label>
                     <select class="form-select" id="existing-project-select" onchange="selectExistingProject()">
                         <option value="">-- プロジェクトを選択してください --</option>
@@ -155,7 +155,7 @@
                 </div>
                 
                 <!-- 新規プロジェクト作成 -->
-                <div id="new-project-section">
+                <div id="new-project-section" style="display: none;">
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">📁 プロジェクトID *</label>
@@ -242,6 +242,20 @@
             loadAssignees();
             setDefaultDeadline();
             loadExistingProjects();
+            
+            // ★★★ 既存プロジェクト選択を強制 ★★★
+            toggleProjectInputs();
+            
+            // 既存プロジェクトが1つもない場合の警告
+            setTimeout(() => {
+                const projectSelect = document.getElementById('existing-project-select');
+                if (projectSelect.options.length <= 1) { // デフォルトオプションのみの場合
+                    const warning = document.createElement('div');
+                    warning.style.cssText = 'background: #fff3cd; color: #856404; padding: 1rem; border: 1px solid #ffeaa7; border-radius: 4px; margin: 1rem 0;';
+                    warning.innerHTML = '⚠️ <strong>プロジェクトが見つかりません</strong><br>先に「PJ設定」でプロジェクトを作成してください。';
+                    document.querySelector('.container').insertBefore(warning, document.querySelector('form'));
+                }
+            }, 100);
         });
         
         function loadAssignees() {
@@ -382,6 +396,43 @@
         function createPJTask(event) {
             event.preventDefault();
             console.log('PJタスク作成開始...');
+            
+            // ★★★ 既存PJ選択の必須チェック ★★★
+            const projectId = document.getElementById('project-id').value.trim();
+            const projectName = document.getElementById('project-name').value.trim();
+            const selectedProject = document.getElementById('existing-project-select').value;
+            
+            console.log('🔍 [PJ VALIDATION] Project validation:');
+            console.log('🔍 [PJ VALIDATION] Selected project:', selectedProject);
+            console.log('🔍 [PJ VALIDATION] Project ID:', projectId);
+            console.log('🔍 [PJ VALIDATION] Project name:', projectName);
+            
+            if (!selectedProject || !projectId || !projectName) {
+                alert('❌ プロジェクトの選択は必須です。\n\n「PJ設定」で事前にプロジェクトを作成してから、こ処でプロジェクトを選択してください。');
+                return;
+            }
+            
+            // PJ設定との整合性チェック
+            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+            if (!projectSettings[projectId]) {
+                alert(`❌ プロジェクトID「${projectId}」がPJ設定に存在しません。\n\n「PJ設定」でプロジェクトが正しく作成されているか確認してください。`);
+                return;
+            }
+            
+            // 既存PJタスクとの重複チェック
+            const existingTasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+            const duplicateTask = existingTasks.find(task => 
+                task.projectId === projectId && 
+                task.title === document.getElementById('task-title').value.trim()
+            );
+            
+            if (duplicateTask) {
+                if (!confirm(`⚠️ 同じプロジェクトに同名のタスクが既に存在します：\n\n「${duplicateTask.title}」\n\nそれでも作成しますか？`)) {
+                    return;
+                }
+            }
+            
+            console.log('✅ [PJ VALIDATION] All validations passed');
             
             // 選択された担当者と承認者を取得
             const selectedAssignees = Array.from(document.querySelectorAll('input[name="assignee"]:checked'))
