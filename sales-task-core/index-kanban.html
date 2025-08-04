@@ -2972,11 +2972,23 @@
         function removeAttachment(index) {
             if (editingTask && editingTask.attachments) {
                 editingTask.attachments.splice(index, 1);
-                // タスクリストも更新
+                // ★★★ 重要：tasks配列内のタスク全体を同期 ★★★
                 const taskIndex = tasks.findIndex(t => t.id === editingTask.id);
+                console.log('🔍 [ATTACHMENT SYNC] Task index in tasks array:', taskIndex);
+                
                 if (taskIndex !== -1) {
-                    tasks[taskIndex].attachments = editingTask.attachments;
+                    console.log('🔍 [ATTACHMENT SYNC] Before sync - Task exists:', !!tasks[taskIndex]);
+                    // editingTask全体をtasks配列に同期
+                    tasks[taskIndex] = { ...editingTask };
+                    console.log('🔍 [ATTACHMENT SYNC] After sync - Updated task:', {
+                        id: tasks[taskIndex].id,
+                        title: tasks[taskIndex].title,
+                        projectId: tasks[taskIndex].projectId,
+                        attachmentsCount: tasks[taskIndex].attachments ? tasks[taskIndex].attachments.length : 0
+                    });
                     saveTasks();
+                } else {
+                    console.error('❌ [ATTACHMENT SYNC] Task not found in tasks array! EditingTask ID:', editingTask.id);
                 }
                 displayAttachedFiles(editingTask.attachments);
                 
@@ -3202,10 +3214,22 @@
                 if (!editingTask.comments) editingTask.comments = [];
                 editingTask.comments.push(newComment);
                 
-                // tasksリストも更新
+                // ★★★ 重要：tasks配列内のタスク全体を同期 ★★★
                 const taskIndex = tasks.findIndex(t => t.id === editingTask.id);
+                console.log('🔍 [COMMENT SYNC] Task index in tasks array:', taskIndex);
+                
                 if (taskIndex !== -1) {
-                    tasks[taskIndex].comments = editingTask.comments;
+                    console.log('🔍 [COMMENT SYNC] Before sync - Task exists:', !!tasks[taskIndex]);
+                    // editingTask全体をtasks配列に同期
+                    tasks[taskIndex] = { ...editingTask };
+                    console.log('🔍 [COMMENT SYNC] After sync - Updated task:', {
+                        id: tasks[taskIndex].id,
+                        title: tasks[taskIndex].title,
+                        projectId: tasks[taskIndex].projectId,
+                        commentsCount: tasks[taskIndex].comments ? tasks[taskIndex].comments.length : 0
+                    });
+                } else {
+                    console.error('❌ [COMMENT SYNC] Task not found in tasks array! EditingTask ID:', editingTask.id);
                 }
                 
                 console.log('📝 [COMMENT] About to save tasks and render');
