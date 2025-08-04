@@ -402,7 +402,7 @@
                 if (user === '"邨中天真"' || user.includes('邨中天真')) {
                     console.log('🔧 [USER] Detected corrupted data, clearing and using fallback');
                     localStorage.removeItem('currentUser');
-                    return { name: '邨中天真', role: 'user', isLoggedIn: true };
+                    return { name: '邨中天真', role: 'developer', isLoggedIn: true };
                 }
                 
                 const parsed = JSON.parse(user);
@@ -414,7 +414,7 @@
                 localStorage.removeItem('currentUser');
                 
                 // 文字化けした名前を使って復旧
-                return { name: '邨中天真', role: 'user', isLoggedIn: true };
+                return { name: '邨中天真', role: 'developer', isLoggedIn: true };
             }
         }
         
@@ -712,7 +712,7 @@
                 // デフォルトユーザーでセッション作成
                 const defaultUser = { 
                     name: '邨中天真', 
-                    role: 'user', 
+                    role: 'developer', 
                     isLoggedIn: true 
                 };
                 localStorage.setItem('currentUser', JSON.stringify(defaultUser));
