@@ -453,6 +453,8 @@
                 const currentUser = getCurrentUser();
                 const canDelete = currentUser.role !== 'user';
                 
+                console.log(`🔍 [DELETE BUTTON] Project ${projectId}: currentUser.role=${currentUser.role}, canDelete=${canDelete}`);
+                
                 return `
                     <div class="project-item">
                         <div class="project-info">
