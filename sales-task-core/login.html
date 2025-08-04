@@ -518,43 +518,107 @@
                 localStorage.setItem('systemUsers', JSON.stringify(dynamicUsers));
                 console.log('✅ [INIT] 新規端末で新しい7名ユーザー構成を設定');
             } else if (hasUnwantedUsers) {
-                // 不要ユーザーがある場合: 安全に統合
-                console.log('🗑️ [CLEANUP] 不要ユーザーを検出しました。安全に統合します...');
+                // 不要ユーザーがある場合: 強制統合実行
+                console.log('🗑️ [CLEANUP] 不要ユーザーを検出しました。強制統合を実行します...');
                 
                 // 完全バックアップ
-                createSafetyBackup(currentUsers, 'before_cleanup_integration');
+                createSafetyBackup(currentUsers, 'before_forced_cleanup');
                 
-                // 必要ユーザーのみを保持（既存パスワードを維持）
-                const cleanedUsers = [];
+                // 既存パスワードを取得
+                const getExistingPassword = (email, defaultPwd) => {
+                    const existing = currentUsers.find(u => u.email === email);
+                    return existing ? existing.password : defaultPwd;
+                };
                 
-                dynamicUsers.forEach(newUser => {
-                    const existingUser = currentUsers.find(u => u.email === newUser.email);
-                    if (existingUser) {
-                        // 既存ユーザーのパスワードを保持
-                        cleanedUsers.push({
-                            ...newUser,
-                            password: existingUser.password, // 既存パスワードを維持
-                            id: existingUser.id // 既存IDも維持
-                        });
-                        console.log(`🔄 [CLEANUP] 既存ユーザーを維持: ${existingUser.name} (パスワード保持)`);
+                // 強制統合: 7名のみにリセット
+                const forcedCleanUsers = [
+                    {
+                        id: 1,
+                        name: '邨中天真',
+                        email: 'muranaka-tenma@terracom.co.jp',
+                        password: getExistingPassword('muranaka-tenma@terracom.co.jp', 'admin123'),
+                        role: 'developer',
+                        department: '開発部',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 2,
+                        name: '加藤純',
+                        email: 'kato-jun@terracom.co.jp',
+                        password: getExistingPassword('kato-jun@terracom.co.jp', 'kato123'),
+                        role: 'admin',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 3,
+                        name: '朝日圭一',
+                        email: 'asahi-keiichi@terracom.co.jp',
+                        password: getExistingPassword('asahi-keiichi@terracom.co.jp', 'asahi123'),
+                        role: 'admin',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 4,
+                        name: '半澤侑果',
+                        email: 'hanzawa-yuka@terracom.co.jp',
+                        password: getExistingPassword('hanzawa-yuka@terracom.co.jp', 'hanzawa123'),
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 5,
+                        name: '田村渉',
+                        email: 'tamura-wataru@terracom.co.jp',
+                        password: getExistingPassword('tamura-wataru@terracom.co.jp', 'tamura123'),
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 6,
+                        name: '橋本友美',
+                        email: 'hashimoto-yumi@terracom.co.jp',
+                        password: getExistingPassword('hashimoto-yumi@terracom.co.jp', 'hashimoto123'),
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 7,
+                        name: '福島亜未',
+                        email: 'fukushima-ami@terracom.co.jp',
+                        password: getExistingPassword('fukushima-ami@terracom.co.jp', 'fukushima123'),
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    }
+                ];
+                
+                // 強制統合実行
+                localStorage.setItem('systemUsers', JSON.stringify(forcedCleanUsers));
+                
+                // パスワード保持ユーザーをログ出力
+                forcedCleanUsers.forEach(cleanUser => {
+                    const original = currentUsers.find(u => u.email === cleanUser.email);
+                    if (original && original.password === cleanUser.password) {
+                        console.log(`🔄 [CLEANUP] 既存パスワード保持: ${cleanUser.name}`);
                     } else {
-                        // 新ユーザーはデフォルトパスワード
-                        cleanedUsers.push(newUser);
-                        console.log(`➕ [CLEANUP] 新ユーザーを追加: ${newUser.name}`);
+                        console.log(`➕ [CLEANUP] デフォルトパスワード: ${cleanUser.name}`);
                     }
                 });
                 
-                // 不要ユーザーを削除して統合
-                localStorage.setItem('systemUsers', JSON.stringify(cleanedUsers));
-                
+                // 削除されたユーザーをログ出力
                 unwantedEmails.forEach(email => {
                     const removed = currentUsers.find(u => u.email === email);
                     if (removed) {
-                        console.log(`🗑️ [CLEANUP] 不要ユーザーを削除: ${removed.name} (${email})`);
+                        console.log(`🗑️ [CLEANUP] 不要ユーザーを強制削除: ${removed.name} (${email})`);
                     }
                 });
                 
-                console.log(`✅ [CLEANUP] 統合完了: ${cleanedUsers.length}名 (不要ユーザー削除済み)`);
+                console.log(`✅ [CLEANUP] 強制統合完了: ${forcedCleanUsers.length}名`);
             } else {
                 // 不要ユーザーがない場合: 通常のマージ
                 const mergedUsers = [...currentUsers];
