@@ -666,6 +666,10 @@
         function deleteProject(projectId) {
             const currentUser = getCurrentUser();
             
+            console.log('🔍 [DELETE] Current user in deleteProject():', currentUser);
+            console.log('🔍 [DELETE] User role:', currentUser.role);
+            console.log('🔍 [DELETE] Is user role === "user"?', currentUser.role === 'user');
+            
             // 一般ユーザーは削除不可
             if (currentUser.role === 'user') {
                 alert('プロジェクトの削除権限がありません。管理者にお問い合わせください。');
