@@ -251,11 +251,13 @@
         </div>
         
         <div class="demo-accounts">
-            <h4>💡 テストアカウント</h4>
-            <p><strong>管理者:</strong> muranaka-tenma / admin123</p>
-            <p><strong>ユーザー:</strong> test / test123</p>
+            <h4>💡 利用可能アカウント（全デバイス対応）</h4>
+            <p><strong>開発者:</strong> muranaka-tenma / admin123</p>
+            <p><strong>管理者:</strong> admin / admin123</p>
+            <p><strong>一般:</strong> test / test123</p>
+            <p><strong>営業:</strong> tanaka / tanaka123, sato / sato123</p>
             <p style="margin-top: 0.5rem; font-size: 0.75rem; color: #666;">
-                ※ ユーザー管理画面で追加アカウントを作成できます
+                ※ すべてのユーザーがスマホ・他PCからもログイン可能です
             </p>
         </div>
     </div>
@@ -365,7 +367,7 @@
         function initializeUserDatabase() {
             console.log('🔧 [INIT] ユーザーデータベースを確認・初期化中...');
             
-            // デフォルトユーザー定義
+            // デフォルトユーザー定義（手動追加されたすべてのユーザーを含む）
             const defaultUsers = [
                 {
                     id: 1,
@@ -374,7 +376,7 @@
                     password: 'admin123',
                     role: 'developer',
                     department: '開発部',
-                    createdAt: new Date().toISOString()
+                    createdAt: '2025-08-04T00:00:00.000Z'
                 },
                 {
                     id: 2,
@@ -383,7 +385,61 @@
                     password: 'test123',
                     role: 'user',
                     department: '営業部',
-                    createdAt: new Date().toISOString()
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 3,
+                    name: 'システム管理者',
+                    email: 'admin@terracom.co.jp',
+                    password: 'admin123',
+                    role: 'admin',
+                    department: 'システム部',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 4,
+                    name: '田中太郎',
+                    email: 'tanaka@terracom.co.jp',
+                    password: 'tanaka123',
+                    role: 'user',
+                    department: '営業部',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 5,
+                    name: '佐藤花子',
+                    email: 'sato@terracom.co.jp',
+                    password: 'sato123',
+                    role: 'user',
+                    department: '営業部',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 6,
+                    name: '山田次郎',
+                    email: 'yamada@terracom.co.jp',
+                    password: 'yamada123',
+                    role: 'admin',
+                    department: '管理部',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 7,
+                    name: '鈴木三郎',
+                    email: 'suzuki@terracom.co.jp',
+                    password: 'suzuki123',
+                    role: 'user',
+                    department: '営業部',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 8,
+                    name: '高橋美咲',
+                    email: 'takahashi@terracom.co.jp',
+                    password: 'takahashi123',
+                    role: 'user',
+                    department: '企画部',
+                    createdAt: '2025-08-04T00:00:00.000Z'
                 }
             ];
             
