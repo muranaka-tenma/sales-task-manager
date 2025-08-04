@@ -51,30 +51,56 @@ function initializeSharedUserDatabase() {
     console.log('🔄 [SHARED-DB] 共有ユーザーデータベース初期化開始...');
     
     try {
-        // 既存のローカルデータをバックアップ
+        // 既存のローカルデータを取得
         const existingUsers = localStorage.getItem('systemUsers');
+        
         if (existingUsers) {
+            // 既存データがある場合はバックアップ
             const backupKey = `systemUsers_backup_${Date.now()}`;
             localStorage.setItem(backupKey, existingUsers);
             console.log(`📦 [SHARED-DB] 既存データをバックアップ: ${backupKey}`);
+            
+            // 既存ユーザーとマージ（上書きではなく統合）
+            try {
+                const currentUsers = JSON.parse(existingUsers);
+                const mergedUsers = [...currentUsers];
+                
+                // 共有データベースのユーザーで不足しているものを追加
+                SHARED_USERS_DATABASE.forEach(sharedUser => {
+                    const exists = currentUsers.find(u => u.email === sharedUser.email);
+                    if (!exists) {
+                        mergedUsers.push(sharedUser);
+                        console.log(`➕ [SHARED-DB] 不足ユーザーを追加: ${sharedUser.name}`);
+                    }
+                });
+                
+                // マージしたデータを保存
+                localStorage.setItem('systemUsers', JSON.stringify(mergedUsers));
+                
+                // 担当者リストも更新
+                const assignees = mergedUsers.map(user => user.name);
+                localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                
+                console.log('✅ [SHARED-DB] 既存データとマージ完了');
+                console.log(`👥 [SHARED-DB] 利用可能ユーザー: ${mergedUsers.length}名`);
+                
+            } catch (e) {
+                console.error('❌ [SHARED-DB] マージエラー、デフォルトを使用:', e);
+                // マージに失敗した場合のみデフォルトを使用
+                localStorage.setItem('systemUsers', JSON.stringify(SHARED_USERS_DATABASE));
+            }
+        } else {
+            // 初回起動時のみデフォルトユーザーを設定
+            localStorage.setItem('systemUsers', JSON.stringify(SHARED_USERS_DATABASE));
+            
+            // 担当者リストも設定
+            const assignees = SHARED_USERS_DATABASE
+                .filter(user => user.isActive)
+                .map(user => user.name);
+            localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+            
+            console.log('✅ [SHARED-DB] 初回起動: デフォルトユーザーを設定');
         }
-        
-        // 共有データベースで上書き
-        localStorage.setItem('systemUsers', JSON.stringify(SHARED_USERS_DATABASE));
-        
-        // 担当者リストも同期
-        const assignees = SHARED_USERS_DATABASE
-            .filter(user => user.isActive)
-            .map(user => user.name);
-        localStorage.setItem('taskAssignees', JSON.stringify(assignees));
-        
-        console.log('✅ [SHARED-DB] 共有ユーザーデータベース初期化完了');
-        console.log(`👥 [SHARED-DB] 利用可能ユーザー: ${SHARED_USERS_DATABASE.length}名`);
-        
-        // デバッグ用：全ユーザー表示
-        SHARED_USERS_DATABASE.forEach(user => {
-            console.log(`  - ${user.name} (${user.email}) [${user.role}]`);
-        });
         
         return true;
     } catch (error) {

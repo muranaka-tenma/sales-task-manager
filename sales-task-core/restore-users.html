@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚨 ユーザー情報復旧ツール</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f4f5f7;
+            color: #172b4d;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 2rem;
+        }
+        .alert {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        .section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #026aa7;
+        }
+        .output {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: #026aa7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .btn:hover {
+            background: #025aa0;
+        }
+        .btn-danger {
+            background: #dc2626;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .btn-success {
+            background: #16a34a;
+        }
+        .btn-success:hover {
+            background: #15803d;
+        }
+        .user-card {
+            background: #f0f9ff;
+            border: 1px solid #bfdbfe;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+        }
+        .user-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚨 ユーザー情報復旧ツール</h1>
+        
+        <div class="alert">
+            <strong>⚠️ 重要：</strong> shared-users-database.jsの初期化処理により、ユーザー情報が上書きされました。
+            このツールでバックアップから復旧できます。
+        </div>
+        
+        <div class="section">
+            <div class="section-title">1. バックアップ検索</div>
+            <button class="btn" onclick="findBackups()">バックアップを検索</button>
+            <div id="backups-output" class="output"></div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">2. 現在のユーザー情報</div>
+            <button class="btn" onclick="showCurrentUsers()">現在のユーザーを表示</button>
+            <div id="current-users-output" class="output"></div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">3. バックアップからの復旧</div>
+            <select id="backup-select" style="padding: 0.5rem; margin-bottom: 1rem;">
+                <option value="">バックアップを選択してください</option>
+            </select>
+            <br>
+            <button class="btn btn-success" onclick="restoreFromBackup()">選択したバックアップから復旧</button>
+            <button class="btn" onclick="previewBackup()">バックアップの内容を確認</button>
+            <div id="restore-output" class="output"></div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">4. 手動でユーザーを追加（緊急用）</div>
+            <button class="btn" onclick="showManualAddForm()">ユーザー追加フォームを表示</button>
+            <div id="manual-add-form" style="display:none; margin-top: 1rem;">
+                <input type="text" id="add-name" placeholder="名前" style="padding: 0.5rem; margin: 0.25rem;">
+                <input type="email" id="add-email" placeholder="メールアドレス" style="padding: 0.5rem; margin: 0.25rem;">
+                <input type="password" id="add-password" placeholder="パスワード" style="padding: 0.5rem; margin: 0.25rem;">
+                <select id="add-role" style="padding: 0.5rem; margin: 0.25rem;">
+                    <option value="user">user (一般)</option>
+                    <option value="admin">admin (管理者)</option>
+                    <option value="developer">developer (開発者)</option>
+                </select>
+                <input type="text" id="add-department" placeholder="部署" style="padding: 0.5rem; margin: 0.25rem;">
+                <button class="btn btn-success" onclick="addUserManually()">追加</button>
+            </div>
+            <div id="manual-add-output" class="output"></div>
+        </div>
+    </div>
+    
+    <script>
+        let foundBackups = [];
+        
+        function findBackups() {
+            const output = document.getElementById('backups-output');
+            let result = '=== バックアップ検索結果 ===\n\n';
+            foundBackups = [];
+            
+            // LocalStorageのすべてのキーを検索
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('systemUsers_backup_')) {
+                    try {
+                        const data = localStorage.getItem(key);
+                        const users = JSON.parse(data);
+                        const timestamp = key.replace('systemUsers_backup_', '');
+                        const date = new Date(parseInt(timestamp));
+                        
+                        foundBackups.push({
+                            key: key,
+                            timestamp: timestamp,
+                            date: date,
+                            users: users
+                        });
+                        
+                        result += `📦 バックアップ発見: ${key}\n`;
+                        result += `   日時: ${date.toLocaleString('ja-JP')}\n`;
+                        result += `   ユーザー数: ${users.length}名\n`;
+                        result += `   ユーザー: ${users.map(u => u.name).join(', ')}\n\n`;
+                    } catch (e) {
+                        console.error('バックアップ解析エラー:', key, e);
+                    }
+                }
+            }
+            
+            if (foundBackups.length === 0) {
+                result += '❌ バックアップが見つかりません\n';
+                result += '\n💡 ヒント: ユーザー情報が追加されていた時点のブラウザでこのツールを実行してください。\n';
+            } else {
+                result += `✅ ${foundBackups.length}個のバックアップが見つかりました\n`;
+                
+                // バックアップ選択ドロップダウンを更新
+                const select = document.getElementById('backup-select');
+                select.innerHTML = '<option value="">バックアップを選択してください</option>';
+                foundBackups.forEach((backup, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${backup.date.toLocaleString('ja-JP')} (${backup.users.length}名)`;
+                    select.appendChild(option);
+                });
+            }
+            
+            output.textContent = result;
+        }
+        
+        function showCurrentUsers() {
+            const output = document.getElementById('current-users-output');
+            let result = '=== 現在のユーザー情報 ===\n\n';
+            
+            try {
+                const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                result += `👥 ユーザー数: ${users.length}名\n\n`;
+                
+                users.forEach((user, index) => {
+                    result += `${index + 1}. ${user.name}\n`;
+                    result += `   メール: ${user.email}\n`;
+                    result += `   役割: ${user.role}\n`;
+                    result += `   部署: ${user.department || '未設定'}\n`;
+                    result += `   登録日: ${user.createdAt ? new Date(user.createdAt).toLocaleString('ja-JP') : '不明'}\n\n`;
+                });
+            } catch (e) {
+                result += `❌ エラー: ${e.message}\n`;
+            }
+            
+            output.textContent = result;
+        }
+        
+        function previewBackup() {
+            const select = document.getElementById('backup-select');
+            const output = document.getElementById('restore-output');
+            
+            if (!select.value) {
+                output.textContent = '⚠️ バックアップを選択してください';
+                return;
+            }
+            
+            const backup = foundBackups[parseInt(select.value)];
+            let result = `=== バックアップの内容 ===\n`;
+            result += `日時: ${backup.date.toLocaleString('ja-JP')}\n`;
+            result += `ユーザー数: ${backup.users.length}名\n\n`;
+            
+            backup.users.forEach((user, index) => {
+                result += `${index + 1}. ${user.name}\n`;
+                result += `   メール: ${user.email}\n`;
+                result += `   役割: ${user.role}\n`;
+                result += `   部署: ${user.department || '未設定'}\n\n`;
+            });
+            
+            output.textContent = result;
+        }
+        
+        function restoreFromBackup() {
+            const select = document.getElementById('backup-select');
+            const output = document.getElementById('restore-output');
+            
+            if (!select.value) {
+                output.textContent = '⚠️ バックアップを選択してください';
+                return;
+            }
+            
+            const backup = foundBackups[parseInt(select.value)];
+            
+            if (confirm(`${backup.date.toLocaleString('ja-JP')}のバックアップから復旧しますか？\n現在のユーザー情報は上書きされます。`)) {
+                try {
+                    // 現在のデータをバックアップ
+                    const currentData = localStorage.getItem('systemUsers');
+                    if (currentData) {
+                        const backupKey = `systemUsers_backup_before_restore_${Date.now()}`;
+                        localStorage.setItem(backupKey, currentData);
+                    }
+                    
+                    // バックアップから復旧
+                    localStorage.setItem('systemUsers', JSON.stringify(backup.users));
+                    
+                    // 担当者リストも更新
+                    const assignees = backup.users.map(u => u.name);
+                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                    
+                    output.textContent = `✅ 復旧完了！\n\n${backup.users.length}名のユーザーを復旧しました。\n`;
+                    output.textContent += backup.users.map(u => `- ${u.name} (${u.role})`).join('\n');
+                    output.textContent += '\n\n💡 ページを再読み込みして変更を反映してください。';
+                    
+                    // 現在のユーザー情報を更新
+                    setTimeout(() => showCurrentUsers(), 500);
+                    
+                } catch (e) {
+                    output.textContent = `❌ 復旧エラー: ${e.message}`;
+                }
+            }
+        }
+        
+        function showManualAddForm() {
+            const form = document.getElementById('manual-add-form');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function addUserManually() {
+            const name = document.getElementById('add-name').value.trim();
+            const email = document.getElementById('add-email').value.trim();
+            const password = document.getElementById('add-password').value;
+            const role = document.getElementById('add-role').value;
+            const department = document.getElementById('add-department').value.trim();
+            const output = document.getElementById('manual-add-output');
+            
+            if (!name || !email || !password) {
+                output.textContent = '⚠️ 名前、メールアドレス、パスワードは必須です';
+                return;
+            }
+            
+            try {
+                const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                
+                // 重複チェック
+                if (users.find(u => u.email === email)) {
+                    output.textContent = '❌ このメールアドレスは既に登録されています';
+                    return;
+                }
+                
+                const newUser = {
+                    id: Date.now(),
+                    name: name,
+                    email: email,
+                    password: password,
+                    role: role,
+                    department: department,
+                    createdAt: new Date().toISOString()
+                };
+                
+                users.push(newUser);
+                localStorage.setItem('systemUsers', JSON.stringify(users));
+                
+                // 担当者リストも更新
+                const assignees = users.map(u => u.name);
+                localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                
+                output.textContent = `✅ ユーザーを追加しました！\n\n`;
+                output.textContent += `名前: ${name}\n`;
+                output.textContent += `メール: ${email}\n`;
+                output.textContent += `役割: ${role}\n`;
+                output.textContent += `部署: ${department}\n`;
+                
+                // フォームをクリア
+                document.getElementById('add-name').value = '';
+                document.getElementById('add-email').value = '';
+                document.getElementById('add-password').value = '';
+                document.getElementById('add-department').value = '';
+                
+                // 現在のユーザー情報を更新
+                setTimeout(() => showCurrentUsers(), 500);
+                
+            } catch (e) {
+                output.textContent = `❌ エラー: ${e.message}`;
+            }
+        }
+        
+        // ページ読み込み時に自動実行
+        window.addEventListener('DOMContentLoaded', () => {
+            findBackups();
+            showCurrentUsers();
+        });
+    </script>
+</body>
+</html>
