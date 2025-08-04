@@ -1648,59 +1648,117 @@
         // 認証チェック（ページ読み込み時）
         function checkAuthentication() {
             try {
+                // まずセッションをチェック
                 const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
-                if (!session) {
-                    console.log('⚠️ [AUTH] No session found, checking for user data');
-                    
-                    // セッションがない場合、ユーザーデータがあるかチェック
-                    const user = localStorage.getItem('currentUser');
-                    if (user) {
-                        console.log('✅ [AUTH] Found user data, allowing access');
-                        // デフォルトセッション作成
-                        const defaultSession = {
-                            user: { name: '邨中天真', role: 'developer' },
-                            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-                        };
-                        localStorage.setItem('currentSession', JSON.stringify(defaultSession));
-                        displayUserInfo(defaultSession.user);
+                if (session) {
+                    // セッション期限チェック
+                    if (new Date() <= new Date(session.expiresAt)) {
+                        console.log('✅ [AUTH] Valid session found for:', session.user.name);
+                        displayUserInfo(session.user);
                         return true;
+                    } else {
+                        console.log('⚠️ [AUTH] Session expired, removing...');
+                        localStorage.removeItem('currentSession');
                     }
+                }
+                
+                // セッションが無効/期限切れの場合、ユーザーデータで復旧を試行
+                const userName = localStorage.getItem('currentUser');
+                if (userName) {
+                    console.log('🔧 [AUTH] Attempting session recovery for:', userName);
                     
-                    // 最後の手段：デフォルトユーザーでセッション作成
-                    console.log('🔧 [AUTH] Creating default session');
-                    const defaultSession = {
-                        user: { name: '邨中天真', role: 'developer' },
+                    // ユーザーデータベースから情報を取得
+                    initializeUserDatabase(); // ユーザーDBを初期化
+                    const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                    const userData = users.find(u => u.name === userName) || {
+                        name: userName,
+                        role: userName === '邨中天真' ? 'developer' : 'user',
+                        email: userName === '邨中天真' ? 'muranaka-tenma@terracom.co.jp' : 'user@terracom.co.jp'
+                    };
+                    
+                    // セッションを復旧
+                    const recoveredSession = {
+                        user: userData,
+                        loginTime: new Date().toISOString(),
                         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
                     };
-                    localStorage.setItem('currentSession', JSON.stringify(defaultSession));
-                    displayUserInfo(defaultSession.user);
+                    localStorage.setItem('currentSession', JSON.stringify(recoveredSession));
+                    displayUserInfo(recoveredSession.user);
+                    console.log('✅ [AUTH] Session recovered successfully');
                     return true;
                 }
                 
-                // セッション期限チェック
-                if (new Date() > new Date(session.expiresAt)) {
-                    console.log('⚠️ [AUTH] Session expired, creating new default session');
-                    const defaultSession = {
-                        user: { name: '邨中天真', role: 'developer' },
-                        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-                    };
-                    localStorage.setItem('currentSession', JSON.stringify(defaultSession));
-                    displayUserInfo(defaultSession.user);
-                    return true;
-                }
-                
-                // ログイン済みの場合、ユーザー情報を表示
-                displayUserInfo(session.user);
-                return true;
-            } catch (error) {
-                console.error('❌ [AUTH] Authentication error, creating fallback session:', error);
+                // デフォルトユーザーでセッション作成（フォールバック）
+                console.log('🔧 [AUTH] Creating default developer session');
+                initializeUserDatabase(); // ユーザーDBを初期化
                 const defaultSession = {
-                    user: { name: '邨中天真', role: 'developer' },
+                    user: { 
+                        name: '邨中天真', 
+                        role: 'developer',
+                        email: 'muranaka-tenma@terracom.co.jp'
+                    },
+                    loginTime: new Date().toISOString(),
                     expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
                 };
                 localStorage.setItem('currentSession', JSON.stringify(defaultSession));
+                localStorage.setItem('currentUser', '邨中天真');
                 displayUserInfo(defaultSession.user);
                 return true;
+                
+            } catch (error) {
+                console.error('❌ [AUTH] Authentication error, creating fallback session:', error);
+                // エラー時のフォールバック
+                const fallbackSession = {
+                    user: { 
+                        name: '邨中天真', 
+                        role: 'developer',
+                        email: 'muranaka-tenma@terracom.co.jp'
+                    },
+                    loginTime: new Date().toISOString(),
+                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                };
+                localStorage.setItem('currentSession', JSON.stringify(fallbackSession));
+                localStorage.setItem('currentUser', '邨中天真');
+                displayUserInfo(fallbackSession.user);
+                return true;
+            }
+        }
+        
+        // ユーザーデータベースの初期化（ログインページと同じ関数）
+        function initializeUserDatabase() {
+            const existingUsers = localStorage.getItem('systemUsers');
+            if (!existingUsers) {
+                console.log('🔧 [INIT] ユーザーデータベースを初期化中...');
+                
+                // デフォルトユーザーを作成
+                const defaultUsers = [
+                    {
+                        id: 1,
+                        name: '邨中天真',
+                        email: 'muranaka-tenma@terracom.co.jp',
+                        password: 'admin123',
+                        role: 'developer',
+                        department: '開発部',
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 2,
+                        name: 'テストユーザー',
+                        email: 'test@terracom.co.jp',
+                        password: 'test123',
+                        role: 'user',
+                        department: '営業部',
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                
+                localStorage.setItem('systemUsers', JSON.stringify(defaultUsers));
+                console.log('✅ [INIT] デフォルトユーザーを作成しました');
+                
+                // 担当者リストも初期化
+                const assignees = defaultUsers.map(u => u.name);
+                localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                console.log('✅ [INIT] 担当者リストを初期化しました');
             }
         }
         

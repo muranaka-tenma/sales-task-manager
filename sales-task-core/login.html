@@ -157,6 +157,40 @@
             margin: 0.25rem 0;
         }
         
+        /* スマホ対応の改善 */
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+            
+            .login-container {
+                padding: 1.5rem;
+            }
+            
+            .form-input {
+                padding: 1rem 0.75rem;
+                font-size: 16px; /* iOS zoominを防ぐ */
+            }
+            
+            .login-btn {
+                padding: 1rem;
+                font-size: 1.1rem;
+            }
+            
+            .demo-accounts {
+                margin-top: 1rem;
+                padding: 0.75rem;
+            }
+            
+            .demo-accounts h4 {
+                font-size: 0.85rem;
+            }
+            
+            .demo-accounts p {
+                font-size: 0.75rem;
+            }
+        }
+        
         .loading {
             display: none;
             text-align: center;
@@ -217,9 +251,12 @@
         </div>
         
         <div class="demo-accounts">
-            <h4>💡 セキュリティ情報</h4>
-            <p>ユーザー管理画面で安全なパスワードを設定してください</p>
-            <p>※ ハードコードされたパスワードは削除されました</p>
+            <h4>💡 テストアカウント</h4>
+            <p><strong>管理者:</strong> muranaka-tenma / admin123</p>
+            <p><strong>ユーザー:</strong> test / test123</p>
+            <p style="margin-top: 0.5rem; font-size: 0.75rem; color: #666;">
+                ※ ユーザー管理画面で追加アカウントを作成できます
+            </p>
         </div>
     </div>
     
@@ -269,6 +306,9 @@
         }
         
         function authenticate(email, password) {
+            // ユーザーデータベースを初期化（存在しない場合）
+            initializeUserDatabase();
+            
             // ユーザーデータベースから認証
             const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
             const user = users.find(u => u.email === email && u.password === password);
@@ -287,12 +327,58 @@
                     }
                 };
             } else {
-                // ログイン失敗
+                // ログイン失敗 - 詳細なエラーメッセージ
                 console.log('❌ ログイン失敗:', email);
-                return {
-                    success: false,
-                    message: 'メールアドレスまたはパスワードが正しくありません'
-                };
+                const userExists = users.find(u => u.email === email);
+                if (userExists) {
+                    return {
+                        success: false,
+                        message: 'パスワードが正しくありません'
+                    };
+                } else {
+                    return {
+                        success: false,
+                        message: 'ユーザーが見つかりません。管理者にユーザー作成を依頼してください。'
+                    };
+                }
+            }
+        }
+        
+        // ユーザーデータベースの初期化
+        function initializeUserDatabase() {
+            const existingUsers = localStorage.getItem('systemUsers');
+            if (!existingUsers) {
+                console.log('🔧 [INIT] ユーザーデータベースを初期化中...');
+                
+                // デフォルトユーザーを作成
+                const defaultUsers = [
+                    {
+                        id: 1,
+                        name: '邨中天真',
+                        email: 'muranaka-tenma@terracom.co.jp',
+                        password: 'admin123',
+                        role: 'developer',
+                        department: '開発部',
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: 2,
+                        name: 'テストユーザー',
+                        email: 'test@terracom.co.jp',
+                        password: 'test123',
+                        role: 'user',
+                        department: '営業部',
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                
+                localStorage.setItem('systemUsers', JSON.stringify(defaultUsers));
+                console.log('✅ [INIT] デフォルトユーザーを作成しました');
+                
+                // 担当者リストも初期化
+                const assignees = defaultUsers.map(u => u.name);
+                localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                console.log('✅ [INIT] 担当者リストを初期化しました');
             }
         }
         
