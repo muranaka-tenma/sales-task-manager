@@ -406,6 +406,7 @@
                     <td>
                         <div class="actions">
                             <button class="btn btn-secondary" onclick="editUser(${user.id})" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">編集</button>
+                            <button class="btn btn-secondary" onclick="changePassword(${user.id})" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">パスワード</button>
                             <button class="btn btn-danger" onclick="deleteUser(${user.id})" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">削除</button>
                         </div>
                     </td>
@@ -436,6 +437,36 @@
                 loadUsers();
                 showSuccess();
                 console.log('✅ ユーザー権限更新:', user.name, newRole);
+            }
+        }
+        
+        function changePassword(userId) {
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+            
+            // 開発者権限のみパスワード変更可能
+            const currentSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
+            if (!currentSession || currentSession.user.role !== 'developer') {
+                alert('パスワード変更は開発者権限が必要です。');
+                return;
+            }
+            
+            const newPassword = prompt(`${user.name}の新しいパスワードを入力してください:`, '');
+            
+            if (newPassword) {
+                // パスワードの最低要件チェック
+                if (newPassword.length < 4) {
+                    alert('パスワードは4文字以上で設定してください。');
+                    return;
+                }
+                
+                // パスワード更新
+                user.password = newPassword;
+                user.updatedAt = new Date().toISOString();
+                saveUsers();
+                
+                alert(`✅ ${user.name}のパスワードを変更しました。\n新しいパスワード: ${newPassword}`);
+                console.log('🔑 パスワード変更:', user.name, `(${user.email})`);
             }
         }
         
