@@ -1493,7 +1493,7 @@
                         <div style="padding: 1rem; border-bottom: 1px solid #ddd; background: #e3f2fd;">
                             <h5 style="margin: 0; color: #172b4d;">📋 インポートプレビュー - ドラッグ&ドロップで編集可能</h5>
                         </div>
-                        <div id="preview-content" style="padding: 1rem; max-height: 500px; overflow-y: auto;"></div>
+                        <div id="preview-content" style="padding: 1rem; max-height: 500px; overflow-y: auto; overflow-x: auto;"></div>
                         <div style="padding: 1rem; border-top: 1px solid #ddd; display: flex; gap: 0.5rem;">
                             <button onclick="executeImport()" style="flex: 1; padding: 0.75rem; background: #38a169; color: white; border: none; border-radius: 4px; cursor: pointer;">✅ インポート実行</button>
                             <button onclick="hidePreview()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">キャンセル</button>
@@ -5436,9 +5436,9 @@
                                 <h6 style="margin: 0 0 1rem 0; color: #495057;">📝 認識されたタスク一覧</h6>
                                 <div id="preview-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
                         ` : `
-                        <!-- テキスト入力時：従来の3列表示 -->
+                        <!-- テキスト入力時：レスポンシブ列表示 -->
                         <div style="padding: 1rem; background: #f0f2f5; border-radius: 12px; margin-bottom: 1rem;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" id="preview-container">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1rem;" id="preview-container">
                         `}
             `;
             
@@ -5470,7 +5470,7 @@
                 // スクリーンショット表示時は縦列レイアウト用にスタイル調整
                 const cardStyle = originalImageDataUrl ? 
                     `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); width: 100%; margin-bottom: 0;` :
-                    `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content;`;
+                    `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content; min-width: 350px;`;
                 
                 content += `
                     <div style="${cardStyle}" 
@@ -5494,7 +5494,7 @@
                                 <input type="text" 
                                        value="${task.title.replace(/"/g, '&quot;')}" 
                                        onchange="updateTaskTitle(${index}, this.value)" 
-                                       style="flex: 1; font-family: monospace; background: #f8f9fa; padding: 0.75rem; border-radius: 4px; font-size: 0.9rem; border: 1px solid ${borderColor}; border-left: 3px solid ${borderColor};"
+                                       style="flex: 1; font-family: monospace; background: #f8f9fa; padding: 0.75rem; border-radius: 4px; font-size: 0.9rem; border: 1px solid ${borderColor}; border-left: 3px solid ${borderColor}; min-width: 0; word-wrap: break-word;"
                                        id="title-input-${index}">
                                 <button onclick="deletePreviewTask(${index})" 
                                         style="background: #e53e3e; color: white; border: none; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
