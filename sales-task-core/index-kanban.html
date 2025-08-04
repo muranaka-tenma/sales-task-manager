@@ -3732,15 +3732,14 @@
 
         // レンダリング
         function render() {
-            try {
-                console.log('🎨 [RENDER] Starting render, total tasks:', tasks.length);
-                const board = document.getElementById('kanban-board');
-                if (!board) {
-                    console.error('❌ [RENDER] kanban-board element not found!');
-                    return;
-                }
-                board.innerHTML = '';
-                console.log('🎨 [RENDER] Board cleared successfully');
+            console.log('🎨 [RENDER] Starting render, total tasks:', tasks.length);
+            const board = document.getElementById('kanban-board');
+            if (!board) {
+                console.error('❌ [RENDER] kanban-board element not found!');
+                return;
+            }
+            board.innerHTML = '';
+            console.log('🎨 [RENDER] Board cleared successfully');
             
             // 統合フィルターを適用
             let filteredTasks = tasks;
@@ -4394,9 +4393,6 @@
             document.body.insertAdjacentHTML('beforeend', modalHtml);
             
             console.log('🎨 [RENDER] Render completed successfully');
-            } catch (error) {
-                console.error('❌ [RENDER] Error during render:', error);
-            }
         }
         
         function closeStatusModal() {
