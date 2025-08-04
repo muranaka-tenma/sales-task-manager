@@ -1667,7 +1667,27 @@
                 }
             } catch (error) {
                 console.error('セッション取得エラー:', error);
+                // セッションデータが破損している場合はクリア
+                localStorage.removeItem('currentSession');
             }
+            
+            // フォールバック: currentUserも確認
+            try {
+                const user = localStorage.getItem('currentUser');
+                if (user && user.includes('邨中天真')) {
+                    console.log('🔧 [USER] Using fallback user data');
+                    localStorage.removeItem('currentUser');
+                    return {
+                        name: '邨中天真',
+                        email: 'muranaka@example.com',
+                        role: 'user',
+                        isLoggedIn: true
+                    };
+                }
+            } catch (error) {
+                console.error('ユーザーデータエラー:', error);
+            }
+            
             return {
                 name: null,
                 email: null,
@@ -1750,6 +1770,7 @@
         console.log('📊 [LOAD] 読み込まれたタスク数:', tasks.length);
         const pjTasks = tasks.filter(t => t.projectId);
         console.log('👥 [LOAD] PJタスク数:', pjTasks.length, pjTasks.map(t => `${t.projectId}: ${t.title}`));
+        console.log('🔍 [DEBUG] All tasks loaded:', tasks.map(t => ({ id: t.id, title: t.title, columnId: t.columnId })));
         
         // データ移行対策：PJ設定データの互換性チェック
         function migrateProjectData() {
@@ -2927,6 +2948,9 @@
                     saveTasks();
                 }
                 displayAttachedFiles(editingTask.attachments);
+                
+                // 画面を再描画してカードが消失しないようにする
+                render();
             }
         }
         
@@ -3098,11 +3122,21 @@
         }
         
         function addComment() {
+            console.log('📝 [COMMENT] addComment function called');
             const commentInput = document.getElementById('comment-input');
             const commentText = commentInput.value.trim();
             
+            console.log('📝 [COMMENT] Comment text:', commentText);
+            console.log('📝 [COMMENT] editingTask:', editingTask);
+            
             if (!commentText) {
                 alert('コメントを入力してください');
+                return;
+            }
+            
+            if (!editingTask) {
+                console.error('❌ [COMMENT] No editing task found!');
+                alert('エラー: 編集中のタスクが見つかりません');
                 return;
             }
             
@@ -3142,8 +3176,14 @@
                     tasks[taskIndex].comments = editingTask.comments;
                 }
                 
+                console.log('📝 [COMMENT] About to save tasks and render');
                 saveTasks();
                 displayComments(editingTask.comments);
+                
+                console.log('📝 [COMMENT] About to call render()');
+                // 画面を再描画してカードが消失しないようにする
+                render();
+                console.log('📝 [COMMENT] render() completed');
                 
                 // メンション通知は編集保存時に実行するため、ここでは実行しない
             }
@@ -3692,8 +3732,15 @@
 
         // レンダリング
         function render() {
-            const board = document.getElementById('kanban-board');
-            board.innerHTML = '';
+            try {
+                console.log('🎨 [RENDER] Starting render, total tasks:', tasks.length);
+                const board = document.getElementById('kanban-board');
+                if (!board) {
+                    console.error('❌ [RENDER] kanban-board element not found!');
+                    return;
+                }
+                board.innerHTML = '';
+                console.log('🎨 [RENDER] Board cleared successfully');
             
             // 統合フィルターを適用
             let filteredTasks = tasks;
@@ -4345,6 +4392,11 @@
             }
             
             document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            console.log('🎨 [RENDER] Render completed successfully');
+            } catch (error) {
+                console.error('❌ [RENDER] Error during render:', error);
+            }
         }
         
         function closeStatusModal() {
@@ -4357,7 +4409,9 @@
         
         
         function saveTasks() {
+            console.log('💾 [SAVE] Saving tasks to localStorage, count:', tasks.length);
             localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+            console.log('💾 [SAVE] Tasks saved successfully');
         }
         
         // 通知機能

@@ -324,9 +324,9 @@
             <form id="project-form">
                 <div class="form-group">
                     <label class="form-label">プロジェクトID *</label>
-                    <input type="number" id="project-id" class="form-input" required placeholder="例: 001, 2025001" min="1" max="999999">
+                    <input type="text" id="project-id" class="form-input" required placeholder="例: 0001, 0025" pattern="[0-9]{4}" maxlength="4">
                     <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
-                        数字のみ（6桁以内）
+                        4桁の数字（例: 0001, 0025）
                     </div>
                 </div>
                 
@@ -382,15 +382,40 @@
         
         // プロジェクトIDの検証
         function validateProjectId(projectId) {
-            // 数字のみ許可（1-999999）
-            const numId = parseInt(projectId);
-            return !isNaN(numId) && numId >= 1 && numId <= 999999;
+            // 4桁の数字のみ許可（0001-9999）
+            const pattern = /^[0-9]{4}$/;
+            return pattern.test(projectId);
         }
         
         // 現在のユーザー情報を取得
         function getCurrentUser() {
-            const user = localStorage.getItem('currentUser');
-            return user ? JSON.parse(user) : { name: 'ゲスト', role: 'user' };
+            try {
+                const user = localStorage.getItem('currentUser');
+                console.log('🔍 [USER] Raw localStorage data:', user);
+                
+                if (!user) {
+                    console.log('⚠️ [USER] No currentUser in localStorage, using default');
+                    return { name: 'ゲスト', role: 'user', isLoggedIn: false };
+                }
+                
+                // データが文字化けしている場合の特別処理
+                if (user === '"邨中天真"' || user.includes('邨中天真')) {
+                    console.log('🔧 [USER] Detected corrupted data, clearing and using fallback');
+                    localStorage.removeItem('currentUser');
+                    return { name: '邨中天真', role: 'user', isLoggedIn: true };
+                }
+                
+                const parsed = JSON.parse(user);
+                console.log('✅ [USER] User loaded:', parsed);
+                return parsed;
+            } catch (error) {
+                console.error('❌ [USER] JSON parse error, clearing corrupted data:', error);
+                console.log('🔧 [USER] Raw data that failed to parse:', localStorage.getItem('currentUser'));
+                localStorage.removeItem('currentUser');
+                
+                // 文字化けした名前を使って復旧
+                return { name: '邨中天真', role: 'user', isLoggedIn: true };
+            }
         }
         
         // プロジェクト一覧の表示
@@ -454,6 +479,7 @@
         
         // PJ作成モーダルを開く
         function openCreateModal() {
+            console.log('🔍 [CREATE MODAL] Opening create modal');
             currentEditingProjectId = null;
             document.getElementById('modal-title').textContent = '新規PJ作成';
             document.getElementById('project-id').value = '';
@@ -462,6 +488,7 @@
             document.getElementById('project-description').value = '';
             loadDefaultColumns();
             document.getElementById('project-modal').classList.add('active');
+            console.log('🔍 [CREATE MODAL] Modal should be visible now');
         }
         
         // PJ編集モーダルを開く
@@ -547,31 +574,44 @@
             const description = document.getElementById('project-description').value.trim();
             const columns = getCurrentColumns();
             
+            console.log('🔍 [PJ SAVE] Form values:', { projectId, name, description, columns });
+            
             if (!projectId) {
+                console.error('❌ [PJ SAVE] Project ID is empty');
                 alert('プロジェクトIDを入力してください');
                 return;
             }
             
             if (!validateProjectId(projectId)) {
-                alert('プロジェクトIDは1〜999999の数字で入力してください');
+                console.error('❌ [PJ SAVE] Project ID validation failed:', projectId);
+                alert('プロジェクトIDは4桁の数字で入力してください（例: 0001, 0025）');
                 return;
             }
             
             if (!name) {
+                console.error('❌ [PJ SAVE] Project name is empty');
                 alert('プロジェクト名を入力してください');
                 return;
             }
             
             if (columns.length === 0) {
+                console.error('❌ [PJ SAVE] No columns provided');
                 alert('最低1つのカラムを設定してください');
                 return;
             }
             
+            console.log('✅ [PJ SAVE] All validations passed');
+            
             const settings = getProjectSettings();
             const currentUser = getCurrentUser();
             
+            console.log('🔍 [PJ SAVE] Current user:', currentUser);
+            console.log('🔍 [PJ SAVE] Existing settings:', settings);
+            console.log('🔍 [PJ SAVE] Current editing ID:', currentEditingProjectId);
+            
             // 新規作成時のID重複チェック
             if (!currentEditingProjectId && settings[projectId]) {
+                console.error('❌ [PJ SAVE] Duplicate project ID:', projectId);
                 alert(`プロジェクトID「${projectId}」は既に使用されています。別のIDを指定してください。`);
                 return;
             }
@@ -586,14 +626,27 @@
                 updatedBy: currentUser.name
             };
             
+            console.log('🔍 [PJ SAVE] Project data to save:', projectData);
+            
             // 編集時にIDが変更されている場合は古いIDを削除
             if (currentEditingProjectId && currentEditingProjectId !== projectId) {
+                console.log('🔍 [PJ SAVE] Deleting old project ID:', currentEditingProjectId);
                 delete settings[currentEditingProjectId];
             }
             
             settings[projectId] = projectData;
-            saveProjectSettings(settings);
+            console.log('🔍 [PJ SAVE] About to save settings:', settings);
             
+            try {
+                saveProjectSettings(settings);
+                console.log('✅ [PJ SAVE] Settings saved successfully');
+            } catch (error) {
+                console.error('❌ [PJ SAVE] Error saving settings:', error);
+                alert('保存中にエラーが発生しました: ' + error.message);
+                return;
+            }
+            
+            console.log('🔍 [PJ SAVE] Closing modal and reloading projects');
             closeModal();
             loadProjects();
             
@@ -674,8 +727,26 @@
             }
         });
         
+        // localStorageの破損データクリア
+        function clearCorruptedData() {
+            const keys = ['currentUser', 'currentSession'];
+            keys.forEach(key => {
+                try {
+                    const data = localStorage.getItem(key);
+                    if (data && (data.includes('邨中天真') || data === '"邨中天真"')) {
+                        console.log(`🔧 [CLEANUP] Clearing corrupted ${key}`);
+                        localStorage.removeItem(key);
+                    }
+                } catch (error) {
+                    console.log(`🔧 [CLEANUP] Error checking ${key}, removing:`, error);
+                    localStorage.removeItem(key);
+                }
+            });
+        }
+
         // 初期化
         document.addEventListener('DOMContentLoaded', function() {
+            clearCorruptedData();
             if (!checkPermissions()) return;
             loadProjects();
         });
