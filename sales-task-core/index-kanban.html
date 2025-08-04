@@ -2852,8 +2852,22 @@
             console.log('🔍 [MODAL DEBUG] Split time part:', editingTask.deadline.split('T')[1]);
             console.log('🔍 [MODAL DEBUG] Time substring:', editingTask.deadline.split('T')[1].substring(0, 5));
             
-            document.getElementById('task-date-input').value = editingTask.deadline.split('T')[0];
-            document.getElementById('task-time-input').value = editingTask.deadline.split('T')[1].substring(0, 5);
+            // ★★★ タイムゾーン問題の修正：JSTで正しく表示 ★★★
+            const deadlineDate = new Date(editingTask.deadline);
+            const jstOffset = 9 * 60; // JST = UTC+9
+            const localDate = new Date(deadlineDate.getTime() + (jstOffset * 60 * 1000));
+            
+            const dateStr = localDate.toISOString().split('T')[0];
+            const timeStr = localDate.toISOString().split('T')[1].substring(0, 5);
+            
+            console.log('🔍 [TIMEZONE FIX] Original deadline:', editingTask.deadline);
+            console.log('🔍 [TIMEZONE FIX] Deadline as Date object:', deadlineDate);
+            console.log('🔍 [TIMEZONE FIX] Adjusted for JST:', localDate.toISOString()); 
+            console.log('🔍 [TIMEZONE FIX] Date string for form:', dateStr);
+            console.log('🔍 [TIMEZONE FIX] Time string for form:', timeStr);
+            
+            document.getElementById('task-date-input').value = dateStr;
+            document.getElementById('task-time-input').value = timeStr;
             
             console.log('🔍 [MODAL DEBUG] After setting form values:');
             console.log('🔍 [MODAL DEBUG] Date input now:', document.getElementById('task-date-input').value);
@@ -3452,7 +3466,21 @@
                 }
             }
             
-            const deadline = new Date(`${date}T${time || '23:59'}`);
+            // ★★★ タイムゾーン問題の修正：編集時のみJST補正 ★★★
+            let deadline;
+            if (editingTask) {
+                // 編集時：ローカル時間として解釈してUTCに変換
+                const localDateTime = `${date}T${time || '23:59'}`;
+                const localDate = new Date(localDateTime);
+                console.log('🔍 [TIMEZONE SAVE] Edit mode - Local datetime string:', localDateTime);
+                console.log('🔍 [TIMEZONE SAVE] Edit mode - Local date object:', localDate);
+                console.log('🔍 [TIMEZONE SAVE] Edit mode - UTC conversion:', localDate.toISOString());
+                deadline = localDate;
+            } else {
+                // 新規作成時：従来通りの処理（変更なし）
+                deadline = new Date(`${date}T${time || '23:59'}`);
+                console.log('🔍 [TIMEZONE SAVE] New task mode - No timezone adjustment');
+            }
             
             console.log('🔍 [DEADLINE DEBUG] Constructed deadline:');
             console.log('🔍 [DEADLINE DEBUG] Date string:', `${date}T${time || '23:59'}`);
