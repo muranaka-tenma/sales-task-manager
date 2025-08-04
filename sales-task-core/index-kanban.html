@@ -1311,136 +1311,6 @@
                     </div>
                 </div>
                 
-                <div class="setting-section" style="margin-top: 2rem; background: #fdf2f8; padding: 2rem; border-radius: 12px; border: 1px solid #f9a8d4;">
-                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #ec4899;">📝 タスクインポート（テキスト・OCR）</h3>
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <textarea id="import-text" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @ユーザー名 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @担当者名&#10;　資料準備済み（全角スペース）&#10;		会議室予約（タブ）&#10;C社フォローアップ" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
-                        
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button onclick="previewImport()" style="flex: 1; padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">👁️ プレビュー</button>
-                            <button onclick="clearImportText()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ クリア</button>
-                            <label for="ocr-file-input" style="padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; display: inline-block;" title="GoogleTODOスクリーンショット対応！領域選択でタスク名・期限を自動ペア化">📸 OCR+タグ機能</label>
-                            <input type="file" id="ocr-file-input" accept="image/*" style="display: none;" onchange="handleOCRFile(this)">
-                        </div>
-                        
-                        <!-- OCR処理状況 -->
-                        <div id="ocr-status" style="display: none; margin-top: 1rem; padding: 0.75rem; border-radius: 4px; background: #e3f2fd; border: 1px solid #90caf9;">
-                            <div id="ocr-progress-text">📸 画像を解析中...</div>
-                            <div style="width: 100%; background: #f0f0f0; border-radius: 4px; height: 8px; margin-top: 0.5rem;">
-                                <div id="ocr-progress-bar" style="width: 0%; height: 100%; background: #2196f3; border-radius: 4px; transition: width 0.3s;"></div>
-                            </div>
-                            <!-- AI信頼度スコア表示 -->
-                            <div id="confidence-scores" style="display: none; margin-top: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6;">
-                                <div style="font-size: 0.85rem; font-weight: bold; color: #495057; margin-bottom: 0.5rem;">🎯 AI信頼度スコア</div>
-                                <div id="confidence-list" style="font-size: 0.8rem; color: #666;"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- 画像プレビューと領域選択 -->
-                        <div id="image-preview-container" style="display: none; margin-top: 1rem; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
-                            <div style="padding: 1rem; border-bottom: 1px solid #ddd; background: #e8f5e8;">
-                                <h5 style="margin: 0; color: #172b4d;">🖼️ 画像プレビュー - 領域を選択してOCR</h5>
-                                <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-                                    マウスでドラッグして選択領域を作成し、「OCR実行」でテキスト化
-                                </div>
-                            </div>
-                            <div id="image-preview-scroll-container" style="padding: 1rem; max-height: 600px; overflow: auto; position: relative;">
-                                <div id="image-canvas-container" style="position: relative; display: inline-block; border: 1px solid #ccc; transform-origin: top left;">
-                                    <canvas id="image-canvas" style="cursor: crosshair;"></canvas>
-                                    <!-- 選択領域を表示するオーバーレイ -->
-                                    <div id="selection-overlay" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
-                                </div>
-                            </div>
-                            <div style="padding: 1rem; border-top: 1px solid #ddd;">
-                                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
-                                    <button onclick="processSelectedAreas()" style="padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">🔍 OCR実行</button>
-                                    <button onclick="clearSelections()" style="padding: 0.75rem; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ 選択クリア</button>
-                                    <button onclick="hideImagePreview()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">閉じる</button>
-                                    <span id="selection-count" style="margin-left: 1rem; color: #666; font-size: 0.9rem;">0個の領域を選択中</span>
-                                </div>
-                                <details style="background: #f8f9fa; padding: 0.5rem; border-radius: 4px;">
-                                    <summary style="cursor: pointer; font-size: 0.85rem; color: #666;">🎯 OCR精度向上設定</summary>
-                                    <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
-                                        <div style="margin-bottom: 0.5rem;">
-                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: bold; color: #2563eb;">
-                                                <input type="checkbox" id="ocr-handwriting-mode" title="手書き文字に特化した高精度OCR"> ✍️ 手書き文字モード（高精度）
-                                            </label>
-                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: bold; color: #dc2626;">
-                                                <input type="checkbox" id="ocr-complex-layout-mode" title="表・図・フォームなどの複雑レイアウト対応"> 🧩 複雑レイアウトモード（表・図対応）
-                                            </label>
-                                        </div>
-                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                                                <input type="checkbox" id="ocr-enhance-contrast"> コントラスト強化
-                                            </label>
-                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                                                <input type="checkbox" id="ocr-upscale"> 2倍拡大処理
-                                            </label>
-                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                                                <input type="checkbox" id="ocr-grayscale"> グレースケール化
-                                            </label>
-                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;" title="①→ 1, ○→ 0, ●→ 1 など">
-                                                <input type="checkbox" id="ocr-cleanup-symbols" checked> 数字記号修正
-                                            </label>
-                                        </div>
-                                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-                                            <button onclick="previewProcessing()" style="padding: 0.5rem; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔍 処理プレビュー</button>
-                                            <button onclick="resetOCRSettings()" style="padding: 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔄 リセット</button>
-                                        <button onclick="testOCRDirectly()" style="margin-left: 0.5rem; padding: 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔍 OCRテスト</button>
-                                        <button onclick="testHandwritingOCR()" style="padding: 0.5rem; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✍️ 手書きテスト</button>
-                                        <button onclick="testComplexLayoutOCR()" style="padding: 0.5rem; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🧩 レイアウトテスト</button>
-                                        </div>
-                                        <div style="margin-top: 0.5rem; padding: 0.5rem; background: #d1ecf1; border-radius: 4px; font-size: 0.8rem; color: #0c5460;">
-                                            💡 ヒント: ①→ 1, ○→ 0 などの誤認識がある場合は「数字記号修正」を有効に
-                                        </div>
-                                    </div>
-                                </details>
-                            </div>
-                        </div>
-                        
-                        <!-- プレビューエリア - 拡大版 -->
-                        <div id="import-preview" style="display: none; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
-                            <div style="padding: 1rem; border-bottom: 1px solid #ddd; background: #e3f2fd;">
-                                <h5 style="margin: 0; color: #172b4d;">📋 インポートプレビュー - ドラッグ&ドロップで編集可能</h5>
-                            </div>
-                            <div id="preview-content" style="padding: 1rem; max-height: 500px; overflow-y: auto;"></div>
-                            <div style="padding: 1rem; border-top: 1px solid #ddd; display: flex; gap: 0.5rem;">
-                                <button onclick="executeImport()" style="flex: 1; padding: 0.75rem; background: #38a169; color: white; border: none; border-radius: 4px; cursor: pointer;">✅ インポート実行</button>
-                                <button onclick="hidePreview()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">キャンセル</button>
-                            </div>
-                        </div>
-                        
-                        <div style="font-size: 0.8rem; color: #6c757d; line-height: 1.4;">
-                            <strong>📝 シンプル形式:</strong><br>
-                            • <strong>・</strong>で主タスク開始<br>
-                            • <strong>行頭スペース</strong>でサブタスク（コメントに自動追加）<br>
-                            • <strong>@担当者</strong>、<strong>日付</strong>、<strong>!!!</strong>高優先度を自動認識<br><br>
-                            <strong>📸 OCR注意事項:</strong><br>
-                            • プリント文字のみ推奨（手書きは精度低）<br>
-                            • シンプルなレイアウトのみ（表・図は非推奨）<br>
-                            • 認識後は手動で確認・修正が必要
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="setting-section" style="margin-top: 2rem; background: #f0f9ff; padding: 2rem; border-radius: 12px; border: 1px solid #93c5fd;">
-                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #3b82f6;">📋 タスクテンプレート管理</h3>
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                            <button onclick="showCreateTemplateModal()" style="padding: 0.75rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
-                                ➕ 新規テンプレート作成
-                            </button>
-                            <button onclick="loadTemplateList()" style="padding: 0.75rem 1.5rem; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
-                                🔄 一覧を更新
-                            </button>
-                        </div>
-                        <div id="template-list" style="min-height: 200px; border: 1px solid #d1d5db; border-radius: 8px; background: white; padding: 1rem;">
-                            <!-- テンプレート一覧がここに動的に表示される -->
-                            <div style="text-align: center; color: #6b7280; padding: 2rem;">テンプレートを読み込み中...</div>
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="setting-section" style="margin-top: 2rem; background: #fef2f2; padding: 2rem; border-radius: 12px; border: 1px solid #fecaca;">
                     <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #ef4444;">🔄 データ管理</h3>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
@@ -1519,74 +1389,186 @@
         </div>
     </div>
     
-    <!-- テンプレート作成モーダル -->
-    <div id="templateModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
-        <div style="background: white; border-radius: 8px; width: 100%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
-            <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid #dfe1e6; flex-shrink: 0;">
-                <h3 class="modal-title" id="template-modal-title">📋 テンプレート作成</h3>
-                <button class="close-btn" onclick="closeTemplateModal()">&times;</button>
+    <!-- タスクインポートモーダル（独立版） -->
+    <div id="taskImportModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: #fdf2f8; border-radius: 12px 12px 0 0;">
+                <h3 class="modal-title" style="color: #1f2937; font-size: 1.5rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    📝 タスクインポート
+                    <span style="font-size: 0.8rem; background: #ec4899; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-weight: 500;">テキスト・OCR</span>
+                </h3>
+                <button class="close-btn" onclick="closeTaskImportModal()" style="background: none; border: none; font-size: 1.5rem; color: #6b7280; cursor: pointer; padding: 0.25rem;">&times;</button>
             </div>
             
-            <div style="padding: 1.5rem; overflow-y: auto; flex: 1;">
-                <form onsubmit="saveTemplate(event)">
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">テンプレート名 *</label>
-                        <input type="text" id="template-name" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;" placeholder="例: 営業レポート作成" required>
-                    </div>
-                    
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">カテゴリ</label>
-                        <select id="template-category" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="営業">営業</option>
-                            <option value="企画">企画</option>
-                            <option value="管理">管理</option>
-                            <option value="その他">その他</option>
-                        </select>
-                    </div>
-                    
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">タスク名 *</label>
-                        <input type="text" id="template-task-title" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;" placeholder="例: 月次営業レポート作成" required>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div>
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">優先度</label>
-                            <select id="template-priority" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
-                                <option value="high">🔴 最重要</option>
-                                <option value="medium" selected>🟡 重要</option>
-                                <option value="low">🟢 通常</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">デフォルトカラム</label>
-                            <select id="template-column" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
-                                <!-- カラム選択肢がここに動的追加される -->
-                            </select>
+            <div style="flex: 1; overflow-y: auto; padding: 2rem;">
+                <div style="display: flex; flex-direction: column; gap: 2rem;">
+                    <!-- テキストインポートセクション -->
+                    <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <h4 style="margin: 0 0 1rem 0; color: #374151; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            📝 テキストからタスク作成
+                        </h4>
+                        <textarea id="import-text-modal" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @ユーザー名 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @担当者名&#10;　資料準備済み（全角スペース）&#10;		会議室予約（タブ）&#10;C社フォローアップ" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
+                        
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button onclick="processImportText(true)" style="flex: 1; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                                👁️ プレビュー
+                            </button>
+                            <button onclick="processImportText(false)" style="flex: 1; padding: 0.75rem; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                                ✅ 直接インポート
+                            </button>
                         </div>
                     </div>
                     
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">担当者（複数選択可）</label>
-                        <div id="template-assignees" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                            <!-- 担当者チェックボックスがここに動的追加される -->
+                    <!-- OCRインポートセクション -->
+                    <div style="background: #f0f9ff; padding: 1.5rem; border-radius: 8px; border: 1px solid #93c5fd;">
+                        <h4 style="margin: 0 0 1rem 0; color: #374151; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            📷 画像OCRからタスク作成
+                        </h4>
+                        <div style="margin-bottom: 1rem;">
+                            <input type="file" id="ocr-file-input-modal" accept="image/*" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px;">
                         </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">メモ・備考</label>
-                        <textarea id="template-memo" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;" rows="3" placeholder="テンプレートの詳細や使用場面"></textarea>
-                    </div>
-                    
-                    <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                        <button type="button" onclick="closeTemplateModal()" style="padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                            キャンセル
-                        </button>
-                        <button type="submit" id="save-template-btn" style="padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                            保存
+                        <button onclick="processOCRImageFromModal()" style="width: 100%; padding: 0.75rem; background: #8b5cf6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            🔍 OCR実行
                         </button>
                     </div>
-                </form>
+                    
+                    <!-- プレビューエリア -->
+                    <div id="import-preview-modal" style="display: none; border: 1px solid #d1d5db; border-radius: 8px; background: #f8f9fa;">
+                        <div style="padding: 1rem; border-bottom: 1px solid #e5e7eb; background: #e3f2fd;">
+                            <h5 style="margin: 0; color: #172b4d;">📋 インポートプレビュー</h5>
+                        </div>
+                        <div id="preview-content-modal" style="padding: 1rem; max-height: 300px; overflow-y: auto;"></div>
+                        <div style="padding: 1rem; border-top: 1px solid #e5e7eb; display: flex; gap: 0.5rem;">
+                            <button onclick="executeImportFromModal()" style="flex: 1; padding: 0.75rem; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                                ✅ インポート実行
+                            </button>
+                            <button onclick="hidePreviewModal()" style="padding: 0.75rem; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                                キャンセル
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 使用方法 -->
+                    <div style="background: #f3f4f6; padding: 1.5rem; border-radius: 8px; border: 1px solid #d1d5db;">
+                        <h4 style="margin: 0 0 1rem 0; color: #374151; font-weight: 600;">📖 使用方法</h4>
+                        <div style="font-size: 0.9rem; color: #4b5563; line-height: 1.6;">
+                            <strong>📝 テキスト形式:</strong><br>
+                            • <strong>・</strong>で主タスク開始<br>
+                            • <strong>行頭スペース</strong>でサブタスク（コメントに自動追加）<br>
+                            • <strong>@担当者</strong>、<strong>日付</strong>、<strong>!!!</strong>高優先度を自動認識<br><br>
+                            <strong>📸 OCR注意事項:</strong><br>
+                            • プリント文字のみ推奨（手書きは精度低）<br>
+                            • シンプルなレイアウトのみ（表・図は非推奨）<br>
+                            • 認識後は手動で確認・修正が必要
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- テンプレート管理モーダル（統合版） -->
+    <div id="templateManagementModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: #f9fafb; border-radius: 12px 12px 0 0;">
+                <h3 class="modal-title" style="color: #1f2937; font-size: 1.5rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    📋 テンプレート管理
+                    <span style="font-size: 0.8rem; background: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-weight: 500;">統合</span>
+                </h3>
+                <button class="close-btn" onclick="closeTemplateManagementModal()" style="background: none; border: none; font-size: 1.5rem; color: #6b7280; cursor: pointer; padding: 0.25rem;">&times;</button>
+            </div>
+            
+            <div style="display: flex; flex: 1; overflow: hidden;">
+                <!-- 左側：テンプレート一覧 -->
+                <div style="width: 350px; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column;">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
+                        <h4 style="margin: 0 0 1rem 0; color: #1f2937; font-weight: 600;">📋 作成済みテンプレート</h4>
+                        <button onclick="showTemplateCreateForm()" style="width: 100%; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            ➕ 新規テンプレート作成
+                        </button>
+                    </div>
+                    <div id="template-management-list" style="flex: 1; overflow-y: auto; padding: 1rem;">
+                        <!-- テンプレート一覧がここに表示される -->
+                        <div style="text-align: center; color: #6b7280; padding: 2rem;">テンプレートを読み込み中...</div>
+                    </div>
+                </div>
+                
+                <!-- 右側：テンプレート作成・編集フォーム -->
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <div id="template-welcome-screen" style="display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 1; color: #6b7280; text-align: center; padding: 2rem;">
+                        <div style="font-size: 4rem; margin-bottom: 1rem;">📋</div>
+                        <h3 style="margin: 0 0 0.5rem 0; color: #374151;">テンプレート管理</h3>
+                        <p style="margin: 0; line-height: 1.6;">
+                            左側のテンプレート一覧から選択するか、<br>
+                            「新規テンプレート作成」で新しいテンプレートを作成できます
+                        </p>
+                    </div>
+                    
+                    <div id="template-form-container" style="display: none; flex: 1; overflow-y: auto; padding: 1.5rem 2rem;">
+                        <form id="template-management-form" onsubmit="saveTemplateFromManagement(event)">
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">テンプレート名 *</label>
+                                <input type="text" id="mgmt-template-name" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;" placeholder="例: 営業レポート作成" required>
+                            </div>
+                            
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">カテゴリ</label>
+                                <select id="mgmt-template-category" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
+                                    <option value="営業">営業</option>
+                                    <option value="企画">企画</option>
+                                    <option value="管理">管理</option>
+                                    <option value="その他">その他</option>
+                                </select>
+                            </div>
+                            
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">タスク名 *</label>
+                                <input type="text" id="mgmt-template-task-title" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;" placeholder="例: 月次営業レポート作成" required>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">優先度</label>
+                                    <select id="mgmt-template-priority" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
+                                        <option value="high">🔴 最重要</option>
+                                        <option value="medium" selected>🟡 重要</option>
+                                        <option value="low">🟢 通常</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">デフォルトカラム</label>
+                                    <select id="mgmt-template-column" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
+                                        <!-- カラム選択肢がここに動的追加される -->
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">担当者（複数選択可）</label>
+                                <div id="mgmt-template-assignees" style="display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb; min-height: 60px;">
+                                    <!-- 担当者チェックボックスがここに動的追加される -->
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: 2rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">メモ・備考</label>
+                                <textarea id="mgmt-template-memo" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; resize: vertical;" rows="4" placeholder="テンプレートの詳細や使用場面"></textarea>
+                            </div>
+                            
+                            <div style="display: flex; gap: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                                <button type="button" onclick="cancelTemplateForm()" style="flex: 1; padding: 0.75rem 1.5rem; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                                    キャンセル
+                                </button>
+                                <button type="submit" id="mgmt-save-template-btn" style="flex: 1; padding: 0.75rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                                    💾 保存
+                                </button>
+                                <button type="button" id="mgmt-delete-template-btn" onclick="deleteCurrentTemplate()" style="display: none; padding: 0.75rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                                    🗑️ 削除
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -4741,7 +4723,6 @@
             loadAlertSettings();
             loadColumnManager();
             loadImportDefaults();
-            loadTemplateList(); // テンプレート一覧を読み込み
         }
         
         // インポート設定の初期化
@@ -9261,6 +9242,399 @@
             closeSettingsModal();
         }
         
+        // ============ テンプレート管理モーダル関数群 ============
+        let currentEditingTemplateId = null;
+        
+        function openTemplateManagementModal() {
+            document.getElementById('templateManagementModal').style.display = 'flex';
+            loadTemplateManagementList();
+            showTemplateWelcomeScreen();
+        }
+        
+        function closeTemplateManagementModal() {
+            document.getElementById('templateManagementModal').style.display = 'none';
+            currentEditingTemplateId = null;
+            showTemplateWelcomeScreen();
+        }
+        
+        function showTemplateWelcomeScreen() {
+            document.getElementById('template-welcome-screen').style.display = 'flex';
+            document.getElementById('template-form-container').style.display = 'none';
+            currentEditingTemplateId = null;
+        }
+        
+        function showTemplateCreateForm() {
+            document.getElementById('template-welcome-screen').style.display = 'none';
+            document.getElementById('template-form-container').style.display = 'flex';
+            
+            // フォームをクリア
+            document.getElementById('template-management-form').reset();
+            document.getElementById('mgmt-save-template-btn').textContent = '💾 保存';
+            document.getElementById('mgmt-delete-template-btn').style.display = 'none';
+            currentEditingTemplateId = null;
+            
+            // カラムと担当者を更新
+            updateTemplateManagementFormOptions();
+        }
+        
+        function loadTemplateManagementList() {
+            const container = document.getElementById('template-management-list');
+            
+            if (taskTemplates.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #6b7280; padding: 2rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📝</div>
+                        <p>テンプレートがありません</p>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">「新規テンプレート作成」で<br>最初のテンプレートを作成しましょう</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // カテゴリ別にグループ化
+            const groupedTemplates = {};
+            taskTemplates.forEach(template => {
+                const category = template.category || 'その他';
+                if (!groupedTemplates[category]) {
+                    groupedTemplates[category] = [];
+                }
+                groupedTemplates[category].push(template);
+            });
+            
+            let html = '';
+            Object.keys(groupedTemplates).forEach(category => {
+                html += `
+                    <div style="margin-bottom: 1.5rem;">
+                        <h5 style="margin: 0 0 0.75rem 0; color: #374151; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">${category}</h5>
+                `;
+                
+                groupedTemplates[category].forEach(template => {
+                    const isSelected = currentEditingTemplateId === template.id;
+                    html += `
+                        <div onclick="selectTemplateInManagement(${template.id})" 
+                             style="background: ${isSelected ? '#eff6ff' : 'white'}; 
+                                    border: 1px solid ${isSelected ? '#3b82f6' : '#e5e7eb'}; 
+                                    border-radius: 8px; 
+                                    padding: 0.75rem; 
+                                    margin-bottom: 0.5rem; 
+                                    cursor: pointer; 
+                                    transition: all 0.2s;"
+                             onmouseover="if(!${isSelected}) { this.style.background='#f9fafb'; this.style.borderColor='#d1d5db'; }"
+                             onmouseout="if(!${isSelected}) { this.style.background='white'; this.style.borderColor='#e5e7eb'; }">
+                            <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">${template.name}</div>
+                            <div style="font-size: 0.8rem; color: #6b7280; margin-bottom: 0.5rem;">${template.taskTitle}</div>
+                            <div style="display: flex; gap: 0.25rem;">
+                                <span style="background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 12px; font-size: 0.7rem; color: #374151;">
+                                    ${template.priority === 'high' ? '🔴' : template.priority === 'medium' ? '🟡' : '🟢'} ${template.priority === 'high' ? '最重要' : template.priority === 'medium' ? '重要' : '通常'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function selectTemplateInManagement(templateId) {
+            const template = taskTemplates.find(t => t.id === templateId);
+            if (!template) return;
+            
+            currentEditingTemplateId = templateId;
+            
+            // フォームを表示
+            document.getElementById('template-welcome-screen').style.display = 'none';
+            document.getElementById('template-form-container').style.display = 'flex';
+            
+            // フォームに値を設定
+            document.getElementById('mgmt-template-name').value = template.name;
+            document.getElementById('mgmt-template-category').value = template.category;
+            document.getElementById('mgmt-template-task-title').value = template.taskTitle;
+            document.getElementById('mgmt-template-priority').value = template.priority;
+            document.getElementById('mgmt-template-column').value = template.columnId;
+            document.getElementById('mgmt-template-memo').value = template.memo || '';
+            
+            // ボタンを更新
+            document.getElementById('mgmt-save-template-btn').textContent = '💾 更新';
+            document.getElementById('mgmt-delete-template-btn').style.display = 'block';
+            
+            // 担当者チェックボックスを更新
+            updateTemplateManagementFormOptions();
+            setTimeout(() => {
+                const checkboxes = document.querySelectorAll('#mgmt-template-assignees input[type="checkbox"]');
+                checkboxes.forEach(cb => {
+                    cb.checked = template.assignees && template.assignees.includes(cb.value);
+                });
+            }, 100);
+            
+            // 一覧を更新（選択状態を反映）
+            loadTemplateManagementList();
+        }
+        
+        function updateTemplateManagementFormOptions() {
+            // カラム選択肢を更新
+            const columnSelect = document.getElementById('mgmt-template-column');
+            columnSelect.innerHTML = '';
+            columns.forEach(column => {
+                const option = document.createElement('option');
+                option.value = column.id;
+                option.textContent = column.title;
+                columnSelect.appendChild(option);
+            });
+            
+            // 担当者チェックボックスを更新
+            const assigneesContainer = document.getElementById('mgmt-template-assignees');
+            assigneesContainer.innerHTML = '';
+            assignees.forEach(assignee => {
+                const label = document.createElement('label');
+                label.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.5rem; background: white; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer; font-size: 0.9rem;';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = assignee;
+                checkbox.name = 'mgmt-assignees';
+                
+                const span = document.createElement('span');
+                span.textContent = assignee;
+                
+                label.appendChild(checkbox);
+                label.appendChild(span);
+                assigneesContainer.appendChild(label);
+                
+                // ホバー効果
+                label.addEventListener('mouseenter', () => {
+                    label.style.background = '#f3f4f6';
+                });
+                label.addEventListener('mouseleave', () => {
+                    label.style.background = 'white';
+                });
+            });
+        }
+        
+        function saveTemplateFromManagement(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('mgmt-template-name').value.trim();
+            const category = document.getElementById('mgmt-template-category').value;
+            const taskTitle = document.getElementById('mgmt-template-task-title').value.trim();
+            const priority = document.getElementById('mgmt-template-priority').value;
+            const columnId = document.getElementById('mgmt-template-column').value;
+            const memo = document.getElementById('mgmt-template-memo').value.trim();
+            
+            // 選択された担当者を取得
+            const selectedAssignees = Array.from(document.querySelectorAll('#mgmt-template-assignees input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+            
+            if (!name || !taskTitle) {
+                alert('テンプレート名とタスク名は必須です');
+                return;
+            }
+            
+            const template = {
+                id: currentEditingTemplateId || Date.now(),
+                name: name,
+                category: category,
+                taskTitle: taskTitle,
+                priority: priority,
+                columnId: columnId,
+                assignees: selectedAssignees,
+                memo: memo,
+                createdAt: currentEditingTemplateId ? 
+                    taskTemplates.find(t => t.id === currentEditingTemplateId)?.createdAt || new Date().toISOString() : 
+                    new Date().toISOString()
+            };
+            
+            if (currentEditingTemplateId) {
+                // 更新
+                const index = taskTemplates.findIndex(t => t.id === currentEditingTemplateId);
+                if (index !== -1) {
+                    taskTemplates[index] = template;
+                    alert('✅ テンプレートを更新しました！');
+                }
+            } else {
+                // 新規追加
+                taskTemplates.push(template);
+                alert('✅ テンプレートを作成しました！');
+            }
+            
+            localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
+            
+            // 一覧を更新
+            loadTemplateManagementList();
+            loadTemplateList(); // 設定モーダルの一覧も更新
+            
+            // ウェルカム画面に戻る
+            showTemplateWelcomeScreen();
+        }
+        
+        function cancelTemplateForm() {
+            showTemplateWelcomeScreen();
+        }
+        
+        function deleteCurrentTemplate() {
+            if (!currentEditingTemplateId) return;
+            
+            const template = taskTemplates.find(t => t.id === currentEditingTemplateId);
+            if (!template) return;
+            
+            if (!confirm(`テンプレート「${template.name}」を削除しますか？`)) {
+                return;
+            }
+            
+            taskTemplates = taskTemplates.filter(t => t.id !== currentEditingTemplateId);
+            localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
+            
+            // 一覧を更新
+            loadTemplateManagementList();
+            loadTemplateList(); // 設定モーダルの一覧も更新
+            
+            // ウェルカム画面に戻る
+            showTemplateWelcomeScreen();
+            
+            alert('🗑️ テンプレートを削除しました');
+        }
+        
+        // ============ テンプレート管理モーダル関数群 終了 ============
+        
+        // ============ タスクインポートモーダル関数群 ============
+        let previewTasksModal = [];
+        
+        function openTaskImportModal() {
+            document.getElementById('taskImportModal').style.display = 'flex';
+            hidePreviewModal();
+            // テキストエリアをクリア
+            document.getElementById('import-text-modal').value = '';
+            document.getElementById('ocr-file-input-modal').value = '';
+        }
+        
+        function closeTaskImportModal() {
+            document.getElementById('taskImportModal').style.display = 'none';
+            hidePreviewModal();
+            previewTasksModal = [];
+        }
+        
+        function processImportText(showPreview) {
+            const text = document.getElementById('import-text-modal').value.trim();
+            if (!text) {
+                alert('テキストを入力してください');
+                return;
+            }
+            
+            const parsedTasks = parseImportText(text);
+            
+            if (showPreview) {
+                previewTasksModal = parsedTasks;
+                showPreviewModal(parsedTasks);
+            } else {
+                importTasks(parsedTasks);
+                alert(`${parsedTasks.length}件のタスクをインポートしました！`);
+                closeTaskImportModal();
+                render();
+            }
+        }
+        
+        function processOCRImageFromModal() {
+            const fileInput = document.getElementById('ocr-file-input-modal');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('画像ファイルを選択してください');
+                return;
+            }
+            
+            if (!file.type.startsWith('image/')) {
+                alert('画像ファイルを選択してください');
+                return;
+            }
+            
+            alert('OCR処理を開始します。時間がかかる場合があります...');
+            
+            Tesseract.recognize(
+                file,
+                'jpn+eng',
+                {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            console.log('OCR進捗:', Math.round(m.progress * 100) + '%');
+                        }
+                    }
+                }
+            ).then(({ data: { text } }) => {
+                console.log('OCR結果:', text);
+                
+                if (text.trim()) {
+                    // OCR結果をテキストエリアに設定
+                    document.getElementById('import-text-modal').value = text.trim();
+                    alert('OCR処理が完了しました！テキストエリアに結果を反映しました。');
+                } else {
+                    alert('テキストを認識できませんでした。画像の品質を確認してください。');
+                }
+            }).catch(error => {
+                console.error('OCRエラー:', error);
+                alert('OCR処理でエラーが発生しました: ' + error.message);
+            });
+        }
+        
+        function showPreviewModal(tasks) {
+            const preview = document.getElementById('import-preview-modal');
+            const content = document.getElementById('preview-content-modal');
+            
+            if (tasks.length === 0) {
+                content.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">解析できるタスクがありませんでした</div>';
+            } else {
+                let html = `<div style="margin-bottom: 1rem; font-weight: 600; color: #172b4d;">${tasks.length}件のタスクが検出されました</div>`;
+                
+                tasks.forEach((task, index) => {
+                    const priorityColor = task.priority === 'high' ? '#dc2626' : task.priority === 'medium' ? '#d97706' : '#059669';
+                    const priorityText = task.priority === 'high' ? '🔴 高' : task.priority === 'medium' ? '🟡 中' : '🟢 低';
+                    
+                    html += `
+                        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                <div style="font-weight: 600; color: #1f2937;">${task.title}</div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <span style="background: ${priorityColor}; color: white; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.75rem;">${priorityText}</span>
+                                    ${task.assignees.length > 0 ? `<span style="background: #3b82f6; color: white; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.75rem;">👤 ${task.assignees.join(', ')}</span>` : ''}
+                                </div>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">
+                                📅 期限: ${new Date(task.deadline).toLocaleDateString('ja-JP')}
+                            </div>
+                            ${task.memo ? `<div style="font-size: 0.85rem; color: #4b5563; background: #f9fafb; padding: 0.5rem; border-radius: 4px;">${task.memo}</div>` : ''}
+                        </div>
+                    `;
+                });
+                
+                content.innerHTML = html;
+            }
+            
+            preview.style.display = 'block';
+        }
+        
+        function hidePreviewModal() {
+            document.getElementById('import-preview-modal').style.display = 'none';
+            previewTasksModal = [];
+        }
+        
+        function executeImportFromModal() {
+            if (previewTasksModal.length === 0) {
+                alert('インポートするタスクがありません');
+                return;
+            }
+            
+            importTasks(previewTasksModal);
+            alert(`${previewTasksModal.length}件のタスクをインポートしました！`);
+            closeTaskImportModal();
+            render();
+        }
+        
+        // 既存のparseImportText関数を使用（共通関数として利用）
+        // 既存のimportTasks関数を使用（共通関数として利用）
+        
+        // ============ タスクインポートモーダル関数群 終了 ============
+
         // テンプレート選択関連関数
         function initializeTemplateSelector() {
             const templateSelect = document.getElementById('template-select');
@@ -10033,12 +10407,12 @@
         
         <div class="menu-section">
             <div class="menu-section-title">タスク管理</div>
-            <a href="#" class="menu-item" onclick="openSettingsModal(); setTimeout(() => { loadTemplateList(); document.querySelector('[href=\'#template-list\']')?.scrollIntoView(); }, 300); toggleHamburgerMenu(); return false;">
+            <a href="#" class="menu-item" onclick="openTemplateManagementModal(); toggleHamburgerMenu(); return false;">
                 <span>📋</span>
-                <span>テンプレート一覧</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テンプレート表示・作成・管理</div>
+                <span>テンプレート管理</span>
+                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テンプレート表示・作成・編集・削除</div>
             </a>
-            <a href="#" class="menu-item" onclick="openSettingsModal(); setTimeout(() => document.getElementById('import-text').focus(), 300); toggleHamburgerMenu(); return false;">
+            <a href="#" class="menu-item" onclick="openTaskImportModal(); toggleHamburgerMenu(); return false;">
                 <span>📝</span>
                 <span>テキスト・OCRインポート</span>
                 <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テキスト・画像からタスク作成</div>
