@@ -437,6 +437,14 @@
             projectList.style.display = 'block';
             emptyState.style.display = 'none';
             
+            // ★★★ パフォーマンス改善：一度だけ取得 ★★★
+            const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+            const currentUser = getCurrentUser();
+            const canDelete = currentUser.role !== 'user';
+            
+            console.log('🔍 [DELETE BUTTONS] Global check - User:', currentUser.name, 'Role:', currentUser.role, 'CanDelete:', canDelete);
+            console.log('🔍 [DELETE BUTTONS] Projects to process:', projectIds.length);
+            
             projectList.innerHTML = projectIds.map(projectId => {
                 const project = settings[projectId];
                 const createdDate = new Date(project.createdAt).toLocaleDateString('ja-JP', {
@@ -446,16 +454,11 @@
                 });
                 
                 // そのプロジェクトのタスク数を取得
-                const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
                 const projectTasks = tasks.filter(task => task.projectId === projectId);
                 
-                // 削除ボタンの表示制御
-                const currentUser = getCurrentUser();
-                const canDelete = currentUser.role !== 'user';
+                console.log(`🔍 [DELETE BUTTON] Project ${projectId}: canDelete=${canDelete}`);
                 
-                console.log(`🔍 [DELETE BUTTON] Project ${projectId}: currentUser.role=${currentUser.role}, canDelete=${canDelete}`);
-                
-                return `
+                const projectHTML = `
                     <div class="project-item">
                         <div class="project-info">
                             <h3>[${projectId}] ${project.name}</h3>
@@ -472,10 +475,13 @@
                                 <button class="btn btn-danger" onclick="deleteProject('${projectId}')">
                                     🗑️ 削除
                                 </button>
-                            ` : ''}
+                            ` : '<!-- 削除権限なし -->'}
                         </div>
                     </div>
                 `;
+                
+                console.log(`🔍 [HTML] Project ${projectId} HTML contains delete button:`, projectHTML.includes('🗑️ 削除'));
+                return projectHTML;
             }).join('');
         }
         
