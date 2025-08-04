@@ -1234,7 +1234,7 @@
                         <textarea class="comment-input" id="comment-input" placeholder="進捗報告、確認事項、コメントを入力... (@でユーザーメンション可能)"></textarea>
                         <div id="mention-suggestions" class="mention-suggestions" style="display: none;"></div>
                         <div class="comment-actions">
-                            <button type="button" class="btn-comment" onclick="addComment()">コメント追加</button>
+                            <button type="button" class="btn-comment" onclick="console.log('🔍 [BUTTON] Comment button clicked'); addComment()">コメント追加</button>
                         </div>
                     </div>
                 </div>
@@ -3123,6 +3123,7 @@
         
         function addComment() {
             console.log('📝 [COMMENT] addComment function called');
+            console.log('📝 [COMMENT] Function context:', typeof addComment, window.addComment === addComment);
             const commentInput = document.getElementById('comment-input');
             const commentText = commentInput.value.trim();
             
@@ -3192,6 +3193,9 @@
             commentInput.value = '';
             
         }
+        
+        // addComment関数をグローバルスコープに登録
+        window.addComment = addComment;
         
         function checkMentionNotifications(text, author, task) {
             console.log(`🔍 [MENTION] チェック開始: "${text}" by ${author}`);
