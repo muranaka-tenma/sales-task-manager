@@ -2845,8 +2845,19 @@
             
             document.getElementById('modal-title').textContent = 'タスク編集';
             document.getElementById('task-title-input').value = editingTask.title;
+            
+            console.log('🔍 [MODAL DEBUG] Setting up edit modal:');
+            console.log('🔍 [MODAL DEBUG] Original deadline:', editingTask.deadline);
+            console.log('🔍 [MODAL DEBUG] Split date part:', editingTask.deadline.split('T')[0]);
+            console.log('🔍 [MODAL DEBUG] Split time part:', editingTask.deadline.split('T')[1]);
+            console.log('🔍 [MODAL DEBUG] Time substring:', editingTask.deadline.split('T')[1].substring(0, 5));
+            
             document.getElementById('task-date-input').value = editingTask.deadline.split('T')[0];
             document.getElementById('task-time-input').value = editingTask.deadline.split('T')[1].substring(0, 5);
+            
+            console.log('🔍 [MODAL DEBUG] After setting form values:');
+            console.log('🔍 [MODAL DEBUG] Date input now:', document.getElementById('task-date-input').value);
+            console.log('🔍 [MODAL DEBUG] Time input now:', document.getElementById('task-time-input').value);
             document.getElementById('task-priority-input').value = editingTask.priority;
             document.getElementById('task-memo-input').value = editingTask.memo || '';
             
@@ -3365,6 +3376,11 @@
             const title = document.getElementById('task-title-input').value.trim();
             const date = document.getElementById('task-date-input').value;
             const time = document.getElementById('task-time-input').value;
+            
+            console.log('🔍 [DEADLINE DEBUG] Form values:');
+            console.log('🔍 [DEADLINE DEBUG] Date input value:', date);
+            console.log('🔍 [DEADLINE DEBUG] Time input value:', time);
+            console.log('🔍 [DEADLINE DEBUG] Original deadline:', editingTask ? editingTask.deadline : 'new task');
             const priority = document.getElementById('task-priority-input').value;
             const selectedAssignees = getSelectedAssignees();
             const memo = document.getElementById('task-memo-input').value.trim();
@@ -3437,6 +3453,13 @@
             }
             
             const deadline = new Date(`${date}T${time || '23:59'}`);
+            
+            console.log('🔍 [DEADLINE DEBUG] Constructed deadline:');
+            console.log('🔍 [DEADLINE DEBUG] Date string:', `${date}T${time || '23:59'}`);
+            console.log('🔍 [DEADLINE DEBUG] Deadline object:', deadline);
+            console.log('🔍 [DEADLINE DEBUG] Deadline ISO:', deadline.toISOString());
+            console.log('🔍 [DEADLINE DEBUG] Current time:', new Date().toISOString());
+            console.log('🔍 [DEADLINE DEBUG] Is future deadline:', deadline > new Date());
             
             // 添付ファイル処理
             const attachments = [];
