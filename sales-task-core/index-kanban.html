@@ -1317,6 +1317,119 @@
                         <button onclick="clearAllData()" style="padding: 0.75rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ 全データを削除</button>
                     </div>
                 </div>
+                
+                <!-- 📄 タスクインポート - 元の完璧な機能を復元 -->
+                <div class="setting-section" style="margin-top: 2rem; background: #f0f9ff; padding: 2rem; border-radius: 12px; border: 1px solid #93c5fd;">
+                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #3b82f6;">📝 柔軟テキストインポート</h3>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <textarea id="import-text" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @田中部長 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @佐藤課長&#10;　資料準備済み（全角スペース）&#10;		会議室予約（タブ）&#10;C社フォローアップ" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
+                        
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button onclick="previewImport()" style="flex: 1; padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">👁️ プレビュー</button>
+                            <button onclick="clearImportText()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ クリア</button>
+                            <label for="ocr-file-input" style="padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; display: inline-block;" title="GoogleTODOスクリーンショット対応！領域選択でタスク名・期限を自動ペア化">📸 OCR+タグ機能</label>
+                            <input type="file" id="ocr-file-input" accept="image/*" style="display: none;" onchange="handleOCRFile(this)">
+                        </div>
+                        
+                        <!-- OCR処理状況 -->
+                        <div id="ocr-status" style="display: none; margin-top: 1rem; padding: 0.75rem; border-radius: 4px; background: #e3f2fd; border: 1px solid #90caf9;">
+                            <div id="ocr-progress-text">📸 画像を解析中...</div>
+                            <div style="width: 100%; background: #f0f0f0; border-radius: 4px; height: 8px; margin-top: 0.5rem;">
+                                <div id="ocr-progress-bar" style="width: 0%; height: 100%; background: #2196f3; border-radius: 4px; transition: width 0.3s;"></div>
+                            </div>
+                            <!-- AI信頼度スコア表示 -->
+                            <div id="confidence-scores" style="display: none; margin-top: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6;">
+                                <div style="font-size: 0.85rem; font-weight: bold; color: #495057; margin-bottom: 0.5rem;">🎯 AI信頼度スコア</div>
+                                <div id="confidence-list" style="font-size: 0.8rem; color: #666;"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- 画像プレビューと領域選択 -->
+                        <div id="image-preview-container" style="display: none; margin-top: 1rem; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
+                            <div style="padding: 1rem; border-bottom: 1px solid #ddd; background: #e8f5e8;">
+                                <h5 style="margin: 0; color: #172b4d;">🖼️ 画像プレビュー - 領域を選択してOCR</h5>
+                                <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                                    マウスでドラッグして選択領域を作成し、「OCR実行」でテキスト化
+                                </div>
+                            </div>
+                            <div id="image-preview-scroll-container" style="padding: 1rem; max-height: 600px; overflow: auto; position: relative;">
+                                <div id="image-canvas-container" style="position: relative; display: inline-block; border: 1px solid #ccc; transform-origin: top left;">
+                                    <canvas id="image-canvas" style="cursor: crosshair;"></canvas>
+                                    <!-- 選択領域を表示するオーバーレイ -->
+                                    <div id="selection-overlay" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
+                                </div>
+                            </div>
+                            <div style="padding: 1rem; border-top: 1px solid #ddd;">
+                                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                                    <button onclick="processSelectedAreas()" style="padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">🔍 OCR実行</button>
+                                    <button onclick="clearSelections()" style="padding: 0.75rem; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ 選択クリア</button>
+                                    <button onclick="hideImagePreview()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">閉じる</button>
+                                    <span id="selection-count" style="margin-left: 1rem; color: #666; font-size: 0.9rem;">0個の領域を選択中</span>
+                                </div>
+                                <details style="background: #f8f9fa; padding: 0.5rem; border-radius: 4px;">
+                                    <summary style="cursor: pointer; font-size: 0.85rem; color: #666;">🎯 OCR精度向上設定</summary>
+                                    <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                                        <div style="margin-bottom: 0.5rem;">
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: bold; color: #2563eb;">
+                                                <input type="checkbox" id="ocr-handwriting-mode" title="手書き文字に特化した高精度OCR"> ✍️ 手書き文字モード（高精度）
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: bold; color: #dc2626;">
+                                                <input type="checkbox" id="ocr-complex-layout-mode" title="表・図・フォームなどの複雑レイアウト対応"> 🧩 複雑レイアウトモード（表・図対応）
+                                            </label>
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                                                <input type="checkbox" id="ocr-enhance-contrast"> コントラスト強化
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                                                <input type="checkbox" id="ocr-upscale"> 2倍拡大処理
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                                                <input type="checkbox" id="ocr-grayscale"> グレースケール化
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;" title="①→ 1, ○→ 0, ●→ 1 など">
+                                                <input type="checkbox" id="ocr-cleanup-symbols" checked> 数字記号修正
+                                            </label>
+                                        </div>
+                                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
+                                            <button onclick="previewProcessing()" style="padding: 0.5rem; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔍 処理プレビュー</button>
+                                            <button onclick="resetOCRSettings()" style="padding: 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔄 リセット</button>
+                                        <button onclick="testOCRDirectly()" style="margin-left: 0.5rem; padding: 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔍 OCRテスト</button>
+                                        <button onclick="testHandwritingOCR()" style="padding: 0.5rem; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✍️ 手書きテスト</button>
+                                        <button onclick="testComplexLayoutOCR()" style="padding: 0.5rem; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🧩 レイアウトテスト</button>
+                                        </div>
+                                        <div style="margin-top: 0.5rem; padding: 0.5rem; background: #d1ecf1; border-radius: 4px; font-size: 0.8rem; color: #0c5460;">
+                                            💡 ヒント: ①→ 1, ○→ 0 などの誤認識がある場合は「数字記号修正」を有効に
+                                        </div>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+                        
+                        <!-- プレビューエリア - 拡大版 -->
+                        <div id="import-preview" style="display: none; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
+                            <div style="padding: 1rem; border-bottom: 1px solid #ddd; background: #e3f2fd;">
+                                <h5 style="margin: 0; color: #172b4d;">📋 インポートプレビュー - ドラッグ&ドロップで編集可能</h5>
+                            </div>
+                            <div id="preview-content" style="padding: 1rem; max-height: 500px; overflow-y: auto;"></div>
+                            <div style="padding: 1rem; border-top: 1px solid #ddd; display: flex; gap: 0.5rem;">
+                                <button onclick="executeImport()" style="flex: 1; padding: 0.75rem; background: #38a169; color: white; border: none; border-radius: 4px; cursor: pointer;">✅ インポート実行</button>
+                                <button onclick="hidePreview()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">キャンセル</button>
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 0.8rem; color: #6c757d; line-height: 1.4;">
+                            <strong>📝 シンプル形式:</strong><br>
+                            • <strong>・</strong>で主タスク開始<br>
+                            • <strong>行頭スペース</strong>でサブタスク（コメントに自動追加）<br>
+                            • <strong>@担当者</strong>、<strong>日付</strong>、<strong>!!!</strong>高優先度を自動認識<br><br>
+                            <strong>📸 OCR注意事項:</strong><br>
+                            • プリント文字のみ推奨（手書きは精度低）<br>
+                            • シンプルなレイアウトのみ（表・図は非推奨）<br>
+                            • 認識後は手動で確認・修正が必要
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
