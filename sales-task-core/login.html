@@ -506,29 +506,68 @@
             // 動的ユーザーデータベースを使用
             const dynamicUsers = getDynamicUserDatabase();
             
-            // 安全なデータ統合
+            // 安全なデータ統合（不要ユーザー削除対応）
             const currentUsers = existingUsers ? JSON.parse(existingUsers) : [];
             
+            // 不要ユーザーを検出
+            const unwantedEmails = ['admin@terracom.co.jp', 'test@terracom.co.jp'];
+            const hasUnwantedUsers = currentUsers.some(u => unwantedEmails.includes(u.email));
+            
             if (currentUsers.length === 0) {
-                // 新規端末: 動的ユーザーデータベースを使用
+                // 新規端末: 新しい7名構成を使用
                 localStorage.setItem('systemUsers', JSON.stringify(dynamicUsers));
-                console.log('✅ [INIT] 新規端末で動的ユーザーデータベースを設定');
+                console.log('✅ [INIT] 新規端末で新しい7名ユーザー構成を設定');
+            } else if (hasUnwantedUsers) {
+                // 不要ユーザーがある場合: 安全に統合
+                console.log('🗑️ [CLEANUP] 不要ユーザーを検出しました。安全に統合します...');
+                
+                // 完全バックアップ
+                createSafetyBackup(currentUsers, 'before_cleanup_integration');
+                
+                // 必要ユーザーのみを保持（既存パスワードを維持）
+                const cleanedUsers = [];
+                
+                dynamicUsers.forEach(newUser => {
+                    const existingUser = currentUsers.find(u => u.email === newUser.email);
+                    if (existingUser) {
+                        // 既存ユーザーのパスワードを保持
+                        cleanedUsers.push({
+                            ...newUser,
+                            password: existingUser.password, // 既存パスワードを維持
+                            id: existingUser.id // 既存IDも維持
+                        });
+                        console.log(`🔄 [CLEANUP] 既存ユーザーを維持: ${existingUser.name} (パスワード保持)`);
+                    } else {
+                        // 新ユーザーはデフォルトパスワード
+                        cleanedUsers.push(newUser);
+                        console.log(`➕ [CLEANUP] 新ユーザーを追加: ${newUser.name}`);
+                    }
+                });
+                
+                // 不要ユーザーを削除して統合
+                localStorage.setItem('systemUsers', JSON.stringify(cleanedUsers));
+                
+                unwantedEmails.forEach(email => {
+                    const removed = currentUsers.find(u => u.email === email);
+                    if (removed) {
+                        console.log(`🗑️ [CLEANUP] 不要ユーザーを削除: ${removed.name} (${email})`);
+                    }
+                });
+                
+                console.log(`✅ [CLEANUP] 統合完了: ${cleanedUsers.length}名 (不要ユーザー削除済み)`);
             } else {
-                // 既存端末: メールアドレスでマージ（既存優先）
+                // 不要ユーザーがない場合: 通常のマージ
                 const mergedUsers = [...currentUsers];
                 let updated = false;
                 
                 dynamicUsers.forEach(dynamicUser => {
                     const exists = mergedUsers.find(u => u.email === dynamicUser.email);
                     if (!exists) {
-                        // ID重複を防ぐ
                         const maxId = Math.max(...mergedUsers.map(u => u.id || 0));
                         dynamicUser.id = maxId + 1;
                         mergedUsers.push(dynamicUser);
                         updated = true;
                         console.log(`✅ [INIT] 新ユーザーを安全に追加: ${dynamicUser.name}`);
-                    } else {
-                        console.log(`🔄 [INIT] 既存ユーザーを保持: ${exists.name}`);
                     }
                 });
                 
@@ -539,11 +578,28 @@
                 }
             }
             
-            // 担当者リストも同期
-            const users = JSON.parse(localStorage.getItem('systemUsers'));
-            const assignees = users.map(u => u.name);
-            localStorage.setItem('taskAssignees', JSON.stringify(assignees));
-            console.log('✅ [INIT] 担当者リストを同期しました:', assignees);
+            // 担当者リストも同期（不要ユーザーを除外）
+            const finalUsers = JSON.parse(localStorage.getItem('systemUsers'));
+            const assignees = finalUsers.map(u => u.name);
+            
+            // 不要な担当者を削除
+            const unwantedNames = ['システム管理者', 'テストユーザー'];
+            const existingAssignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
+            const cleanedAssignees = existingAssignees.filter(name => !unwantedNames.includes(name));
+            
+            // 新しい担当者を追加
+            assignees.forEach(name => {
+                if (!cleanedAssignees.includes(name)) {
+                    cleanedAssignees.push(name);
+                }
+            });
+            
+            localStorage.setItem('taskAssignees', JSON.stringify(cleanedAssignees));
+            console.log('✅ [INIT] 担当者リストをクリーンアップ:', cleanedAssignees);
+            
+            if (unwantedNames.some(name => existingAssignees.includes(name))) {
+                console.log('🗑️ [CLEANUP] 担当者リストから不要ユーザーを削除しました');
+            }
         }
         
         function setCurrentUser(user) {
