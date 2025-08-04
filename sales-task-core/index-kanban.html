@@ -1646,14 +1646,34 @@
                 if (userName) {
                     console.log('🔧 [AUTH] Attempting session recovery for:', userName);
                     
-                    // ユーザーデータベースから情報を取得
-                    initializeUserDatabase(); // ユーザーDBを初期化
+                    // 共有データベースを優先して初期化
+                    if (typeof initializeSharedUserDatabase === 'function') {
+                        initializeSharedUserDatabase();
+                    } else {
+                        initializeUserDatabase(); // フォールバック
+                    }
+                    
                     const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                    const userData = users.find(u => u.name === userName) || {
-                        name: userName,
-                        role: userName === '邨中天真' ? 'developer' : 'user',
-                        email: userName === '邨中天真' ? 'muranaka-tenma@terracom.co.jp' : 'user@terracom.co.jp'
-                    };
+                    console.log('🔍 [AUTH] 利用可能ユーザー:', users.map(u => `${u.name}(${u.role})`));
+                    
+                    // メールアドレスまたは名前で検索（より柔軟に）
+                    let userData = users.find(u => u.email === 'muranaka-tenma@terracom.co.jp');
+                    if (!userData) {
+                        userData = users.find(u => u.name === userName || u.name === '邨中天真');
+                    }
+                    
+                    // muranaka-tenmaは強制的に開発者権限
+                    if (!userData || userName === '邨中天真') {
+                        userData = {
+                            name: userName,
+                            role: 'developer', // 強制的に開発者権限
+                            email: 'muranaka-tenma@terracom.co.jp',
+                            department: '開発部'
+                        };
+                        console.log('🔧 [AUTH] muranaka-tenmaに開発者権限を強制設定');
+                    }
+                    
+                    console.log('✅ [AUTH] 最終ユーザー情報:', userData);
                     
                     // セッションを復旧
                     const recoveredSession = {

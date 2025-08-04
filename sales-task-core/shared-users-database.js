@@ -14,7 +14,7 @@ const SHARED_USERS_DATABASE = [
         name: '邨中天真',
         email: 'muranaka-tenma@terracom.co.jp', 
         password: 'admin123',
-        role: 'admin',
+        role: 'developer',
         department: '開発部',
         createdAt: '2025-08-04T00:00:00.000Z',
         isActive: true

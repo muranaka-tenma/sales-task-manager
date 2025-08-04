@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 ログインデバッグ - 営業タスク管理</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f4f5f7;
+            color: #172b4d;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 2rem;
+        }
+        .debug-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+        }
+        .debug-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #026aa7;
+        }
+        .debug-output {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            background: #026aa7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .btn:hover {
+            background: #025aa0;
+        }
+        .status-ok { color: #22c55e; }
+        .status-error { color: #ef4444; }
+        .status-warning { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 ログインデバッグツール</h1>
+        
+        <div class="debug-section">
+            <div class="debug-title">1. 共有データベース状況</div>
+            <button class="btn" onclick="checkSharedDatabase()">共有データベース確認</button>
+            <div id="shared-db-output" class="debug-output"></div>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">2. LocalStorage状況</div>
+            <button class="btn" onclick="checkLocalStorage()">LocalStorage確認</button>
+            <button class="btn" onclick="clearLocalStorage()">LocalStorage初期化</button>
+            <div id="localstorage-output" class="debug-output"></div>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">3. 認証テスト</div>
+            <button class="btn" onclick="testAuthentication()">認証テスト実行</button>
+            <div id="auth-test-output" class="debug-output"></div>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">4. セッション状況</div>
+            <button class="btn" onclick="checkCurrentSession()">現在のセッション確認</button>
+            <button class="btn" onclick="clearSession()">セッションクリア</button>
+            <div id="session-output" class="debug-output"></div>
+        </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">5. 修正アクション</div>
+            <button class="btn" onclick="forceFixLogin()">ログイン機能強制修正</button>
+            <button class="btn" onclick="goToLogin()">ログインページに移動</button>
+            <div id="fix-output" class="debug-output"></div>
+        </div>
+    </div>
+    
+    <!-- 共有ユーザーデータベース読み込み -->
+    <script src="shared-users-database.js"></script>
+    
+    <script>
+        function checkSharedDatabase() {
+            const output = document.getElementById('shared-db-output');
+            let result = '=== 共有データベース確認 ===\n';
+            
+            try {
+                if (typeof SHARED_USERS_DATABASE !== 'undefined') {
+                    result += '✅ 共有データベースが読み込まれています\n';
+                    result += `📊 ユーザー数: ${SHARED_USERS_DATABASE.length}名\n\n`;
+                    
+                    SHARED_USERS_DATABASE.forEach((user, index) => {
+                        result += `${index + 1}. ${user.name}\n`;
+                        result += `   メール: ${user.email}\n`;
+                        result += `   役割: ${user.role}\n`;
+                        result += `   部署: ${user.department}\n`;
+                        result += `   状態: ${user.isActive ? '有効' : '無効'}\n\n`;
+                    });
+                } else {
+                    result += '❌ 共有データベースが読み込まれていません\n';
+                    result += '💡 shared-users-database.js の読み込みを確認してください\n';
+                }
+            } catch (error) {
+                result += `❌ エラー: ${error.message}\n`;
+            }
+            
+            output.textContent = result;
+        }
+        
+        function checkLocalStorage() {
+            const output = document.getElementById('localstorage-output');
+            let result = '=== LocalStorage確認 ===\n';
+            
+            const keys = ['systemUsers', 'currentSession', 'currentUser', 'taskAssignees'];
+            
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value) {
+                    result += `✅ ${key}: 存在\n`;
+                    try {
+                        const parsed = JSON.parse(value);
+                        if (Array.isArray(parsed)) {
+                            result += `   配列長: ${parsed.length}\n`;
+                        } else if (typeof parsed === 'object') {
+                            result += `   オブジェクト: ${Object.keys(parsed).join(', ')}\n`;
+                        }
+                    } catch (e) {
+                        result += `   文字列: ${value.substring(0, 50)}...\n`;
+                    }
+                } else {
+                    result += `❌ ${key}: 存在しません\n`;
+                }
+            });
+            
+            output.textContent = result;
+        }
+        
+        function testAuthentication() {
+            const output = document.getElementById('auth-test-output');
+            let result = '=== 認証テスト ===\n';
+            
+            const testAccounts = [
+                { email: 'muranaka-tenma@terracom.co.jp', password: 'admin123', expectedRole: 'developer' },
+                { email: 'admin@terracom.co.jp', password: 'admin123', expectedRole: 'admin' },
+                { email: 'test@terracom.co.jp', password: 'test123', expectedRole: 'user' }
+            ];
+            
+            testAccounts.forEach(account => {
+                result += `\n🧪 テスト: ${account.email}\n`;
+                
+                try {
+                    if (typeof authenticateFromSharedDB === 'function') {
+                        const authResult = authenticateFromSharedDB(account.email, account.password);
+                        if (authResult.success) {
+                            result += `✅ 認証成功\n`;
+                            result += `👤 名前: ${authResult.user.name}\n`;
+                            result += `🔑 役割: ${authResult.user.role}\n`;
+                            result += `🏢 部署: ${authResult.user.department}\n`;
+                            
+                            if (authResult.user.role === account.expectedRole) {
+                                result += `✅ 期待される役割と一致\n`;
+                            } else {
+                                result += `⚠️ 期待される役割: ${account.expectedRole}, 実際: ${authResult.user.role}\n`;
+                            }
+                        } else {
+                            result += `❌ 認証失敗: ${authResult.message}\n`;
+                        }
+                    } else {
+                        result += `❌ 認証関数が利用できません\n`;
+                    }
+                } catch (error) {
+                    result += `❌ エラー: ${error.message}\n`;
+                }
+            });
+            
+            output.textContent = result;
+        }
+        
+        function checkCurrentSession() {
+            const output = document.getElementById('session-output');
+            let result = '=== 現在のセッション ===\n';
+            
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (session) {
+                    result += `✅ セッション存在\n`;
+                    result += `👤 ユーザー: ${session.user.name}\n`;
+                    result += `📧 メール: ${session.user.email}\n`;
+                    result += `🔑 役割: ${session.user.role}\n`;
+                    result += `🏢 部署: ${session.user.department}\n`;
+                    result += `🕒 ログイン時刻: ${session.loginTime}\n`;
+                    result += `⏰ 期限: ${session.expiresAt}\n`;
+                    
+                    const now = new Date();
+                    const expiry = new Date(session.expiresAt);
+                    if (now > expiry) {
+                        result += `⚠️ セッション期限切れ\n`;
+                    } else {
+                        result += `✅ セッション有効\n`;
+                    }
+                } else {
+                    result += `❌ セッションが存在しません\n`;
+                }
+            } catch (error) {
+                result += `❌ エラー: ${error.message}\n`;
+            }
+            
+            output.textContent = result;
+        }
+        
+        function clearLocalStorage() {
+            localStorage.removeItem('systemUsers');
+            localStorage.removeItem('currentSession');
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('taskAssignees');
+            
+            const output = document.getElementById('localstorage-output');
+            output.textContent = '✅ LocalStorageをクリアしました\nページを再読み込みして初期化してください。';
+        }
+        
+        function clearSession() {
+            localStorage.removeItem('currentSession');
+            localStorage.removeItem('currentUser');
+            
+            const output = document.getElementById('session-output');
+            output.textContent = '✅ セッションをクリアしました';
+        }
+        
+        function forceFixLogin() {
+            const output = document.getElementById('fix-output');
+            let result = '=== ログイン機能強制修正 ===\n';
+            
+            try {
+                // 1. 共有データベース強制初期化
+                if (typeof initializeSharedUserDatabase === 'function') {
+                    initializeSharedUserDatabase();
+                    result += '✅ 共有データベースを強制初期化\n';
+                } else {
+                    result += '❌ 共有データベース初期化関数が見つかりません\n';
+                }
+                
+                // 2. セッションクリア
+                localStorage.removeItem('currentSession');
+                localStorage.removeItem('currentUser');
+                result += '✅ セッションをクリア\n';
+                
+                // 3. muranaka-tenmaアカウントでテストログイン
+                if (typeof authenticateFromSharedDB === 'function') {
+                    const testAuth = authenticateFromSharedDB('muranaka-tenma@terracom.co.jp', 'admin123');
+                    if (testAuth.success) {
+                        result += '✅ muranaka-tenmaアカウントの認証テスト成功\n';
+                        result += `🔑 役割: ${testAuth.user.role}\n`;
+                        
+                        // セッション作成
+                        const session = {
+                            user: testAuth.user,
+                            loginTime: new Date().toISOString(),
+                            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                        };
+                        localStorage.setItem('currentSession', JSON.stringify(session));
+                        localStorage.setItem('currentUser', testAuth.user.name);
+                        
+                        result += '✅ テストセッションを作成\n';
+                    } else {
+                        result += `❌ 認証テスト失敗: ${testAuth.message}\n`;
+                    }
+                }
+                
+                result += '\n💡 修正完了！ログインページまたはメインページに移動してください。\n';
+                
+            } catch (error) {
+                result += `❌ 修正中にエラー: ${error.message}\n`;
+            }
+            
+            output.textContent = result;
+        }
+        
+        function goToLogin() {
+            window.location.href = 'login.html';
+        }
+        
+        // ページ読み込み時に基本チェック実行
+        window.addEventListener('DOMContentLoaded', () => {
+            checkSharedDatabase();
+            checkCurrentSession();
+        });
+    </script>
+</body>
+</html>
