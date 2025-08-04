@@ -5542,11 +5542,13 @@
                                 </div>
                                 
                                 <div style="display: flex; align-items: center; gap: 0.4rem;">
-                                    <label style="font-weight: 600; font-size: 0.75rem; color: #555; width: 35px; flex-shrink: 0;">期限</label>
-                                    <div style="display: flex; gap: 0.3rem; flex: 1;">
-                                        <input type="date" onchange="updateTaskDeadline(${index}, this.value)" value="${task.deadline}" style="flex: 1; padding: 0.3rem; border: 1px solid #ddd; border-radius: 3px; font-size: 0.75rem; background: white;" id="deadline-input-${index}">
-                                        <input type="time" onchange="updateTaskTime(${index}, this.value)" value="${task.time}" style="width: 80px; padding: 0.3rem; border: 1px solid #ddd; border-radius: 3px; font-size: 0.75rem; background: white;" id="time-input-${index}">
-                                    </div>
+                                    <label style="font-weight: 600; font-size: 0.75rem; color: #555; width: 35px; flex-shrink: 0;">日付</label>
+                                    <input type="date" onchange="updateTaskDeadline(${index}, this.value)" value="${task.deadline}" style="flex: 1; padding: 0.3rem; border: 1px solid #ddd; border-radius: 3px; font-size: 0.75rem; background: white;" id="deadline-input-${index}">
+                                </div>
+                                
+                                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                    <label style="font-weight: 600; font-size: 0.75rem; color: #555; width: 35px; flex-shrink: 0;">時刻</label>
+                                    <input type="time" onchange="updateTaskTime(${index}, this.value)" value="${task.time}" style="flex: 1; padding: 0.3rem; border: 1px solid #ddd; border-radius: 3px; font-size: 0.75rem; background: white;" id="time-input-${index}">
                                 </div>
                             </div>
                         </div>
