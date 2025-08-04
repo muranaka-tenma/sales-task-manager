@@ -7386,6 +7386,385 @@
             return canvas;
         }
         
+        // プレビューモーダル用のドラッグ&ドロップ機能
+        let draggedTaskIndex = null;
+        let draggedElement = null;
+        
+        function handlePreviewDragStartModal(e, index) {
+            draggedTaskIndex = index;
+            draggedElement = e.target.closest('.preview-task-card');
+            draggedElement.style.opacity = '0.5';
+            console.log('🔄 ドラッグ開始:', index);
+        }
+        
+        function handleDragOverModal(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+        
+        function handleDropModal(e, targetIndex) {
+            e.preventDefault();
+            if (draggedTaskIndex === null || draggedTaskIndex === targetIndex) return;
+            
+            console.log('🔄 ドロップ:', draggedTaskIndex, '->', targetIndex);
+            
+            // previewTasks配列内の順序を変更
+            const draggedTask = previewTasks[draggedTaskIndex];
+            previewTasks.splice(draggedTaskIndex, 1);
+            previewTasks.splice(targetIndex, 0, draggedTask);
+            
+            // プレビューを再表示
+            displayLineByLinePreviewModal();
+        }
+        
+        function handleDragEndModal() {
+            if (draggedElement) {
+                draggedElement.style.opacity = '1';
+            }
+            draggedTaskIndex = null;
+            draggedElement = null;
+        }
+        
+        // タスク更新関数群
+        function updateTaskTitleModal(index, value) {
+            if (previewTasks[index]) {
+                previewTasks[index].title = value;
+            }
+        }
+        
+        function updateTaskDeadlineModal(index, value) {
+            if (previewTasks[index]) {
+                previewTasks[index].deadline = value;
+            }
+        }
+        
+        function updateTaskTimeModal(index, value) {
+            if (previewTasks[index]) {
+                previewTasks[index].time = value;
+            }
+        }
+        
+        function updateTaskAssigneeModal(index, value) {
+            if (previewTasks[index]) {
+                previewTasks[index].assignee = value;
+            }
+        }
+        
+        function updateTaskColumnModal(index, value) {
+            if (previewTasks[index]) {
+                previewTasks[index].columnId = value;
+            }
+        }
+        
+        function updateTaskTypeModal(index, value) {
+            if (previewTasks[index]) {
+                if (value === 'skip') {
+                    previewTasks[index].isSkip = true;
+                    previewTasks[index].isMainTask = false;
+                } else if (value === 'comment') {
+                    previewTasks[index].isSkip = false;
+                    previewTasks[index].isMainTask = false;
+                } else {
+                    previewTasks[index].isSkip = false;
+                    previewTasks[index].isMainTask = true;
+                }
+            }
+        }
+        
+        function removeTaskModal(index) {
+            if (confirm('このタスクを削除しますか？')) {
+                previewTasks.splice(index, 1);
+                displayLineByLinePreviewModal();
+            }
+        }
+        
+        // 3列グリッドレイアウトでのプレビュー表示
+        function displayLineByLinePreviewModal() {
+            const contentDiv = document.getElementById('preview-content-modal');
+            if (!contentDiv || previewTasks.length === 0) return;
+            
+            let content = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" id="preview-container-modal">
+            `;
+            
+            previewTasks.forEach((task, index) => {
+                const isMainTask = task.isMainTask;
+                const isSkip = task.isSkip;
+                const hasComment = task.title.includes('→') || task.originalLine?.includes('　');
+                
+                const cardColor = isSkip ? '#f8f9fa' : (isMainTask ? '#e3f2fd' : '#fff3e0');
+                const borderColor = isSkip ? '#dee2e6' : (isMainTask ? '#2196f3' : '#ff9800');
+                const typeIcon = isSkip ? '🚫' : (isMainTask ? '📋' : '💬');
+                
+                content += `
+                    <div class="preview-task-card" 
+                         draggable="true" 
+                         ondragstart="handlePreviewDragStartModal(event, ${index})"
+                         ondragover="handleDragOverModal(event)"
+                         ondrop="handleDropModal(event, ${index})"
+                         ondragend="handleDragEndModal()"
+                         style="
+                             background: ${cardColor}; 
+                             border: 2px solid ${borderColor}; 
+                             border-radius: 8px; 
+                             padding: 1rem; 
+                             margin-bottom: 0.5rem;
+                             cursor: move;
+                             min-height: 180px;
+                             position: relative;
+                         ">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.2rem;">${typeIcon}</span>
+                            <span style="font-weight: bold; font-size: 0.9rem; color: #666;">#${index + 1}</span>
+                            ${hasComment ? '<span style="color: #ff9800; font-size: 0.8rem;">📝</span>' : ''}
+                            <div style="font-size: 0.7rem; color: #666; margin-left: auto;">⋮⋮</div>
+                        </div>
+                        
+                        <!-- タスクタイトル -->
+                        <div style="margin-bottom: 0.5rem;">
+                            <input type="text" value="${task.title}" 
+                                   onchange="updateTaskTitleModal(${index}, this.value)"
+                                   style="width: 100%; padding: 0.25rem; border: 1px solid #ddd; border-radius: 3px; font-size: 0.9rem;">
+                        </div>
+                        
+                        <!-- 期限設定 -->
+                        <div style="display: grid; grid-template-columns: 1fr 80px; gap: 0.25rem; margin-bottom: 0.5rem;">
+                            <input type="date" value="${task.deadline || ''}" 
+                                   onchange="updateTaskDeadlineModal(${index}, this.value)"
+                                   style="padding: 0.25rem; border: 1px solid #ddd; border-radius: 3px; font-size: 0.8rem;">
+                            <input type="time" value="${task.time || '17:00'}" 
+                                   onchange="updateTaskTimeModal(${index}, this.value)"
+                                   style="padding: 0.25rem; border: 1px solid #ddd; border-radius: 3px; font-size: 0.8rem;">
+                        </div>
+                        
+                        <!-- 担当者 -->
+                        <div style="margin-bottom: 0.5rem;">
+                            <select onchange="updateTaskAssigneeModal(${index}, this.value)"
+                                    style="width: 100%; padding: 0.25rem; border: 1px solid #ddd; border-radius: 3px; font-size: 0.8rem;">
+                                <option value="未設定" ${task.assignee === '未設定' ? 'selected' : ''}>未設定</option>
+                                ${assignees.map(assignee => 
+                                    `<option value="${assignee}" ${task.assignee === assignee ? 'selected' : ''}>${assignee}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        
+                        <!-- カラム選択 -->
+                        <div style="margin-bottom: 0.5rem;">
+                            <select onchange="updateTaskColumnModal(${index}, this.value)"
+                                    style="width: 100%; padding: 0.25rem; border: 1px solid #ddd; border-radius: 3px; font-size: 0.8rem;">
+                                ${columns.map(col => 
+                                    `<option value="${col.id}" ${task.columnId === col.id ? 'selected' : ''}>${col.title}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        
+                        <!-- タイプ選択 -->
+                        <div style="display: grid; grid-template-columns: 1fr 30px; gap: 0.25rem;">
+                            <select onchange="updateTaskTypeModal(${index}, this.value)"
+                                    style="padding: 0.25rem; border: 1px solid #ddd; border-radius: 3px; font-size: 0.8rem;">
+                                <option value="task" ${isMainTask ? 'selected' : ''}>📋 タスク</option>
+                                <option value="comment" ${!isMainTask && !isSkip ? 'selected' : ''}>💬 コメント</option>
+                                <option value="skip" ${isSkip ? 'selected' : ''}>🚫 スキップ</option>
+                            </select>
+                            <button onclick="removeTaskModal(${index})" 
+                                    style="background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.7rem;">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            content += '</div>';
+            contentDiv.innerHTML = content;
+        }
+        
+        // processImportText関数の修正版（プレビュー表示を正しい関数に変更）
+        function processImportTextModal() {
+            const text = document.getElementById('import-text-modal').value.trim();
+            if (!text) {
+                alert('テキストを入力してください');
+                return;
+            }
+            
+            console.log('🔍 [MODAL] Processing import text:', text.substring(0, 100) + '...');
+            
+            previewTasks = [];
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            console.log('🔍 [MODAL] Processing', lines.length, 'lines');
+            
+            // 数字記号変換（①→1, ②→2, ○→0, ●→1）
+            const processedLines = lines.map(line => {
+                return line
+                    .replace(/①/g, '1').replace(/②/g, '2').replace(/③/g, '3')
+                    .replace(/④/g, '4').replace(/⑤/g, '5').replace(/⑥/g, '6')
+                    .replace(/⑦/g, '7').replace(/⑧/g, '8').replace(/⑨/g, '9')
+                    .replace(/⑩/g, '10').replace(/○/g, '0').replace(/●/g, '1');
+            });
+            
+            console.log('🔍 [MODAL] Symbol conversion completed');
+            
+            // インデント検出と階層化（2 half-width spaces or 1 full-width space）
+            processedLines.forEach((line, index) => {
+                const originalLine = line;
+                const trimmedLine = line.trim();
+                
+                if (!trimmedLine) return;
+                
+                // インデントレベルを検出（半角スペース2個 or 全角スペース1個 = 1レベル）
+                const indentLevel = Math.floor((line.length - line.trimStart().length) / 2);
+                const isIndented = indentLevel > 0 || line.startsWith('　');
+                
+                console.log(`🔍 [MODAL] Line ${index + 1}: "${trimmedLine}" (indent: ${indentLevel}, isIndented: ${isIndented})`);
+                
+                const task = {
+                    id: index,
+                    title: trimmedLine,
+                    deadline: getTodayDate(),
+                    time: '17:00',
+                    priority: 'medium',
+                    assignee: '未設定',
+                    columnId: 'todo',
+                    isMainTask: !isIndented,
+                    isSkip: false,
+                    parentIndex: isIndented ? Math.max(0, previewTasks.length - 1) : null,
+                    originalLine: originalLine,
+                    indentLevel: indentLevel
+                };
+                
+                previewTasks.push(task);
+            });
+            
+            console.log('🔍 [MODAL] Preview tasks created:', previewTasks.length);
+            
+            // プレビュー表示（モーダル用の関数を使用）
+            displayLineByLinePreviewModal();
+            
+            // プレビューエリアを表示
+            document.getElementById('import-preview-modal').style.display = 'block';
+        }
+        
+        // モーダル用のインポート実行関数
+        function executeImportModal() {
+            if (previewTasks.length === 0) {
+                alert('インポートするタスクがありません');
+                return;
+            }
+            
+            let importedCount = 0;
+            const taskIdMap = {};
+            
+            // メインタスクを作成
+            previewTasks.forEach((previewTask, index) => {
+                if (previewTask.isSkip || !previewTask.isMainTask) return;
+                
+                if (previewTask.assignee !== '未設定' && !assignees.includes(previewTask.assignee)) {
+                    assignees.push(previewTask.assignee);
+                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                }
+                
+                const taskId = Date.now() + index;
+                taskIdMap[index] = taskId;
+                
+                const newTask = {
+                    id: taskId,
+                    title: previewTask.title,
+                    deadline: new Date(`${previewTask.deadline}T${previewTask.time || '17:00'}`).toISOString(),
+                    priority: previewTask.priority,
+                    assignees: [previewTask.assignee],
+                    assignee: previewTask.assignee,
+                    memo: `インポート: ${new Date().toLocaleDateString()}`,
+                    columnId: previewTask.columnId,
+                    completed: false,
+                    createdAt: new Date().toISOString(),
+                    comments: [],
+                    originalLine: previewTask.originalLine
+                };
+                
+                tasks.push(newTask);
+                importedCount++;
+            });
+            
+            // コメントを追加
+            previewTasks.forEach((previewTask, index) => {
+                if (previewTask.isSkip || previewTask.isMainTask) return;
+                if (previewTask.parentIndex === null) return;
+                
+                const parentTaskId = taskIdMap[previewTask.parentIndex];
+                if (!parentTaskId) return;
+                
+                const parentTask = tasks.find(t => t.id === parentTaskId);
+                if (parentTask) {
+                    parentTask.comments.push({
+                        id: Date.now() + index,
+                        author: previewTask.assignee,
+                        text: `📝 ${previewTask.title}`,
+                        timestamp: new Date().toISOString(),
+                        isImportedComment: true
+                    });
+                }
+            });
+            
+            if (importedCount > 0) {
+                saveTasks();
+                render();
+                
+                setTimeout(() => checkDeadlines(), 100);
+                
+                document.getElementById('import-text-modal').value = '';
+                hidePreviewModal();
+                closeTaskImportModal();
+                
+                const commentCount = previewTasks.filter(t => !t.isMainTask && !t.isSkip).length;
+                let message = `🎉 タスク追加が完了しました！\n\n`;
+                message += `📋 ${importedCount}個のタスクを追加\n`;
+                if (commentCount > 0) {
+                    message += `💬 ${commentCount}個のコメントを追加\n`;
+                }
+                
+                alert(message);
+                
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            }
+        }
+        
+        // モーダル用のプレビュー非表示関数
+        function hidePreviewModal() {
+            document.getElementById('import-preview-modal').style.display = 'none';
+            document.getElementById('preview-content-modal').innerHTML = '';
+            previewTasks = [];
+        }
+        
+        // モーダル用のテキストクリア関数
+        function clearImportTextModal() {
+            document.getElementById('import-text-modal').value = '';
+            hidePreviewModal();
+        }
+        
+        // すべての関数をwindowオブジェクトに追加
+        window.handlePreviewDragStartModal = handlePreviewDragStartModal;
+        window.handleDragOverModal = handleDragOverModal;
+        window.handleDropModal = handleDropModal;
+        window.handleDragEndModal = handleDragEndModal;
+        window.updateTaskTitleModal = updateTaskTitleModal;
+        window.updateTaskDeadlineModal = updateTaskDeadlineModal;
+        window.updateTaskTimeModal = updateTaskTimeModal;
+        window.updateTaskAssigneeModal = updateTaskAssigneeModal;
+        window.updateTaskColumnModal = updateTaskColumnModal;
+        window.updateTaskTypeModal = updateTaskTypeModal;
+        window.removeTaskModal = removeTaskModal;
+        window.displayLineByLinePreviewModal = displayLineByLinePreviewModal;
+        window.processImportTextModal = processImportTextModal;
+        window.executeImportModal = executeImportModal;
+        window.hidePreviewModal = hidePreviewModal;
+        window.clearImportTextModal = clearImportTextModal;
+
         // GoogleTODO形式のタスク解析（期限付きタスクを分離）
         function parseGoogleTodoText(text) {
             // GoogleTODOの期限形式パターン: mm月dd日(曜日), hh:mm
@@ -10146,7 +10525,9 @@
             alert('OCRテスト機能は実装予定です');
         }
         
-        // 元の詳細プレビュー表示機能を復元
+        // 【元の完全な機能を復元】ドラッグ&ドロップ・3列表示・期限編集
+        let draggedIndex = -1;
+        
         function displayLineByLinePreviewModal() {
             const previewDiv = document.getElementById('import-preview-modal');
             const contentDiv = document.getElementById('preview-content-modal');
@@ -10160,68 +10541,281 @@
             const mainTaskCount = previewTasksModal.filter(t => !t.isSkip && t.isMainTask).length;
             const commentCount = previewTasksModal.filter(t => !t.isSkip && !t.isMainTask).length;
             
-            const modeInfo = `<div style="font-size: 0.9rem; margin-top: 0.5rem;">✨ インデント行は自動でコメントに設定済み（半角スペース2個・全角スペース1個・タブ）。</div>`;
+            const modeInfo = `<div style="font-size: 0.9rem; margin-top: 0.5rem;">✨ インデント行は自動でコメントに設定済み（半角スペース2個・全角スペース1個・タブ）。ドラッグ&ドロップで親子関係を変更可能</div>`;
             
             let content = `
                 <div style="margin-bottom: 1rem; padding: 0.75rem; background: #e8f5e8; border-radius: 4px; color: #2f7d2f;">
                     <strong>📝 ${activeTaskCount}個のアイテム (📋 メイン: ${mainTaskCount}, 💬 コメント: ${commentCount})</strong>
                     ${modeInfo}
                 </div>
+                
+                <!-- 3列表示レイアウト -->
+                <div style="padding: 1rem; background: #f0f2f5; border-radius: 12px; margin-bottom: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" id="preview-container-modal">
             `;
             
-            // タスクを詳細表示
             previewTasksModal.forEach((task, index) => {
                 if (task.isSkip) return;
                 
-                const priorityColor = task.priority === 'high' ? '#dc2626' : task.priority === 'medium' ? '#d97706' : '#059669';
-                const priorityText = task.priority === 'high' ? '🔴 高' : task.priority === 'medium' ? '🟡 中' : '🟢 低';
-                const taskTypeIcon = task.isMainTask ? '📋' : '💬';
-                const taskTypeText = task.isMainTask ? 'メインタスク' : 'コメント';
+                const mainTaskOptions = previewTasksModal.map((t, i) => 
+                    i < index && t.isMainTask ? `<option value="${i}" ${task.parentIndex === i ? 'selected' : ''}>📋 ${t.title.substring(0, 30)}${t.title.length > 30 ? '...' : ''}</option>` : ''
+                ).join('');
                 
-                // 親タスクの情報を取得
-                let parentInfo = '';
-                if (!task.isMainTask && task.parentIndex !== null && previewTasksModal[task.parentIndex]) {
-                    parentInfo = `<div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">↳ "${previewTasksModal[task.parentIndex].title}" のコメント</div>`;
-                }
+                const isAutoComment = !task.isMainTask && task.parentIndex !== null;
+                const borderColor = isAutoComment ? '#28a745' : '#ddd';
+                const bgColor = isAutoComment ? '#f8fff9' : 'white';
+                const headerText = isAutoComment ? '✨ 自動コメント' : 'ドラッグ可能';
                 
                 content += `
-                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; ${!task.isMainTask ? 'margin-left: 1.5rem; border-left: 3px solid #2196f3;' : ''}">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                            <div style="font-weight: 600; color: #1f2937; display: flex; align-items: center; gap: 0.5rem;">
-                                ${taskTypeIcon} ${task.title}
-                                <span style="font-size: 0.75rem; background: #f3f4f6; color: #6b7280; padding: 0.125rem 0.5rem; border-radius: 12px;">${taskTypeText}</span>
+                    <div style="border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content;" 
+                         draggable="true" 
+                         ondragstart="handlePreviewDragStartModal(event, ${index})" 
+                         ondragend="handleDragEndModal(event)"
+                         ondragover="handleDragOverModal(event)" 
+                         ondrop="handlePreviewDropModal(event, ${index})"
+                         ondragenter="handleDragEnterModal(event)"
+                         ondragleave="handleDragLeaveModal(event)"
+                         id="preview-item-modal-${index}">
+                        
+                        <!-- ドラッグハンドル -->
+                        <div style="background: ${borderColor}; padding: 0.4rem 0.8rem; text-align: center; color: white; font-weight: bold; cursor: grab; user-select: none; font-size: 0.85rem;">
+                            ⋮⋮ ${headerText} ⋮⋮
+                        </div>
+                        
+                        <!-- テキスト表示エリア -->
+                        <div style="padding: 0.75rem; background: white;">
+                            <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                                <input type="text" 
+                                       value="${task.title.replace(/"/g, '&quot;')}" 
+                                       onchange="updateTaskTitleModal(${index}, this.value)" 
+                                       style="flex: 1; font-family: monospace; background: #f8f9fa; padding: 0.75rem; border-radius: 4px; font-size: 0.9rem; border: 1px solid ${borderColor}; border-left: 3px solid ${borderColor};"
+                                       id="title-input-modal-${index}">
+                                <button onclick="deletePreviewTaskModal(${index})" 
+                                        style="background: #e53e3e; color: white; border: none; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
+                                        title="このタスクを削除">
+                                    🗑️
+                                </button>
                             </div>
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <span style="background: ${priorityColor}; color: white; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.75rem;">${priorityText}</span>
-                                <span style="background: #3b82f6; color: white; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.75rem;">👤 ${task.assignee}</span>
+                            <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem; font-style: italic;">
+                                元: "${task.originalLine}"
                             </div>
                         </div>
-                        <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">
-                            📅 期限: ${new Date(task.deadline).toLocaleDateString('ja-JP')}
-                        </div>
-                        ${parentInfo}
-                        <div style="font-size: 0.8rem; color: #9ca3af; font-family: monospace; background: #f9fafb; padding: 0.25rem 0.5rem; border-radius: 4px; margin-top: 0.5rem;">
-                            元のテキスト: "${task.originalLine}"
-                        </div>
-                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-                            <button onclick="toggleTaskSkipModal(${index})" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; background: ${task.isSkip ? '#ef4444' : '#10b981'}; color: white; cursor: pointer;">
-                                ${task.isSkip ? '❌ スキップ中' : '✅ 有効'}
-                            </button>
+                        
+                        <!-- 設定エリア -->
+                        <div style="padding: 0.75rem; background: #fafafa; border-top: 1px solid #eee;">
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <label style="font-weight: 600; min-width: 60px; font-size: 0.85rem; color: #333;">種類:</label>
+                                    <select onchange="updateTaskTypeModal(${index}, this.value)" style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white;">
+                                        <option value="main" ${task.isMainTask ? 'selected' : ''}>📋 メイン</option>
+                                        <option value="comment" ${!task.isMainTask ? 'selected' : ''}>💬 コメント</option>
+                                        <option value="skip">⏭️ スキップ</option>
+                                    </select>
+                                </div>
+                                
+                                ${!task.isMainTask ? `
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <label style="font-weight: 600; min-width: 60px; font-size: 0.85rem; color: #333;">親:</label>
+                                    <select onchange="updateTaskParentModal(${index}, this.value)" style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white;" id="parent-select-modal-${index}">
+                                        <option value="">－</option>
+                                        ${mainTaskOptions}
+                                    </select>
+                                </div>
+                                ` : `
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <label style="font-weight: 600; min-width: 60px; font-size: 0.85rem; color: #333;">列:</label>
+                                    <select onchange="updateTaskColumnModal(${index}, this.value)" style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white;" id="column-select-modal-${index}">
+                                        ${columns.map(c => `<option value="${c.id}" ${task.columnId === c.id ? 'selected' : ''}>${c.title}</option>`).join('')}
+                                    </select>
+                                </div>
+                                
+                                <!-- 担当者設定 -->
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <label style="font-weight: 600; min-width: 60px; font-size: 0.85rem; color: #333;">担当:</label>
+                                    <input type="text" onchange="updateTaskAssigneeModal(${index}, this.value)" value="${task.assignee}" style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white;" placeholder="担当者名" id="assignee-input-modal-${index}">
+                                </div>
+                                
+                                <!-- 期限設定 -->
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <label style="font-weight: 600; min-width: 60px; font-size: 0.85rem; color: #333;">期限:</label>
+                                    <input type="date" onchange="updateTaskDeadlineModal(${index}, this.value)" value="${task.deadline}" style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; background: white;" id="deadline-input-modal-${index}">
+                                </div>
+                                `}
+                            </div>
                         </div>
                     </div>
                 `;
             });
             
+            content += `
+                </div>
+                <div style="margin-top: 1rem; padding: 0.75rem; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; font-size: 0.9rem;">
+                    <strong>💡 使い方：</strong><br>
+                    • <strong>✨ 自動判定</strong>：空白がある行は自動でコメントに設定され、直前のメインタスクが親に設定されます<br>
+                    • <strong>🖱️ ドラッグ&ドロップ</strong>：任意の行をメインタスクにドラッグしてコメントに変更<br>
+                    • <strong>📋 メインタスク</strong>：独立したタスクカードとして作成<br>
+                    • <strong>💬 コメント</strong>：指定したメインタスクにコメントとして追加<br>
+                    • <strong>⏭️ スキップ</strong>：インポート時に無視
+                </div>
+            `;
+            
             contentDiv.innerHTML = content;
             previewDiv.style.display = 'block';
         }
         
-        // タスクのスキップ切り替え
-        function toggleTaskSkipModal(index) {
+        // 【元の完全なupdate関数群を復元】
+        function updateTaskTitleModal(index, title) {
             if (previewTasksModal[index]) {
-                previewTasksModal[index].isSkip = !previewTasksModal[index].isSkip;
-                displayLineByLinePreviewModal(); // プレビューを再表示
+                previewTasksModal[index].title = title.trim();
             }
+        }
+        
+        function updateTaskTypeModal(index, type) {
+            if (previewTasksModal[index]) {
+                // コメント化しようとするタスクが他のコメントの親になっているかチェック
+                if (type === 'comment' && previewTasksModal[index].isMainTask) {
+                    const hasChildComments = previewTasksModal.some((task, i) => 
+                        i !== index && !task.isMainTask && task.parentIndex === index
+                    );
+                    
+                    if (hasChildComments) {
+                        alert('⚠️ このタスクは他のコメントの親になっているため、コメント化できません。\n先に子コメントを他のタスクに移動するか、メインタスクに変更してください。');
+                        document.querySelector(`#preview-item-modal-${index} select`).value = 'main';
+                        return;
+                    }
+                }
+                
+                previewTasksModal[index].isMainTask = (type === 'main');
+                previewTasksModal[index].isSkip = (type === 'skip');
+                
+                displayLineByLinePreviewModal();
+            }
+        }
+        
+        function updateTaskParentModal(index, parentIndex) {
+            if (previewTasksModal[index]) {
+                previewTasksModal[index].parentIndex = parentIndex === '' ? null : parseInt(parentIndex);
+                displayLineByLinePreviewModal();
+            }
+        }
+        
+        function updateTaskColumnModal(index, columnId) {
+            if (previewTasksModal[index]) {
+                previewTasksModal[index].columnId = columnId;
+            }
+        }
+        
+        function updateTaskAssigneeModal(index, assignee) {
+            if (previewTasksModal[index]) {
+                previewTasksModal[index].assignee = assignee.trim();
+            }
+        }
+        
+        function updateTaskDeadlineModal(index, deadline) {
+            if (previewTasksModal[index]) {
+                previewTasksModal[index].deadline = deadline;
+            }
+        }
+        
+        function deletePreviewTaskModal(index) {
+            const task = previewTasksModal[index];
+            
+            // このタスクを親にしているコメントを確認
+            const childComments = previewTasksModal.filter((t, i) => 
+                i !== index && !t.isMainTask && t.parentIndex === index
+            );
+            
+            if (childComments.length > 0) {
+                if (!confirm(`⚠️ このタスクには${childComments.length}個の子コメントがあります。\n子コメントも一緒に削除しますか？`)) {
+                    return;
+                }
+                
+                // 子コメントも削除
+                childComments.forEach(childTask => {
+                    const childIndex = previewTasksModal.findIndex(t => t === childTask);
+                    if (childIndex !== -1) {
+                        previewTasksModal.splice(childIndex, 1);
+                    }
+                });
+            }
+            
+            previewTasksModal.splice(index, 1);
+            displayLineByLinePreviewModal();
+        }
+        
+        // 【ドラッグ&ドロップ機能を復元】
+        function handlePreviewDragStartModal(event, index) {
+            draggedIndex = index;
+            event.dataTransfer.effectAllowed = 'move';
+            event.target.style.opacity = '0.6';
+        }
+        
+        function handleDragEndModal(event) {
+            event.target.style.opacity = '1';
+            draggedIndex = -1;
+        }
+        
+        function handleDragOverModal(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        }
+        
+        function handleDragEnterModal(event) {
+            event.preventDefault();
+            if (event.target.closest('[id^="preview-item-modal-"]')) {
+                event.target.closest('[id^="preview-item-modal-"]').style.backgroundColor = '#e3f2fd';
+            }
+        }
+        
+        function handleDragLeaveModal(event) {
+            if (event.target.closest('[id^="preview-item-modal-"]')) {
+                const item = event.target.closest('[id^="preview-item-modal-"]');
+                const itemIndex = parseInt(item.id.split('-')[3]);
+                const task = previewTasksModal[itemIndex];
+                const isAutoComment = !task.isMainTask && task.parentIndex !== null;
+                item.style.backgroundColor = isAutoComment ? '#f8fff9' : 'white';
+            }
+        }
+        
+        function handlePreviewDropModal(event, targetIndex) {
+            event.preventDefault();
+            
+            if (draggedIndex === targetIndex || draggedIndex === -1) {
+                event.target.closest('[id^="preview-item-modal-"]').style.opacity = '1';
+                return;
+            }
+            
+            const draggedTask = previewTasksModal[draggedIndex];
+            const targetTask = previewTasksModal[targetIndex];
+            
+            // ドラッグされたタスクをコメントに変更し、ターゲットタスクを親に設定
+            if (targetTask.isMainTask) {
+                // ドラッグされたタスクが他のコメントの親になっているかチェック
+                if (draggedTask.isMainTask) {
+                    const childComments = previewTasksModal.filter((task, i) => 
+                        i !== draggedIndex && !task.isMainTask && task.parentIndex === draggedIndex
+                    );
+                    
+                    if (childComments.length > 0) {
+                        // 子コメントも一緒に移動
+                        childComments.forEach(childTask => {
+                            childTask.parentIndex = targetIndex;
+                        });
+                    }
+                }
+                
+                draggedTask.isMainTask = false;
+                draggedTask.parentIndex = targetIndex;
+                
+                displayLineByLinePreviewModal();
+                
+                const movedCount = draggedTask.isMainTask ? 0 : previewTasksModal.filter(t => !t.isMainTask && t.parentIndex === targetIndex).length;
+                alert(`💬 "${draggedTask.title}"を"${targetTask.title}"のコメントに設定しました${movedCount > 1 ? `（子コメント${movedCount-1}個も移動）` : ''}`);
+            } else {
+                alert('⚠️ コメントを別のコメントにドロップすることはできません。メインタスクにドロップしてください。');
+            }
+            
+            draggedIndex = -1;
         }
         
         function executeImportFromModal() {
