@@ -1419,17 +1419,88 @@
                         </div>
                     </div>
                     
-                    <!-- OCRインポートセクション -->
+                    <!-- OCRインポートセクション（高機能版） -->
                     <div style="background: #f0f9ff; padding: 1.5rem; border-radius: 8px; border: 1px solid #93c5fd;">
                         <h4 style="margin: 0 0 1rem 0; color: #374151; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
                             📷 画像OCRからタスク作成
                         </h4>
-                        <div style="margin-bottom: 1rem;">
-                            <input type="file" id="ocr-file-input-modal" accept="image/*" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                            <input type="file" id="ocr-file-input-modal" accept="image/*" style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px;">
+                            <label for="ocr-file-input-modal" style="padding: 0.75rem; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; display: inline-block; font-weight: 500;" title="GoogleTODOスクリーンショット対応！領域選択でタスク名・期限を自動ペア化">📸 OCR+タグ機能</label>
                         </div>
-                        <button onclick="processOCRImageFromModal()" style="width: 100%; padding: 0.75rem; background: #8b5cf6; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
-                            🔍 OCR実行
-                        </button>
+                        
+                        <!-- OCR処理状況 -->
+                        <div id="ocr-status-modal" style="display: none; margin-bottom: 1rem; padding: 0.75rem; border-radius: 6px; background: #e3f2fd; border: 1px solid #90caf9;">
+                            <div id="ocr-progress-text-modal">📸 画像を解析中...</div>
+                            <div style="width: 100%; background: #f0f0f0; border-radius: 4px; height: 8px; margin-top: 0.5rem;">
+                                <div id="ocr-progress-bar-modal" style="width: 0%; height: 100%; background: #2196f3; border-radius: 4px; transition: width 0.3s;"></div>
+                            </div>
+                            <!-- AI信頼度スコア表示 -->
+                            <div id="confidence-scores-modal" style="display: none; margin-top: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6;">
+                                <div style="font-size: 0.85rem; font-weight: bold; color: #495057; margin-bottom: 0.5rem;">🎯 AI信頼度スコア</div>
+                                <div id="confidence-list-modal" style="font-size: 0.8rem; color: #666;"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- 画像プレビューと領域選択 -->
+                        <div id="image-preview-container-modal" style="display: none; margin-bottom: 1rem; border: 1px solid #d1d5db; border-radius: 6px; background: #f8f9fa;">
+                            <div style="padding: 1rem; border-bottom: 1px solid #e5e7eb; background: #e8f5e8;">
+                                <h5 style="margin: 0; color: #172b4d;">🖼️ 画像プレビュー - 領域を選択してOCR</h5>
+                                <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                                    マウスでドラッグして選択領域を作成し、「OCR実行」でテキスト化
+                                </div>
+                            </div>
+                            <div id="image-preview-scroll-container-modal" style="padding: 1rem; max-height: 400px; overflow: auto; position: relative;">
+                                <div id="image-canvas-container-modal" style="position: relative; display: inline-block; border: 1px solid #ccc; transform-origin: top left;">
+                                    <canvas id="image-canvas-modal" style="cursor: crosshair;"></canvas>
+                                    <!-- 選択領域を表示するオーバーレイ -->
+                                    <div id="selection-overlay-modal" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
+                                </div>
+                            </div>
+                            <div style="padding: 1rem; border-top: 1px solid #e5e7eb;">
+                                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                                    <button onclick="processSelectedAreasModal()" style="padding: 0.5rem 1rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">🔍 OCR実行</button>
+                                    <button onclick="clearSelectionsModal()" style="padding: 0.5rem 1rem; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">🗑️ 選択クリア</button>
+                                    <button onclick="hideImagePreviewModal()" style="padding: 0.5rem 1rem; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">閉じる</button>
+                                    <span id="selection-count-modal" style="margin-left: 0.5rem; color: #666; font-size: 0.85rem;">0個の領域を選択中</span>
+                                </div>
+                                <details style="background: #f8f9fa; padding: 0.5rem; border-radius: 4px;">
+                                    <summary style="cursor: pointer; font-size: 0.85rem; color: #666; font-weight: 500;">🎯 OCR精度向上設定</summary>
+                                    <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                                        <div style="margin-bottom: 0.5rem;">
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: bold; color: #2563eb;">
+                                                <input type="checkbox" id="ocr-handwriting-mode-modal" title="手書き文字に特化した高精度OCR"> ✍️ 手書き文字モード（高精度）
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; font-weight: bold; color: #dc2626;">
+                                                <input type="checkbox" id="ocr-complex-layout-mode-modal" title="表・図・フォームなどの複雑レイアウト対応"> 🧩 複雑レイアウトモード（表・図対応）
+                                            </label>
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem;">
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem;">
+                                                <input type="checkbox" id="ocr-enhance-contrast-modal"> コントラスト強化
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem;">
+                                                <input type="checkbox" id="ocr-upscale-modal"> 2倍拡大処理
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem;">
+                                                <input type="checkbox" id="ocr-grayscale-modal"> グレースケール化
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem;" title="①→ 1, ○→ 0, ●→ 1 など">
+                                                <input type="checkbox" id="ocr-cleanup-symbols-modal" checked> 数字記号修正
+                                            </label>
+                                        </div>
+                                        <div style="margin-top: 0.5rem; display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                                            <button onclick="previewProcessingModal()" style="padding: 0.4rem 0.8rem; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 500;">🔍 処理プレビュー</button>
+                                            <button onclick="resetOCRSettingsModal()" style="padding: 0.4rem 0.8rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 500;">🔄 リセット</button>
+                                            <button onclick="testOCRDirectlyModal()" style="padding: 0.4rem 0.8rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: 500;">🔍 OCRテスト</button>
+                                        </div>
+                                        <div style="margin-top: 0.5rem; padding: 0.5rem; background: #d1ecf1; border-radius: 4px; font-size: 0.75rem; color: #0c5460;">
+                                            💡 ヒント: ①→ 1, ○→ 0 などの誤認識がある場合は「数字記号修正」を有効に
+                                        </div>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- プレビューエリア -->
@@ -5118,6 +5189,9 @@
                 updateHamburgerMenu();
                 console.log('🍔 ハンバーガーメニュー更新完了');
             }, 100);
+            
+            // OCRモーダルのイベントリスナーを初期化
+            initOCRModalEventListeners();
             
             const assigneeSelect = document.getElementById('task-assignee-input');
             if (assigneeSelect) {
@@ -9522,116 +9596,409 @@
                 return;
             }
             
-            const parsedTasks = parseImportText(text);
+            const parsedTasks = parseImportTextModal(text);
             
             if (showPreview) {
                 previewTasksModal = parsedTasks;
                 showPreviewModal(parsedTasks);
             } else {
-                importTasks(parsedTasks);
+                importTasksModal(parsedTasks);
                 alert(`${parsedTasks.length}件のタスクをインポートしました！`);
                 closeTaskImportModal();
                 render();
             }
         }
         
-        function processOCRImageFromModal() {
-            const fileInput = document.getElementById('ocr-file-input-modal');
-            const file = fileInput.files[0];
+        // タスクテキストをパースする関数（モーダル版）
+        function parseImportTextModal(text) {
+            const lines = text.split('\n');
+            const tasks = [];
+            const assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
+            const columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[]');
             
-            if (!file) {
-                alert('画像ファイルを選択してください');
-                return;
+            let currentMainTaskIndex = null;
+            
+            lines.forEach((line, index) => {
+                if (!line.trim()) return;
+                
+                // 行頭のスペース・タブ数をカウント
+                const indentMatch = line.match(/^[\s\t　]*/);
+                const indentLength = indentMatch ? indentMatch[0].length : 0;
+                const isSubTask = indentLength > 0;
+                const cleanLine = line.trim();
+                
+                // 空行はスキップ
+                if (!cleanLine) return;
+                
+                // タスク情報の抽出
+                let title = cleanLine;
+                let assignee = assignees[0] || '未割当';
+                let priority = 'medium';
+                let deadline = null;
+                let time = '17:00';
+                
+                // @担当者名の抽出
+                const assigneeMatch = cleanLine.match(/@([^\s]+)/);
+                if (assigneeMatch) {
+                    const matchedAssignee = assigneeMatch[1];
+                    if (assignees.includes(matchedAssignee)) {
+                        assignee = matchedAssignee;
+                    }
+                    title = title.replace(/@[^\s]+/, '').trim();
+                }
+                
+                // !!!による優先度設定
+                if (title.includes('!!!')) {
+                    priority = 'high';
+                    title = title.replace(/!+/, '').trim();
+                }
+                
+                // 日付の抽出（YYYY-MM-DD形式）
+                const dateMatch = cleanLine.match(/(\d{4})-(\d{2})-(\d{2})/);
+                if (dateMatch) {
+                    deadline = dateMatch[0];
+                    title = title.replace(/\d{4}-\d{2}-\d{2}/, '').trim();
+                }
+                
+                // 時刻の抽出（HH:MM形式）
+                const timeMatch = cleanLine.match(/(\d{1,2}):(\d{2})/);
+                if (timeMatch) {
+                    time = timeMatch[0];
+                    title = title.replace(/\d{1,2}:\d{2}/, '').trim();
+                }
+                
+                // 今日の日付を期限のデフォルトとする
+                if (!deadline) {
+                    const today = new Date();
+                    deadline = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+                }
+                
+                const taskData = {
+                    title: title,
+                    assignee: assignee,
+                    priority: priority,
+                    deadline: deadline,
+                    time: time,
+                    columnId: columns[0]?.id || 'todo',
+                    isMainTask: !isSubTask,
+                    parentIndex: isSubTask ? currentMainTaskIndex : null,
+                    originalLine: line,
+                    isSkip: false
+                };
+                
+                if (!isSubTask) {
+                    currentMainTaskIndex = tasks.length;
+                }
+                
+                tasks.push(taskData);
+            });
+            
+            return tasks;
+        }
+        
+        // タスクをインポートする関数（モーダル版）
+        function importTasksModal(parsedTasks) {
+            const tasks = getTasks();
+            let importedCount = 0;
+            const taskIdMap = {};
+            
+            // まずメインタスクを追加
+            parsedTasks.forEach((previewTask, index) => {
+                if (previewTask.isSkip || !previewTask.isMainTask) return;
+                
+                const taskId = Date.now() + index;
+                taskIdMap[index] = taskId;
+                
+                const newTask = {
+                    id: taskId,
+                    title: previewTask.title,
+                    deadline: new Date(`${previewTask.deadline}T${previewTask.time || '17:00'}`).toISOString(),
+                    priority: previewTask.priority,
+                    assignees: [previewTask.assignee],
+                    assignee: previewTask.assignee,
+                    memo: `インポート: ${new Date().toLocaleDateString()}`,
+                    columnId: previewTask.columnId,
+                    completed: false,
+                    createdAt: new Date().toISOString(),
+                    comments: [],
+                    originalLine: previewTask.originalLine
+                };
+                
+                tasks.push(newTask);
+                importedCount++;
+            });
+            
+            // 次にサブタスクをコメントとして追加
+            parsedTasks.forEach((previewTask, index) => {
+                if (previewTask.isSkip || previewTask.isMainTask) return;
+                if (previewTask.parentIndex === null) return;
+                
+                const parentTaskId = taskIdMap[previewTask.parentIndex];
+                if (!parentTaskId) return;
+                
+                const parentTask = tasks.find(t => t.id === parentTaskId);
+                if (parentTask) {
+                    parentTask.comments.push({
+                        id: Date.now() + index,
+                        author: previewTask.assignee,
+                        text: `📝 ${previewTask.title}`,
+                        timestamp: new Date().toISOString(),
+                        isImportedComment: true
+                    });
+                }
+            });
+            
+            saveTasks();
+            return importedCount;
+        }
+        
+        // ============ モーダル用高機能OCR関数群 ============
+        let selectedAreasModal = [];
+        let isSelectingModal = false;
+        let startXModal = 0, startYModal = 0;
+        let currentImageModal = null;
+        
+        // ファイル選択時の処理（モーダル版）- DOMContentLoaded後に設定
+        function initOCRModalEventListeners() {
+            const ocrInput = document.getElementById('ocr-file-input-modal');
+            if (ocrInput) {
+                ocrInput.addEventListener('change', function(e) {
+                    handleOCRFileModal(this);
+                });
             }
+        }
+        
+        function handleOCRFileModal(input) {
+            const file = input.files[0];
+            if (!file) return;
             
             if (!file.type.startsWith('image/')) {
                 alert('画像ファイルを選択してください');
                 return;
             }
             
-            alert('OCR処理を開始します。時間がかかる場合があります...');
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentImageModal = new Image();
+                currentImageModal.onload = function() {
+                    showImagePreviewModal(this);
+                };
+                currentImageModal.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function showImagePreviewModal(img) {
+            const container = document.getElementById('image-preview-container-modal');
+            const canvas = document.getElementById('image-canvas-modal');
+            const ctx = canvas.getContext('2d');
             
-            Tesseract.recognize(
-                file,
-                'jpn+eng',
-                {
-                    logger: m => {
-                        if (m.status === 'recognizing text') {
-                            console.log('OCR進捗:', Math.round(m.progress * 100) + '%');
-                        }
-                    }
-                }
-            ).then(({ data: { text } }) => {
-                console.log('OCR結果:', text);
+            // キャンバスサイズを画像に合わせる
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // 画像を描画
+            ctx.drawImage(img, 0, 0);
+            
+            // 選択領域をクリア
+            selectedAreasModal = [];
+            updateSelectionCountModal();
+            
+            // コンテナを表示
+            container.style.display = 'block';
+            
+            // マウスイベントを設定
+            setupCanvasEventsModal(canvas);
+        }
+        
+        function setupCanvasEventsModal(canvas) {
+            canvas.onmousedown = function(e) {
+                isSelectingModal = true;
+                const rect = canvas.getBoundingClientRect();
+                startXModal = e.clientX - rect.left;
+                startYModal = e.clientY - rect.top;
+            };
+            
+            canvas.onmousemove = function(e) {
+                if (!isSelectingModal) return;
                 
-                if (text.trim()) {
-                    // OCR結果をテキストエリアに設定
-                    document.getElementById('import-text-modal').value = text.trim();
-                    alert('OCR処理が完了しました！テキストエリアに結果を反映しました。');
-                } else {
-                    alert('テキストを認識できませんでした。画像の品質を確認してください。');
+                const rect = canvas.getBoundingClientRect();
+                const currentX = e.clientX - rect.left;
+                const currentY = e.clientY - rect.top;
+                
+                // 選択領域を描画
+                drawSelectionRectModal(startXModal, startYModal, currentX, currentY);
+            };
+            
+            canvas.onmouseup = function(e) {
+                if (!isSelectingModal) return;
+                
+                isSelectingModal = false;
+                const rect = canvas.getBoundingClientRect();
+                const endX = e.clientX - rect.left;
+                const endY = e.clientY - rect.top;
+                
+                // 選択領域を保存
+                const area = {
+                    x: Math.min(startXModal, endX),
+                    y: Math.min(startYModal, endY),
+                    width: Math.abs(endX - startXModal),
+                    height: Math.abs(endY - startYModal)
+                };
+                
+                if (area.width > 10 && area.height > 10) {
+                    selectedAreasModal.push(area);
+                    updateSelectionCountModal();
+                    drawAllSelectionsModal();
                 }
-            }).catch(error => {
-                console.error('OCRエラー:', error);
-                alert('OCR処理でエラーが発生しました: ' + error.message);
+            };
+        }
+        
+        function drawSelectionRectModal(x1, y1, x2, y2) {
+            const canvas = document.getElementById('image-canvas-modal');
+            const ctx = canvas.getContext('2d');
+            
+            // 画像を再描画
+            ctx.drawImage(currentImageModal, 0, 0);
+            
+            // 既存の選択領域を描画
+            drawAllSelectionsModal();
+            
+            // 現在の選択領域を描画
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+        }
+        
+        function drawAllSelectionsModal() {
+            const canvas = document.getElementById('image-canvas-modal');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.setLineDash([]);
+            selectedAreasModal.forEach((area, index) => {
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(area.x, area.y, area.width, area.height);
+                
+                // 領域番号を表示
+                ctx.fillStyle = '#00ff00';
+                ctx.font = '16px Arial';
+                ctx.fillText((index + 1).toString(), area.x + 5, area.y + 20);
             });
         }
         
-        function showPreviewModal(tasks) {
-            const preview = document.getElementById('import-preview-modal');
-            const content = document.getElementById('preview-content-modal');
+        function updateSelectionCountModal() {
+            document.getElementById('selection-count-modal').textContent = `${selectedAreasModal.length}個の領域を選択中`;
+        }
+        
+        function clearSelectionsModal() {
+            selectedAreasModal = [];
+            updateSelectionCountModal();
             
-            if (tasks.length === 0) {
-                content.innerHTML = '<div style="text-align: center; color: #666; padding: 2rem;">解析できるタスクがありませんでした</div>';
-            } else {
-                let html = `<div style="margin-bottom: 1rem; font-weight: 600; color: #172b4d;">${tasks.length}件のタスクが検出されました</div>`;
-                
-                tasks.forEach((task, index) => {
-                    const priorityColor = task.priority === 'high' ? '#dc2626' : task.priority === 'medium' ? '#d97706' : '#059669';
-                    const priorityText = task.priority === 'high' ? '🔴 高' : task.priority === 'medium' ? '🟡 中' : '🟢 低';
-                    
-                    html += `
-                        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                                <div style="font-weight: 600; color: #1f2937;">${task.title}</div>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <span style="background: ${priorityColor}; color: white; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.75rem;">${priorityText}</span>
-                                    ${task.assignees.length > 0 ? `<span style="background: #3b82f6; color: white; padding: 0.125rem 0.5rem; border-radius: 12px; font-size: 0.75rem;">👤 ${task.assignees.join(', ')}</span>` : ''}
-                                </div>
-                            </div>
-                            <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">
-                                📅 期限: ${new Date(task.deadline).toLocaleDateString('ja-JP')}
-                            </div>
-                            ${task.memo ? `<div style="font-size: 0.85rem; color: #4b5563; background: #f9fafb; padding: 0.5rem; border-radius: 4px;">${task.memo}</div>` : ''}
-                        </div>
-                    `;
-                });
-                
-                content.innerHTML = html;
+            if (currentImageModal) {
+                const canvas = document.getElementById('image-canvas-modal');
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(currentImageModal, 0, 0);
             }
-            
-            preview.style.display = 'block';
         }
         
-        function hidePreviewModal() {
-            document.getElementById('import-preview-modal').style.display = 'none';
-            previewTasksModal = [];
+        function hideImagePreviewModal() {
+            document.getElementById('image-preview-container-modal').style.display = 'none';
+            selectedAreasModal = [];
+            currentImageModal = null;
         }
         
-        function executeImportFromModal() {
-            if (previewTasksModal.length === 0) {
-                alert('インポートするタスクがありません');
+        async function processSelectedAreasModal() {
+            if (selectedAreasModal.length === 0) {
+                alert('まず領域を選択してください');
                 return;
             }
             
-            importTasks(previewTasksModal);
-            alert(`${previewTasksModal.length}件のタスクをインポートしました！`);
-            closeTaskImportModal();
-            render();
+            showOCRProgressModal();
+            let allText = '';
+            
+            try {
+                for (let i = 0; i < selectedAreasModal.length; i++) {
+                    const area = selectedAreasModal[i];
+                    updateOCRProgressModal(10 + (i * 80 / selectedAreasModal.length), `領域 ${i + 1}/${selectedAreasModal.length} を処理中...`);
+                    
+                    // 選択領域を切り出し
+                    const croppedCanvas = document.createElement('canvas');
+                    const croppedCtx = croppedCanvas.getContext('2d');
+                    croppedCanvas.width = area.width;
+                    croppedCanvas.height = area.height;
+                    
+                    croppedCtx.drawImage(currentImageModal, area.x, area.y, area.width, area.height, 0, 0, area.width, area.height);
+                    
+                    // OCR実行
+                    const { data: { text } } = await Tesseract.recognize(croppedCanvas, 'jpn+eng', {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                const progress = 10 + (i * 80 / selectedAreasModal.length) + (m.progress * 80 / selectedAreasModal.length);
+                                updateOCRProgressModal(progress, `領域 ${i + 1}: ${Math.round(m.progress * 100)}%`);
+                            }
+                        }
+                    });
+                    
+                    if (text.trim()) {
+                        allText += text.trim() + '\n';
+                    }
+                }
+                
+                updateOCRProgressModal(100, '✅ OCR完了！');
+                
+                // テキストをインポートエリアに設定
+                document.getElementById('import-text-modal').value = allText;
+                
+                hideOCRProgressModal();
+                hideImagePreviewModal();
+                
+                if (allText.trim()) {
+                    alert(`OCRが完了しました！\n${selectedAreasModal.length}個の領域からテキストを抽出しました。`);
+                } else {
+                    alert('テキストを認識できませんでした。画像の品質を確認してください。');
+                }
+                
+            } catch (error) {
+                console.error('OCR Error:', error);
+                alert('OCR処理でエラーが発生しました: ' + error.message);
+                hideOCRProgressModal();
+            }
         }
         
-        // 既存のparseImportText関数を使用（共通関数として利用）
-        // 既存のimportTasks関数を使用（共通関数として利用）
+        function showOCRProgressModal() {
+            document.getElementById('ocr-status-modal').style.display = 'block';
+            updateOCRProgressModal(0, '📸 OCR処理を開始中...');
+        }
+        
+        function updateOCRProgressModal(percentage, message) {
+            document.getElementById('ocr-progress-bar-modal').style.width = percentage + '%';
+            document.getElementById('ocr-progress-text-modal').textContent = message;
+        }
+        
+        function hideOCRProgressModal() {
+            setTimeout(() => {
+                document.getElementById('ocr-status-modal').style.display = 'none';
+            }, 2000);
+        }
+        
+        function resetOCRSettingsModal() {
+            document.getElementById('ocr-handwriting-mode-modal').checked = false;
+            document.getElementById('ocr-complex-layout-mode-modal').checked = false;
+            document.getElementById('ocr-enhance-contrast-modal').checked = false;
+            document.getElementById('ocr-upscale-modal').checked = false;
+            document.getElementById('ocr-grayscale-modal').checked = false;
+            document.getElementById('ocr-cleanup-symbols-modal').checked = true;
+        }
+        
+        function previewProcessingModal() {
+            alert('処理プレビュー機能は実装予定です');
+        }
+        
+        function testOCRDirectlyModal() {
+            alert('OCRテスト機能は実装予定です');
+        }
         
         // ============ タスクインポートモーダル関数群 終了 ============
 
