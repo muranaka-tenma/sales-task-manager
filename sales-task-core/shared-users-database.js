@@ -38,8 +38,67 @@ const SHARED_USERS_DATABASE = [
         department: 'システム部',
         createdAt: '2025-08-04T00:00:00.000Z',
         isActive: true
+    },
+    {
+        id: 4,
+        name: '加藤純',
+        email: 'kato-jun@terracom.co.jp',
+        password: 'kato123',
+        role: 'admin',
+        department: '-',
+        createdAt: '2025-08-04T00:00:00.000Z',
+        isActive: true
+    },
+    {
+        id: 5,
+        name: '朝日圭一',
+        email: 'asahi-keiichi@terracom.co.jp',
+        password: 'asahi123',
+        role: 'admin',
+        department: '-',
+        createdAt: '2025-08-04T00:00:00.000Z',
+        isActive: true
+    },
+    {
+        id: 6,
+        name: '半澤侑果',
+        email: 'hanzawa-yuka@terracom.co.jp',
+        password: 'hanzawa123',
+        role: 'user',
+        department: '-',
+        createdAt: '2025-08-04T00:00:00.000Z',
+        isActive: true
+    },
+    {
+        id: 7,
+        name: '田村渉',
+        email: 'tamura-wataru@terracom.co.jp',
+        password: 'tamura123',
+        role: 'user',
+        department: '-',
+        createdAt: '2025-08-04T00:00:00.000Z',
+        isActive: true
+    },
+    {
+        id: 8,
+        name: '橋本友美',
+        email: 'hashimoto-yumi@terracom.co.jp',
+        password: 'hashimoto123',
+        role: 'user',
+        department: '-',
+        createdAt: '2025-08-04T00:00:00.000Z',
+        isActive: true
+    },
+    {
+        id: 9,
+        name: '福島亜未',
+        email: 'fukushima-ami@terracom.co.jp',
+        password: 'fukushima123',
+        role: 'user',
+        department: '-',
+        createdAt: '2025-08-04T00:00:00.000Z',
+        isActive: true
     }
-    // 今後手動追加されるユーザーもここに追加してマルチデバイス対応
 ];
 
 /**

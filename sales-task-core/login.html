@@ -366,7 +366,7 @@
         function initializeUserDatabase() {
             console.log('🔧 [INIT] ユーザーデータベースを確認・初期化中...');
             
-            // デフォルトユーザー定義
+            // デフォルトユーザー定義（手動登録された全ユーザーを含む）
             const defaultUsers = [
                 {
                     id: 1,
@@ -393,6 +393,60 @@
                     password: 'admin123',
                     role: 'admin',
                     department: 'システム部',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 4,
+                    name: '加藤純',
+                    email: 'kato-jun@terracom.co.jp',
+                    password: 'kato123',
+                    role: 'admin',
+                    department: '-',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 5,
+                    name: '朝日圭一',
+                    email: 'asahi-keiichi@terracom.co.jp',
+                    password: 'asahi123',
+                    role: 'admin',
+                    department: '-',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 6,
+                    name: '半澤侑果',
+                    email: 'hanzawa-yuka@terracom.co.jp',
+                    password: 'hanzawa123',
+                    role: 'user',
+                    department: '-',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 7,
+                    name: '田村渉',
+                    email: 'tamura-wataru@terracom.co.jp',
+                    password: 'tamura123',
+                    role: 'user',
+                    department: '-',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 8,
+                    name: '橋本友美',
+                    email: 'hashimoto-yumi@terracom.co.jp',
+                    password: 'hashimoto123',
+                    role: 'user',
+                    department: '-',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 9,
+                    name: '福島亜未',
+                    email: 'fukushima-ami@terracom.co.jp',
+                    password: 'fukushima123',
+                    role: 'user',
+                    department: '-',
                     createdAt: '2025-08-04T00:00:00.000Z'
                 }
             ];
