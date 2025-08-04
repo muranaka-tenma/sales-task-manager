@@ -260,11 +260,16 @@
         </div>
     </div>
     
+    <!-- 共有ユーザーデータベース読み込み -->
+    <script src="shared-users-database.js"></script>
+    
     <script>
         // ページ読み込み時にログイン状態をチェック
         window.addEventListener('DOMContentLoaded', () => {
-            // まず確実にユーザーデータベースを初期化
-            initializeUserDatabase();
+            // 共有ユーザーデータベースを強制初期化
+            if (typeof initializeSharedUserDatabase === 'function') {
+                initializeSharedUserDatabase();
+            }
             
             const currentUser = getCurrentUser();
             if (currentUser) {
@@ -309,18 +314,23 @@
         }
         
         function authenticate(email, password) {
-            // ユーザーデータベースを再初期化（確実に存在させる）
+            // 共有データベースから認証を試行
+            if (typeof authenticateFromSharedDB === 'function') {
+                console.log('🔐 [AUTH] 共有データベースから認証を試行...');
+                return authenticateFromSharedDB(email, password);
+            }
+            
+            // フォールバック：従来のLocalStorage認証
+            console.log('⚠️ [AUTH] 共有データベースが利用できません。LocalStorageで認証します...');
             initializeUserDatabase();
             
-            // ユーザーデータベースから認証
             const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-            console.log('🔍 [AUTH] ユーザーデータベース:', users.length, '件');
+            console.log('🔍 [AUTH] LocalStorageユーザーデータベース:', users.length, '件');
             console.log('🔍 [AUTH] 認証試行:', email);
             
             const user = users.find(u => u.email === email && u.password === password);
             
             if (user) {
-                // ログイン成功時の処理
                 console.log('✅ [AUTH] ログイン成功:', user.name, user.role);
                 return {
                     success: true,
@@ -333,7 +343,6 @@
                     }
                 };
             } else {
-                // ログイン失敗 - 詳細なエラーメッセージ
                 console.log('❌ [AUTH] ログイン失敗:', email);
                 console.log('🔍 [AUTH] 登録ユーザー一覧:');
                 users.forEach(u => console.log(`  - ${u.email} (${u.name})`));

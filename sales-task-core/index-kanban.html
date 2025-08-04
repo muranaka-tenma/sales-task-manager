@@ -6,6 +6,8 @@
     <title>🎯 営業タスク管理 - Kanbanボード</title>
     <!-- Deploy: 2025-08-03-17:45 - PJ fields completely removed -->
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
+    <!-- 共有ユーザーデータベース読み込み -->
+    <script src="shared-users-database.js"></script>
     <style>
         * {
             margin: 0;
@@ -5484,25 +5486,25 @@
                          id="preview-item-${index}">
                         
                         <!-- ドラッグハンドル -->
-                        <div style="background: ${borderColor}; padding: 0.4rem 0.8rem; text-align: center; color: white; font-weight: bold; cursor: grab; user-select: none; font-size: 0.85rem;">
-                            ⋮⋮ ${headerText} ⋮⋮
+                        <div style="background: ${borderColor}; padding: 0.2rem 0.4rem; text-align: center; color: white; font-weight: bold; cursor: grab; user-select: none; font-size: 0.7rem;">
+                            ⋮⋮ ドラッグ ⋮⋮
                         </div>
                         
                         <!-- テキスト表示エリア -->
-                        <div style="padding: 0.75rem; background: white;">
-                            <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                        <div style="padding: 0.4rem; background: white;">
+                            <div style="display: flex; gap: 0.3rem; align-items: flex-start;">
                                 <textarea 
                                        onchange="updateTaskTitle(${index}, this.value)" 
-                                       style="flex: 1; font-family: monospace; background: #f8f9fa; padding: 0.75rem; border-radius: 4px; font-size: 0.9rem; border: 1px solid ${borderColor}; border-left: 3px solid ${borderColor}; min-width: 0; resize: vertical; min-height: 60px; overflow-wrap: break-word; word-break: break-all;"
+                                       style="flex: 1; font-family: inherit; background: #f8f9fa; padding: 0.4rem; border-radius: 3px; font-size: 0.75rem; border: 1px solid ${borderColor}; min-width: 0; resize: vertical; min-height: 40px; overflow-wrap: break-word; word-break: break-all; width: 100%; max-width: 100%;"
                                        id="title-input-${index}"
                                        rows="2">${task.title}</textarea>
                                 <button onclick="deletePreviewTask(${index})" 
-                                        style="background: #e53e3e; color: white; border: none; padding: 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
-                                        title="このタスクを削除">
+                                        style="background: #e53e3e; color: white; border: none; padding: 0.3rem; border-radius: 3px; cursor: pointer; font-size: 0.7rem; flex-shrink: 0;"
+                                        title="削除">
                                     🗑️
                                 </button>
                             </div>
-                            <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem; font-style: italic;">
+                            <div style="font-size: 0.65rem; color: #888; margin-top: 0.2rem; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 元: "${task.originalLine}"
                             </div>
                         </div>
