@@ -134,16 +134,13 @@
             
             <!-- プロジェクト選択 -->
             <div class="form-group">
-                <label class="form-label">📂 プロジェクト設定 *</label>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: flex; align-items: center; margin-bottom: 0.5rem; cursor: pointer;">
-                        <input type="radio" name="project-type" value="existing" onchange="toggleProjectInputs()" style="margin-right: 0.5rem;" checked>
-                        <span>📁 既存プロジェクトに追加</span>
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: not-allowed; opacity: 0.5;">
-                        <input type="radio" name="project-type" value="new" onchange="toggleProjectInputs()" style="margin-right: 0.5rem;" disabled>
-                        <span>✨ 新規プロジェクト作成（無効化済み - PJ設定で事前作成してください）</span>
-                    </label>
+                <label class="form-label">📂 プロジェクト選択 *</label>
+                <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #2196f3;">
+                    <div style="font-size: 0.9rem; color: #1565c0;">
+                        💡 <strong>新規プロジェクト作成について</strong><br>
+                        新しいプロジェクトを作成する場合は、先に「<strong>PJ設定</strong>」ページでプロジェクトを作成してください。<br>
+                        作成後、このページでそのプロジェクトを選択してタスクを追加できます。
+                    </div>
                 </div>
                 
                 <!-- 既存プロジェクト選択 -->
@@ -154,19 +151,9 @@
                     </select>
                 </div>
                 
-                <!-- 新規プロジェクト作成 -->
-                <div id="new-project-section" style="display: none;">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">📁 プロジェクトID *</label>
-                            <input type="text" class="form-input" id="project-id" placeholder="例: PJ001" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">📋 プロジェクト名 *</label>
-                            <input type="text" class="form-input" id="project-name" placeholder="例: 新規システム導入PJ" required>
-                        </div>
-                    </div>
-                </div>
+                <!-- 隠しフィールド（選択されたプロジェクト情報） -->
+                <input type="hidden" id="project-id">
+                <input type="hidden" id="project-name">
             </div>
             
             <div class="form-row">
@@ -243,8 +230,7 @@
             setDefaultDeadline();
             loadExistingProjects();
             
-            // ★★★ 既存プロジェクト選択を強制 ★★★
-            toggleProjectInputs();
+            // プロジェクト選択のみ対応
             
             // 既存プロジェクトが1つもない場合の警告
             setTimeout(() => {
@@ -368,28 +354,7 @@
             console.log(`📂 既存PJ読み込み完了: ${existingProjects.length}件`, existingProjects);
         }
         
-        // プロジェクト入力方式の切り替え
-        function toggleProjectInputs() {
-            const selectedType = document.querySelector('input[name="project-type"]:checked').value;
-            const existingSection = document.getElementById('existing-project-section');
-            const newSection = document.getElementById('new-project-section');
-            const projectIdInput = document.getElementById('project-id');
-            const projectNameInput = document.getElementById('project-name');
-            
-            if (selectedType === 'existing') {
-                existingSection.style.display = 'block';
-                newSection.style.display = 'none';
-                // 既存PJ選択時は必須チェックを外す
-                projectIdInput.removeAttribute('required');
-                projectNameInput.removeAttribute('required');
-            } else {
-                existingSection.style.display = 'none';
-                newSection.style.display = 'block';
-                // 新規PJ作成時は必須チェックを追加
-                projectIdInput.setAttribute('required', '');
-                projectNameInput.setAttribute('required', '');
-            }
-        }
+        // 既存プロジェクト選択のみ対応（新規作成機能は削除済み）
         
         // 既存プロジェクトを選択
         function selectExistingProject() {
@@ -502,7 +467,7 @@
             document.getElementById('pj-form').reset();
             setDefaultDeadline();
             loadExistingProjects();
-            toggleProjectInputs(); // ラジオボタンの初期状態に戻す
+            // プロジェクト選択状態をリセット
             
             // 2秒後にメインページに戻る
             setTimeout(() => {
