@@ -7,7 +7,7 @@
  * - 新規デバイスでも即座にログイン可能
  */
 
-// 全デバイス共通のユーザーデータベース（本来はサーバーサイドで管理すべき）
+// 全デバイス共通のユーザーデータベース（不要ユーザー削除済み）
 const SHARED_USERS_DATABASE = [
     {
         id: 1,
@@ -21,26 +21,6 @@ const SHARED_USERS_DATABASE = [
     },
     {
         id: 2,
-        name: 'テストユーザー',
-        email: 'test@terracom.co.jp',
-        password: 'test123', 
-        role: 'user',
-        department: '営業部',
-        createdAt: '2025-08-04T00:00:00.000Z',
-        isActive: true
-    },
-    {
-        id: 3,
-        name: 'システム管理者',
-        email: 'admin@terracom.co.jp',
-        password: 'admin123',
-        role: 'admin', 
-        department: 'システム部',
-        createdAt: '2025-08-04T00:00:00.000Z',
-        isActive: true
-    },
-    {
-        id: 4,
         name: '加藤純',
         email: 'kato-jun@terracom.co.jp',
         password: 'kato123',
@@ -50,7 +30,7 @@ const SHARED_USERS_DATABASE = [
         isActive: true
     },
     {
-        id: 5,
+        id: 3,
         name: '朝日圭一',
         email: 'asahi-keiichi@terracom.co.jp',
         password: 'asahi123',
@@ -60,7 +40,7 @@ const SHARED_USERS_DATABASE = [
         isActive: true
     },
     {
-        id: 6,
+        id: 4,
         name: '半澤侑果',
         email: 'hanzawa-yuka@terracom.co.jp',
         password: 'hanzawa123',
@@ -70,7 +50,7 @@ const SHARED_USERS_DATABASE = [
         isActive: true
     },
     {
-        id: 7,
+        id: 5,
         name: '田村渉',
         email: 'tamura-wataru@terracom.co.jp',
         password: 'tamura123',
@@ -80,7 +60,7 @@ const SHARED_USERS_DATABASE = [
         isActive: true
     },
     {
-        id: 8,
+        id: 6,
         name: '橋本友美',
         email: 'hashimoto-yumi@terracom.co.jp',
         password: 'hashimoto123',
@@ -90,7 +70,7 @@ const SHARED_USERS_DATABASE = [
         isActive: true
     },
     {
-        id: 9,
+        id: 7,
         name: '福島亜未',
         email: 'fukushima-ami@terracom.co.jp',
         password: 'fukushima123',

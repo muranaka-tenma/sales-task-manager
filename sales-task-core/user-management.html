@@ -301,9 +301,9 @@
         let users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
         
         
-        // 初回起動時にデフォルトユーザーを作成（手動登録された全ユーザーを含む）
+        // 初回起動時に必要ユーザーのみを作成（不要ユーザー削除済み）
         if (users.length === 0) {
-            const defaultUsers = [
+            const essentialUsers = [
                 {
                     id: 1,
                     name: '邨中天真',
@@ -315,24 +315,6 @@
                 },
                 {
                     id: 2,
-                    name: 'テストユーザー',
-                    email: 'test@terracom.co.jp',
-                    role: 'user',
-                    department: '営業部',
-                    createdAt: '2025-08-04T00:00:00.000Z',
-                    password: 'test123'
-                },
-                {
-                    id: 3,
-                    name: 'システム管理者',
-                    email: 'admin@terracom.co.jp',
-                    role: 'admin',
-                    department: 'システム部',
-                    createdAt: '2025-08-04T00:00:00.000Z',
-                    password: 'admin123'
-                },
-                {
-                    id: 4,
                     name: '加藤純',
                     email: 'kato-jun@terracom.co.jp',
                     role: 'admin',
@@ -341,7 +323,7 @@
                     password: 'kato123'
                 },
                 {
-                    id: 5,
+                    id: 3,
                     name: '朝日圭一',
                     email: 'asahi-keiichi@terracom.co.jp',
                     role: 'admin',
@@ -350,7 +332,7 @@
                     password: 'asahi123'
                 },
                 {
-                    id: 6,
+                    id: 4,
                     name: '半澤侑果',
                     email: 'hanzawa-yuka@terracom.co.jp',
                     role: 'user',
@@ -359,7 +341,7 @@
                     password: 'hanzawa123'
                 },
                 {
-                    id: 7,
+                    id: 5,
                     name: '田村渉',
                     email: 'tamura-wataru@terracom.co.jp',
                     role: 'user',
@@ -368,7 +350,7 @@
                     password: 'tamura123'
                 },
                 {
-                    id: 8,
+                    id: 6,
                     name: '橋本友美',
                     email: 'hashimoto-yumi@terracom.co.jp',
                     role: 'user',
@@ -377,7 +359,7 @@
                     password: 'hashimoto123'
                 },
                 {
-                    id: 9,
+                    id: 7,
                     name: '福島亜未',
                     email: 'fukushima-ami@terracom.co.jp',
                     role: 'user',
@@ -386,8 +368,9 @@
                     password: 'fukushima123'
                 }
             ];
-            users.push(...defaultUsers);
+            users.push(...essentialUsers);
             saveUsers();
+            console.log('🗑️ [CLEANUP] 不要ユーザー削除完了: システム管理者・テストユーザー');
         }
         
         // ページ読み込み時に実行
