@@ -5438,7 +5438,7 @@
                         ` : `
                         <!-- テキスト入力時：3列固定表示 -->
                         <div style="padding: 1rem; background: #f0f2f5; border-radius: 12px; margin-bottom: 1rem;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" id="preview-container">
+                            <div style="display: grid; grid-template-columns: repeat(3, minmax(200px, 1fr)); gap: 0.75rem;" id="preview-container">
                         `}
             `;
             
@@ -7462,7 +7462,7 @@
             if (!contentDiv || previewTasks.length === 0) return;
             
             let content = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" id="preview-container-modal">
+                <div style="display: grid; grid-template-columns: repeat(3, minmax(200px, 1fr)); gap: 0.75rem;" id="preview-container-modal">
             `;
             
             previewTasks.forEach((task, index) => {
@@ -10528,7 +10528,7 @@
                 
                 <!-- 3列表示レイアウト -->
                 <div style="padding: 1rem; background: #f0f2f5; border-radius: 12px; margin-bottom: 1rem;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" id="preview-container-modal">
+                    <div style="display: grid; grid-template-columns: repeat(3, minmax(200px, 1fr)); gap: 0.75rem;" id="preview-container-modal">
             `;
             
             previewTasksModal.forEach((task, index) => {
