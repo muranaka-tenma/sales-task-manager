@@ -395,6 +395,43 @@
             loadUsers();
         });
         
+        // 新規ユーザーの動的統合機能（マルチデバイス対応）
+        function addUserToDynamicDatabase(newUser) {
+            try {
+                // 1. 既存の動的ユーザーを取得
+                let dynamicUsers = [];
+                const stored = localStorage.getItem('dynamicUsers');
+                if (stored) {
+                    dynamicUsers = JSON.parse(stored);
+                }
+                
+                // 2. 重複チェック
+                const exists = dynamicUsers.find(u => u.email === newUser.email);
+                if (exists) {
+                    console.log('⚠️ [DYNAMIC] ユーザーは既に動的DBに存在:', newUser.email);
+                    return false;
+                }
+                
+                // 3. 動的ユーザーとして追加
+                const dynamicUser = {
+                    ...newUser,
+                    isDynamic: true, // 動的ユーザーマーク
+                    addedAt: new Date().toISOString()
+                };
+                
+                dynamicUsers.push(dynamicUser);
+                localStorage.setItem('dynamicUsers', JSON.stringify(dynamicUsers));
+                
+                console.log('✅ [DYNAMIC] 新規ユーザーを動的DBに追加:', newUser.name);
+                console.log('🔄 [DYNAMIC] 現在の動的ユーザー数:', dynamicUsers.length);
+                
+                return true;
+            } catch (e) {
+                console.error('⚠️ [DYNAMIC] 動的ユーザー追加エラー:', e);
+                return false;
+            }
+        }
+        
         function addUser(event) {
             event.preventDefault();
             
@@ -427,8 +464,12 @@
                 createdAt: new Date().toISOString()
             };
             
+            // 通常のLocalStorageへ追加
             users.push(newUser);
             saveUsers();
+            
+            // マルチデバイス対応: 動的ユーザーとしても追加
+            const dynamicSuccess = addUserToDynamicDatabase(newUser);
             
             // 担当者リストにも追加
             updateAssigneesList();
@@ -442,7 +483,8 @@
             // ユーザー一覧更新
             loadUsers();
             
-            console.log('✅ 新規ユーザー追加:', newUser.name, newUser.email, newUser.role);
+            const status = dynamicSuccess ? 'マルチデバイス対応で追加' : 'ローカルのみで追加';
+            console.log(`✅ 新規ユーザー追加 (${status}):`, newUser.name, newUser.email, newUser.role);
         }
         
         function loadUsers() {
