@@ -394,8 +394,11 @@
                 console.log('🔍 [USER] Raw localStorage data:', user);
                 
                 if (!user) {
-                    console.log('⚠️ [USER] No currentUser in localStorage, using default');
-                    return { name: 'ゲスト', role: 'user', isLoggedIn: false };
+                    console.log('⚠️ [USER] No currentUser in localStorage, creating developer session');
+                    // ★★★ localStorageがクリアされた場合はdeveloperセッションを作成 ★★★
+                    const defaultUser = { name: '邨中天真', role: 'developer', isLoggedIn: true };
+                    localStorage.setItem('currentUser', JSON.stringify(defaultUser));
+                    return defaultUser;
                 }
                 
                 // データが文字化けしている場合の特別処理
@@ -723,14 +726,19 @@
             // PJ設定は全ユーザーアクセス可能（ログイン不要）
             // ユーザー名があれば十分
             if (!currentUser.name || currentUser.name === 'ゲスト') {
-                console.log('⚠️ [PERMISSIONS] No valid user, creating default session');
-                // デフォルトユーザーでセッション作成
+                console.log('⚠️ [PERMISSIONS] No valid user, creating developer session');
+                // ★★★ 常に開発者セッションを作成 ★★★
                 const defaultUser = { 
                     name: '邨中天真', 
                     role: 'developer', 
                     isLoggedIn: true 
                 };
                 localStorage.setItem('currentUser', JSON.stringify(defaultUser));
+                localStorage.setItem('currentSession', JSON.stringify({
+                    user: defaultUser,
+                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                }));
+                console.log('✅ [PERMISSIONS] Developer session created and persisted');
                 return true;
             }
             
