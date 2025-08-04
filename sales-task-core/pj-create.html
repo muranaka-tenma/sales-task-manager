@@ -318,39 +318,53 @@
             document.getElementById('deadline-time').value = timeString;
         }
         
-        // 既存プロジェクト一覧を読み込み
+        // 既存プロジェクト一覧を読み込み（PJ設定から）
         function loadExistingProjects() {
+            console.log('🔍 [LOAD PROJECTS] Loading from projectSettings...');
+            
+            // ★★★ PJ設定から直接読み込み ★★★
+            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
             const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
-            const projectMap = new Map();
             
-            // プロジェクトタスクから既存PJを抽出
-            tasks.filter(t => t.projectId && t.projectId !== null)
-                 .forEach(t => {
-                     if (!projectMap.has(t.projectId)) {
-                         projectMap.set(t.projectId, {
-                             id: t.projectId, 
-                             name: t.projectName || t.projectId,
-                             taskCount: 1
-                         });
-                     } else {
-                         projectMap.get(t.projectId).taskCount++;
-                     }
-                 });
+            console.log('🔍 [LOAD PROJECTS] Project settings found:', Object.keys(projectSettings).length);
             
-            const existingProjects = Array.from(projectMap.values());
+            // PJ設定に存在するプロジェクトを使用
+            const existingProjects = Object.keys(projectSettings).map(projectId => {
+                const project = projectSettings[projectId];
+                
+                // 各プロジェクトのタスク数を計算
+                const projectTasks = tasks.filter(task => task.projectId === projectId);
+                const taskCount = projectTasks.length;
+                
+                console.log(`🔍 [LOAD PROJECTS] Project ${projectId}: ${project.name} (${taskCount} tasks)`);
+                
+                return {
+                    id: projectId,
+                    name: project.name,
+                    description: project.description,
+                    taskCount: taskCount,
+                    createdAt: project.createdAt,
+                    createdBy: project.createdBy
+                };
+            }).sort((a, b) => a.id.localeCompare(b.id)); // ID順でソート
             const selectElement = document.getElementById('existing-project-select');
             
             // 既存のオプションをクリア（最初のデフォルトオプション以外）
             selectElement.innerHTML = '<option value="">-- プロジェクトを選択してください --</option>';
             
             // 既存プロジェクトをオプションに追加
+            console.log('🔍 [LOAD PROJECTS] Creating select options for', existingProjects.length, 'projects');
+            
             existingProjects.forEach(project => {
                 const option = document.createElement('option');
                 option.value = `${project.id}|${project.name}`;
-                option.textContent = `${project.id} - ${project.name} (${project.taskCount}件)`;
+                option.textContent = `[${project.id}] ${project.name} (${project.taskCount}件)`;
                 selectElement.appendChild(option);
+                
+                console.log(`🔍 [LOAD PROJECTS] Added option: [${project.id}] ${project.name}`);
             });
             
+            console.log('🔍 [LOAD PROJECTS] Total options in select:', selectElement.options.length);
             console.log(`📂 既存PJ読み込み完了: ${existingProjects.length}件`, existingProjects);
         }
         
