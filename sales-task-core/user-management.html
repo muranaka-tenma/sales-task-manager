@@ -373,12 +373,58 @@
             console.log('🗑️ [CLEANUP] 不要ユーザー削除完了: システム管理者・テストユーザー');
         }
         
-        // ページ読み込み時に実行（Firebase統合対応）
+        // Firebase認証待ち処理
+        async function waitForFirebaseAuth(maxWaitTime = 5000) {
+            return new Promise((resolve) => {
+                let waited = 0;
+                const checkInterval = 100;
+                
+                const checkAuth = () => {
+                    if (window.FirebaseAuth?.getCurrentUser() && window.FirebaseDB) {
+                        console.log('✅ [USER-MGMT] Firebase認証確認完了');
+                        resolve(true);
+                    } else if (waited >= maxWaitTime) {
+                        console.warn('⚠️ [USER-MGMT] Firebase認証タイムアウト - LocalStorageフォールバック');
+                        resolve(false);
+                    } else {
+                        waited += checkInterval;
+                        setTimeout(checkAuth, checkInterval);
+                    }
+                };
+                checkAuth();
+            });
+        }
+        
+        // ページ読み込み時に実行（Firebase認証待ち対応）
         window.addEventListener('DOMContentLoaded', async () => {
             try {
+                console.log('🔄 [USER-MGMT] Firebase認証を待機中...');
+                await waitForFirebaseAuth();
                 await loadUsers();
             } catch (error) {
                 console.error('❌ [USER-MGMT] 初期ユーザー読み込みエラー:', error);
+                // エラー時もLocalStorageフォールバックで読み込み
+                users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                const tbody = document.getElementById('users-list');
+                tbody.innerHTML = '';
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.name}</td>
+                        <td>${user.email}</td>
+                        <td><span class="role-badge role-${user.role}">${getRoleDisplayName(user.role)}</span></td>
+                        <td>${user.department || '-'}</td>
+                        <td>${new Date(user.createdAt).toLocaleDateString('ja-JP')}</td>
+                        <td>
+                            <div class="actions">
+                                <button class="btn btn-secondary" onclick="editUser('${user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">編集</button>
+                                <button class="btn btn-secondary" onclick="changePassword('${user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">パスワード</button>
+                                <button class="btn btn-danger" onclick="deleteUser('${user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">削除</button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
             }
         });
         
@@ -515,9 +561,10 @@
             tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #666;">読み込み中...</td></tr>';
             
             try {
-                // Firebase認証チェック
-                if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
-                    console.log('🔥 [USER-MGMT] Firestoreからユーザー一覧を読み込み中...');
+                // Firebase認証チェック（より厳密）
+                const currentUser = window.firebaseAuth?.currentUser || window.FirebaseAuth?.getCurrentUser();
+                if (window.FirebaseDB && currentUser) {
+                    console.log('🔥 [USER-MGMT] Firestoreからユーザー一覧を読み込み中...', currentUser.email);
                     const result = await window.FirebaseDB.getAllUsers();
                     
                     if (result.success) {
@@ -539,7 +586,9 @@
                         throw new Error('Firebase読み込み失敗');
                     }
                 } else {
-                    throw new Error('Firebase未認証');
+                    const authStatus = currentUser ? 'ユーザー認証済み' : '未認証';
+                    const dbStatus = window.FirebaseDB ? 'DB接続済み' : 'DB未接続';
+                    throw new Error(`Firebase未準備 (${authStatus}, ${dbStatus})`);
                 }
             } catch (error) {
                 console.warn('⚠️ [USER-MGMT] Firebase読み込みエラー - LocalStorageフォールバック:', error);
