@@ -10278,7 +10278,7 @@
                 if (!line.trim()) return;
                 
                 // 行頭のスペース・タブ数をカウント
-                const indentMatch = line.match(/^[\s\t　]*/);
+                const indentMatch = line.match(/^[\s\t]*/);
                 const indentLength = indentMatch ? indentMatch[0].length : 0;
                 const isSubTask = indentLength > 0;
                 const cleanLine = line.trim();
