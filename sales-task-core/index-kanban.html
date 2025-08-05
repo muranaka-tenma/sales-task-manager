@@ -6,6 +6,8 @@
     <title>🎯 営業タスク管理 - Kanbanボード</title>
     <!-- Deploy: 2025-08-03-17:45 - PJ fields completely removed -->
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
+    <!-- 究極タスクデータ保護システム（最最優先読み込み） -->
+    <script src="ultimate-task-protection.js"></script>
     <!-- タスクデータ保護システム（最優先読み込み） -->
     <script src="task-protection.js"></script>
     <!-- PJタスク作成時の保護パッチ -->
@@ -11774,6 +11776,11 @@
                 <span>🚨</span>
                 <span>緊急復旧</span>
                 <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">リアルタイム保護システムからの復旧</div>
+            </a>
+            <a href="#" class="menu-item" onclick="ultimateRecover(); toggleHamburgerMenu(); return false;">
+                <span>⚡</span>
+                <span>究極復旧</span>
+                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">究極保護システムからの即座復旧</div>
             </a>
         </div>
         
