@@ -10265,8 +10265,8 @@
             }
         }
         
-        // タスクテキストをパースする関数（重複削除版）
-        function parseImportTextModalDuplicate(text) {
+        // 重複関数を完全削除開始
+        /* REMOVED: parseImportTextModalDuplicate function - duplicate of parseImportTextModal
             const lines = text.split('\n');
             const tasks = [];
             const assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
@@ -10406,7 +10406,7 @@
             
             saveTasks();
             return importedCount;
-        }
+        */ // END REMOVED DUPLICATE FUNCTION
         
         // ============ モーダル用高機能OCR関数群 ============
         let selectedAreasModal = [];
