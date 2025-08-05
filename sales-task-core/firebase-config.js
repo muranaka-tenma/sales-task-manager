@@ -6,7 +6,7 @@
 // Firebase SDKのインポート（CDN版）
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { getFirestore, doc, setDoc, getDoc, collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFirestore, doc, setDoc, getDoc, collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Firebase設定
 const firebaseConfig = {
@@ -206,6 +206,53 @@ window.FirebaseDB = {
       }
     } catch (error) {
       console.error('❌ ユーザー情報取得エラー:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // 全ユーザー一覧取得（管理者機能）
+  getAllUsers: async () => {
+    try {
+      const querySnapshot = collection(db, 'users');
+      const usersData = [];
+      const docs = await getDocs(querySnapshot);
+      
+      docs.forEach((doc) => {
+        usersData.push({ uid: doc.id, ...doc.data() });
+      });
+      
+      console.log('✅ 全ユーザー取得成功:', usersData.length, '件');
+      return { success: true, users: usersData };
+    } catch (error) {
+      console.error('❌ 全ユーザー取得エラー:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // ユーザー情報更新
+  updateUserInfo: async (uid, updates) => {
+    try {
+      await updateDoc(doc(db, 'users', uid), {
+        ...updates,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('✅ ユーザー情報更新成功:', uid);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ ユーザー情報更新エラー:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // ユーザー削除
+  deleteUser: async (uid) => {
+    try {
+      await deleteDoc(doc(db, 'users', uid));
+      console.log('✅ ユーザー削除成功:', uid);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ ユーザー削除エラー:', error.message);
       return { success: false, error: error.message };
     }
   }

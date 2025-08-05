@@ -297,8 +297,8 @@
             throw new Error('Authentication required');
         }
         
-        // ユーザー管理システム
-        let users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+        // ユーザー管理システム（Firebase統合対応）
+        let users = [];
         
         
         // 初回起動時に必要ユーザーのみを作成（不要ユーザー削除済み）
@@ -373,9 +373,13 @@
             console.log('🗑️ [CLEANUP] 不要ユーザー削除完了: システム管理者・テストユーザー');
         }
         
-        // ページ読み込み時に実行
-        window.addEventListener('DOMContentLoaded', () => {
-            loadUsers();
+        // ページ読み込み時に実行（Firebase統合対応）
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await loadUsers();
+            } catch (error) {
+                console.error('❌ [USER-MGMT] 初期ユーザー読み込みエラー:', error);
+            }
         });
         
         // 新規ユーザーの動的統合機能（マルチデバイス対応）
@@ -415,7 +419,7 @@
             }
         }
         
-        function addUser(event) {
+        async function addUser(event) {
             event.preventDefault();
             
             const name = document.getElementById('user-name').value.trim();
@@ -436,44 +440,115 @@
                 return;
             }
             
-            // 新規ユーザー作成
-            const newUser = {
-                id: Date.now(),
-                name: name,
-                email: email,
-                role: role,
-                department: department,
-                password: password, // 実際の運用では暗号化が必要
-                createdAt: new Date().toISOString()
-            };
-            
-            // 通常のLocalStorageへ追加
-            users.push(newUser);
-            saveUsers();
-            
-            // マルチデバイス対応: 動的ユーザーとしても追加
-            const dynamicSuccess = addUserToDynamicDatabase(newUser);
-            
-            // 担当者リストにも追加
-            updateAssigneesList();
+            try {
+                // Firebase統合 - ユーザー作成
+                if (window.FirebaseAuth && window.FirebaseDB) {
+                    console.log('🔥 [USER-MGMT] Firebase Authでユーザーを作成中...', email);
+                    
+                    // Firebase Authでユーザー作成
+                    const authResult = await window.FirebaseAuth.createUser(email, password, name);
+                    
+                    if (authResult.success) {
+                        console.log('✅ [FIREBASE] Firebase Authユーザー作成成功:', authResult.user.uid);
+                        
+                        // 新規ユーザーデータ
+                        const newUser = {
+                            id: Date.now(),
+                            uid: authResult.user.uid,
+                            name: name,
+                            email: email,
+                            role: role,
+                            department: department,
+                            createdAt: new Date().toISOString()
+                        };
+                        
+                        // LocalStorageに追加（フォールバック用）
+                        users.push(newUser);
+                        saveUsers();
+                        
+                        // 担当者リストにも追加
+                        updateAssigneesList();
+                        
+                        // 成功メッセージ表示
+                        showSuccess();
+                        console.log('✅ [FIREBASE] 新規ユーザー追加成功:', name, email, role);
+                        
+                    } else {
+                        console.error('❌ [FIREBASE] Firebase Authユーザー作成エラー:', authResult.error);
+                        alert(`ユーザー作成エラー: ${authResult.error}`);
+                        return;
+                    }
+                } else {
+                    throw new Error('Firebase未対応');
+                }
+            } catch (error) {
+                console.warn('⚠️ [USER-MGMT] Firebase作成エラー - LocalStorageフォールバック:', error);
+                
+                // LocalStorageフォールバック
+                const newUser = {
+                    id: Date.now(),
+                    name: name,
+                    email: email,
+                    role: role,
+                    department: department,
+                    password: password, // LocalStorageでは保持
+                    createdAt: new Date().toISOString()
+                };
+                
+                users.push(newUser);
+                saveUsers();
+                updateAssigneesList();
+                showSuccess();
+                console.log('✅ [LOCAL] 新規ユーザー追加（LocalStorageのみ）:', name, email, role);
+            }
             
             // フォームリセット
             document.getElementById('user-form').reset();
             
-            // 成功メッセージ表示
-            showSuccess();
-            
             // ユーザー一覧更新
-            loadUsers();
-            
-            const status = dynamicSuccess ? 'マルチデバイス対応で追加' : 'ローカルのみで追加';
-            console.log(`✅ 新規ユーザー追加 (${status}):`, newUser.name, newUser.email, newUser.role);
+            await loadUsers();
         }
         
-        function loadUsers() {
+        // Firebase統合 - ユーザー一覧読み込み
+        async function loadUsers() {
             const tbody = document.getElementById('users-list');
-            tbody.innerHTML = '';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #666;">読み込み中...</td></tr>';
             
+            try {
+                // Firebase認証チェック
+                if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
+                    console.log('🔥 [USER-MGMT] Firestoreからユーザー一覧を読み込み中...');
+                    const result = await window.FirebaseDB.getAllUsers();
+                    
+                    if (result.success) {
+                        users = result.users.map(user => ({
+                            id: user.uid,
+                            name: user.displayName || user.name,
+                            email: user.email,
+                            role: user.role || 'user',
+                            department: user.department || '-',
+                            createdAt: user.createdAt,
+                            uid: user.uid // Firebase UID保持
+                        }));
+                        console.log('✅ [FIREBASE] ユーザー一覧取得成功:', users.length, '件');
+                        
+                        // LocalStorageにも保存（フォールバック用）
+                        localStorage.setItem('systemUsers', JSON.stringify(users));
+                    } else {
+                        console.warn('⚠️ [FIREBASE] Firestore読み込み失敗 - LocalStorageフォールバック');
+                        throw new Error('Firebase読み込み失敗');
+                    }
+                } else {
+                    throw new Error('Firebase未認証');
+                }
+            } catch (error) {
+                console.warn('⚠️ [USER-MGMT] Firebase読み込みエラー - LocalStorageフォールバック:', error);
+                // LocalStorageフォールバック
+                users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            }
+            
+            // UIを更新
+            tbody.innerHTML = '';
             users.forEach(user => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -484,9 +559,9 @@
                     <td>${new Date(user.createdAt).toLocaleDateString('ja-JP')}</td>
                     <td>
                         <div class="actions">
-                            <button class="btn btn-secondary" onclick="editUser(${user.id})" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">編集</button>
-                            <button class="btn btn-secondary" onclick="changePassword(${user.id})" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">パスワード</button>
-                            <button class="btn btn-danger" onclick="deleteUser(${user.id})" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">削除</button>
+                            <button class="btn btn-secondary" onclick="editUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">編集</button>
+                            <button class="btn btn-secondary" onclick="changePassword('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">パスワード</button>
+                            <button class="btn btn-danger" onclick="deleteUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">削除</button>
                         </div>
                     </td>
                 `;
@@ -602,5 +677,8 @@
             }, 3000);
         }
     </script>
+    
+    <!-- Firebase統合システム - マルチユーザー対応 -->
+    <script type="module" src="firebase-config.js"></script>
 </body>
 </html>
