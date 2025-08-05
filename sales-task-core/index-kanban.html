@@ -1969,6 +1969,42 @@
             }
         }
         
+        // Firebase統合テンプレートデータ読み込み関数
+        async function loadTemplates() {
+            try {
+                // Firebase認証チェック
+                if (window.FirebaseAuth?.getCurrentUser() && window.FirebaseDB) {
+                    console.log('🔥 [LOAD] Firebase認証済み - Firestoreからテンプレートを読み込み中...');
+                    
+                    try {
+                        const result = await window.FirebaseDB.getTemplates();
+                        if (result.success) {
+                            console.log('✅ [FIREBASE] Firestoreからテンプレート読み込み成功:', result.templates.length, '件');
+                            
+                            // LocalStorageにも保存（オフライン時のフォールバック）
+                            localStorage.setItem('taskTemplates', JSON.stringify(result.templates));
+                            
+                            // リアルタイム同期のためのアンサブスクライブ関数を保存
+                            window.templatesUnsubscribe = result.unsubscribe;
+                            
+                            return result.templates;
+                        } else {
+                            console.warn('⚠️ [FIREBASE] Firestore テンプレート読み込み失敗 - LocalStorageフォールバック');
+                        }
+                    } catch (firebaseError) {
+                        console.warn('⚠️ [FIREBASE] Firebase テンプレート接続エラー - LocalStorageフォールバック:', firebaseError);
+                    }
+                }
+                
+                // Firebase未対応またはエラー時のフォールバック
+                return JSON.parse(localStorage.getItem('taskTemplates') || '[]');
+                
+            } catch (error) {
+                console.error('❌ [LOAD] テンプレート読み込みエラー:', error);
+                return JSON.parse(localStorage.getItem('taskTemplates') || '[]');
+            }
+        }
+        
         // 安全なタスクデータ読み込み関数（LocalStorageのみ）
         function loadTasksFromStorage() {
             try {
@@ -2220,8 +2256,8 @@
             console.log('🗑️ ゴミ箱カラムは既に存在します');
         }
         
-        // テンプレート管理
-        let taskTemplates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
+        // テンプレート管理（Firebase統合対応）
+        let taskTemplates = [];
         let editingTemplateId = null;
         
         // バルク操作管理
@@ -5199,6 +5235,16 @@
             } catch (error) {
                 console.error('❌ [INIT] Firebase統合エラー - LocalStorageフォールバック:', error);
                 tasks = loadTasksFromStorage();
+            }
+            
+            // Firebase統合 - テンプレートデータを読み込み
+            try {
+                console.log('🔥 [INIT] Firebase統合テンプレート読み込み開始...');
+                taskTemplates = await loadTemplates();
+                console.log('✅ [INIT] テンプレートデータ読み込み完了:', taskTemplates.length, '件');
+            } catch (error) {
+                console.error('❌ [INIT] テンプレートFirebase統合エラー - LocalStorageフォールバック:', error);
+                taskTemplates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
             }
             
             // 定期タスクのサンプルテンプレートを初期化 - 無効化
@@ -9650,7 +9696,7 @@
             editingTemplateId = null;
         }
         
-        function saveTemplate(event) {
+        async function saveTemplate(event) {
             event.preventDefault();
             
             const name = document.getElementById('template-name').value.trim();
@@ -9669,12 +9715,59 @@
                 return;
             }
             
-            if (editingTemplateId) {
-                // 編集モード
-                const templateIndex = taskTemplates.findIndex(t => t.id === editingTemplateId);
-                if (templateIndex !== -1) {
-                    taskTemplates[templateIndex] = {
-                        ...taskTemplates[templateIndex],
+            try {
+                if (editingTemplateId) {
+                    // 編集モード - Firebase統合
+                    const templateData = {
+                        name: name,
+                        category: category,
+                        taskTitle: taskTitle,
+                        priority: priority,
+                        columnId: columnId,
+                        assignees: selectedAssignees,
+                        memo: memo
+                    };
+                    
+                    // Firebase更新
+                    if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
+                        console.log('🔥 [TEMPLATE] Firebaseテンプレート更新中...', name);
+                        const result = await window.FirebaseDB.updateTemplate(editingTemplateId, templateData);
+                        
+                        if (result.success) {
+                            console.log('✅ [FIREBASE] テンプレート更新成功:', editingTemplateId);
+                            
+                            // ローカル配列も更新
+                            const templateIndex = taskTemplates.findIndex(t => t.id === editingTemplateId);
+                            if (templateIndex !== -1) {
+                                taskTemplates[templateIndex] = {
+                                    ...taskTemplates[templateIndex],
+                                    ...templateData,
+                                    updatedAt: new Date().toISOString()
+                                };
+                            }
+                            alert('✅ テンプレートを更新しました！');
+                        } else {
+                            console.error('❌ [FIREBASE] テンプレート更新エラー:', result.error);
+                            alert(`テンプレート更新エラー: ${result.error}`);
+                            return;
+                        }
+                    } else {
+                        // LocalStorageフォールバック
+                        const templateIndex = taskTemplates.findIndex(t => t.id === editingTemplateId);
+                        if (templateIndex !== -1) {
+                            taskTemplates[templateIndex] = {
+                                ...taskTemplates[templateIndex],
+                                ...templateData,
+                                updatedAt: new Date().toISOString()
+                            };
+                            localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
+                            alert('✅ テンプレートを更新しました！（LocalStorage）');
+                        }
+                    }
+                } else {
+                    // 新規作成モード - Firebase統合
+                    const templateData = {
+                        id: Date.now(),
                         name: name,
                         category: category,
                         taskTitle: taskTitle,
@@ -9682,34 +9775,46 @@
                         columnId: columnId,
                         assignees: selectedAssignees,
                         memo: memo,
-                        updatedAt: new Date().toISOString()
+                        createdAt: new Date().toISOString()
                     };
+                    
+                    // Firebase作成
+                    if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
+                        console.log('🔥 [TEMPLATE] Firebaseテンプレート作成中...', name);
+                        const result = await window.FirebaseDB.createTemplate(templateData);
+                        
+                        if (result.success) {
+                            console.log('✅ [FIREBASE] テンプレート作成成功:', result.id);
+                            
+                            // Firebase IDを設定してローカル配列に追加
+                            templateData.id = result.id;
+                            taskTemplates.push(templateData);
+                            alert('✅ テンプレートを保存しました！');
+                        } else {
+                            console.error('❌ [FIREBASE] テンプレート作成エラー:', result.error);
+                            alert(`テンプレート作成エラー: ${result.error}`);
+                            return;
+                        }
+                    } else {
+                        // LocalStorageフォールバック
+                        taskTemplates.push(templateData);
+                        localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
+                        alert('✅ テンプレートを保存しました！（LocalStorage）');
+                    }
                 }
-                alert('✅ テンプレートを更新しました！');
-            } else {
-                // 新規作成モード
-                const template = {
-                    id: Date.now(),
-                    name: name,
-                    category: category,
-                    taskTitle: taskTitle,
-                    priority: priority,
-                    columnId: columnId,
-                    assignees: selectedAssignees,
-                    memo: memo,
-                    createdAt: new Date().toISOString()
-                };
                 
-                taskTemplates.push(template);
-                alert('✅ テンプレートを保存しました！');
+                // LocalStorageにも保存（同期用）
+                localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
+                
+                // テンプレート一覧を更新
+                loadTemplateList();
+                
+                closeTemplateModal();
+                
+            } catch (error) {
+                console.error('❌ [TEMPLATE] テンプレート保存エラー:', error);
+                alert(`テンプレート保存中にエラーが発生しました: ${error.message}`);
             }
-            
-            localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
-            
-            // テンプレート一覧を更新
-            loadTemplateList();
-            
-            closeTemplateModal();
         }
         
         function loadTemplateList() {

@@ -255,6 +255,113 @@ window.FirebaseDB = {
       console.error('❌ ユーザー削除エラー:', error.message);
       return { success: false, error: error.message };
     }
+  },
+
+  // タスクテンプレート作成
+  createTemplate: async (templateData) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('認証が必要です');
+
+      const docRef = await addDoc(collection(db, 'templates'), {
+        ...templateData,
+        userId: user.uid,
+        createdBy: user.email,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      console.log('✅ テンプレート作成成功:', docRef.id);
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error('❌ テンプレート作成エラー:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // テンプレート更新
+  updateTemplate: async (templateId, updates) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('認証が必要です');
+
+      await updateDoc(doc(db, 'templates', templateId), {
+        ...updates,
+        updatedAt: new Date().toISOString(),
+        updatedBy: user.email
+      });
+
+      console.log('✅ テンプレート更新成功:', templateId);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ テンプレート更新エラー:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // テンプレート削除
+  deleteTemplate: async (templateId) => {
+    try {
+      await deleteDoc(doc(db, 'templates', templateId));
+      console.log('✅ テンプレート削除成功:', templateId);
+      return { success: true };
+    } catch (error) {
+      console.error('❌ テンプレート削除エラー:', error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // 全テンプレート取得（リアルタイム同期対応）
+  getTemplates: async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('認証が必要です');
+
+      const q = query(
+        collection(db, 'templates'),
+        where('userId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      );
+
+      return new Promise((resolve, reject) => {
+        let isFirstLoad = true;
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+          const templates = [];
+          querySnapshot.forEach((doc) => {
+            templates.push({ id: doc.id, ...doc.data() });
+          });
+          console.log('✅ テンプレート取得成功:', templates.length, '件', isFirstLoad ? '(初回)' : '(リアルタイム更新)');
+          
+          if (isFirstLoad) {
+            // 初回読み込み
+            isFirstLoad = false;
+            resolve({ success: true, templates: templates, unsubscribe: unsubscribe });
+          } else {
+            // リアルタイム更新: グローバルテンプレート配列を更新
+            if (window.taskTemplates !== undefined) {
+              window.taskTemplates = templates;
+              localStorage.setItem('taskTemplates', JSON.stringify(templates));
+              // テンプレート一覧の再読み込み
+              if (window.loadTemplateList) {
+                window.loadTemplateList();
+              }
+              if (window.loadTemplateManagementList) {
+                window.loadTemplateManagementList();
+              }
+              console.log('🔄 [REALTIME] テンプレートがリアルタイム更新されました');
+            }
+          }
+        }, (error) => {
+          console.error('❌ テンプレート取得エラー:', error.message);
+          if (isFirstLoad) {
+            reject({ success: false, error: error.message });
+          }
+        });
+      });
+    } catch (error) {
+      console.error('❌ テンプレート取得エラー:', error.message);
+      return { success: false, error: error.message };
+    }
   }
 };
 
