@@ -372,7 +372,7 @@
             }
         }
         
-        function createPJTask(event) {
+        async function createPJTask(event) {
             event.preventDefault();
             console.log('PJタスク作成開始...');
             
@@ -460,6 +460,27 @@
             localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
             console.log('保存後タスク数:', tasks.length);
             
+            // Firebase同期（PJタスク作成）
+            if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
+                try {
+                    console.log('🔥 [FIREBASE] PJタスクをFirebaseに同期中...', task.title);
+                    const result = await window.FirebaseDB.createTask(task);
+                    if (result.success) {
+                        console.log('✅ [FIREBASE] PJタスク作成成功:', result.id);
+                        // Firebase IDでタスクを更新
+                        task.firebaseId = result.id;
+                        tasks[tasks.length - 1] = task; // 最後に追加したタスクを更新
+                        localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+                    } else {
+                        console.error('❌ [FIREBASE] PJタスク作成エラー:', result.error);
+                    }
+                } catch (error) {
+                    console.error('❌ [FIREBASE] PJタスク同期エラー:', error);
+                }
+            } else {
+                console.log('💾 [FIREBASE] Firebase未対応またはログアウト状態 - LocalStorageのみ');
+            }
+            
             // 成功メッセージを表示
             document.getElementById('success-message').style.display = 'block';
             
@@ -475,5 +496,8 @@
             }, 2000);
         }
     </script>
+    
+    <!-- Firebase統合システム - マルチユーザー対応 -->
+    <script type="module" src="firebase-config.js"></script>
 </body>
 </html>

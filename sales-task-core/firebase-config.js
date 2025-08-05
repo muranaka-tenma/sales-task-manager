@@ -146,7 +146,7 @@ window.FirebaseDB = {
     }
   },
 
-  // 全タスク取得
+  // 全タスク取得（リアルタイム同期対応）
   getTasks: async () => {
     try {
       const user = auth.currentUser;
@@ -159,16 +159,32 @@ window.FirebaseDB = {
       );
 
       return new Promise((resolve, reject) => {
+        let isFirstLoad = true;
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
           const tasks = [];
           querySnapshot.forEach((doc) => {
             tasks.push({ id: doc.id, ...doc.data() });
           });
-          console.log('✅ タスク取得成功:', tasks.length, '件');
-          resolve({ success: true, tasks: tasks, unsubscribe: unsubscribe });
+          console.log('✅ タスク取得成功:', tasks.length, '件', isFirstLoad ? '(初回)' : '(リアルタイム更新)');
+          
+          if (isFirstLoad) {
+            // 初回読み込み
+            isFirstLoad = false;
+            resolve({ success: true, tasks: tasks, unsubscribe: unsubscribe });
+          } else {
+            // リアルタイム更新: グローバルタスク配列を更新して再レンダリング
+            if (window.tasks && window.render) {
+              window.tasks = tasks;
+              localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+              window.render();
+              console.log('🔄 [REALTIME] タスクがリアルタイム更新されました');
+            }
+          }
         }, (error) => {
           console.error('❌ タスク取得エラー:', error.message);
-          reject({ success: false, error: error.message });
+          if (isFirstLoad) {
+            reject({ success: false, error: error.message });
+          }
         });
       });
     } catch (error) {
