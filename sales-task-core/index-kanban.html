@@ -12,6 +12,8 @@
     <script src="task-protection.js"></script>
     <!-- PJタスク作成時の保護パッチ -->
     <script src="pj-task-fix.js"></script>
+    <!-- 安全なユーザー初期化システム -->
+    <script src="safe-user-init.js"></script>
     <!-- 共有ユーザーデータベース読み込み -->
     <script src="shared-users-database.js"></script>
     <style>
@@ -1655,8 +1657,10 @@
                     // 共有データベースを優先して初期化
                     if (typeof initializeSharedUserDatabase === 'function') {
                         initializeSharedUserDatabase();
+                    } else if (typeof safeInitializeUserDatabase === 'function') {
+                        // 安全な初期化を実行
+                        safeInitializeUserDatabase();
                     }
-                    // initializeUserDatabase()を削除 - タスク消失の原因
                     
                     const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                     console.log('🔍 [AUTH] 利用可能ユーザー:', users.map(u => `${u.name}(${u.role})`));
@@ -1694,7 +1698,10 @@
                 
                 // デフォルトユーザーでセッション作成（フォールバック）
                 console.log('🔧 [AUTH] Creating default developer session');
-                // initializeUserDatabase()を削除 - タスク消失の原因
+                // 安全な初期化を実行
+                if (typeof safeInitializeUserDatabase === 'function') {
+                    safeInitializeUserDatabase();
+                }
                 const defaultSession = {
                     user: { 
                         name: '邨中天真', 
