@@ -1924,8 +1924,94 @@
             throw new Error('Authentication required');
         }
         
+        // 安全なタスクデータ読み込み関数
+        function loadTasksFromStorage() {
+            try {
+                const stored = localStorage.getItem('salesTasksKanban');
+                if (!stored) {
+                    console.log('📊 [LOAD] 初回起動: 空の配列を作成');
+                    return [];
+                }
+                
+                const parsedTasks = JSON.parse(stored);
+                console.log('📊 [LOAD] タスクデータ読み込み成功:', parsedTasks.length, '件');
+                
+                // データの整合性チェック
+                if (!Array.isArray(parsedTasks)) {
+                    console.warn('⚠️ [LOAD] 不正なタスクデータ形式を検出、空配列で初期化');
+                    return [];
+                }
+                
+                return parsedTasks;
+                
+            } catch (error) {
+                console.error('❌ [LOAD] タスクデータ読み込みエラー:', error);
+                
+                // バックアップからの復旧を試行
+                const backupKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('salesTasksKanban_backup_')) {
+                        backupKeys.push(key);
+                    }
+                }
+                
+                if (backupKeys.length > 0) {
+                    // 最新のバックアップを使用
+                    const latestBackup = backupKeys.sort().pop();
+                    try {
+                        const backupData = localStorage.getItem(latestBackup);
+                        const backupTasks = JSON.parse(backupData);
+                        console.log('🔄 [LOAD] バックアップから復旧:', latestBackup, backupTasks.length, '件');
+                        return backupTasks;
+                    } catch (backupError) {
+                        console.error('❌ [LOAD] バックアップ復旧も失敗:', backupError);
+                    }
+                }
+                
+                console.log('📊 [LOAD] フォールバック: 空配列で開始');
+                return [];
+            }
+        }
+
+        // 定期バックアップ機能
+        function createPeriodicBackup() {
+            try {
+                const currentTasks = localStorage.getItem('salesTasksKanban');
+                if (!currentTasks) return;
+                
+                const backupKey = `salesTasksKanban_auto_backup_${Date.now()}`;
+                localStorage.setItem(backupKey, currentTasks);
+                console.log('⏰ [BACKUP] 定期バックアップ作成:', backupKey);
+                
+                // 古いバックアップを削除（最新10個を保持）
+                const backupKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('salesTasksKanban_auto_backup_')) {
+                        backupKeys.push(key);
+                    }
+                }
+                
+                if (backupKeys.length > 10) {
+                    const sortedKeys = backupKeys.sort();
+                    const keysToDelete = sortedKeys.slice(0, sortedKeys.length - 10);
+                    keysToDelete.forEach(key => {
+                        localStorage.removeItem(key);
+                        console.log('🗑️ [BACKUP] 古いバックアップ削除:', key);
+                    });
+                }
+                
+            } catch (error) {
+                console.error('❌ [BACKUP] バックアップ作成エラー:', error);
+            }
+        }
+
+        // 5分毎に自動バックアップ
+        setInterval(createPeriodicBackup, 5 * 60 * 1000);
+
         // グローバル変数
-        let tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+        let tasks = loadTasksFromStorage();
         console.log('📊 [LOAD] 読み込まれたタスク数:', tasks.length);
         const pjTasks = tasks.filter(t => t.projectId);
         console.log('👥 [LOAD] PJタスク数:', pjTasks.length, pjTasks.map(t => `${t.projectId}: ${t.title}`));
@@ -4715,7 +4801,39 @@
             const caller = stack.split('\n')[2]?.trim() || 'unknown';
             console.log('💾 [SAVE] Saving tasks to localStorage, count:', tasks.length);
             console.log('💾 [SAVE] Called from:', caller);
-            localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+            
+            try {
+                // 保存前に現在のLocalStorageの状態を確認
+                const currentStored = localStorage.getItem('salesTasksKanban');
+                const currentStoredTasks = currentStored ? JSON.parse(currentStored) : [];
+                
+                // データの整合性チェック（大幅な削減を検出）
+                if (currentStoredTasks.length > 0 && tasks.length === 0) {
+                    console.warn('⚠️ [SAVE] 警告: 全タスクが消失する可能性があります');
+                    console.warn('⚠️ [SAVE] 現在のStorage:', currentStoredTasks.length, '保存予定:', tasks.length);
+                    
+                    // 緊急バックアップを作成
+                    const backupKey = `salesTasksKanban_emergency_backup_${Date.now()}`;
+                    localStorage.setItem(backupKey, currentStored);
+                    console.log('🚨 [SAVE] 緊急バックアップ作成:', backupKey);
+                }
+                
+                // タスクデータを安全に保存
+                localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+                console.log('✅ [SAVE] タスクデータ保存完了');
+                
+            } catch (error) {
+                console.error('❌ [SAVE] タスク保存エラー:', error);
+                
+                // フォールバック: 現在のデータをバックアップとして保存
+                try {
+                    const fallbackKey = `salesTasksKanban_fallback_${Date.now()}`;
+                    localStorage.setItem(fallbackKey, JSON.stringify(tasks));
+                    console.log('🔄 [SAVE] フォールバックバックアップ:', fallbackKey);
+                } catch (fallbackError) {
+                    console.error('❌ [SAVE] フォールバック保存も失敗:', fallbackError);
+                }
+            }
             console.log('💾 [SAVE] Tasks saved successfully');
         }
         
@@ -11642,6 +11760,11 @@
                 <span>📝</span>
                 <span>テキスト・OCRインポート</span>
                 <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テキスト・画像からタスク作成</div>
+            </a>
+            <a href="#" class="menu-item" onclick="showTaskRecoveryModal(); toggleHamburgerMenu(); return false;">
+                <span>🔄</span>
+                <span>タスク復旧</span>
+                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">消失したタスクの復旧・バックアップ管理</div>
             </a>
         </div>
         
