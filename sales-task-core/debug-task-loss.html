@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 タスク消失デバッグツール</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f4f5f7;
+            color: #172b4d;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 2rem;
+        }
+        .section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: #026aa7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .btn:hover {
+            background: #025aa0;
+        }
+        .output {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 1rem;
+        }
+        .alert {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 タスク消失デバッグツール</h1>
+        
+        <div class="alert">
+            <strong>⚠️ 問題報告:</strong> ページを2回更新するとタスクが消失する現象を調査します。
+        </div>
+        
+        <div class="section">
+            <h3>📊 現在の状況確認</h3>
+            <button class="btn" onclick="checkCurrentState()">現在の状況を確認</button>
+            <button class="btn" onclick="checkAllStorageKeys()">全LocalStorageキーを確認</button>
+            <button class="btn" onclick="simulatePageReload()">ページリロードをシミュレート</button>
+            <div id="current-state-output" class="output"></div>
+        </div>
+        
+        <div class="section">
+            <h3>🔄 初期化プロセス追跡</h3>
+            <button class="btn" onclick="traceInitialization()">初期化プロセスを追跡</button>
+            <button class="btn" onclick="checkUserDatabaseInit()">ユーザーDB初期化を確認</button>
+            <div id="init-trace-output" class="output"></div>
+        </div>
+        
+        <div class="section">
+            <h3>📦 バックアップ状況</h3>
+            <button class="btn" onclick="checkBackups()">バックアップ一覧を確認</button>
+            <button class="btn" onclick="createTestBackup()">テスト用バックアップ作成</button>
+            <div id="backup-output" class="output"></div>
+        </div>
+        
+        <div class="section">
+            <h3>🧪 テストデータ操作</h3>
+            <button class="btn" onclick="createTestTasks()">テストタスクを作成</button>
+            <button class="btn" onclick="clearAllData()">全データをクリア</button>
+            <button class="btn" onclick="restoreFromLatestBackup()">最新バックアップから復旧</button>
+            <div id="test-output" class="output"></div>
+        </div>
+    </div>
+    
+    <script>
+        function log(message) {
+            console.log(`[DEBUG] ${new Date().toISOString()}: ${message}`);
+        }
+        
+        function checkCurrentState() {
+            const output = document.getElementById('current-state-output');
+            let result = '=== 現在の状況 ===\n\n';
+            
+            try {
+                // メインタスクデータ
+                const tasks = localStorage.getItem('salesTasksKanban');
+                const parsedTasks = tasks ? JSON.parse(tasks) : [];
+                result += `メインタスクデータ:\n`;
+                result += `- 存在: ${tasks ? 'あり' : 'なし'}\n`;
+                result += `- タスク数: ${parsedTasks.length}件\n`;
+                result += `- データサイズ: ${tasks ? tasks.length : 0}文字\n\n`;
+                
+                if (parsedTasks.length > 0) {
+                    result += `タスク一覧:\n`;
+                    parsedTasks.slice(0, 5).forEach((task, index) => {
+                        result += `${index + 1}. ${task.title} (${task.columnId})\n`;
+                    });
+                    if (parsedTasks.length > 5) {
+                        result += `...他${parsedTasks.length - 5}件\n`;
+                    }
+                    result += '\n';
+                }
+                
+                // ユーザーデータ
+                const users = localStorage.getItem('systemUsers');
+                const parsedUsers = users ? JSON.parse(users) : [];
+                result += `ユーザーデータ:\n`;
+                result += `- 存在: ${users ? 'あり' : 'なし'}\n`;
+                result += `- ユーザー数: ${parsedUsers.length}名\n\n`;
+                
+                // セッション情報
+                const session = localStorage.getItem('currentSession');
+                const currentUser = localStorage.getItem('currentUser');
+                result += `セッション情報:\n`;
+                result += `- currentSession: ${session ? 'あり' : 'なし'}\n`;
+                result += `- currentUser: ${currentUser || 'なし'}\n\n`;
+                
+                // タイムスタンプ
+                result += `確認時刻: ${new Date().toLocaleString('ja-JP')}\n`;
+                
+            } catch (error) {
+                result += `❌ エラー: ${error.message}\n`;
+            }
+            
+            output.textContent = result;
+            log(`Current state checked: ${parsedTasks.length} tasks found`);
+        }
+        
+        function checkAllStorageKeys() {
+            const output = document.getElementById('current-state-output');
+            let result = '=== 全LocalStorageキー ===\n\n';
+            
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                keys.push(localStorage.key(i));
+            }
+            
+            keys.sort();
+            
+            result += `総キー数: ${keys.length}\n\n`;
+            
+            const categories = {
+                'タスク関連': keys.filter(k => k.includes('Task') || k.includes('kanban')),
+                'ユーザー関連': keys.filter(k => k.includes('User') || k.includes('Session')),
+                'バックアップ': keys.filter(k => k.includes('backup')),
+                'その他': keys.filter(k => !k.includes('Task') && !k.includes('kanban') && !k.includes('User') && !k.includes('Session') && !k.includes('backup'))
+            };
+            
+            Object.entries(categories).forEach(([category, categoryKeys]) => {
+                if (categoryKeys.length > 0) {
+                    result += `【${category}】\n`;
+                    categoryKeys.forEach(key => {
+                        const value = localStorage.getItem(key);
+                        const size = value ? value.length : 0;
+                        result += `- ${key}: ${size}文字\n`;
+                    });
+                    result += '\n';
+                }
+            });
+            
+            output.textContent = result;
+            log(`Storage keys checked: ${keys.length} total keys`);
+        }
+        
+        function simulatePageReload() {
+            const output = document.getElementById('current-state-output');
+            let result = '=== ページリロードシミュレーション ===\n\n';
+            
+            try {
+                // リロード前の状態を記録
+                const beforeTasks = localStorage.getItem('salesTasksKanban');
+                const beforeTaskCount = beforeTasks ? JSON.parse(beforeTasks).length : 0;
+                result += `リロード前: ${beforeTaskCount}件のタスク\n`;
+                
+                // 初期化プロセスをシミュレート（index-kanban.htmlの処理を模擬）
+                result += '\n--- 初期化プロセス開始 ---\n';
+                
+                // 1. ユーザー認証チェック
+                const session = localStorage.getItem('currentSession');
+                result += `1. セッションチェック: ${session ? '有効' : '無効'}\n`;
+                
+                // 2. ユーザーデータベース初期化（問題の可能性がある箇所）
+                if (typeof initializeSharedUserDatabase === 'function') {
+                    result += '2. 共有ユーザーDB初期化実行\n';
+                } else {
+                    result += '2. 通常ユーザーDB初期化実行\n';
+                }
+                
+                // 3. タスクデータ読み込み
+                const afterTasks = localStorage.getItem('salesTasksKanban');
+                const afterTaskCount = afterTasks ? JSON.parse(afterTasks).length : 0;
+                result += `3. タスクデータ読み込み: ${afterTaskCount}件\n`;
+                
+                // 4. 結果比較
+                result += '\n--- 結果 ---\n';
+                result += `リロード前: ${beforeTaskCount}件\n`;
+                result += `リロード後: ${afterTaskCount}件\n`;
+                
+                if (beforeTaskCount !== afterTaskCount) {
+                    result += `❌ データ変更検出! ${beforeTaskCount - afterTaskCount}件のタスクが変更されました\n`;
+                } else {
+                    result += `✅ データ一貫性OK\n`;
+                }
+                
+            } catch (error) {
+                result += `❌ シミュレーションエラー: ${error.message}\n`;
+            }
+            
+            output.textContent = result;
+        }
+        
+        function traceInitialization() {
+            const output = document.getElementById('init-trace-output');
+            let result = '=== 初期化プロセス詳細追跡 ===\n\n';
+            
+            // LocalStorageの現在の状態をスナップショット
+            const snapshot = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                snapshot[key] = localStorage.getItem(key);
+            }
+            
+            result += `初期化前スナップショット作成完了\n`;
+            result += `記録されたキー数: ${Object.keys(snapshot).length}\n\n`;
+            
+            // タスクデータ特定確認
+            const taskData = snapshot['salesTasksKanban'];
+            if (taskData) {
+                try {
+                    const tasks = JSON.parse(taskData);
+                    result += `タスクデータ確認:\n`;
+                    result += `- 有効なJSON: はい\n`;
+                    result += `- タスク数: ${tasks.length}件\n`;
+                    result += `- 配列形式: ${Array.isArray(tasks) ? 'はい' : 'いいえ'}\n\n`;
+                } catch (e) {
+                    result += `タスクデータ確認:\n`;
+                    result += `- 有効なJSON: いいえ (${e.message})\n\n`;
+                }
+            } else {
+                result += `タスクデータ確認:\n`;
+                result += `- 存在: いいえ\n\n`;
+            }
+            
+            output.textContent = result;
+        }
+        
+        function checkUserDatabaseInit() {
+            const output = document.getElementById('init-trace-output');
+            let result = '=== ユーザーDB初期化確認 ===\n\n';
+            
+            try {
+                // 初期化前の状態
+                const beforeUsers = localStorage.getItem('systemUsers');
+                const beforeTasks = localStorage.getItem('salesTasksKanban');
+                
+                result += `初期化前:\n`;
+                result += `- ユーザー: ${beforeUsers ? JSON.parse(beforeUsers).length : 0}名\n`;
+                result += `- タスク: ${beforeTasks ? JSON.parse(beforeTasks).length : 0}件\n\n`;
+                
+                // shared-users-database.jsの関数が利用可能かチェック
+                result += `利用可能な初期化関数:\n`;
+                result += `- initializeSharedUserDatabase: ${typeof initializeSharedUserDatabase !== 'undefined' ? 'あり' : 'なし'}\n`;
+                result += `- initializeUserDatabase: ${typeof initializeUserDatabase !== 'undefined' ? 'あり' : 'なし'}\n\n`;
+                
+                // 実際の初期化実行（安全に）
+                if (typeof initializeSharedUserDatabase === 'function') {
+                    result += `共有ユーザーDB初期化を実行中...\n`;
+                    initializeSharedUserDatabase();
+                } else if (typeof initializeUserDatabase === 'function') {
+                    result += `通常ユーザーDB初期化を実行中...\n`;
+                    initializeUserDatabase();
+                } else {
+                    result += `警告: 初期化関数が見つかりません\n`;
+                }
+                
+                // 初期化後の状態
+                const afterUsers = localStorage.getItem('systemUsers');
+                const afterTasks = localStorage.getItem('salesTasksKanban');
+                
+                result += `\n初期化後:\n`;
+                result += `- ユーザー: ${afterUsers ? JSON.parse(afterUsers).length : 0}名\n`;
+                result += `- タスク: ${afterTasks ? JSON.parse(afterTasks).length : 0}件\n\n`;
+                
+                // 変更検出
+                const tasksBefore = beforeTasks ? JSON.parse(beforeTasks).length : 0;
+                const tasksAfter = afterTasks ? JSON.parse(afterTasks).length : 0;
+                
+                if (tasksBefore !== tasksAfter) {
+                    result += `❌ タスクデータが変更されました！\n`;
+                    result += `変更量: ${tasksBefore} → ${tasksAfter} (${tasksAfter - tasksBefore})\n`;
+                } else {
+                    result += `✅ タスクデータは保持されました\n`;
+                }
+                
+            } catch (error) {
+                result += `❌ 確認エラー: ${error.message}\n`;
+            }
+            
+            output.textContent = result;
+        }
+        
+        function checkBackups() {
+            const output = document.getElementById('backup-output');
+            let result = '=== バックアップ確認 ===\n\n';
+            
+            const backupKeys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.includes('backup') || key.includes('Backup'))) {
+                    backupKeys.push(key);
+                }
+            }
+            
+            result += `バックアップファイル数: ${backupKeys.length}\n\n`;
+            
+            if (backupKeys.length === 0) {
+                result += '❌ バックアップが見つかりません\n';
+            } else {
+                backupKeys.sort();
+                backupKeys.forEach(key => {
+                    try {
+                        const data = localStorage.getItem(key);
+                        const parsed = JSON.parse(data);
+                        const timestamp = key.match(/_(\d+)$/)?.[1];
+                        const date = timestamp ? new Date(parseInt(timestamp)) : new Date();
+                        
+                        result += `📦 ${key}\n`;
+                        result += `   作成日時: ${date.toLocaleString('ja-JP')}\n`;
+                        result += `   タスク数: ${Array.isArray(parsed) ? parsed.length : '不明'}件\n`;
+                        result += `   データサイズ: ${data.length}文字\n\n`;
+                    } catch (e) {
+                        result += `📦 ${key}\n`;
+                        result += `   エラー: ${e.message}\n\n`;
+                    }
+                });
+            }
+            
+            output.textContent = result;
+        }
+        
+        function createTestBackup() {
+            const output = document.getElementById('backup-output');
+            
+            try {
+                const currentTasks = localStorage.getItem('salesTasksKanban') || '[]';
+                const backupKey = `salesTasksKanban_debug_backup_${Date.now()}`;
+                localStorage.setItem(backupKey, currentTasks);
+                
+                const tasksCount = JSON.parse(currentTasks).length;
+                output.textContent = `✅ デバッグ用バックアップを作成しました\n\nキー: ${backupKey}\nタスク数: ${tasksCount}件\n作成時刻: ${new Date().toLocaleString('ja-JP')}`;
+                
+            } catch (error) {
+                output.textContent = `❌ バックアップ作成エラー: ${error.message}`;
+            }
+        }
+        
+        function createTestTasks() {
+            const output = document.getElementById('test-output');
+            
+            try {
+                const testTasks = [
+                    {
+                        id: Date.now() + 1,
+                        title: 'デバッグテスト1',
+                        description: 'テスト用タスク1',
+                        columnId: 'todo',
+                        priority: 'medium',
+                        assignee: 'テストユーザー',
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        id: Date.now() + 2,
+                        title: 'デバッグテスト2',
+                        description: 'テスト用タスク2',
+                        columnId: 'in-progress',
+                        priority: 'high',
+                        assignee: 'テストユーザー',
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                
+                localStorage.setItem('salesTasksKanban', JSON.stringify(testTasks));
+                output.textContent = `✅ テストタスクを作成しました\n\nタスク数: ${testTasks.length}件\n作成時刻: ${new Date().toLocaleString('ja-JP')}`;
+                
+            } catch (error) {
+                output.textContent = `❌ テストタスク作成エラー: ${error.message}`;
+            }
+        }
+        
+        function clearAllData() {
+            const output = document.getElementById('test-output');
+            
+            if (confirm('全てのLocalStorageデータを削除しますか？この操作は取り消せません。')) {
+                try {
+                    const keyCount = localStorage.length;
+                    localStorage.clear();
+                    output.textContent = `✅ 全データを削除しました\n\n削除されたキー数: ${keyCount}\n削除時刻: ${new Date().toLocaleString('ja-JP')}`;
+                } catch (error) {
+                    output.textContent = `❌ データ削除エラー: ${error.message}`;
+                }
+            }
+        }
+        
+        function restoreFromLatestBackup() {
+            const output = document.getElementById('test-output');
+            
+            try {
+                const backupKeys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('salesTasksKanban_') && key.includes('backup')) {
+                        backupKeys.push(key);
+                    }
+                }
+                
+                if (backupKeys.length === 0) {
+                    output.textContent = '❌ バックアップが見つかりません';
+                    return;
+                }
+                
+                // 最新のバックアップを選択
+                backupKeys.sort();
+                const latestBackup = backupKeys[backupKeys.length - 1];
+                const backupData = localStorage.getItem(latestBackup);
+                
+                localStorage.setItem('salesTasksKanban', backupData);
+                
+                const restoredTasks = JSON.parse(backupData);
+                output.textContent = `✅ 最新バックアップから復旧しました\n\nバックアップ: ${latestBackup}\n復旧タスク数: ${restoredTasks.length}件\n復旧時刻: ${new Date().toLocaleString('ja-JP')}`;
+                
+            } catch (error) {
+                output.textContent = `❌ 復旧エラー: ${error.message}`;
+            }
+        }
+        
+        // ページ読み込み時に自動実行
+        window.addEventListener('DOMContentLoaded', () => {
+            checkCurrentState();
+            log('Debug tool loaded');
+        });
+        
+        // shared-users-database.jsの読み込み
+        const script = document.createElement('script');
+        script.src = 'shared-users-database.js';
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>
