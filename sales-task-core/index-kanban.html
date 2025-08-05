@@ -1930,7 +1930,46 @@
             throw new Error('Authentication required');
         }
         
-        // 安全なタスクデータ読み込み関数
+        // Firebase統合タスクデータ読み込み関数
+        async function loadTasks() {
+            try {
+                // Firebase認証チェック
+                if (window.FirebaseAuth?.getCurrentUser() && window.FirebaseDB) {
+                    console.log('🔥 [LOAD] Firebase認証済み - Firestoreからタスクを読み込み中...');
+                    
+                    try {
+                        const result = await window.FirebaseDB.getTasks();
+                        if (result.success) {
+                            console.log('✅ [FIREBASE] Firestoreからタスク読み込み成功:', result.tasks.length, '件');
+                            
+                            // Firebase タスクをグローバル配列に設定
+                            tasks = result.tasks;
+                            
+                            // LocalStorageにも保存（オフライン時のフォールバック）
+                            localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+                            
+                            // リアルタイム同期のためのアンサブスクライブ関数を保存
+                            window.firestoreUnsubscribe = result.unsubscribe;
+                            
+                            return tasks;
+                        } else {
+                            console.warn('⚠️ [FIREBASE] Firestore読み込み失敗 - LocalStorageフォールバック');
+                        }
+                    } catch (firebaseError) {
+                        console.warn('⚠️ [FIREBASE] Firebase接続エラー - LocalStorageフォールバック:', firebaseError);
+                    }
+                }
+                
+                // Firebase未対応またはエラー時のフォールバック
+                return loadTasksFromStorage();
+                
+            } catch (error) {
+                console.error('❌ [LOAD] タスク読み込みエラー:', error);
+                return loadTasksFromStorage();
+            }
+        }
+        
+        // 安全なタスクデータ読み込み関数（LocalStorageのみ）
         function loadTasksFromStorage() {
             try {
                 const stored = localStorage.getItem('salesTasksKanban');
@@ -1940,7 +1979,7 @@
                 }
                 
                 const parsedTasks = JSON.parse(stored);
-                console.log('📊 [LOAD] タスクデータ読み込み成功:', parsedTasks.length, '件');
+                console.log('📊 [LOAD] LocalStorageからタスクデータ読み込み成功:', parsedTasks.length, '件');
                 
                 // データの整合性チェック
                 if (!Array.isArray(parsedTasks)) {
@@ -1951,7 +1990,7 @@
                 return parsedTasks;
                 
             } catch (error) {
-                console.error('❌ [LOAD] タスクデータ読み込みエラー:', error);
+                console.error('❌ [LOAD] LocalStorageタスクデータ読み込みエラー:', error);
                 
                 // バックアップからの復旧を試行
                 const backupKeys = [];
@@ -5142,7 +5181,7 @@
         }
         
         // 初期化
-        function init() {
+        async function init() {
             // テーマを読み込み
             loadTheme();
             
@@ -5151,6 +5190,16 @@
             
             // メンションシステムを初期化
             setupMentionSystem();
+            
+            // Firebase統合 - タスクデータを読み込み
+            try {
+                console.log('🔥 [INIT] Firebase統合タスク読み込み開始...');
+                tasks = await loadTasks();
+                console.log('✅ [INIT] タスクデータ読み込み完了:', tasks.length, '件');
+            } catch (error) {
+                console.error('❌ [INIT] Firebase統合エラー - LocalStorageフォールバック:', error);
+                tasks = loadTasksFromStorage();
+            }
             
             // 定期タスクのサンプルテンプレートを初期化 - 無効化
             // if (recurringTemplates.length === 0) {
@@ -10927,8 +10976,19 @@
             alert(`${selectedTaskIds.length}件のタスクを削除しました`);
         }
         
-        // 初期化実行
-        init();
+        // 初期化実行（Firebase統合対応）
+        (async () => {
+            try {
+                await init();
+                // 初期化完了後に画面を更新
+                render();
+                console.log('🎨 [INIT] 画面レンダリング完了');
+            } catch (error) {
+                console.error('❌ [INIT] 初期化エラー:', error);
+                // エラー時もレンダリングを実行
+                render();
+            }
+        })();
         
         // Phase 1: 権限チェックのみ実行（制御なし）
         setTimeout(() => {
@@ -11489,6 +11549,98 @@
             executeImportModal();
         }
         
+        // Firebase移行モーダル表示
+        function showFirebaseMigrationModal() {
+            if (!window.FirebaseAuth?.getCurrentUser()) {
+                alert('🔥 Firebase移行にはログインが必要です。\n\nFirebase認証でログインしてからお試しください。');
+                return;
+            }
+            
+            const modalHTML = `
+                <div id="firebase-migration-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;" onclick="if(event.target === this) closeFirebaseMigrationModal()">
+                    <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem;">
+                            <h3 style="margin: 0; color: #2d3748;">🔥 Firebaseデータ移行</h3>
+                            <button onclick="closeFirebaseMigrationModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #a0aec0; padding: 0.5rem;">&times;</button>
+                        </div>
+                        
+                        <div style="background: #e3f2fd; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #2196f3;">
+                            <div style="font-size: 0.9rem; color: #1565c0; line-height: 1.5;">
+                                💡 <strong>Firebaseクラウド同期について</strong><br>
+                                LocalStorageのタスクデータをFirebaseクラウドに移行することで：<br>
+                                ✅ 複数デバイス間でのリアルタイム同期<br>
+                                ✅ データの永続化と安全性向上<br>
+                                ✅ 他ユーザーとのタスク共有（将来対応）<br>
+                                ※ 移行後もLocalStorageのデータは保持されます
+                            </div>
+                        </div>
+                        
+                        <div id="migration-status" style="margin-bottom: 1rem;"></div>
+                        
+                        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                            <button onclick="closeFirebaseMigrationModal()" style="padding: 0.75rem 1.5rem; background: #e4e6eb; color: #172b4d; border: none; border-radius: 6px; cursor: pointer;">キャンセル</button>
+                            <button onclick="startFirebaseMigration()" style="padding: 0.75rem 1.5rem; background: #026aa7; color: white; border: none; border-radius: 6px; cursor: pointer;">移行開始</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+        
+        function closeFirebaseMigrationModal() {
+            const modal = document.getElementById('firebase-migration-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        async function startFirebaseMigration() {
+            const statusDiv = document.getElementById('migration-status');
+            
+            try {
+                statusDiv.innerHTML = '<div style="text-align: center; padding: 1rem;"><div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #026aa7; border-radius: 50%; animation: spin 1s linear infinite;"></div> 移行中...</div>';
+                
+                // LocalStorageのタスクデータを取得
+                const localTasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+                
+                if (localTasks.length === 0) {
+                    statusDiv.innerHTML = '<div style="background: #fff3cd; color: #856404; padding: 1rem; border-radius: 6px;">⚠️ 移行するタスクが見つかりません</div>';
+                    return;
+                }
+                
+                // Firebase移行を実行
+                const result = await window.FirebaseMigration.migrateFromLocalStorage();
+                
+                if (result.success) {
+                    statusDiv.innerHTML = `
+                        <div style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                            ✅ 移行完了: ${result.migratedCount}/${result.totalCount} タスクをFirebaseに移行しました
+                        </div>
+                        <div style="font-size: 0.9rem; color: #666;">
+                            これで複数デバイス間でタスクが同期されます。<br>
+                            新しいタスクは自動的にFirebaseに保存されます。
+                        </div>
+                    `;
+                    
+                    // 3秒後にモーダルを閉じる
+                    setTimeout(() => {
+                        closeFirebaseMigrationModal();
+                        // ページを再読み込みしてFirebaseデータを反映
+                        if (confirm('移行が完了しました。ページを再読み込みしてFirebaseデータを表示しますか？')) {
+                            window.location.reload();
+                        }
+                    }, 3000);
+                } else {
+                    statusDiv.innerHTML = `<div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 6px;">❌ 移行エラー: ${result.error}</div>`;
+                }
+                
+            } catch (error) {
+                console.error('❌ Firebase移行エラー:', error);
+                statusDiv.innerHTML = `<div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 6px;">❌ 移行中にエラーが発生しました: ${error.message}</div>`;
+            }
+        }
+        
         window.deleteTask = deleteTask;
         window.toggleHamburgerMenu = toggleHamburgerMenu;
         window.updateHamburgerMenu = updateHamburgerMenu;
@@ -11497,6 +11649,7 @@
         window.processImportText = processImportText;
         window.toggleTaskSkipModal = toggleTaskSkipModal;
         window.executeImportFromModal = executeImportFromModal;
+        window.showFirebaseMigrationModal = showFirebaseMigrationModal;
     </script>
     
     <!-- ハンバーガーメニュー -->
@@ -11517,6 +11670,11 @@
                 <span>⚙️</span>
                 <span>基本設定</span>
                 <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">カラム・通知・テーマ設定</div>
+            </a>
+            <a href="#" class="menu-item" onclick="showFirebaseMigrationModal(); toggleHamburgerMenu(); return false;">
+                <span>🔥</span>
+                <span>Firebaseデータ移行</span>
+                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">タスクをクラウドに同期・端末間共有</div>
             </a>
         </div>
         
