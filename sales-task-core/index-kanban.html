@@ -10265,8 +10265,8 @@
             }
         }
         
-        // タスクテキストをパースする関数（モーダル版）
-        function parseImportTextModal(text) {
+        // タスクテキストをパースする関数（重複削除版）
+        function parseImportTextModalDuplicate(text) {
             const lines = text.split('\n');
             const tasks = [];
             const assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
