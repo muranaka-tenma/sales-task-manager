@@ -2348,6 +2348,13 @@
         
         // PJ作成機能
         function createProjectTask() {
+            // PJタスク作成は pj-create.html で実行
+            console.log('🔄 [PJ CREATE] Redirecting to pj-create.html...');
+            window.location.href = 'pj-create.html';
+            return;
+            
+            // 以下の古い実装は使用停止
+            /*
             try {
                 console.log('👥 [PJ CREATE] Starting PJ task creation...');
                 

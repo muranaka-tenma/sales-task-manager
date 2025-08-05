@@ -144,8 +144,17 @@ function protectionCallback(beforeSnapshot, funcName, args, error = null) {
             error: !!error
         });
         
-        // タスク大幅減少を検出
-        if (beforeCount > 0 && (currentTaskCount < beforeCount - 1 || memoryTaskCount < beforeCount - 1)) {
+        // タスク大幅減少を検出（フィルター考慮）
+        if (funcName === 'render' || funcName === 'renderKanban') {
+            // render関数の場合はフィルターによる表示変化の可能性あり
+            console.log(`🔍 [ULTIMATE] ${funcName}検証: フィルター考慮モード`, {
+                before: beforeCount,
+                afterStorage: currentTaskCount,
+                afterMemory: memoryTaskCount
+            });
+            
+            // render系関数では復旧しない（フィルターによる表示変化の可能性）
+        } else if (beforeCount > 0 && (currentTaskCount < beforeCount - 1 || memoryTaskCount < beforeCount - 1)) {
             console.error(`🚨 [ULTIMATE] ${funcName}でタスク消失検出!`, {
                 function: funcName,
                 before: beforeCount,
