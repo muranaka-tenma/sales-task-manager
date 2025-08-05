@@ -367,8 +367,7 @@
                 // 緊急フォールバック: 基本ユーザーで認証
                 const emergencyUsers = [
                     { email: 'muranaka-tenma@terracom.co.jp', password: 'Tenma7041', name: '邨中天真', role: 'developer' },
-                    { email: 'admin@terracom.co.jp', password: 'admin123', name: 'システム管理者', role: 'admin' },
-                    { email: 'test@terracom.co.jp', password: 'test123', name: 'テストユーザー', role: 'user' }
+                    // admin と test ユーザーは削除 - デフォルトユーザーのシンプル化
                 ];
                 
                 const emergencyUser = emergencyUsers.find(u => u.email === email && u.password === password);
@@ -417,63 +416,9 @@
                 }
             ];
             
-            // 2. 実際の登録ユーザー（手動登録された6名）
-            const realUsers = [
-                {
-                    id: 2,
-                    name: '加藤純',
-                    email: 'kato-jun@terracom.co.jp',
-                    password: 'aikakumei',
-                    role: 'admin',
-                    department: '-',
-                    createdAt: '2025-08-04T00:00:00.000Z'
-                },
-                {
-                    id: 3,
-                    name: '朝日圭一',
-                    email: 'asahi-keiichi@terracom.co.jp',
-                    password: 'aikakumei',
-                    role: 'admin',
-                    department: '-',
-                    createdAt: '2025-08-04T00:00:00.000Z'
-                },
-                {
-                    id: 4,
-                    name: '半澤侑果',
-                    email: 'hanzawa-yuka@terracom.co.jp',
-                    password: 'aikakumei',
-                    role: 'user',
-                    department: '-',
-                    createdAt: '2025-08-04T00:00:00.000Z'
-                },
-                {
-                    id: 5,
-                    name: '田村渉',
-                    email: 'tamura-wataru@terracom.co.jp',
-                    password: 'aikakumei',
-                    role: 'user',
-                    department: '-',
-                    createdAt: '2025-08-04T00:00:00.000Z'
-                },
-                {
-                    id: 6,
-                    name: '橋本友美',
-                    email: 'hashimoto-yumi@terracom.co.jp',
-                    password: 'aikakumei',
-                    role: 'user',
-                    department: '-',
-                    createdAt: '2025-08-04T00:00:00.000Z'
-                },
-                {
-                    id: 7,
-                    name: '福島亜未',
-                    email: 'fukushima-ami@terracom.co.jp',
-                    password: 'aikakumei',
-                    role: 'user',
-                    department: '-',
-                    createdAt: '2025-08-04T00:00:00.000Z'
-                }
-            ];
+            // 2. デフォルトユーザーは削除（既存ユーザーはlocalStorageから自動読み込み）
+            const realUsers = [];
+            // 追加済みユーザーは既存のlocalStorageから完全保護される
             
             // 3. 動的に追加されたユーザーも取得（将来対応）
             let dynamicUsers = [];
@@ -487,10 +432,10 @@
                 console.warn('⚠️ [DYNAMIC] 動的ユーザー読み込みエラー:', e);
             }
             
-            // 4. 全てを統合（不要ユーザーは除外）
-            const allUsers = [...baseUsers, ...realUsers, ...dynamicUsers];
-            console.log(`✅ [DYNAMIC] 統合ユーザーデータベース: ${allUsers.length}名`);
-            console.log(`🗑️ [CLEANUP] 不要ユーザー削除: システム管理者・テストユーザー`);
+            // 4. デフォルトは開発者のみ、既存ユーザーは動的読み込み
+            const allUsers = [...baseUsers, ...dynamicUsers];
+            console.log(`✅ [DYNAMIC] シンプルユーザーデータベース: ${allUsers.length}名`);
+            console.log(`🗑️ [CLEANUP] 不要デフォルトユーザー削除: admin・testユーザー`);
             
             return allUsers;
         }
@@ -525,7 +470,8 @@
                 // 新規端末: 新しい7名構成を使用
                 localStorage.setItem('systemUsers', JSON.stringify(dynamicUsers));
                 console.log('✅ [INIT] 新規端末で新しい7名ユーザー構成を設定');
-            } else if (false) { // 強制統合を無効化 - タスク消失問題の解決
+            } else if (false) { // 強制統合処理を完全削除 - タスク消失の根本原因を除去
+                /* 以下の強制統合処理はタスク消失の原因であるため完全削除
                 // 不要ユーザーがある場合または9名の場合: 強制統合実行
                 console.log('🗑️ [CLEANUP] 統合条件満たし - 強制統合を実行します...');
                 console.log('🗑️ [CLEANUP] 不要ユーザー検出:', hasUnwantedUsers, 'ユーザー数:', currentUsers.length);
@@ -627,7 +573,8 @@
                     }
                 });
                 
-                console.log(`✅ [CLEANUP] 強制統合完了: ${forcedCleanUsers.length}名`);
+                この処理はタスクデータを消失させるため削除しました
+                */
             } else {
                 // 不要ユーザーがない場合: 通常のマージ
                 const mergedUsers = [...currentUsers];
