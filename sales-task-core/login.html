@@ -523,7 +523,7 @@
                 // 新規端末: 新しい7名構成を使用
                 localStorage.setItem('systemUsers', JSON.stringify(dynamicUsers));
                 console.log('✅ [INIT] 新規端末で新しい7名ユーザー構成を設定');
-            } else if (hasUnwantedUsers || currentUsers.length === 9) {
+            } else if (false) { // 強制統合を無効化 - タスク消失問題の解決
                 // 不要ユーザーがある場合または9名の場合: 強制統合実行
                 console.log('🗑️ [CLEANUP] 統合条件満たし - 強制統合を実行します...');
                 console.log('🗑️ [CLEANUP] 不要ユーザー検出:', hasUnwantedUsers, 'ユーザー数:', currentUsers.length);

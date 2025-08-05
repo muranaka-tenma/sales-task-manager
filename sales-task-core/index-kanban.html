@@ -1655,9 +1655,8 @@
                     // 共有データベースを優先して初期化
                     if (typeof initializeSharedUserDatabase === 'function') {
                         initializeSharedUserDatabase();
-                    } else {
-                        initializeUserDatabase(); // フォールバック
                     }
+                    // initializeUserDatabase()を削除 - タスク消失の原因
                     
                     const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                     console.log('🔍 [AUTH] 利用可能ユーザー:', users.map(u => `${u.name}(${u.role})`));
@@ -1695,7 +1694,7 @@
                 
                 // デフォルトユーザーでセッション作成（フォールバック）
                 console.log('🔧 [AUTH] Creating default developer session');
-                initializeUserDatabase(); // ユーザーDBを初期化
+                // initializeUserDatabase()を削除 - タスク消失の原因
                 const defaultSession = {
                     user: { 
                         name: '邨中天真', 
