@@ -3754,6 +3754,41 @@
             saveTasks();
             console.log('🔍 [EDIT SAVE] Tasks count after save:', tasks.length);
             
+            // Firebase同期（新規タスクまたは編集タスク）
+            if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
+                try {
+                    const targetTask = editingTask || tasks[tasks.length - 1]; // 編集中または最新タスク
+                    if (targetTask) {
+                        console.log('🔥 [FIREBASE] タスクをFirebaseに同期中...', targetTask.title);
+                        
+                        if (editingTask) {
+                            // 編集の場合は更新
+                            const result = await window.FirebaseDB.updateTask(targetTask.id, targetTask);
+                            if (result.success) {
+                                console.log('✅ [FIREBASE] タスク更新成功:', targetTask.id);
+                            } else {
+                                console.error('❌ [FIREBASE] タスク更新エラー:', result.error);
+                            }
+                        } else {
+                            // 新規の場合は作成
+                            const result = await window.FirebaseDB.createTask(targetTask);
+                            if (result.success) {
+                                console.log('✅ [FIREBASE] タスク作成成功:', result.id);
+                                // Firebase IDでタスクを更新
+                                targetTask.firebaseId = result.id;
+                                saveTasks(); // Firebase IDを含めて再保存
+                            } else {
+                                console.error('❌ [FIREBASE] タスク作成エラー:', result.error);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ [FIREBASE] 同期エラー:', error);
+                }
+            } else {
+                console.log('💾 [FIREBASE] Firebase未対応またはログアウト状態 - LocalStorageのみ');
+            }
+            
             console.log('🎨 [EDIT SAVE] About to call render()');
             render();
             console.log('🎨 [EDIT SAVE] render() completed');
