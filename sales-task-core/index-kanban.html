@@ -9820,6 +9820,12 @@
         function loadTemplateList() {
             const container = document.getElementById('template-list');
             
+            // 要素が存在しない場合はスキップ（別のモーダル画面など）
+            if (!container) {
+                console.log('🔍 [TEMPLATE] template-list要素が見つかりません - スキップ');
+                return;
+            }
+            
             if (taskTemplates.length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 2rem;">テンプレートがありません</div>';
                 return;
@@ -10110,7 +10116,7 @@
             });
         }
         
-        function saveTemplateFromManagement(event) {
+        async function saveTemplateFromManagement(event) {
             event.preventDefault();
             
             const name = document.getElementById('mgmt-template-name').value.trim();
@@ -10129,38 +10135,107 @@
                 return;
             }
             
-            const template = {
-                id: currentEditingTemplateId || Date.now(),
-                name: name,
-                category: category,
-                taskTitle: taskTitle,
-                priority: priority,
-                columnId: columnId,
-                assignees: selectedAssignees,
-                memo: memo,
-                createdAt: currentEditingTemplateId ? 
-                    taskTemplates.find(t => t.id === currentEditingTemplateId)?.createdAt || new Date().toISOString() : 
-                    new Date().toISOString()
-            };
-            
-            if (currentEditingTemplateId) {
-                // 更新
-                const index = taskTemplates.findIndex(t => t.id === currentEditingTemplateId);
-                if (index !== -1) {
-                    taskTemplates[index] = template;
-                    alert('✅ テンプレートを更新しました！');
+            try {
+                if (currentEditingTemplateId) {
+                    // 更新モード - Firebase統合
+                    const templateData = {
+                        name: name,
+                        category: category,
+                        taskTitle: taskTitle,
+                        priority: priority,
+                        columnId: columnId,
+                        assignees: selectedAssignees,
+                        memo: memo
+                    };
+                    
+                    // Firebase更新
+                    if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
+                        console.log('🔥 [TEMPLATE-MGMT] Firebaseテンプレート更新中...', name);
+                        const result = await window.FirebaseDB.updateTemplate(currentEditingTemplateId, templateData);
+                        
+                        if (result.success) {
+                            console.log('✅ [FIREBASE] テンプレート更新成功:', currentEditingTemplateId);
+                            
+                            // ローカル配列も更新
+                            const index = taskTemplates.findIndex(t => t.id === currentEditingTemplateId);
+                            if (index !== -1) {
+                                taskTemplates[index] = {
+                                    ...taskTemplates[index],
+                                    ...templateData,
+                                    updatedAt: new Date().toISOString()
+                                };
+                            }
+                            alert('✅ テンプレートを更新しました！');
+                        } else {
+                            console.error('❌ [FIREBASE] テンプレート更新エラー:', result.error);
+                            alert(`テンプレート更新エラー: ${result.error}`);
+                            return;
+                        }
+                    } else {
+                        // LocalStorageフォールバック
+                        const index = taskTemplates.findIndex(t => t.id === currentEditingTemplateId);
+                        if (index !== -1) {
+                            taskTemplates[index] = {
+                                ...taskTemplates[index],
+                                ...templateData,
+                                updatedAt: new Date().toISOString()
+                            };
+                            localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
+                            alert('✅ テンプレートを更新しました！（LocalStorage）');
+                        }
+                    }
+                } else {
+                    // 新規作成モード - Firebase統合
+                    const templateData = {
+                        id: Date.now(),
+                        name: name,
+                        category: category,
+                        taskTitle: taskTitle,
+                        priority: priority,
+                        columnId: columnId,
+                        assignees: selectedAssignees,
+                        memo: memo,
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    // Firebase作成
+                    if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
+                        console.log('🔥 [TEMPLATE-MGMT] Firebaseテンプレート作成中...', name);
+                        const result = await window.FirebaseDB.createTemplate(templateData);
+                        
+                        if (result.success) {
+                            console.log('✅ [FIREBASE] テンプレート作成成功:', result.id);
+                            
+                            // Firebase IDを設定してローカル配列に追加
+                            templateData.id = result.id;
+                            taskTemplates.push(templateData);
+                            alert('✅ テンプレートを作成しました！');
+                        } else {
+                            console.error('❌ [FIREBASE] テンプレート作成エラー:', result.error);
+                            alert(`テンプレート作成エラー: ${result.error}`);
+                            return;
+                        }
+                    } else {
+                        // LocalStorageフォールバック
+                        taskTemplates.push(templateData);
+                        localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
+                        alert('✅ テンプレートを作成しました！（LocalStorage）');
+                    }
                 }
-            } else {
-                // 新規追加
-                taskTemplates.push(template);
-                alert('✅ テンプレートを作成しました！');
+                
+                // LocalStorageにも保存（同期用）
+                localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
+                
+                // 一覧を更新
+                loadTemplateManagementList();
+                if (window.loadTemplateList) {
+                    loadTemplateList(); // 設定モーダルの一覧も更新（要素が存在する場合のみ）
+                }
+                
+            } catch (error) {
+                console.error('❌ [TEMPLATE-MGMT] テンプレート保存エラー:', error);
+                alert(`テンプレート保存中にエラーが発生しました: ${error.message}`);
             }
-            
-            localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
-            
-            // 一覧を更新
-            loadTemplateManagementList();
-            loadTemplateList(); // 設定モーダルの一覧も更新
             
             // ウェルカム画面に戻る
             showTemplateWelcomeScreen();
