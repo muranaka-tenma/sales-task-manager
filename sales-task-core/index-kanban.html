@@ -1657,68 +1657,6 @@
                 window.location.href = 'login.html';
                 return false;
             }
-                    
-                    // 🔥 Firebase統合モード - 共有データベース初期化をスキップ（セッション保護）
-                    console.log('🔥 [AUTH] Firebase統合モード - shared-database初期化をスキップ');
-                    // if (typeof initializeSharedUserDatabase === 'function') {
-                    //     initializeSharedUserDatabase();
-                    // } else if (typeof safeInitializeUserDatabase === 'function') {
-                    //     // 安全な初期化を実行
-                    //     safeInitializeUserDatabase();
-                    // }
-                    
-                    const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                    console.log('🔍 [AUTH] 利用可能ユーザー:', users.map(u => `${u.name}(${u.role})`));
-                    
-                    // 正確なユーザー情報で検索
-                    let userData = users.find(u => u.name === userName || u.email === userName + '@terracom.co.jp');
-                    
-                    // muranaka-tenmaの場合のみ開発者権限を確保
-                    if (userData && userData.email === 'muranaka-tenma@terracom.co.jp' && userData.role !== 'developer') {
-                        userData.role = 'developer'; // 開発者権限を確保
-                        console.log('🔧 [AUTH] muranaka-tenmaに開発者権限を確保');
-                    }
-                    
-                    // ユーザーが見つからない場合はエラー
-                    if (!userData) {
-                        console.error('❌ [AUTH] ユーザー情報が見つかりません:', userName);
-                        localStorage.removeItem('lastLoginUser');
-                        localStorage.removeItem('currentSession');
-                        window.location.href = 'login.html';
-                        return;
-                    }
-                    
-                    console.log('✅ [AUTH] 最終ユーザー情報:', userData);
-                    
-                    // セッションを復旧
-                    const recoveredSession = {
-                        user: userData,
-                        loginTime: new Date().toISOString(),
-                        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-                    };
-                    localStorage.setItem('currentSession', JSON.stringify(recoveredSession));
-                    displayUserInfo(recoveredSession.user);
-                    console.log('✅ [AUTH] Session recovered successfully');
-                    return true;
-                }
-                
-                // デフォルトユーザーでセッション作成（フォールバック）
-                console.log('🔧 [AUTH] Creating default developer session');
-                // 🔥 Firebase統合モード - 安全な初期化をスキップ（セッション保護）
-                console.log('🔥 [AUTH] Firebase統合モード - safe初期化をスキップ');
-                // if (typeof safeInitializeUserDatabase === 'function') {
-                //     safeInitializeUserDatabase();
-                // }
-                // セッションがない場合はログイン画面にリダイレクト
-                console.warn('⚠️ [AUTH] セッション情報が見つかりません - ログイン画面へリダイレクト');
-                window.location.href = 'login.html';
-                return false;
-                
-            } catch (error) {
-                console.error('❌ [AUTH] Authentication error - ログイン画面へリダイレクト:', error);
-                window.location.href = 'login.html';
-                return false;
-            }
         }
         
         // ユーザーデータベースの初期化（ログインページと同じ関数）
