@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>セッション修正ツール</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .success {
+            background: #4CAF50;
+            color: white;
+        }
+        .danger {
+            background: #f44336;
+            color: white;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 セッション修正ツール</h1>
+    
+    <h2>現在の状態</h2>
+    <pre id="current-state"></pre>
+    
+    <h2>修正アクション</h2>
+    
+    <button onclick="clearOldSession()" class="danger">
+        1. 古いセッションをクリア
+    </button>
+    
+    <button onclick="fixCurrentSession()" class="success">
+        2. 現在のセッションを修正（加藤純でログイン中の場合）
+    </button>
+    
+    <button onclick="showAllData()">
+        3. 全データを表示
+    </button>
+    
+    <button onclick="completeReset()" class="danger">
+        4. 完全リセット（ログアウト）
+    </button>
+    
+    <h2>ログ</h2>
+    <pre id="log"></pre>
+    
+    <script>
+        function log(message) {
+            const logEl = document.getElementById('log');
+            logEl.textContent += message + '\n';
+            console.log(message);
+        }
+        
+        function showCurrentState() {
+            const state = {
+                currentSession: JSON.parse(localStorage.getItem('currentSession') || 'null'),
+                currentUser: localStorage.getItem('currentUser'),
+                lastLoginUser: localStorage.getItem('lastLoginUser'),
+                systemUsers: JSON.parse(localStorage.getItem('systemUsers') || '[]').map(u => ({
+                    name: u.name,
+                    email: u.email,
+                    role: u.role
+                }))
+            };
+            
+            document.getElementById('current-state').textContent = JSON.stringify(state, null, 2);
+        }
+        
+        function clearOldSession() {
+            log('🗑️ 古いセッションデータをクリア中...');
+            
+            // 邨中天真の痕跡を削除
+            const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+            if (session && session.user && session.user.name === '邨中天真') {
+                localStorage.removeItem('currentSession');
+                log('✅ 邨中天真のセッションを削除');
+            }
+            
+            // currentUserも確認
+            if (localStorage.getItem('currentUser') === '邨中天真') {
+                localStorage.removeItem('currentUser');
+                log('✅ currentUserから邨中天真を削除');
+            }
+            
+            // lastLoginUserも確認
+            if (localStorage.getItem('lastLoginUser') === '邨中天真') {
+                localStorage.removeItem('lastLoginUser');
+                log('✅ lastLoginUserから邨中天真を削除');
+            }
+            
+            showCurrentState();
+            log('🎯 古いセッションのクリア完了');
+        }
+        
+        function fixCurrentSession() {
+            log('🔧 現在のセッションを修正中...');
+            
+            // Firebaseの認証情報を取得
+            const firebaseUser = window.firebaseAuth?.currentUser;
+            if (firebaseUser) {
+                log(`📧 Firebase認証ユーザー: ${firebaseUser.email}`);
+                
+                // systemUsersから正しいユーザー情報を取得
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                const correctUser = systemUsers.find(u => u.email === firebaseUser.email);
+                
+                if (correctUser) {
+                    // 新しいセッションを作成
+                    const newSession = {
+                        user: {
+                            id: correctUser.id,
+                            name: correctUser.name,
+                            email: correctUser.email,
+                            role: correctUser.role,
+                            department: correctUser.department
+                        },
+                        loginTime: new Date().toISOString(),
+                        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                    };
+                    
+                    localStorage.setItem('currentSession', JSON.stringify(newSession));
+                    localStorage.setItem('currentUser', correctUser.name);
+                    
+                    log(`✅ セッションを修正: ${correctUser.name} (${correctUser.role})`);
+                } else {
+                    log(`❌ systemUsersに${firebaseUser.email}が見つかりません`);
+                }
+            } else {
+                log('❌ Firebase認証情報が見つかりません');
+                log('💡 まずメインページでログインしてください');
+            }
+            
+            showCurrentState();
+        }
+        
+        function showAllData() {
+            log('\n📊 全LocalStorageデータ:');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('user') || key.includes('User') || key.includes('session') || key.includes('Session')) {
+                    const value = localStorage.getItem(key);
+                    log(`${key}: ${value.substring(0, 100)}...`);
+                }
+            }
+        }
+        
+        function completeReset() {
+            if (confirm('すべてのセッション情報をクリアしてログアウトしますか？')) {
+                localStorage.removeItem('currentSession');
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('lastLoginUser');
+                log('✅ 完全リセット完了 - ログイン画面に移動します');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            }
+        }
+        
+        // 初期表示
+        showCurrentState();
+        log('🚀 セッション修正ツール起動');
+        
+        // Firebase認証状態を確認
+        setTimeout(() => {
+            if (window.firebaseAuth?.currentUser) {
+                log(`🔥 Firebase認証済み: ${window.firebaseAuth.currentUser.email}`);
+            } else {
+                log('⚠️ Firebase未認証');
+            }
+        }, 1000);
+    </script>
+    
+    <!-- Firebase -->
+    <script type="module" src="firebase-config.js"></script>
+</body>
+</html>

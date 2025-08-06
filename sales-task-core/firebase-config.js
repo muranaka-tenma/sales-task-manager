@@ -25,6 +25,30 @@ const db = getFirestore(app);
 
 console.log('🔥 Firebase初期化完了');
 
+// デバッグ: 認証状態の変化を監視
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log('🔐 [AUTH-DEBUG] ユーザーログイン検出:', {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      deviceInfo: {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } else {
+    console.log('👤 [AUTH-DEBUG] ユーザーログアウト検出:', {
+      deviceInfo: {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+});
+
 // グローバルに公開
 window.firebaseApp = app;
 window.firebaseAuth = auth;
@@ -98,18 +122,35 @@ window.FirebaseDB = {
       const user = auth.currentUser;
       if (!user) throw new Error('認証が必要です');
 
-      const docRef = await addDoc(collection(db, 'tasks'), {
+      const taskToCreate = {
         ...taskData,
         userId: user.uid,
         createdBy: user.email,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
+      };
+
+      console.log('🆕 [CREATE-TASK] タスク作成開始:', {
+        title: taskData.title?.substring(0, 30) + '...',
+        userId: user.uid,
+        userEmail: user.email,
+        device: navigator.platform,
+        taskId: taskData.id || 'new',
+        timestamp: new Date().toISOString()
       });
 
-      console.log('✅ タスク作成成功:', docRef.id);
+      const docRef = await addDoc(collection(db, 'tasks'), taskToCreate);
+
+      console.log('✅ [CREATE-TASK] Firestore保存成功:', {
+        firestoreId: docRef.id,
+        title: taskData.title?.substring(0, 30) + '...',
+        userId: user.uid,
+        timestamp: new Date().toISOString()
+      });
+      
       return { success: true, id: docRef.id };
     } catch (error) {
-      console.error('❌ タスク作成エラー:', error.message);
+      console.error('❌ [CREATE-TASK] Firestore保存エラー:', error.message, error.code);
       return { success: false, error: error.message };
     }
   },
@@ -152,19 +193,44 @@ window.FirebaseDB = {
       const user = auth.currentUser;
       if (!user) throw new Error('認証が必要です');
 
+      console.log('🔍 [GET-TASKS] タスク取得開始:', {
+        userId: user.uid,
+        email: user.email,
+        device: navigator.platform,
+        timestamp: new Date().toISOString()
+      });
+
+      // 🎯 チーム共有タスク管理 - 全タスクを取得（ユーザー別フィルタリング削除）
+      console.log('🌐 [TEAM-MODE] 全ユーザー共有タスクを取得中...');
       const q = query(
-        collection(db, 'tasks'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
+        collection(db, 'tasks')
+        // where('createdBy', '==', user.email) // 削除：個人フィルタリングを無効化
+        // orderBy('createdAt', 'desc') // インデックス構築待ち
       );
 
       return new Promise((resolve, reject) => {
         let isFirstLoad = true;
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
           const tasks = [];
-          querySnapshot.forEach((doc) => {
-            tasks.push({ id: doc.id, ...doc.data() });
+          console.log('📡 [REALTIME] onSnapshot発火:', {
+            docCount: querySnapshot.size,
+            isEmpty: querySnapshot.empty,
+            hasPendingWrites: querySnapshot.metadata.hasPendingWrites,
+            fromCache: querySnapshot.metadata.fromCache,
+            isFirstLoad
           });
+
+          querySnapshot.forEach((doc) => {
+            const taskData = { id: doc.id, ...doc.data() };
+            tasks.push(taskData);
+            console.log('📋 [TASK-DATA]', doc.id.substring(0, 8) + '...:', {
+              title: taskData.title?.substring(0, 20) + '...',
+              status: taskData.status,
+              createdAt: taskData.createdAt,
+              userId: taskData.userId
+            });
+          });
+          
           console.log('✅ タスク取得成功:', tasks.length, '件', isFirstLoad ? '(初回)' : '(リアルタイム更新)');
           
           if (isFirstLoad) {
@@ -177,11 +243,11 @@ window.FirebaseDB = {
               window.tasks = tasks;
               localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
               window.render();
-              console.log('🔄 [REALTIME] タスクがリアルタイム更新されました');
+              console.log('🔄 [REALTIME] タスクがリアルタイム更新されました - グローバル配列更新・再レンダリング実行');
             }
           }
         }, (error) => {
-          console.error('❌ タスク取得エラー:', error.message);
+          console.error('❌ タスク取得エラー:', error.message, error.code);
           if (isFirstLoad) {
             reject({ success: false, error: error.message });
           }
@@ -263,18 +329,34 @@ window.FirebaseDB = {
       const user = auth.currentUser;
       if (!user) throw new Error('認証が必要です');
 
-      const docRef = await addDoc(collection(db, 'templates'), {
+      const templateToCreate = {
         ...templateData,
         userId: user.uid,
         createdBy: user.email,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
+      };
+
+      console.log('🆕 [CREATE-TEMPLATE] テンプレート作成開始:', {
+        name: templateData.name?.substring(0, 30) + '...',
+        userId: user.uid,
+        userEmail: user.email,
+        device: navigator.platform,
+        timestamp: new Date().toISOString()
       });
 
-      console.log('✅ テンプレート作成成功:', docRef.id);
+      const docRef = await addDoc(collection(db, 'templates'), templateToCreate);
+
+      console.log('✅ [CREATE-TEMPLATE] Firestore保存成功:', {
+        firestoreId: docRef.id,
+        name: templateData.name?.substring(0, 30) + '...',
+        userId: user.uid,
+        timestamp: new Date().toISOString()
+      });
+      
       return { success: true, id: docRef.id };
     } catch (error) {
-      console.error('❌ テンプレート作成エラー:', error.message);
+      console.error('❌ [CREATE-TEMPLATE] Firestore保存エラー:', error.message, error.code);
       return { success: false, error: error.message };
     }
   },
@@ -317,19 +399,43 @@ window.FirebaseDB = {
       const user = auth.currentUser;
       if (!user) throw new Error('認証が必要です');
 
+      console.log('🔍 [GET-TEMPLATES] テンプレート取得開始:', {
+        userId: user.uid,
+        email: user.email,
+        device: navigator.platform,
+        timestamp: new Date().toISOString()
+      });
+
+      // 🎯 チーム共有テンプレート管理 - 全テンプレートを取得
+      console.log('🌐 [TEAM-MODE] 全ユーザー共有テンプレートを取得中...');
       const q = query(
-        collection(db, 'templates'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
+        collection(db, 'templates')
+        // where('userId', '==', user.uid) // 削除：個人フィルタリングを無効化
+        // orderBy('createdAt', 'desc') // 一時的にコメントアウト
       );
 
       return new Promise((resolve, reject) => {
         let isFirstLoad = true;
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
           const templates = [];
-          querySnapshot.forEach((doc) => {
-            templates.push({ id: doc.id, ...doc.data() });
+          console.log('📡 [TEMPLATE-REALTIME] onSnapshot発火:', {
+            docCount: querySnapshot.size,
+            isEmpty: querySnapshot.empty,
+            hasPendingWrites: querySnapshot.metadata.hasPendingWrites,
+            fromCache: querySnapshot.metadata.fromCache,
+            isFirstLoad
           });
+
+          querySnapshot.forEach((doc) => {
+            const templateData = { id: doc.id, ...doc.data() };
+            templates.push(templateData);
+            console.log('📝 [TEMPLATE-DATA]', doc.id.substring(0, 8) + '...:', {
+              name: templateData.name?.substring(0, 20) + '...',
+              createdAt: templateData.createdAt,
+              userId: templateData.userId
+            });
+          });
+          
           console.log('✅ テンプレート取得成功:', templates.length, '件', isFirstLoad ? '(初回)' : '(リアルタイム更新)');
           
           if (isFirstLoad) {
@@ -348,11 +454,11 @@ window.FirebaseDB = {
               if (window.loadTemplateManagementList) {
                 window.loadTemplateManagementList();
               }
-              console.log('🔄 [REALTIME] テンプレートがリアルタイム更新されました');
+              console.log('🔄 [REALTIME] テンプレートがリアルタイム更新されました - グローバル配列更新・UI再読み込み実行');
             }
           }
         }, (error) => {
-          console.error('❌ テンプレート取得エラー:', error.message);
+          console.error('❌ テンプレート取得エラー:', error.message, error.code);
           if (isFirstLoad) {
             reject({ success: false, error: error.message });
           }
@@ -428,4 +534,89 @@ window.FirebaseMigration = {
   }
 };
 
+// Firebase認証状態確認ヘルパー
+window.FirebaseDebug = {
+  // 認証状態の詳細確認
+  checkAuthState: () => {
+    const currentUser = auth.currentUser || window.FirebaseAuth?.getCurrentUser();
+    const authState = {
+      isAuthenticated: !!currentUser,
+      user: currentUser ? {
+        uid: currentUser.uid,
+        email: currentUser.email,
+        displayName: currentUser.displayName,
+        emailVerified: currentUser.emailVerified
+      } : null,
+      firebaseModules: {
+        hasFirebaseAuth: !!window.FirebaseAuth,
+        hasFirebaseDB: !!window.FirebaseDB,
+        hasAuthObject: !!window.firebaseAuth
+      },
+      localStorage: {
+        hasSessionData: !!localStorage.getItem('currentSession'),
+        hasSystemUsers: !!localStorage.getItem('systemUsers'),
+        hasTasks: !!localStorage.getItem('salesTasksKanban'),
+        hasTemplates: !!localStorage.getItem('taskTemplates')
+      },
+      device: {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        timestamp: new Date().toISOString()
+      }
+    };
+    
+    console.log('🔍 [DEBUG] 認証状態フル診断:', JSON.stringify(authState, null, 2));
+    return authState;
+  },
+
+  // リアルタイム同期テスト（手動）
+  testRealtimeSync: async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      alert('❌ 認証が必要です');
+      console.log('❌ [SYNC-TEST] 認証が必要です');
+      return;
+    }
+
+    console.log('🧪 [SYNC-TEST] リアルタイム同期テスト開始...');
+    
+    // テストタスクを作成
+    const testTask = {
+      title: `🧪同期テスト ${new Date().toLocaleTimeString()}`,
+      description: 'リアルタイム同期確認用のテストタスク',
+      columnId: 'todo',
+      priority: 'low',
+      assignee: user.email,
+      isTestTask: true
+    };
+
+    try {
+      const result = await window.FirebaseDB.createTask(testTask);
+      if (result.success) {
+        console.log('✅ [SYNC-TEST] テストタスク作成成功:', result.id);
+        console.log('📱 [SYNC-TEST] 他のデバイスでリアルタイム更新されるかご確認ください');
+        alert(`✅ 同期テストタスクを作成しました！\n他のデバイスで「🧪同期テスト」タスクが表示されるか確認してください。`);
+      }
+    } catch (error) {
+      console.error('❌ [SYNC-TEST] テストタスク作成失敗:', error);
+      alert(`❌ 同期テスト失敗: ${error.message}`);
+    }
+  },
+
+  // 認証状態をアラートで表示（コンソール不要）
+  showAuthState: () => {
+    const currentUser = auth.currentUser || window.FirebaseAuth?.getCurrentUser();
+    const message = currentUser 
+      ? `✅ ログイン中\nユーザー: ${currentUser.email}\nUID: ${currentUser.uid.substring(0, 8)}...`
+      : '❌ 未ログイン';
+    
+    alert(message);
+    return window.FirebaseDebug.checkAuthState();
+  }
+};
+
 console.log('🔥 Firebase統合システム準備完了');
+console.log('🧪 デバッグツール利用方法:');
+console.log('  - 認証状態確認: FirebaseDebug.showAuthState() (アラート表示)');
+console.log('  - 同期テスト: FirebaseDebug.testRealtimeSync() (アラート表示)');
+console.log('  - 詳細ログ: FirebaseDebug.checkAuthState() (コンソールのみ)');

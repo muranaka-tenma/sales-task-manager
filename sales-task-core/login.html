@@ -263,8 +263,9 @@
     
     <!-- Firebase統合システム - マルチユーザー対応 -->
     <script type="module" src="firebase-config.js"></script>
-    <!-- 共有ユーザーデータベース読み込み -->
-    <script src="shared-users-database.js"></script>
+    <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化 -->
+    <!-- キャッシュ問題解決のため完全無効化 -->
+    <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
     
     <script>
         // ページ読み込み時にログイン状態をチェック
@@ -305,8 +306,40 @@
                     if (result.success) {
                         // Firebase認証成功
                         const userInfo = await window.FirebaseDB.getUserInfo(result.user.uid);
+                        
+                        // 🔧 Firebase認証成功時のLocalStorageセッション強制同期
+                        console.log('🔥 [LOGIN] Firebase認証成功 - セッション同期開始:', email);
+                        const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                        const correctUser = systemUsers.find(u => u.email === email);
+                        
+                        if (correctUser) {
+                            console.log('✅ [LOGIN] systemUsersで正しいユーザー発見:', correctUser.name, correctUser.role);
+                            
+                            // 正しいユーザー情報でセッションを設定
+                            const sessionData = {
+                                id: correctUser.id,
+                                name: correctUser.name,
+                                email: correctUser.email,
+                                role: correctUser.role,
+                                department: correctUser.department
+                            };
+                            setCurrentUser(sessionData);
+                            console.log('✅ [LOGIN] セッション設定完了:', sessionData.name, sessionData.role);
+                        } else {
+                            console.error('❌ [LOGIN] systemUsersに該当ユーザーなし:', email);
+                            // フォールバック
+                            const fallbackUser = {
+                                id: Date.now(),
+                                name: userInfo.user?.displayName || email.split('@')[0],
+                                email: email,
+                                role: userInfo.user?.role || 'user',
+                                department: userInfo.user?.department || '-'
+                            };
+                            setCurrentUser(fallbackUser);
+                        }
+                        
                         showLoading(false);
-                        showSuccess(`ようこそ、${userInfo.user?.displayName || email}さん！`);
+                        showSuccess(`ようこそ、${correctUser ? correctUser.name : email.split('@')[0]}さん！`);
                         
                         setTimeout(() => {
                             window.location.href = 'index-kanban.html';
