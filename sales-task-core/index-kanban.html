@@ -1651,6 +1651,12 @@
                 localStorage.clear();
                 window.location.href = 'login.html';
                 return false;
+            } catch (error) {
+                console.error('❌ [AUTH] セッション確認エラー:', error);
+                localStorage.clear();
+                window.location.href = 'login.html';
+                return false;
+            }
                     
                     // 🔥 Firebase統合モード - 共有データベース初期化をスキップ（セッション保護）
                     console.log('🔥 [AUTH] Firebase統合モード - shared-database初期化をスキップ');
