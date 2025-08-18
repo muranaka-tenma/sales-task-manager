@@ -2131,23 +2131,14 @@
             }
         }
         
-        // 🔥 Firebase統合モード - 認証チェック無効化（Firebase認証に依存）
-        console.log('🔥 [AUTH] Firebase統合モード - 従来の認証チェックをスキップ');
-        // if (!checkAuthentication()) {
-        //     // 認証失敗時は以降の処理を停止
-        //     throw new Error('Authentication required');
-        // }
+        // Firebase統合モード - 従来の認証チェックをスキップ
         
-        // 🔥 完全Firebase化: タスクデータ読み込み関数
+        // Firebase完全化: タスクデータ読み込み関数
         async function loadTasks() {
             try {
-                console.log('🔥 [FIREBASE-ONLY] Firebase完全依存モードでタスク読み込み開始');
-                
-                // Firebase認証チェック
                 const currentUser = window.firebaseAuth?.currentUser || window.FirebaseAuth?.getCurrentUser();
                 
                 if (!window.FirebaseDB || !currentUser) {
-                    console.error('❌ [FIREBASE-ONLY] Firebase未認証 - タスク読み込み不可');
                     tasks = [];
                     window.tasks = [];
                     render();
@@ -2155,34 +2146,15 @@
                     return [];
                 }
                 
-                console.log('🔥 [FIREBASE-ONLY] Firebase認証済み - Firestoreから直接読み込み:', currentUser.email);
-                
                 const result = await window.FirebaseDB.getTasks();
                 if (result.success && result.tasks) {
-                    console.log('✅ [FIREBASE-ONLY] Firestore読み込み成功:', result.tasks.length, '件');
-                    
-                    // 🔧 LocalStorageは完全に無視 - Firestoreデータのみ使用
                     tasks = result.tasks;
                     window.tasks = result.tasks;
-                    
-                    console.log('🔥 [FIREBASE-ONLY] タスクデータをFirestoreから直接設定:', tasks.length, '件');
-                    console.log('📊 [FIREBASE-ONLY] サンプル（最初の3件）:', tasks.slice(0, 3).map(t => ({
-                        id: t.id,
-                        title: t.title?.substring(0, 30),
-                        createdBy: t.createdBy,
-                        assignee: t.assignee
-                    })));
-                    
-                    // リアルタイム同期を設定
                     window.firestoreUnsubscribe = result.unsubscribe;
-                    
-                    // 画面を更新
                     render();
                     updateStats();
-                    
                     return tasks;
                 } else {
-                    console.error('❌ [FIREBASE-ONLY] Firestore読み込み失敗:', result?.error || 'unknown error');
                     tasks = [];
                     window.tasks = [];
                     render();
@@ -2191,7 +2163,7 @@
                 }
                 
             } catch (error) {
-                console.error('❌ [FIREBASE-ONLY] タスク読み込み重大エラー:', error);
+                console.error('❌ タスク読み込みエラー:', error);
                 tasks = [];
                 window.tasks = [];
                 render();
@@ -2203,46 +2175,30 @@
         // Firebase統合テンプレートデータ読み込み関数
         async function loadTemplates() {
             try {
-                // Firebase認証チェック
                 if (window.FirebaseAuth?.getCurrentUser() && window.FirebaseDB) {
-                    console.log('🔥 [LOAD] Firebase認証済み - Firestoreからテンプレートを読み込み中...');
-                    
                     try {
                         const result = await window.FirebaseDB.getTemplates();
                         if (result.success) {
-                            console.log('✅ [FIREBASE] Firestoreからテンプレート読み込み成功:', result.templates.length, '件');
-                            
-                            // LocalStorageにも保存（オフライン時のフォールバック）
                             localStorage.setItem('taskTemplates', JSON.stringify(result.templates));
-                            
-                            // リアルタイム同期のためのアンサブスクライブ関数を保存
                             window.templatesUnsubscribe = result.unsubscribe;
-                            
                             return result.templates;
-                        } else {
-                            console.warn('⚠️ [FIREBASE] Firestore テンプレート読み込み失敗 - LocalStorageフォールバック');
                         }
                     } catch (firebaseError) {
-                        console.warn('⚠️ [FIREBASE] Firebase テンプレート接続エラー - LocalStorageフォールバック:', firebaseError);
+                        // LocalStorageフォールバック
                     }
                 }
                 
-                // Firebase未対応またはエラー時のフォールバック
                 return JSON.parse(localStorage.getItem('taskTemplates') || '[]');
                 
             } catch (error) {
-                console.error('❌ [LOAD] テンプレート読み込みエラー:', error);
+                console.error('❌ テンプレート読み込みエラー:', error);
                 return JSON.parse(localStorage.getItem('taskTemplates') || '[]');
             }
         }
         
-        // 🔥 完全Firebase化: LocalStorage読み込み関数を廃止
+        // Firebase化: LocalStorage読み込み関数を廃止
         function loadTasksFromStorage() {
-            console.warn('⚠️ [DEPRECATED] loadTasksFromStorage()は廃止されました');
-            console.log('🔥 [FIREBASE-ONLY] タスクデータはFirebaseからのみ読み込みます');
-            console.log('📝 [INFO] loadTasks()関数を使用してください（Firebase完全依存）');
-            
-            // 🔧 LocalStorageは完全に無視
+            // Firebaseからのみ読み込み
             return [];
         }
 
@@ -5608,12 +5564,6 @@
                 taskTemplates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
             }
             
-            // 定期タスクのサンプルテンプレートを初期化 - 無効化
-            // if (recurringTemplates.length === 0) {
-            //     // サンプルテンプレートの自動生成を無効化 - ユーザーリクエストによる
-            //     console.log('🚫 [INIT] Sample recurring template creation disabled');
-            // }
-            
             // 定期タスクの自動生成チェック
             checkAndGenerateRecurringTasks();
             
@@ -5646,59 +5596,50 @@
                 return task;
             });
 
-            // 既存データがない場合は空配列（サンプルデータは作成しない）
+            // 既存データがない場合は空配列
             if (tasks.length === 0) {
                 tasks = [];
                 saveTasks();
-                console.log('🧹 クリーンな状態で開始: サンプルタスクなし');
             }
             
-            // 🔧 Firebase統合時は既にloadTasks内でrender()が実行されるため、重複実行を防ぐ
+            // 画面更新
             if (!window.FirebaseAuth || !window.FirebaseDB) {
-                console.log('🎨 [INIT] LocalStorageモード: render()実行');
                 render();
                 updateStats();
             } else {
-                console.log('🎨 [INIT] Firebaseモード: render()はloadTasks内で実行済み');
-                // updateStats()のみ実行（ステータス統計の更新）
                 updateStats();
             }
             
-            // 🔧 UI表示を最新のセッション情報で更新
+            // UI更新
             setTimeout(() => {
                 updateHamburgerMenu();
-                console.log('🍔 [INIT] ハンバーガーメニュー更新完了');
                 
-                // 🔧 担当者リストをsystemUsersから自動更新
+                // 担当者リストをsystemUsersから自動更新
                 const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                 if (systemUsers.length > 0) {
                     assignees = systemUsers.map(u => u.name);
-                    window.assignees = assignees; // グローバル変数も更新
+                    window.assignees = assignees;
                     localStorage.setItem('taskAssignees', JSON.stringify(assignees));
-                    console.log('✅ [INIT] 担当者リスト自動更新完了:', assignees);
                 }
                 
-                // 画面上部のユーザー表示も更新
+                // 画面上部のユーザー表示更新
                 const currentSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
-                if (currentSession && currentSession.user) {
+                if (currentSession?.user) {
                     const headerTitle = document.querySelector('.header-title');
                     if (headerTitle) {
-                        const getRoleDisplayName = (role) => {
-                            const roleNames = {
-                                'developer': '開発者',
-                                'admin': '管理者',
-                                'user': '一般ユーザー'
-                            };
-                            return roleNames[role] || role;
+                        const roleNames = {
+                            'developer': '開発者',
+                            'admin': '管理者',
+                            'user': '一般ユーザー'
                         };
+                        const roleName = roleNames[currentSession.user.role] || currentSession.user.role;
                         
                         headerTitle.innerHTML = `
                             🎯 営業タスク管理
                             <span style="font-size: 0.8rem; font-weight: normal; margin-left: 1rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.5rem; border-radius: 4px;">
-                                ${currentSession.user.name} (${getRoleDisplayName(currentSession.user.role)})
+                                ${currentSession.user.name} (${roleName})
                             </span>
                         `;
-                        console.log('📱 [INIT] 画面上部ユーザー表示更新完了:', currentSession.user.name, currentSession.user.role);
                     }
                 }
             }, 200);
@@ -6070,40 +6011,8 @@ Firebase認証: ${diagnosis.firebase.currentUser}
                 console.log('🍔 ハンバーガーメニュー更新完了');
             }, 100);
             
-            // 🔧 【緊急修正】init()関数が呼ばれていない問題を解決
-            console.log('🚨 [CRITICAL] init()関数を手動実行開始...');
-            init().then(() => {
-                console.log('✅ [CRITICAL] init()関数実行完了');
-                
-                // 🔧 5秒後にタスク数を最終確認
-                setTimeout(() => {
-                    const finalTaskCount = window.tasks?.length || 0;
-                    console.log('🔍 [FINAL-VERIFICATION] 5秒後のタスク数:', finalTaskCount);
-                    
-                    if (finalTaskCount === 0) {
-                        console.warn('⚠️ [CRITICAL] タスクが0件 - 強制Firebase取得実行');
-                        
-                        if (window.FirebaseDebug?.forceReloadTasks) {
-                            window.FirebaseDebug.forceReloadTasks();
-                        } else if (window.FirebaseDB) {
-                            window.FirebaseDB.getTasks().then(result => {
-                                if (result.success && result.tasks.length > 0) {
-                                    window.tasks = result.tasks;
-                                    localStorage.setItem('salesTasksKanban', JSON.stringify(result.tasks));
-                                    if (window.render) window.render();
-                                    if (window.updateStats) window.updateStats();
-                                    console.log('✅ [CRITICAL] 強制取得成功:', result.tasks.length, '件');
-                                }
-                            });
-                        }
-                    } else {
-                        console.log('✅ [FINAL-VERIFICATION] タスク表示正常:', finalTaskCount, '件');
-                    }
-                }, 5000);
-                
-            }).catch(error => {
-                console.error('❌ [CRITICAL] init()関数エラー:', error);
-            });
+            // 主要初期化を実行
+            await init();
             
             // OCRモーダルのイベントリスナーを初期化
             initOCRModalEventListeners();
@@ -11888,40 +11797,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             alert(`${selectedTaskIds.length}件のタスクを削除しました`);
         }
         
-        // 初期化実行（Firebase統合対応）
-        (async () => {
-            try {
-                await init();
-                // 🔧 修正: 初期化後のrender()は、loadTasks()内で既に実行されているため削除
-                // render();
-                console.log('🎨 [INIT] 初期化完了 - tasksグローバル配列:', window.tasks?.length || 0, '件');
-                
-                // 🔧 Firebase統合後のユーザー情報強制更新（キャッシュ問題対策）
-                setTimeout(() => {
-                    console.log('🔄 [CACHE-FIX] ユーザー情報を強制更新中...');
-                    updateHamburgerMenu();
-                    
-                    // ヘッダー情報も強制更新
-                    const currentUser = getCurrentUser();
-                    if (currentUser && currentUser.isLoggedIn) {
-                        displayUserInfo(currentUser);
-                        console.log('✅ [CACHE-FIX] ユーザー情報強制更新完了:', currentUser.name, currentUser.role);
-                    }
-                }, 1000);
-                
-            } catch (error) {
-                console.error('❌ [INIT] 初期化エラー:', error);
-                // エラー時もレンダリングを実行
-                render();
-            }
-        })();
         
-        // Phase 1: 権限チェックのみ実行（制御なし）
-        setTimeout(() => {
-            checkUserPermission();
-            // ハンバーガーメニューも初期化
-            updateHamburgerMenu();
-        }, 1000); // 1秒後に安全に実行
         
         // Phase 2: マイページボタン削除実行
         setTimeout(() => {
