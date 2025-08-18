@@ -1199,6 +1199,19 @@
                         
                         <div class="form-row">
                             <div class="form-group">
+                                <label class="form-label">プロジェクト</label>
+                                <select class="form-control" id="task-project-select">
+                                    <option value="">個人タスク（プロジェクトなし）</option>
+                                    <!-- プロジェクト一覧がここに動的に追加される -->
+                                </select>
+                                <small style="color: #666; font-size: 0.85rem; margin-top: 0.25rem; display: block;">
+                                    プロジェクトを選択すると、プロジェクトメンバーと共有されます
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
                                 <label class="form-label">担当者（複数選択可）</label>
                                 <div class="assignees-container" id="assignees-container">
                                     <!-- チェックボックスがここに動的に追加される -->
@@ -1522,6 +1535,53 @@
         </div>
     </div>
     
+    <!-- プロジェクト管理モーダル -->
+    <div id="projectManagementModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 1000px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0;">
+                <h3 class="modal-title" style="color: white; font-size: 1.5rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    📂 プロジェクト管理
+                </h3>
+                <button class="close-btn" onclick="closeProjectManagementModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem; margin-left: auto;">&times;</button>
+            </div>
+            
+            <div style="padding: 1.5rem 2rem; overflow-y: auto; flex: 1;">
+                <!-- プロジェクト作成セクション -->
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="color: #374151; margin: 0 0 1rem 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        ➕ 新しいプロジェクト作成
+                    </h4>
+                    <div style="display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <input type="text" id="newProjectName" placeholder="プロジェクト名" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
+                            <textarea id="newProjectDescription" placeholder="プロジェクトの説明" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; height: 80px; resize: vertical;"></textarea>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <label style="font-size: 0.9rem; color: #6b7280;">公開設定:</label>
+                            <select id="newProjectVisibility" style="padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                                <option value="public">🌐 全員に公開</option>
+                                <option value="private">🔒 メンバーのみ</option>
+                            </select>
+                            <button onclick="createNewProject()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">
+                                作成
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 既存プロジェクト一覧 -->
+                <div>
+                    <h4 style="color: #374151; margin: 0 0 1rem 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        📋 既存プロジェクト一覧
+                    </h4>
+                    <div id="projectsList" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <!-- プロジェクト一覧がここに動的に挿入される -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- テンプレート管理モーダル（統合版） -->
     <div id="templateManagementModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
@@ -1638,6 +1698,10 @@
                     // セッション期限チェック
                     if (new Date() <= new Date(session.expiresAt)) {
                         console.log('✅ [AUTH] Valid session found for:', session.user.name);
+                        
+                        // 🔧 権限の完全性チェック（セッション確認時）
+                        ensureUserPermissionsIntegrity();
+                        
                         displayUserInfo(session.user);
                         return true;
                     } else {
@@ -1659,42 +1723,178 @@
             }
         }
         
-        // ユーザーデータベースの初期化（ログインページと同じ関数）
+        // ユーザーデータベースの初期化（適切な権限設定付き）
         function initializeUserDatabase() {
             const existingUsers = localStorage.getItem('systemUsers');
-            if (!existingUsers) {
+            if (!existingUsers || JSON.parse(existingUsers).length === 0) {
                 console.log('🔧 [INIT] ユーザーデータベースを初期化中...');
                 
-                // デフォルトユーザーを作成
-                const defaultUsers = [
+                // 正しい権限設定の完全なユーザーデータベース
+                const systemUsers = [
                     {
                         id: 1,
                         name: '邨中天真',
                         email: 'muranaka-tenma@terracom.co.jp',
-                        password: 'admin123',
+                        password: 'Tenma7041',
                         role: 'developer',
                         department: '開発部',
-                        createdAt: new Date().toISOString()
+                        createdAt: '2025-08-04T00:00:00.000Z'
                     },
                     {
                         id: 2,
-                        name: 'テストユーザー',
-                        email: 'test@terracom.co.jp',
-                        password: 'test123',
+                        name: '加藤純',
+                        email: 'kato-jun@terracom.co.jp',
+                        password: 'aikakumei',
                         role: 'user',
-                        department: '営業部',
-                        createdAt: new Date().toISOString()
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 3,
+                        name: '朝日圭一',
+                        email: 'asahi-keiichi@terracom.co.jp',
+                        password: 'aikakumei',
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 4,
+                        name: '半澤侑果',
+                        email: 'hanzawa-yuka@terracom.co.jp',
+                        password: 'aikakumei',
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 5,
+                        name: '田村渉',
+                        email: 'tamura-wataru@terracom.co.jp',
+                        password: 'aikakumei',
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 6,
+                        name: '橋本友美',
+                        email: 'hashimoto-yumi@terracom.co.jp',
+                        password: 'aikakumei',
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 7,
+                        name: '福島亜未',
+                        email: 'fukushima-ami@terracom.co.jp',
+                        password: 'aikakumei',
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
                     }
                 ];
                 
-                localStorage.setItem('systemUsers', JSON.stringify(defaultUsers));
-                console.log('✅ [INIT] デフォルトユーザーを作成しました');
+                localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+                console.log('✅ [INIT] 正しい権限でsystemUsersを初期化:', systemUsers.length, '名');
                 
                 // 担当者リストも初期化
-                const assignees = defaultUsers.map(u => u.name);
+                const assignees = systemUsers.map(u => u.name);
                 localStorage.setItem('taskAssignees', JSON.stringify(assignees));
-                console.log('✅ [INIT] 担当者リストを初期化しました');
+                console.log('✅ [INIT] 担当者リストを初期化:', assignees);
+                
+                // 権限確認ログ
+                systemUsers.forEach(user => {
+                    const roleEmoji = user.role === 'developer' ? '👨‍💻' : 
+                                     user.role === 'admin' ? '👤' : '🧑‍💼';
+                    console.log(`  ${roleEmoji} ${user.name} - ${user.role}`);
+                });
+            } else {
+                console.log('✅ [INIT] systemUsersが既に存在します - 担当者リスト自動更新');
+                
+                // 🔧 担当者リストをsystemUsersから自動更新
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                if (systemUsers.length > 0) {
+                    const assignees = systemUsers.map(u => u.name);
+                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                    console.log('✅ [INIT] 担当者リスト自動更新完了:', assignees);
+                }
+                
+                // 権限の完全性チェック（権限リセット防止）
+                ensureUserPermissionsIntegrity();
             }
+        }
+        
+        // 権限の完全性を保証する関数（権限リセット防止）
+        function ensureUserPermissionsIntegrity() {
+            const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const correctRoles = {
+                'muranaka-tenma@terracom.co.jp': 'developer',
+                'kato-jun@terracom.co.jp': 'user',
+                'asahi-keiichi@terracom.co.jp': 'user',
+                'hanzawa-yuka@terracom.co.jp': 'user',
+                'tamura-wataru@terracom.co.jp': 'user',
+                'hashimoto-yumi@terracom.co.jp': 'user',
+                'fukushima-ami@terracom.co.jp': 'user'
+            };
+            
+            let corrected = false;
+            let allUsersAreUser = systemUsers.length > 0 && systemUsers.every(user => user.role === 'user');
+            
+            if (allUsersAreUser) {
+                console.warn('⚠️ [CRITICAL] 全ユーザーがuserになっている - 緊急修復実行');
+            }
+            
+            // 🔧 強制的に正しい権限を適用
+            systemUsers.forEach(user => {
+                const correctRole = correctRoles[user.email];
+                if (correctRole) {
+                    const oldRole = user.role;
+                    user.role = correctRole; // 強制的に正しい権限に設定
+                    if (oldRole !== correctRole) {
+                        console.log(`🔧 [FORCE-FIX] ${user.name}: ${oldRole} → ${correctRole} (強制修正)`);
+                        corrected = true;
+                    }
+                }
+            });
+            
+            // 🔄 常に保存（強制修正）
+            localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+            console.log('✅ [FORCE-FIX] 権限の完全性を強制修復しました');
+            
+            // セッション情報も修復
+            const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+            if (session && session.user && correctRoles[session.user.email]) {
+                const correctRole = correctRoles[session.user.email];
+                const oldSessionRole = session.user.role;
+                session.user.role = correctRole; // 強制的に正しい権限に設定
+                localStorage.setItem('currentSession', JSON.stringify(session));
+                if (oldSessionRole !== correctRole) {
+                    console.log(`🔧 [SESSION-FORCE-FIX] セッション権限強制修復: ${session.user.name} ${oldSessionRole} → ${correctRole}`);
+                }
+            }
+            
+            // 🔍 修正後の権限状況を確認表示
+            console.log('📋 [PERMISSION-STATUS] 修正後の権限状況:');
+            systemUsers.forEach(user => {
+                const roleEmoji = user.role === 'developer' ? '👨‍💻' : 
+                                 user.role === 'admin' ? '👤' : '🧑‍💼';
+                console.log(`  ${roleEmoji} ${user.name} (${user.email}) - ${user.role}`);
+            });
+            
+            return corrected;
+        }
+        
+        // 定期的権限チェック（5分ごと）
+        function startPeriodicPermissionCheck() {
+            setInterval(() => {
+                console.log('🔄 [PERIODIC] 定期権限チェック実行中...');
+                const wasFixed = ensureUserPermissionsIntegrity();
+                if (wasFixed) {
+                    console.log('🚨 [PERIODIC] 権限異常を検出・修復しました');
+                }
+            }, 5 * 60 * 1000); // 5分ごと
         }
         
         function displayUserInfo(user) {
@@ -1753,6 +1953,11 @@
             try {
                 const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
                 if (session && session.user) {
+                    console.log('🔐 [GET-USER] セッションから取得:', {
+                        name: session.user.name,
+                        role: session.user.role,
+                        email: session.user.email
+                    });
                     return {
                         name: session.user.name,
                         email: session.user.email,
@@ -1761,7 +1966,7 @@
                     };
                 }
             } catch (error) {
-                console.error('セッション取得エラー:', error);
+                console.error('❌ [GET-USER] セッション取得エラー:', error);
                 // セッションデータが破損している場合はクリア
                 localStorage.removeItem('currentSession');
             }
@@ -1769,20 +1974,24 @@
             // フォールバック: currentUserも確認
             try {
                 const user = localStorage.getItem('currentUser');
-                if (user && user.includes('邨中天真')) {
-                    console.log('🔧 [USER] Using fallback user data');
-                    localStorage.removeItem('currentUser');
-                    return {
-                        name: '邨中天真',
-                        email: 'muranaka@example.com',
-                        role: 'user',
-                        isLoggedIn: true
-                    };
+                if (user) {
+                    console.log('🔧 [GET-USER] フォールバック使用');
+                    // 邨中天真の場合は開発者権限、それ以外は一般ユーザー
+                    const userName = typeof user === 'string' ? user : JSON.parse(user).name;
+                    if (userName && userName.includes('邨中天真')) {
+                        return {
+                            name: '邨中天真',
+                            email: 'muranaka-tenma@terracom.co.jp',
+                            role: 'developer',
+                            isLoggedIn: true
+                        };
+                    }
                 }
             } catch (error) {
                 console.error('ユーザーデータエラー:', error);
             }
             
+            console.log('⚠️ [GET-USER] ログインユーザーなし');
             return {
                 name: null,
                 email: null,
@@ -1791,19 +2000,79 @@
             };
         }
         
-        // Phase 1: 権限チェック機能のみ（制御なし）
-        function checkUserPermission() {
+        // 権限チェック関数（共通）
+        function hasPermission(requiredRoles) {
             const currentUser = getCurrentUser();
-            console.log('🔐 [Phase 1] 現在のユーザー情報:', currentUser);
-            
-            if (currentUser.isLoggedIn) {
-                console.log(`✅ [Phase 1] ログイン確認: ${currentUser.name} (${currentUser.role})`);
-            } else {
-                console.log('❌ [Phase 1] 未ログイン状態');
+            if (!currentUser.isLoggedIn) {
+                console.log('❌ [PERMISSION] 未ログイン');
+                return false;
             }
             
-            // この段階では何も制御しない
+            const hasAccess = requiredRoles.includes(currentUser.role);
+            console.log(`🔐 [PERMISSION] ${currentUser.name} (${currentUser.role}) => 必要権限: [${requiredRoles.join(', ')}] => ${hasAccess ? '✅' : '❌'}`);
+            
+            return hasAccess;
+        }
+        
+        // 管理者権限チェック（便利関数）
+        function isAdminOrDeveloper() {
+            return hasPermission(['admin', 'developer']);
+        }
+        
+        // 権限チェック機能（完全実装）
+        function checkUserPermission() {
+            // 権限の整合性を最初にチェック・修正
+            ensureUserPermissionsIntegrity();
+            
+            const currentUser = getCurrentUser();
+            console.log('🔐 現在のユーザー情報:', currentUser);
+            
+            if (currentUser.isLoggedIn) {
+                console.log(`✅ ログイン確認: ${currentUser.name} (${currentUser.role})`);
+                
+                // 権限に基づくUI制御を実行
+                updateUIBasedOnPermissions(currentUser);
+            } else {
+                console.log('❌ 未ログイン状態');
+            }
+            
             return currentUser;
+        }
+        
+        // 権限に基づくUI制御
+        function updateUIBasedOnPermissions(user) {
+            const { role } = user;
+            
+            // 開発者機能の表示制御
+            const developerSection = document.getElementById('developer-menu-section');
+            if (developerSection) {
+                if (role === 'developer') {
+                    developerSection.style.display = 'block';
+                    console.log('✅ 開発者機能: 表示');
+                } else {
+                    developerSection.style.display = 'none';
+                    console.log('🚫 開発者機能: 非表示');
+                }
+            }
+            
+            // 管理機能の表示制御
+            const adminSection = document.getElementById('admin-menu-section');
+            if (adminSection) {
+                if (role === 'developer' || role === 'admin') {
+                    adminSection.style.display = 'block';
+                    console.log('✅ 管理機能: 表示');
+                    
+                    // 管理者専用リンクの制御
+                    const userManagementLink = adminSection.querySelector('a[href="user-management.html"]');
+                    const adminDashboardLink = adminSection.querySelector('a[href="admin-dashboard.html"]');
+                    
+                    if (userManagementLink) userManagementLink.style.display = 'block';
+                    if (adminDashboardLink) adminDashboardLink.style.display = 'block';
+                } else {
+                    adminSection.style.display = 'none';
+                    console.log('🚫 管理機能: 非表示');
+                }
+            }
         }
         
         // Phase 2: マイページボタンの削除（ハンバーガーメニューに移行）
@@ -2757,6 +3026,9 @@
             updateAssigneeOptions();
             clearSelectedAssignees();
             
+            // プロジェクト選択肢を更新
+            updateProjectOptions();
+            
             // コメント表示をクリア
             displayComments([]);
             
@@ -2872,6 +3144,52 @@
             addButton.innerHTML = '+ 新しい担当者を追加';
             addButton.onclick = addNewAssignee;
             container.appendChild(addButton);
+        }
+        
+        // プロジェクト選択肢を更新
+        function updateProjectOptions() {
+            try {
+                const projectSelect = document.getElementById('task-project-select');
+                if (!projectSelect) return;
+                
+                // デフォルトオプションを残して、プロジェクト選択肢をクリア
+                projectSelect.innerHTML = '<option value="">個人タスク（プロジェクトなし）</option>';
+                
+                // プロジェクト一覧を取得
+                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                const currentUser = getCurrentUser();
+                
+                if (projects.length === 0) {
+                    return;
+                }
+                
+                // ユーザーがアクセス可能なプロジェクトをフィルタリング
+                const accessibleProjects = projects.filter(project => {
+                    // 公開プロジェクトまたはメンバーのプロジェクトのみ表示
+                    return project.status === 'active' && 
+                           (project.visibility === 'public' || 
+                            project.members.includes(currentUser.email) ||
+                            project.createdBy === currentUser.email);
+                });
+                
+                // プロジェクト選択肢を追加
+                accessibleProjects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    
+                    // プロジェクト名と公開状態を表示
+                    const visibilityIcon = project.visibility === 'public' ? '🌐' : '🔒';
+                    const memberCount = project.members.length;
+                    option.textContent = `${visibilityIcon} ${project.name} (${memberCount}名)`;
+                    
+                    projectSelect.appendChild(option);
+                });
+                
+                console.log(`✅ プロジェクト選択肢を更新: ${accessibleProjects.length}個のプロジェクト`);
+                
+            } catch (error) {
+                console.error('プロジェクト選択肢の更新エラー:', error);
+            }
         }
         
         function updateSelectedAssignees() {
@@ -2991,6 +3309,13 @@
             // 担当者選択肢を更新してから値を設定
             updateAssigneeOptions();
             setSelectedAssignees(editingTask.assignees || editingTask.assignee || []);
+            
+            // プロジェクト選択肢を更新してから値を設定
+            updateProjectOptions();
+            const projectSelect = document.getElementById('task-project-select');
+            if (projectSelect && editingTask.projectId) {
+                projectSelect.value = editingTask.projectId;
+            }
             
             // Phase 2: PJタスク編集時はPJ設定を非表示（作成時のみ使用）
             // PJタスク設定は別ページに移動
@@ -3509,10 +3834,26 @@
             const memo = document.getElementById('task-memo-input').value.trim();
             const fileInput = document.getElementById('task-files-input');
             
-            // PJタスク機能は別ページに移動したため、常に通常タスクとして処理
-            const isProjectTask = false;
-            const projectId = '';
-            const projectName = '';
+            // プロジェクト選択情報を取得
+            const selectedProjectId = document.getElementById('task-project-select').value;
+            const isProjectTask = selectedProjectId !== '';
+            let projectId = '';
+            let projectName = '';
+            
+            if (isProjectTask) {
+                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                const selectedProject = projects.find(p => p.id === selectedProjectId);
+                if (selectedProject) {
+                    projectId = selectedProject.id;
+                    projectName = selectedProject.name;
+                    console.log(`📂 プロジェクトタスクとして作成: ${projectName} (${projectId})`);
+                } else {
+                    console.error('選択されたプロジェクトが見つかりません:', selectedProjectId);
+                    alert('選択されたプロジェクトが見つかりません。プロジェクト一覧を更新してください。');
+                    return;
+                }
+            }
+            
             const selectedApprovers = [];
             
             if (!title || !date) {
@@ -3695,6 +4036,15 @@
                 editingTask.assignee = selectedAssignees.length > 0 ? selectedAssignees[0] : '未設定';
                 editingTask.memo = memo;
                 editingTask.updatedAt = new Date().toISOString(); // 更新時刻を記録
+                
+                // プロジェクト情報を更新
+                if (isProjectTask) {
+                    editingTask.projectId = projectId;
+                    editingTask.projectName = projectName;
+                } else {
+                    editingTask.projectId = null;
+                    editingTask.projectName = null;
+                }
                 
                 console.log('🔍 [EDIT] After updating editingTask:', {
                     id: editingTask.id,
@@ -5344,6 +5694,14 @@
                 updateHamburgerMenu();
                 console.log('🍔 [INIT] ハンバーガーメニュー更新完了');
                 
+                // 🔧 担当者リストをsystemUsersから自動更新
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                if (systemUsers.length > 0) {
+                    assignees = systemUsers.map(u => u.name);
+                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                    console.log('✅ [INIT] 担当者リスト自動更新完了:', assignees);
+                }
+                
                 // 画面上部のユーザー表示も更新
                 const currentSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
                 if (currentSession && currentSession.user) {
@@ -5597,6 +5955,29 @@
 
         // 担当者選択の変更イベント
         document.addEventListener('DOMContentLoaded', () => {
+            // 🔧 【最優先】ユーザーデータベース初期化
+            try {
+                initializeUserDatabase();
+                console.log('✅ [INIT] ユーザーデータベース初期化完了');
+                
+                // 🔐 【重要】権限整合性チェック・修正を即座に実行（2回実行で確実に修正）
+                ensureUserPermissionsIntegrity();
+                setTimeout(() => ensureUserPermissionsIntegrity(), 100); // 0.1秒後に再実行
+                console.log('✅ [INIT] 権限整合性チェック完了（2回実行）');
+                
+                // 🔍 権限チェックを実行（UI制御含む）
+                setTimeout(() => {
+                    checkUserPermission();
+                    console.log('✅ [INIT] 権限チェック完了');
+                }, 500); // 0.5秒後に実行
+                
+                // 定期権限チェック開始
+                startPeriodicPermissionCheck();
+                console.log('🔄 [INIT] 定期権限チェック開始（5分間隔）');
+            } catch (error) {
+                console.error('❌ [INIT] ユーザーデータベース初期化エラー:', error);
+            }
+            
             // Firebase初期化状況をデバッグ
             console.log('🚀 [INIT-DEBUG] DOMContentLoaded発火:', {
                 timestamp: new Date().toISOString(),
@@ -12006,6 +12387,462 @@
             executeImportModal();
         }
         
+        // ===== プロジェクト管理機能 =====
+        
+        // プロジェクト管理モーダルを開く
+        function openProjectManagementModal() {
+            const modal = document.getElementById('projectManagementModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                loadProjectsList();
+            }
+        }
+        
+        // プロジェクト管理モーダルを閉じる
+        function closeProjectManagementModal() {
+            const modal = document.getElementById('projectManagementModal');
+            if (modal) {
+                modal.style.display = 'none';
+                // フォームをクリア
+                document.getElementById('newProjectName').value = '';
+                document.getElementById('newProjectDescription').value = '';
+                document.getElementById('newProjectVisibility').value = 'public';
+            }
+        }
+        
+        // プロジェクト一覧を読み込み
+        function loadProjectsList() {
+            try {
+                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                const currentUser = getCurrentUser();
+                const projectsList = document.getElementById('projectsList');
+                
+                if (!projectsList) return;
+                
+                if (projects.length === 0) {
+                    projectsList.innerHTML = `
+                        <div style="text-align: center; color: #6b7280; padding: 2rem; background: #f9fafb; border-radius: 8px; border: 2px dashed #e5e7eb;">
+                            📂 まだプロジェクトがありません<br>
+                            <span style="font-size: 0.9rem;">新しいプロジェクトを作成してチーム作業を始めましょう</span>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // プロジェクト一覧を表示
+                projectsList.innerHTML = projects.map(project => {
+                    const isOwner = project.createdBy === currentUser.email;
+                    const isMember = project.members.includes(currentUser.email);
+                    const canView = project.visibility === 'public' || isMember || isOwner;
+                    
+                    if (!canView) return '';
+                    
+                    const visibilityIcon = project.visibility === 'public' ? '🌐' : '🔒';
+                    const statusIcon = project.status === 'active' ? '🟢' : project.status === 'completed' ? '✅' : '📁';
+                    
+                    return `
+                        <div style="border: 2px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                            <div style="display: flex; justify-content: between; align-items: flex-start; margin-bottom: 1rem;">
+                                <div style="flex: 1;">
+                                    <h5 style="margin: 0 0 0.5rem 0; color: #1f2937; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        ${statusIcon} ${project.name}
+                                        ${visibilityIcon}
+                                        ${isOwner ? '<span style="background: #fbbf24; color: white; font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px; margin-left: 0.5rem;">作成者</span>' : ''}
+                                    </h5>
+                                    <p style="margin: 0 0 0.5rem 0; color: #6b7280; font-size: 0.9rem;">${project.description || 'プロジェクトの説明はありません'}</p>
+                                    <div style="font-size: 0.8rem; color: #9ca3af;">
+                                        メンバー: ${project.members.length}名 | 作成: ${new Date(project.createdAt).toLocaleDateString('ja-JP')}
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+                                    <button onclick="viewProjectTasks('${project.id}')" style="background: #3b82f6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer;">
+                                        📋 タスク表示
+                                    </button>
+                                    ${(isOwner || currentUser.role === 'developer') ? `
+                                        <button onclick="editProject('${project.id}')" style="background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer;">
+                                            ✏️ 編集
+                                        </button>
+                                        <button onclick="deleteProject('${project.id}')" style="background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer;">
+                                            🗑️ 削除
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                                <div style="font-size: 0.8rem; color: #6b7280; margin-bottom: 0.5rem;">プロジェクトメンバー:</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                    ${project.members.map(email => {
+                                        const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                                        const user = systemUsers.find(u => u.email === email);
+                                        const userName = user ? user.name : email;
+                                        return `<span style="background: #f3f4f6; color: #374151; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">${userName}</span>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).filter(html => html).join('');
+                
+            } catch (error) {
+                console.error('プロジェクト一覧の読み込みエラー:', error);
+                document.getElementById('projectsList').innerHTML = `
+                    <div style="color: #ef4444; text-align: center; padding: 1rem;">
+                        エラーが発生しました: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // 新しいプロジェクトを作成
+        function createNewProject() {
+            try {
+                const name = document.getElementById('newProjectName').value.trim();
+                const description = document.getElementById('newProjectDescription').value.trim();
+                const visibility = document.getElementById('newProjectVisibility').value;
+                const currentUser = getCurrentUser();
+                
+                if (!name) {
+                    alert('プロジェクト名を入力してください');
+                    return;
+                }
+                
+                if (!currentUser.isLoggedIn) {
+                    alert('プロジェクト作成にはログインが必要です');
+                    return;
+                }
+                
+                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                
+                // プロジェクト名の重複チェック
+                if (projects.some(p => p.name === name)) {
+                    alert('同じ名前のプロジェクトが既に存在します');
+                    return;
+                }
+                
+                const newProject = {
+                    id: 'project_' + Date.now(),
+                    name: name,
+                    description: description,
+                    visibility: visibility,
+                    members: [currentUser.email], // 作成者は自動的にメンバーになる
+                    createdBy: currentUser.email,
+                    createdAt: new Date().toISOString(),
+                    status: 'active'
+                };
+                
+                projects.push(newProject);
+                localStorage.setItem('projects', JSON.stringify(projects));
+                
+                // Firebaseにも保存（接続している場合）
+                if (window.FirebaseAuth?.getCurrentUser() && window.firebaseConfig?.saveProject) {
+                    window.firebaseConfig.saveProject(newProject);
+                }
+                
+                console.log('✅ 新しいプロジェクトを作成:', newProject.name);
+                
+                // フォームをクリアして一覧を再読み込み
+                document.getElementById('newProjectName').value = '';
+                document.getElementById('newProjectDescription').value = '';
+                document.getElementById('newProjectVisibility').value = 'public';
+                
+                loadProjectsList();
+                
+                alert(`✅ プロジェクト「${name}」を作成しました！`);
+                
+            } catch (error) {
+                console.error('プロジェクト作成エラー:', error);
+                alert('プロジェクトの作成に失敗しました: ' + error.message);
+            }
+        }
+        
+        // プロジェクトのタスクを表示
+        function viewProjectTasks(projectId) {
+            try {
+                closeProjectManagementModal();
+                
+                // プロジェクトフィルターを適用
+                const filterDropdown = document.getElementById('project-filter');
+                if (filterDropdown) {
+                    filterDropdown.value = projectId;
+                    applyProjectFilter();
+                } else {
+                    // フィルターが存在しない場合は、プロジェクトのタスクのみを表示
+                    filterTasksByProject(projectId);
+                }
+                
+                // プロジェクト情報を表示
+                showProjectInfo(projectId);
+                
+            } catch (error) {
+                console.error('プロジェクトタスク表示エラー:', error);
+                alert('プロジェクトタスクの表示に失敗しました: ' + error.message);
+            }
+        }
+        
+        // プロジェクトでタスクをフィルタリング
+        function filterTasksByProject(projectId) {
+            const allTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+            const projectTasks = allTasks.filter(task => task.projectId === projectId);
+            
+            // 現在の表示をプロジェクトタスクのみに更新
+            window.currentProjectFilter = projectId;
+            loadTasks();
+        }
+        
+        // プロジェクト情報を表示
+        function showProjectInfo(projectId) {
+            const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+            const project = projects.find(p => p.id === projectId);
+            
+            if (project) {
+                // ヘッダーにプロジェクト情報を表示
+                const header = document.querySelector('.header h1');
+                if (header) {
+                    header.innerHTML = `📂 ${project.name} - タスク管理`;
+                }
+                
+                console.log(`📂 プロジェクト「${project.name}」のタスクを表示中`);
+            }
+        }
+        
+        // プロジェクト編集
+        function editProject(projectId) {
+            try {
+                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                const project = projects.find(p => p.id === projectId);
+                
+                if (!project) {
+                    alert('プロジェクトが見つかりません');
+                    return;
+                }
+                
+                const currentUser = getCurrentUser();
+                const isOwner = project.createdBy === currentUser.email;
+                const isDeveloper = currentUser.role === 'developer';
+                
+                if (!isOwner && !isDeveloper) {
+                    alert('このプロジェクトを編集する権限がありません');
+                    return;
+                }
+                
+                // プロジェクト編集モーダルを表示
+                showProjectEditModal(project);
+                
+            } catch (error) {
+                console.error('プロジェクト編集エラー:', error);
+                alert('プロジェクトの編集に失敗しました: ' + error.message);
+            }
+        }
+        
+        // プロジェクト編集モーダルを表示
+        function showProjectEditModal(project) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.6); z-index: 2100;
+                display: flex; align-items: center; justify-content: center; padding: 20px;
+            `;
+            
+            const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const memberOptions = systemUsers.map(user => {
+                const isSelected = project.members.includes(user.email);
+                return `
+                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: ${isSelected ? '#dbeafe' : '#f9fafb'}; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <input type="checkbox" value="${user.email}" ${isSelected ? 'checked' : ''} style="margin: 0;">
+                        <span>${user.name} (${user.email})</span>
+                    </label>
+                `;
+            }).join('');
+            
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; width: 100%; max-width: 600px; max-height: 80vh; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0; font-size: 1.25rem;">✏️ プロジェクト編集</h3>
+                        <button onclick="this.closest('div').remove()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
+                    </div>
+                    
+                    <div style="padding: 1.5rem; overflow-y: auto; max-height: 60vh;">
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">プロジェクト名</label>
+                            <input type="text" id="editProjectName" value="${project.name}" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                        </div>
+                        
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">説明</label>
+                            <textarea id="editProjectDescription" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; height: 80px; resize: vertical;">${project.description}</textarea>
+                        </div>
+                        
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">公開設定</label>
+                            <select id="editProjectVisibility" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                                <option value="public" ${project.visibility === 'public' ? 'selected' : ''}>🌐 全員に公開</option>
+                                <option value="private" ${project.visibility === 'private' ? 'selected' : ''}>🔒 メンバーのみ</option>
+                            </select>
+                        </div>
+                        
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">ステータス</label>
+                            <select id="editProjectStatus" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                                <option value="active" ${project.status === 'active' ? 'selected' : ''}>🟢 アクティブ</option>
+                                <option value="completed" ${project.status === 'completed' ? 'selected' : ''}>✅ 完了</option>
+                                <option value="archived" ${project.status === 'archived' ? 'selected' : ''}>📁 アーカイブ</option>
+                            </select>
+                        </div>
+                        
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">プロジェクトメンバー</label>
+                            <div id="membersList" style="max-height: 200px; overflow-y: auto; border: 2px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
+                                ${memberOptions}
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                            <button onclick="this.closest('div').remove()" style="background: #6b7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer;">
+                                キャンセル
+                            </button>
+                            <button onclick="saveProjectChanges('${project.id}', this.closest('div'))" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">
+                                保存
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        // プロジェクトの変更を保存
+        function saveProjectChanges(projectId, modalElement) {
+            try {
+                const name = document.getElementById('editProjectName').value.trim();
+                const description = document.getElementById('editProjectDescription').value.trim();
+                const visibility = document.getElementById('editProjectVisibility').value;
+                const status = document.getElementById('editProjectStatus').value;
+                
+                // メンバーリストを取得
+                const memberCheckboxes = modalElement.querySelectorAll('#membersList input[type="checkbox"]');
+                const members = Array.from(memberCheckboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value);
+                
+                if (!name) {
+                    alert('プロジェクト名を入力してください');
+                    return;
+                }
+                
+                if (members.length === 0) {
+                    alert('少なくとも1人のメンバーを選択してください');
+                    return;
+                }
+                
+                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                const projectIndex = projects.findIndex(p => p.id === projectId);
+                
+                if (projectIndex === -1) {
+                    alert('プロジェクトが見つかりません');
+                    return;
+                }
+                
+                // プロジェクト情報を更新
+                projects[projectIndex] = {
+                    ...projects[projectIndex],
+                    name: name,
+                    description: description,
+                    visibility: visibility,
+                    status: status,
+                    members: members,
+                    updatedAt: new Date().toISOString()
+                };
+                
+                localStorage.setItem('projects', JSON.stringify(projects));
+                
+                // Firebaseにも保存（接続している場合）
+                if (window.FirebaseAuth?.getCurrentUser() && window.firebaseConfig?.saveProject) {
+                    window.firebaseConfig.saveProject(projects[projectIndex]);
+                }
+                
+                console.log('✅ プロジェクトを更新:', projects[projectIndex].name);
+                
+                modalElement.remove();
+                loadProjectsList();
+                
+                alert(`✅ プロジェクト「${name}」を更新しました！`);
+                
+            } catch (error) {
+                console.error('プロジェクト更新エラー:', error);
+                alert('プロジェクトの更新に失敗しました: ' + error.message);
+            }
+        }
+        
+        // プロジェクト削除
+        function deleteProject(projectId) {
+            try {
+                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                const project = projects.find(p => p.id === projectId);
+                
+                if (!project) {
+                    alert('プロジェクトが見つかりません');
+                    return;
+                }
+                
+                const currentUser = getCurrentUser();
+                const isOwner = project.createdBy === currentUser.email;
+                const isDeveloper = currentUser.role === 'developer';
+                
+                if (!isOwner && !isDeveloper) {
+                    alert('このプロジェクトを削除する権限がありません');
+                    return;
+                }
+                
+                if (!confirm(`プロジェクト「${project.name}」を削除しますか？\n\n⚠️ この操作は取り消せません。\nプロジェクトに関連するタスクも確認が必要です。`)) {
+                    return;
+                }
+                
+                // プロジェクトに関連するタスクをチェック
+                const allTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+                const projectTasks = allTasks.filter(task => task.projectId === projectId);
+                
+                if (projectTasks.length > 0) {
+                    const action = confirm(`このプロジェクトには${projectTasks.length}個のタスクが関連付けられています。\n\n「OK」: タスクも一緒に削除\n「キャンセル」: プロジェクトのみ削除（タスクは個人タスクに変更）`);
+                    
+                    if (action) {
+                        // タスクも一緒に削除
+                        const remainingTasks = allTasks.filter(task => task.projectId !== projectId);
+                        localStorage.setItem('tasks', JSON.stringify(remainingTasks));
+                        console.log(`🗑️ プロジェクトタスク${projectTasks.length}個を削除`);
+                    } else {
+                        // タスクを個人タスクに変更
+                        projectTasks.forEach(task => {
+                            delete task.projectId;
+                            task.visibility = 'personal';
+                        });
+                        localStorage.setItem('tasks', JSON.stringify(allTasks));
+                        console.log(`🔄 プロジェクトタスク${projectTasks.length}個を個人タスクに変更`);
+                    }
+                }
+                
+                // プロジェクトを削除
+                const updatedProjects = projects.filter(p => p.id !== projectId);
+                localStorage.setItem('projects', JSON.stringify(updatedProjects));
+                
+                // Firebaseからも削除（接続している場合）
+                if (window.FirebaseAuth?.getCurrentUser() && window.firebaseConfig?.deleteProject) {
+                    window.firebaseConfig.deleteProject(projectId);
+                }
+                
+                console.log('🗑️ プロジェクトを削除:', project.name);
+                
+                loadProjectsList();
+                loadTasks(); // タスク一覧を更新
+                
+                alert(`🗑️ プロジェクト「${project.name}」を削除しました`);
+                
+            } catch (error) {
+                console.error('プロジェクト削除エラー:', error);
+                alert('プロジェクトの削除に失敗しました: ' + error.message);
+            }
+        }
+        
         // Firebase移行モーダル表示
         function showFirebaseMigrationModal() {
             if (!window.FirebaseAuth?.getCurrentUser()) {
@@ -12175,6 +13012,11 @@
         <!-- PJ設定は全ユーザーアクセス可能 -->
         <div class="menu-section">
             <div class="menu-section-title">プロジェクト</div>
+            <a href="#" class="menu-item" onclick="openProjectManagementModal(); toggleHamburgerMenu(); return false;">
+                <span>📂</span>
+                <span>プロジェクト管理</span>
+                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">プロジェクト作成・メンバー管理・共有設定</div>
+            </a>
             <a href="pj-settings.html" class="menu-item" onclick="toggleHamburgerMenu();">
                 <span>🏗️</span>
                 <span>PJ設定・管理</span>

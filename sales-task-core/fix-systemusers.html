@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>🔧 systemUsers権限修復ツール</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+        .success { background: #4CAF50; color: white; }
+        .danger { background: #f44336; color: white; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>🔧 systemUsers権限修復ツール</h1>
+    
+    <button onclick="showCurrentUsers()" class="success">現在のsystemUsersを表示</button>
+    <button onclick="fixUserRoles()" class="success">権限を修復</button>
+    <button onclick="addMissingUser()" class="success">tamura-wataru を追加</button>
+    
+    <div id="current-users"></div>
+    <div id="log"></div>
+    
+    <script>
+        function log(message) {
+            document.getElementById('log').innerHTML += message + '<br>';
+            console.log(message);
+        }
+        
+        function showCurrentUsers() {
+            const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            
+            let html = '<h2>現在のsystemUsers（' + users.length + '名）</h2>';
+            html += '<table><tr><th>ID</th><th>名前</th><th>メール</th><th>権限</th><th>部署</th></tr>';
+            
+            users.forEach(user => {
+                const roleColor = user.role === 'developer' ? '#e91e63' : 
+                                user.role === 'admin' ? '#ff5722' : '#4caf50';
+                html += `<tr>
+                    <td>${user.id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td style="color: ${roleColor}; font-weight: bold;">${user.role}</td>
+                    <td>${user.department || '-'}</td>
+                </tr>`;
+            });
+            
+            html += '</table>';
+            document.getElementById('current-users').innerHTML = html;
+        }
+        
+        function fixUserRoles() {
+            const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            let fixed = false;
+            
+            const correctRoles = {
+                'muranaka-tenma@terracom.co.jp': 'developer',
+                'kato-jun@terracom.co.jp': 'admin', 
+                'asahi-keiichi@terracom.co.jp': 'admin',
+                'hanzawa-yuka@terracom.co.jp': 'user',
+                'tamura-wataru@terracom.co.jp': 'user',
+                'hashimoto-yumi@terracom.co.jp': 'user',
+                'fukushima-ami@terracom.co.jp': 'user'
+            };
+            
+            users.forEach(user => {
+                const correctRole = correctRoles[user.email];
+                if (correctRole && user.role !== correctRole) {
+                    log(`🔧 ${user.name}の権限を${user.role}から${correctRole}に修正`);
+                    user.role = correctRole;
+                    fixed = true;
+                }
+            });
+            
+            if (fixed) {
+                localStorage.setItem('systemUsers', JSON.stringify(users));
+                log('✅ 権限修復完了');
+                showCurrentUsers();
+            } else {
+                log('ℹ️ 修正が必要な権限はありませんでした');
+            }
+        }
+        
+        function addMissingUser() {
+            const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const tamuraEmail = 'tamura-wataru@terracom.co.jp';
+            
+            const exists = users.find(u => u.email === tamuraEmail);
+            if (exists) {
+                log('ℹ️ tamura-wataru は既に存在します');
+                return;
+            }
+            
+            const newUser = {
+                id: Math.max(...users.map(u => u.id || 0)) + 1,
+                name: '田村渉',
+                email: 'tamura-wataru@terracom.co.jp',
+                password: 'aikakumei',
+                role: 'user',
+                department: '-',
+                createdAt: new Date().toISOString()
+            };
+            
+            users.push(newUser);
+            localStorage.setItem('systemUsers', JSON.stringify(users));
+            
+            log(`✅ ${newUser.name}をsystemUsersに追加しました`);
+            showCurrentUsers();
+        }
+        
+        // 初期表示
+        showCurrentUsers();
+    </script>
+</body>
+</html>

@@ -278,11 +278,22 @@
                     return false;
                 }
                 
-                // 管理者権限チェック
+                // 管理者権限チェック（詳細デバッグ付き）
+                console.log('🔐 [PERM-CHECK] セッション権限チェック:', {
+                    userRole: session.user.role,
+                    userName: session.user.name,
+                    userEmail: session.user.email,
+                    isAdmin: ['admin', 'developer'].includes(session.user.role),
+                    sessionData: session.user
+                });
+                
                 if (!['admin', 'developer'].includes(session.user.role)) {
-                    alert('この機能は管理者のみ利用可能です。');
+                    console.error('❌ [PERM-CHECK] 権限チェック失敗:', session.user.role, '!= admin or developer');
+                    alert(`この機能は管理者のみ利用可能です。\n現在の権限: ${session.user.role}\n必要な権限: admin または developer`);
                     window.location.href = 'index-kanban.html';
                     return false;
+                } else {
+                    console.log('✅ [PERM-CHECK] 権限チェック成功:', session.user.role);
                 }
                 
                 return true;
@@ -290,6 +301,54 @@
                 window.location.href = 'login.html';
                 return false;
             }
+        }
+        
+        // 権限完全性チェック関数（index-kanban.htmlと同じ）
+        function ensureUserPermissionsIntegrity() {
+            const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const correctRoles = {
+                'muranaka-tenma@terracom.co.jp': 'developer',
+                'kato-jun@terracom.co.jp': 'admin',
+                'asahi-keiichi@terracom.co.jp': 'admin',
+                'hanzawa-yuka@terracom.co.jp': 'user',
+                'tamura-wataru@terracom.co.jp': 'user',
+                'hashimoto-yumi@terracom.co.jp': 'user',
+                'fukushima-ami@terracom.co.jp': 'user'
+            };
+            
+            let corrected = false;
+            let allUsersAreUser = systemUsers.length > 0 && systemUsers.every(user => user.role === 'user');
+            
+            if (allUsersAreUser) {
+                console.warn('⚠️ [USER-MGMT-CRITICAL] 全ユーザーがuserになっている - 緊急修復実行');
+            }
+            
+            // 🔧 強制的に正しい権限を適用（ユーザー管理画面版）
+            systemUsers.forEach(user => {
+                const correctRole = correctRoles[user.email];
+                if (correctRole) {
+                    const oldRole = user.role;
+                    user.role = correctRole; // 強制的に正しい権限に設定
+                    if (oldRole !== correctRole) {
+                        console.log(`🔧 [USER-MGMT-FORCE] ${user.name}: ${oldRole} → ${correctRole} (強制修正)`);
+                        corrected = true;
+                    }
+                }
+            });
+            
+            // 🔄 常に保存（強制修正）
+            localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+            console.log('✅ [USER-MGMT-FORCE] ユーザー管理画面で権限の完全性を強制修復');
+            
+            // 🔍 修正後の権限状況を確認表示
+            console.log('📋 [USER-MGMT-STATUS] 修正後の権限状況:');
+            systemUsers.forEach(user => {
+                const roleEmoji = user.role === 'developer' ? '👨‍💻' : 
+                                 user.role === 'admin' ? '👤' : '🧑‍💼';
+                console.log(`  ${roleEmoji} ${user.name} (${user.email}) - ${user.role}`);
+            });
+            
+            return corrected;
         }
         
         // 認証チェックを実行
@@ -399,6 +458,10 @@
         window.addEventListener('DOMContentLoaded', async () => {
             try {
                 console.log('🔄 [USER-MGMT] Firebase認証を待機中...');
+                
+                // 🔧 権限完全性チェックを最初に実行
+                ensureUserPermissionsIntegrity();
+                
                 await waitForFirebaseAuth();
                 await loadUsers();
             } catch (error) {
@@ -594,6 +657,11 @@
                 console.warn('⚠️ [USER-MGMT] Firebase読み込みエラー - LocalStorageフォールバック:', error);
                 // LocalStorageフォールバック
                 users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                
+                // 🔧 権限完全性チェック（user-management画面用）
+                ensureUserPermissionsIntegrity();
+                // 修復後に再読み込み
+                users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
             }
             
             // UIを更新
@@ -628,8 +696,11 @@
         }
         
         function editUser(userId) {
-            const user = users.find(u => u.id === userId);
-            if (!user) return;
+            const user = users.find(u => u.id === userId || u.uid === userId);
+            if (!user) {
+                console.error('❌ ユーザーが見つかりません:', userId);
+                return;
+            }
             
             const newRole = prompt('新しい権限を選択してください:\ndeveloper: 開発者\nadmin: 管理者\nuser: 一般ユーザー', user.role);
             
@@ -637,6 +708,17 @@
                 user.role = newRole;
                 user.updatedAt = new Date().toISOString();
                 saveUsers();
+                
+                // Firebase更新
+                if (window.FirebaseDB && user.uid) {
+                    window.FirebaseDB.updateUserInfo(user.uid, { role: newRole })
+                        .then(result => {
+                            if (result.success) {
+                                console.log('✅ Firebase権限更新成功');
+                            }
+                        });
+                }
+                
                 loadUsers();
                 showSuccess();
                 console.log('✅ ユーザー権限更新:', user.name, newRole);
