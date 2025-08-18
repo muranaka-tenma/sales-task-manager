@@ -2187,13 +2187,17 @@
                             // LocalStorageにも保存（オフライン時のフォールバック）
                             localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
                             
+                            // 🔧 重要修正: グローバルtasks配列を確実に設定
+                            window.tasks = tasks;
+                            console.log('🔧 [FIREBASE] グローバルtasks配列を設定:', window.tasks.length, '件');
+                            
+                            // リアルタイム同期のためのアンサブスクライブ関数を保存
+                            window.firestoreUnsubscribe = result.unsubscribe;
+                            
                             // 🔧 重要修正: Firebase初期読み込み後に必ず画面を再描画
                             console.log('🎨 [FIREBASE] Firebase初期読み込み完了 - 画面を再描画します');
                             render();
                             updateStats();
-                            
-                            // リアルタイム同期のためのアンサブスクライブ関数を保存
-                            window.firestoreUnsubscribe = result.unsubscribe;
                             
                             return tasks;
                         } else {
@@ -11859,9 +11863,9 @@
         (async () => {
             try {
                 await init();
-                // 初期化完了後に画面を更新
-                render();
-                console.log('🎨 [INIT] 画面レンダリング完了');
+                // 🔧 修正: 初期化後のrender()は、loadTasks()内で既に実行されているため削除
+                // render();
+                console.log('🎨 [INIT] 初期化完了 - tasksグローバル配列:', window.tasks?.length || 0, '件');
                 
                 // 🔧 Firebase統合後のユーザー情報強制更新（キャッシュ問題対策）
                 setTimeout(() => {
