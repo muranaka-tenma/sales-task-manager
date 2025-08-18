@@ -4137,6 +4137,16 @@
             saveTasks();
             console.log('🔍 [EDIT SAVE] Tasks count after save:', tasks.length);
             
+            // 🔒 セッション保護：タスク作成前にセッション状態をバックアップ
+            const currentSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
+            const currentUserBackup = localStorage.getItem('currentUser');
+            console.log('🔒 [SESSION-PROTECT] タスク作成前セッション保護:', {
+                hasSession: !!currentSession,
+                userName: currentSession?.user?.name,
+                userEmail: currentSession?.user?.email,
+                backupUser: currentUserBackup
+            });
+
             // Firebase同期（新規タスクまたは編集タスク）
             if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
                 try {
@@ -4170,6 +4180,23 @@
                 }
             } else {
                 console.log('💾 [FIREBASE] Firebase未対応またはログアウト状態 - LocalStorageのみ');
+            }
+
+            // 🔒 セッション保護：Firebase同期後にセッションが変更されていないか確認
+            const sessionAfterSync = JSON.parse(localStorage.getItem('currentSession') || 'null');
+            const userAfterSync = localStorage.getItem('currentUser');
+            
+            if (currentSession && sessionAfterSync) {
+                if (currentSession.user?.email !== sessionAfterSync.user?.email) {
+                    console.warn('⚠️ [SESSION-PROTECT] セッション変更を検出！復元します:', {
+                        before: currentSession.user?.email,
+                        after: sessionAfterSync.user?.email
+                    });
+                    localStorage.setItem('currentSession', JSON.stringify(currentSession));
+                    if (currentUserBackup) {
+                        localStorage.setItem('currentUser', currentUserBackup);
+                    }
+                }
             }
             
             console.log('🎨 [EDIT SAVE] About to call render()');
@@ -5581,13 +5608,15 @@
                         if (signInResult.success) {
                             console.log('✅ [INIT] Firebaseログイン成功');
                             
-                            // 🔧 Firebase認証状態に合わせてLocalStorageセッションを強制同期
+                            // 🔧 Firebase認証状態の確認（強制同期は無効化）
                             const firebaseUser = window.firebaseAuth?.currentUser || signInResult.user;
                             console.log('🔄 [SYNC] Firebase認証ユーザー確認:', firebaseUser?.email);
                             console.log('🔄 [SYNC] ローカルセッションユーザー:', localSession?.user?.email);
                             
-                            if (firebaseUser) {
-                                // Firebase認証ユーザーに合わせて強制的にLocalStorageセッションを更新
+                            // ローカルセッションが存在しない場合のみFirebase認証に合わせる
+                            if (firebaseUser && (!localSession || !localSession.user)) {
+                                console.log('🔧 [SYNC] ローカルセッションが存在しないため、Firebase認証に合わせて初期化');
+                                
                                 const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                                 const correctUser = systemUsers.find(u => u.email === firebaseUser.email);
                                 
@@ -5605,10 +5634,12 @@
                                     };
                                     localStorage.setItem('currentSession', JSON.stringify(updatedSession));
                                     localStorage.setItem('currentUser', correctUser.name);
-                                    console.log('✅ [SYNC] Firebase認証に合わせてセッション強制同期完了:', correctUser.name, correctUser.role, correctUser.email);
+                                    console.log('✅ [SYNC] Firebase認証に合わせてセッション初期化完了:', correctUser.name, correctUser.role, correctUser.email);
                                 } else {
                                     console.error('❌ [SYNC] Firebase認証ユーザーがsystemUsersに見つかりません:', firebaseUser.email);
                                 }
+                            } else if (firebaseUser && localSession && localSession.user) {
+                                console.log('ℹ️ [SYNC] ローカルセッション維持:', localSession.user.name, '(Firebase:', firebaseUser.email + ')');
                             }
                             
                             // ログイン成功後、少し待ってからタスク読み込み
