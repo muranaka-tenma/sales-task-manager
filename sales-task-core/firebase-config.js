@@ -627,10 +627,23 @@ window.FirebaseDebug = {
       
       // Firebaseからタスクを直接取得
       let firebaseTasks = [];
+      let firebaseResult = null;
       try {
-        const result = await window.FirebaseDB.getTasks();
-        firebaseTasks = result || [];
+        firebaseResult = await window.FirebaseDB.getTasks();
+        firebaseTasks = firebaseResult.tasks || [];
+        console.log('📡 [TASK-DIAGNOSIS] Firebase結果:', firebaseResult);
         console.log('📡 [TASK-DIAGNOSIS] Firebaseタスク:', firebaseTasks.length + '件');
+        
+        // Firebaseタスクの詳細情報
+        firebaseTasks.slice(0, 5).forEach((task, index) => {
+          console.log(`🔥 [FB-TASK-${index}]`, {
+            id: task.id,
+            title: task.title?.substring(0, 30),
+            createdBy: task.createdBy,
+            assignee: task.assignee,
+            projectId: task.projectId
+          });
+        });
       } catch (error) {
         console.error('❌ [TASK-DIAGNOSIS] Firebase取得エラー:', error);
       }
@@ -638,10 +651,32 @@ window.FirebaseDebug = {
       // LocalStorageからタスクを取得
       const localTasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
       console.log('💾 [TASK-DIAGNOSIS] LocalStorageタスク:', localTasks.length + '件');
+      
+      // LocalStorageタスクの詳細情報
+      localTasks.slice(0, 5).forEach((task, index) => {
+        console.log(`💾 [LS-TASK-${index}]`, {
+          id: task.id,
+          title: task.title?.substring(0, 30),
+          createdBy: task.createdBy || 'unknown',
+          assignee: task.assignee,
+          projectId: task.projectId
+        });
+      });
 
       // 現在表示されているタスクを取得
       const displayedTasks = window.tasks || [];
       console.log('👁️ [TASK-DIAGNOSIS] 表示中タスク:', displayedTasks.length + '件');
+
+      // ID重複チェック
+      const firebaseIds = new Set(firebaseTasks.map(t => t.id));
+      const localIds = new Set(localTasks.map(t => t.id));
+      const displayedIds = new Set(displayedTasks.map(t => t.id));
+      
+      const idOverlap = {
+        firebaseOnly: firebaseTasks.filter(t => !localIds.has(t.id)).length,
+        localOnly: localTasks.filter(t => !firebaseIds.has(t.id)).length,
+        both: firebaseTasks.filter(t => localIds.has(t.id)).length
+      };
 
       // 診断結果をまとめる
       const diagnosis = {
@@ -649,22 +684,31 @@ window.FirebaseDebug = {
         localStorage: localTasks.length,
         displayed: displayedTasks.length,
         firebaseAuthUser: user.email,
+        idOverlap: idOverlap,
         lastSync: new Date().toISOString()
       };
 
       console.log('📊 [TASK-DIAGNOSIS] 診断結果:', diagnosis);
 
       // ユーザーフレンドリーな結果表示
-      const message = `📊 タスク同期診断結果
-      
+      const message = `📊 詳細タスク同期診断結果
+
 Firebase: ${firebaseTasks.length}件
-ローカル: ${localTasks.length}件
+ローカル: ${localTasks.length}件 
 表示中: ${displayedTasks.length}件
+
+ID重複状況:
+・Firebase限定: ${idOverlap.firebaseOnly}件
+・ローカル限定: ${idOverlap.localOnly}件  
+・両方にある: ${idOverlap.both}件
 
 ログインユーザー: ${user.email}
 
 ${firebaseTasks.length === 0 ? '⚠️ Firebaseにタスクがありません' : '✅ Firebase接続OK'}
-${displayedTasks.length === 0 ? '⚠️ タスクが表示されていません' : '✅ タスク表示OK'}`;
+${displayedTasks.length === 0 ? '⚠️ タスクが表示されていません' : '✅ タスク表示OK'}
+${idOverlap.firebaseOnly > 0 ? '⚠️ Firebase限定タスクあり - 同期問題の可能性' : ''}
+
+詳細はコンソールログをご確認ください。`;
 
       alert(message);
       return diagnosis;
@@ -673,14 +717,69 @@ ${displayedTasks.length === 0 ? '⚠️ タスクが表示されていません'
       console.error('❌ [TASK-DIAGNOSIS] 診断エラー:', error);
       alert('❌ 診断中にエラーが発生しました: ' + error.message);
     }
+  },
+
+  // 強制的にFirebaseから最新タスクを再読み込み
+  forceReloadTasks: async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        alert('❌ 認証が必要です。ログインしてから実行してください。');
+        return;
+      }
+
+      console.log('🔄 [FORCE-RELOAD] Firebase強制再読み込み開始...');
+      
+      // 現在のタスク表示状況
+      const currentTasks = window.tasks || [];
+      console.log('🔄 [FORCE-RELOAD] 現在の表示タスク数:', currentTasks.length);
+
+      // Firebaseから強制的に最新データを取得
+      const result = await window.FirebaseDB.getTasks();
+      if (result.success && result.tasks) {
+        console.log('🔄 [FORCE-RELOAD] Firebase新データ取得:', result.tasks.length, '件');
+        
+        // グローバルタスク配列を直接更新
+        window.tasks = result.tasks;
+        
+        // LocalStorageも更新
+        localStorage.setItem('salesTasksKanban', JSON.stringify(result.tasks));
+        
+        // 画面を再描画
+        if (window.render) {
+          window.render();
+          console.log('🔄 [FORCE-RELOAD] 画面再描画完了');
+        }
+        
+        alert(`✅ 強制再読み込み完了\n\nFirebaseから ${result.tasks.length} 件のタスクを取得し、表示を更新しました。`);
+        
+        return {
+          success: true,
+          oldCount: currentTasks.length,
+          newCount: result.tasks.length
+        };
+      } else {
+        console.error('❌ [FORCE-RELOAD] Firebase取得失敗:', result.error);
+        alert('❌ Firebase取得に失敗しました: ' + result.error);
+        return { success: false, error: result.error };
+      }
+
+    } catch (error) {
+      console.error('❌ [FORCE-RELOAD] 強制再読み込みエラー:', error);
+      alert('❌ 強制再読み込み中にエラーが発生しました: ' + error.message);
+      return { success: false, error: error.message };
+    }
   }
 };
 
 console.log('🔥 Firebase統合システム準備完了');
 console.log('🧪 デバッグツール利用方法:');
 console.log('  - 認証状態確認: FirebaseDebug.showAuthState()');
-console.log('  - タスク同期診断: FirebaseDebug.diagnoseTasks() ← 新機能！');
+console.log('  - タスク同期診断: FirebaseDebug.diagnoseTasks() ← 詳細診断！');
+console.log('  - 強制再読み込み: FirebaseDebug.forceReloadTasks() ← 新機能！');
 console.log('  - 同期テスト: FirebaseDebug.testRealtimeSync()');
 console.log('  - 詳細ログ: FirebaseDebug.checkAuthState() (コンソールのみ)');
 console.log('');
-console.log('🚨 タスクが共有されない場合は FirebaseDebug.diagnoseTasks() を実行してください！');
+console.log('🚨 タスクが表示されない場合:');
+console.log('   1. FirebaseDebug.diagnoseTasks() で診断');
+console.log('   2. FirebaseDebug.forceReloadTasks() で強制更新');
