@@ -2187,6 +2187,11 @@
                             // LocalStorageにも保存（オフライン時のフォールバック）
                             localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
                             
+                            // 🔧 重要修正: Firebase初期読み込み後に必ず画面を再描画
+                            console.log('🎨 [FIREBASE] Firebase初期読み込み完了 - 画面を再描画します');
+                            render();
+                            updateStats();
+                            
                             // リアルタイム同期のためのアンサブスクライブ関数を保存
                             window.firestoreUnsubscribe = result.unsubscribe;
                             
