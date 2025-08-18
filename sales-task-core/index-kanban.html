@@ -5948,7 +5948,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             console.warn('⚠️ [IMMEDIATE-CHECK] LocalStorageが空です');
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             // 🔧 【最優先】ユーザーデータベース初期化
             try {
                 initializeUserDatabase();
@@ -6012,7 +6012,11 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             }, 100);
             
             // 主要初期化を実行
-            await init();
+            try {
+                await init();
+            } catch (error) {
+                console.error('❌ 初期化エラー:', error);
+            }
             
             // OCRモーダルのイベントリスナーを初期化
             initOCRModalEventListeners();
