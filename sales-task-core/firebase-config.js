@@ -612,11 +612,75 @@ window.FirebaseDebug = {
     
     alert(message);
     return window.FirebaseDebug.checkAuthState();
+  },
+
+  // タスク同期状況を診断
+  diagnoseTasks: async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        alert('❌ 認証が必要です。ログインしてから実行してください。');
+        return;
+      }
+
+      console.log('🔍 [TASK-DIAGNOSIS] タスク同期診断開始...');
+      
+      // Firebaseからタスクを直接取得
+      let firebaseTasks = [];
+      try {
+        const result = await window.FirebaseDB.getTasks();
+        firebaseTasks = result || [];
+        console.log('📡 [TASK-DIAGNOSIS] Firebaseタスク:', firebaseTasks.length + '件');
+      } catch (error) {
+        console.error('❌ [TASK-DIAGNOSIS] Firebase取得エラー:', error);
+      }
+
+      // LocalStorageからタスクを取得
+      const localTasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+      console.log('💾 [TASK-DIAGNOSIS] LocalStorageタスク:', localTasks.length + '件');
+
+      // 現在表示されているタスクを取得
+      const displayedTasks = window.tasks || [];
+      console.log('👁️ [TASK-DIAGNOSIS] 表示中タスク:', displayedTasks.length + '件');
+
+      // 診断結果をまとめる
+      const diagnosis = {
+        firebase: firebaseTasks.length,
+        localStorage: localTasks.length,
+        displayed: displayedTasks.length,
+        firebaseAuthUser: user.email,
+        lastSync: new Date().toISOString()
+      };
+
+      console.log('📊 [TASK-DIAGNOSIS] 診断結果:', diagnosis);
+
+      // ユーザーフレンドリーな結果表示
+      const message = `📊 タスク同期診断結果
+      
+Firebase: ${firebaseTasks.length}件
+ローカル: ${localTasks.length}件
+表示中: ${displayedTasks.length}件
+
+ログインユーザー: ${user.email}
+
+${firebaseTasks.length === 0 ? '⚠️ Firebaseにタスクがありません' : '✅ Firebase接続OK'}
+${displayedTasks.length === 0 ? '⚠️ タスクが表示されていません' : '✅ タスク表示OK'}`;
+
+      alert(message);
+      return diagnosis;
+
+    } catch (error) {
+      console.error('❌ [TASK-DIAGNOSIS] 診断エラー:', error);
+      alert('❌ 診断中にエラーが発生しました: ' + error.message);
+    }
   }
 };
 
 console.log('🔥 Firebase統合システム準備完了');
 console.log('🧪 デバッグツール利用方法:');
-console.log('  - 認証状態確認: FirebaseDebug.showAuthState() (アラート表示)');
-console.log('  - 同期テスト: FirebaseDebug.testRealtimeSync() (アラート表示)');
+console.log('  - 認証状態確認: FirebaseDebug.showAuthState()');
+console.log('  - タスク同期診断: FirebaseDebug.diagnoseTasks() ← 新機能！');
+console.log('  - 同期テスト: FirebaseDebug.testRealtimeSync()');
 console.log('  - 詳細ログ: FirebaseDebug.checkAuthState() (コンソールのみ)');
+console.log('');
+console.log('🚨 タスクが共有されない場合は FirebaseDebug.diagnoseTasks() を実行してください！');
