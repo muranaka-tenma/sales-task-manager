@@ -2151,32 +2151,19 @@
                             console.log('✅ [FIREBASE] Firestoreからタスク読み込み成功:', result.tasks.length, '件');
                             console.log('📊 [FIREBASE] タスクデータサンプル:', result.tasks.slice(0, 2));
                             
-                            // Firebase タスクをグローバル配列に設定（重複除去改善版）
-                            console.log('🔍 [FIREBASE] 重複除去前のタスク数:', result.tasks.length);
+                            // 🔧 修正: 重複除去を一時的に無効化して全タスクを表示
+                            console.log('🔍 [FIREBASE] Firebase取得タスク数:', result.tasks.length);
+                            console.log('🔍 [FIREBASE] タスクID形式確認（最初の5件）:', 
+                                result.tasks.slice(0, 5).map(t => ({
+                                    id: t.id,
+                                    idType: typeof t.id,
+                                    title: t.title?.substring(0, 20)
+                                }))
+                            );
                             
-                            const uniqueTasks = [];
-                            const seenIds = new Set();
-                            const duplicateInfo = [];
-                            
-                            for (const task of result.tasks) {
-                                if (!seenIds.has(task.id)) {
-                                    seenIds.add(task.id);
-                                    uniqueTasks.push(task);
-                                } else {
-                                    duplicateInfo.push({
-                                        id: task.id,
-                                        title: task.title?.substring(0, 30),
-                                        createdBy: task.createdBy
-                                    });
-                                }
-                            }
-                            
-                            if (duplicateInfo.length > 0) {
-                                console.log('🔍 [FIREBASE] 重複タスクが検出されました:', duplicateInfo);
-                            }
-                            
-                            tasks = uniqueTasks;
-                            console.log('🔍 [FIREBASE] 重複除去後のタスク数:', tasks.length);
+                            // 重複除去を無効化 - 全26件を表示するため
+                            tasks = result.tasks;
+                            console.log('🔍 [FIREBASE] 重複除去を無効化 - 全タスク表示:', tasks.length);
                             console.log('🔍 [FIREBASE] 実際のタスクリスト（最初の5件）:', tasks.slice(0, 5).map(t => ({
                                 id: t.id,
                                 title: t.title?.substring(0, 30),
