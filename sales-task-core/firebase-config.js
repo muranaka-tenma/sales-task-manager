@@ -719,6 +719,79 @@ ${idOverlap.firebaseOnly > 0 ? '⚠️ Firebase限定タスクあり - 同期問
     }
   },
 
+  // 新規タスク作成後の同期テスト
+  testTaskCreationSync: async (taskTitle = null) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        alert('❌ 認証が必要です。ログインしてから実行してください。');
+        return;
+      }
+
+      const title = taskTitle || `🧪新規作成同期テスト ${new Date().toLocaleTimeString()}`;
+      console.log('🧪 [SYNC-TEST] タスク作成同期テスト開始:', title);
+      
+      // 作成前のタスク数を記録
+      const beforeTasks = window.tasks || [];
+      console.log('🧪 [SYNC-TEST] 作成前タスク数:', beforeTasks.length);
+
+      // テストタスクを作成
+      const testTask = {
+        title: title,
+        description: 'マルチユーザー同期テスト用のタスクです',
+        columnId: 'todo',
+        priority: 'medium',
+        assignee: user.email,
+        createdAt: new Date().toISOString(),
+        isTestTask: true
+      };
+
+      const result = await window.FirebaseDB.createTask(testTask);
+      if (result.success) {
+        console.log('✅ [SYNC-TEST] Firebaseタスク作成成功:', result.id);
+        
+        // 3秒待ってリアルタイム同期を確認
+        setTimeout(() => {
+          const afterTasks = window.tasks || [];
+          console.log('🧪 [SYNC-TEST] 3秒後タスク数:', afterTasks.length);
+          
+          const newTask = afterTasks.find(t => t.title === title);
+          const syncResult = {
+            before: beforeTasks.length,
+            after: afterTasks.length,
+            taskFound: !!newTask,
+            taskId: newTask ? newTask.id : null
+          };
+          
+          console.log('🧪 [SYNC-TEST] 同期結果:', syncResult);
+          
+          const message = `🧪 タスク作成同期テスト結果
+
+作成前: ${syncResult.before}件
+作成後: ${syncResult.after}件
+新規タスク検出: ${syncResult.taskFound ? '✅ あり' : '❌ なし'}
+
+${syncResult.taskFound ? 
+  '✅ リアルタイム同期正常動作！\n他のユーザーでも表示されているはずです。' : 
+  '⚠️ リアルタイム同期に問題があります。\nFirebaseDebug.forceReloadTasks()を実行してください。'}`;
+          
+          alert(message);
+        }, 3000);
+        
+        return { success: true, taskId: result.id, title: title };
+      } else {
+        console.error('❌ [SYNC-TEST] タスク作成失敗:', result.error);
+        alert('❌ タスク作成に失敗しました: ' + result.error);
+        return { success: false, error: result.error };
+      }
+
+    } catch (error) {
+      console.error('❌ [SYNC-TEST] 同期テストエラー:', error);
+      alert('❌ 同期テスト中にエラーが発生しました: ' + error.message);
+      return { success: false, error: error.message };
+    }
+  },
+
   // 強制的にFirebaseから最新タスクを再読み込み
   forceReloadTasks: async () => {
     try {
@@ -776,10 +849,12 @@ console.log('🔥 Firebase統合システム準備完了');
 console.log('🧪 デバッグツール利用方法:');
 console.log('  - 認証状態確認: FirebaseDebug.showAuthState()');
 console.log('  - タスク同期診断: FirebaseDebug.diagnoseTasks() ← 詳細診断！');
-console.log('  - 強制再読み込み: FirebaseDebug.forceReloadTasks() ← 新機能！');
-console.log('  - 同期テスト: FirebaseDebug.testRealtimeSync()');
+console.log('  - 新規作成同期テスト: FirebaseDebug.testTaskCreationSync() ← NEW！');
+console.log('  - 強制再読み込み: FirebaseDebug.forceReloadTasks()');
+console.log('  - 旧同期テスト: FirebaseDebug.testRealtimeSync()');
 console.log('  - 詳細ログ: FirebaseDebug.checkAuthState() (コンソールのみ)');
 console.log('');
-console.log('🚨 タスクが表示されない場合:');
-console.log('   1. FirebaseDebug.diagnoseTasks() で診断');
-console.log('   2. FirebaseDebug.forceReloadTasks() で強制更新');
+console.log('🚨 マルチユーザー問題の調査:');
+console.log('   1. FirebaseDebug.testTaskCreationSync() でリアルタイム同期テスト');
+console.log('   2. 他ユーザーでFirebaseDebug.forceReloadTasks() で確認');
+console.log('   3. FirebaseDebug.diagnoseTasks() で詳細診断');
