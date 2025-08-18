@@ -1009,7 +1009,15 @@
             <button class="hamburger-btn" onclick="toggleHamburgerMenu()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem;" title="メニュー">
                 ☰
             </button>
-            <div class="header-title">🎯 営業タスク管理 - Kanbanボード</div>
+            <!-- 🔧 緊急診断ボタンを追加 -->
+            <button onclick="emergencyDiagnosis()" style="background: #dc3545; color: white; border: none; padding: 0.25rem 0.5rem; margin-left: 0.5rem; border-radius: 3px; font-size: 0.7rem; cursor: pointer;" title="緊急診断">
+                🚨診断
+            </button>
+            <div class="header-title">🎯 営業タスク管理 - Kanbanボード 
+                <span style="font-size: 0.7rem; background: #ff6b6b; color: white; padding: 0.2rem 0.4rem; border-radius: 3px; margin-left: 0.5rem;">
+                    v2025.08.18-Firebase完全化
+                </span>
+            </div>
         </div>
         <div class="header-controls">
             <button onclick="debugFirebase()" class="settings-btn" title="Firebase状態確認" style="background: #ff6b6b; margin-right: 10px;">🔍</button>
@@ -2130,112 +2138,65 @@
         //     throw new Error('Authentication required');
         // }
         
-        // Firebase統合タスクデータ読み込み関数
+        // 🔥 完全Firebase化: タスクデータ読み込み関数
         async function loadTasks() {
             try {
-                // Firebase認証状態をより詳細にチェック
+                console.log('🔥 [FIREBASE-ONLY] Firebase完全依存モードでタスク読み込み開始');
+                
+                // Firebase認証チェック
                 const currentUser = window.firebaseAuth?.currentUser || window.FirebaseAuth?.getCurrentUser();
-                console.log('🔍 [LOAD] Firebase認証状態チェック:', {
-                    hasFirebaseDB: !!window.FirebaseDB,
-                    hasFirebaseAuth: !!window.FirebaseAuth,
-                    hasCurrentUser: !!currentUser,
-                    userEmail: currentUser?.email || 'なし'
-                });
                 
-                if (window.FirebaseDB && currentUser) {
-                    console.log('🔥 [LOAD] Firebase認証済み - Firestoreからタスクを読み込み中...', currentUser.email);
+                if (!window.FirebaseDB || !currentUser) {
+                    console.error('❌ [FIREBASE-ONLY] Firebase未認証 - タスク読み込み不可');
+                    tasks = [];
+                    window.tasks = [];
+                    render();
+                    updateStats();
+                    return [];
+                }
+                
+                console.log('🔥 [FIREBASE-ONLY] Firebase認証済み - Firestoreから直接読み込み:', currentUser.email);
+                
+                const result = await window.FirebaseDB.getTasks();
+                if (result.success && result.tasks) {
+                    console.log('✅ [FIREBASE-ONLY] Firestore読み込み成功:', result.tasks.length, '件');
                     
-                    try {
-                        const result = await window.FirebaseDB.getTasks();
-                        if (result.success) {
-                            console.log('✅ [FIREBASE] Firestoreからタスク読み込み成功:', result.tasks.length, '件');
-                            console.log('📊 [FIREBASE] タスクデータサンプル:', result.tasks.slice(0, 2));
-                            
-                            // 🔧 修正: 重複除去を一時的に無効化して全タスクを表示
-                            console.log('🔍 [FIREBASE] Firebase取得タスク数:', result.tasks.length);
-                            console.log('🔍 [FIREBASE] タスクID形式確認（最初の5件）:', 
-                                result.tasks.slice(0, 5).map(t => ({
-                                    id: t.id,
-                                    idType: typeof t.id,
-                                    title: t.title?.substring(0, 20)
-                                }))
-                            );
-                            
-                            // 重複除去を無効化 - 全26件を表示するため
-                            tasks = result.tasks;
-                            console.log('🔍 [FIREBASE] 重複除去を無効化 - 全タスク表示:', tasks.length);
-                            console.log('🔍 [FIREBASE] 実際のタスクリスト（最初の5件）:', tasks.slice(0, 5).map(t => ({
-                                id: t.id,
-                                title: t.title?.substring(0, 30),
-                                createdBy: t.createdBy,
-                                assignee: t.assignee
-                            })));
-                            
-                            // LocalStorageにも保存（オフライン時のフォールバック）
-                            localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
-                            
-                            // 🔧 重要修正: グローバルtasks配列を確実に設定
-                            window.tasks = tasks;
-                            console.log('🔧 [FIREBASE] グローバルtasks配列を設定:', window.tasks.length, '件');
-                            
-                            // リアルタイム同期のためのアンサブスクライブ関数を保存
-                            window.firestoreUnsubscribe = result.unsubscribe;
-                            
-                            // 🔧 重要修正: Firebase初期読み込み後に必ず画面を再描画
-                            console.log('🎨 [FIREBASE] Firebase初期読み込み完了 - 画面を再描画します');
-                            render();
-                            updateStats();
-                            
-                            return tasks;
-                        } else {
-                            console.error('❌ [FIREBASE] Firestore読み込み失敗:', result.error);
-                            console.warn('⚠️ [FIREBASE] LocalStorageフォールバックに切り替え');
-                        }
-                    } catch (firebaseError) {
-                        console.error('❌ [FIREBASE] Firebase接続エラー:', firebaseError);
-                        console.warn('⚠️ [FIREBASE] LocalStorageフォールバックに切り替え');
-                    }
+                    // 🔧 LocalStorageは完全に無視 - Firestoreデータのみ使用
+                    tasks = result.tasks;
+                    window.tasks = result.tasks;
+                    
+                    console.log('🔥 [FIREBASE-ONLY] タスクデータをFirestoreから直接設定:', tasks.length, '件');
+                    console.log('📊 [FIREBASE-ONLY] サンプル（最初の3件）:', tasks.slice(0, 3).map(t => ({
+                        id: t.id,
+                        title: t.title?.substring(0, 30),
+                        createdBy: t.createdBy,
+                        assignee: t.assignee
+                    })));
+                    
+                    // リアルタイム同期を設定
+                    window.firestoreUnsubscribe = result.unsubscribe;
+                    
+                    // 画面を更新
+                    render();
+                    updateStats();
+                    
+                    return tasks;
                 } else {
-                    console.warn('⚠️ [FIREBASE] Firebase未準備状態:', {
-                        hasDB: !!window.FirebaseDB,
-                        hasAuth: !!window.FirebaseAuth,
-                        hasUser: !!currentUser
-                    });
+                    console.error('❌ [FIREBASE-ONLY] Firestore読み込み失敗:', result?.error || 'unknown error');
+                    tasks = [];
+                    window.tasks = [];
+                    render();
+                    updateStats();
+                    return [];
                 }
-                
-                // Firebase未対応またはエラー時のフォールバック
-                const localTasks = loadTasksFromStorage();
-                console.log('📦 [LOCAL] LocalStorageから読み込んだタスク:', localTasks.length, '件');
-                
-                // 🔧 重要修正: LocalStorageが空でもFirebaseから取得を試みる
-                if (localTasks.length === 0 && window.FirebaseDB) {
-                    console.log('🔄 [LOCAL] LocalStorageが空 - Firebaseから再取得を試行');
-                    try {
-                        const result = await window.FirebaseDB.getTasks();
-                        if (result.success && result.tasks.length > 0) {
-                            console.log('✅ [LOCAL] Firebaseから', result.tasks.length, '件のタスクを取得');
-                            tasks = result.tasks;
-                            window.tasks = tasks;
-                            localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
-                            
-                            // 画面を更新
-                            setTimeout(() => {
-                                render();
-                                updateStats();
-                            }, 100);
-                            
-                            return tasks;
-                        }
-                    } catch (error) {
-                        console.error('❌ [LOCAL] Firebase取得エラー:', error);
-                    }
-                }
-                
-                return localTasks;
                 
             } catch (error) {
-                console.error('❌ [LOAD] タスク読み込みエラー:', error);
-                return loadTasksFromStorage();
+                console.error('❌ [FIREBASE-ONLY] タスク読み込み重大エラー:', error);
+                tasks = [];
+                window.tasks = [];
+                render();
+                updateStats();
+                return [];
             }
         }
         
@@ -2275,54 +2236,14 @@
             }
         }
         
-        // 安全なタスクデータ読み込み関数（LocalStorageのみ）
+        // 🔥 完全Firebase化: LocalStorage読み込み関数を廃止
         function loadTasksFromStorage() {
-            try {
-                const stored = localStorage.getItem('salesTasksKanban');
-                if (!stored) {
-                    console.log('📊 [LOAD] 初回起動: 空の配列を作成');
-                    return [];
-                }
-                
-                const parsedTasks = JSON.parse(stored);
-                console.log('📊 [LOAD] LocalStorageからタスクデータ読み込み成功:', parsedTasks.length, '件');
-                
-                // データの整合性チェック
-                if (!Array.isArray(parsedTasks)) {
-                    console.warn('⚠️ [LOAD] 不正なタスクデータ形式を検出、空配列で初期化');
-                    return [];
-                }
-                
-                return parsedTasks;
-                
-            } catch (error) {
-                console.error('❌ [LOAD] LocalStorageタスクデータ読み込みエラー:', error);
-                
-                // バックアップからの復旧を試行
-                const backupKeys = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && key.startsWith('salesTasksKanban_backup_')) {
-                        backupKeys.push(key);
-                    }
-                }
-                
-                if (backupKeys.length > 0) {
-                    // 最新のバックアップを使用
-                    const latestBackup = backupKeys.sort().pop();
-                    try {
-                        const backupData = localStorage.getItem(latestBackup);
-                        const backupTasks = JSON.parse(backupData);
-                        console.log('🔄 [LOAD] バックアップから復旧:', latestBackup, backupTasks.length, '件');
-                        return backupTasks;
-                    } catch (backupError) {
-                        console.error('❌ [LOAD] バックアップ復旧も失敗:', backupError);
-                    }
-                }
-                
-                console.log('📊 [LOAD] フォールバック: 空配列で開始');
-                return [];
-            }
+            console.warn('⚠️ [DEPRECATED] loadTasksFromStorage()は廃止されました');
+            console.log('🔥 [FIREBASE-ONLY] タスクデータはFirebaseからのみ読み込みます');
+            console.log('📝 [INFO] loadTasks()関数を使用してください（Firebase完全依存）');
+            
+            // 🔧 LocalStorageは完全に無視
+            return [];
         }
 
         // 定期バックアップ機能
@@ -4204,13 +4125,11 @@
                                 console.error('❌ [FIREBASE] タスク更新エラー:', result.error);
                             }
                         } else {
-                            // 新規の場合は作成
+                            // 🔥 新規の場合は作成（Firebase完全依存）
                             const result = await window.FirebaseDB.createTask(targetTask);
                             if (result.success) {
-                                console.log('✅ [FIREBASE] タスク作成成功:', result.id);
-                                // Firebase IDでタスクを更新
-                                targetTask.firebaseId = result.id;
-                                saveTasks(); // Firebase IDを含めて再保存
+                                console.log('✅ [FIREBASE-ONLY] タスク作成成功:', result.id);
+                                // 🔧 LocalStorageへの保存は不要 - Firebaseリアルタイム同期で自動更新
                             } else {
                                 console.error('❌ [FIREBASE] タスク作成エラー:', result.error);
                             }
@@ -5160,45 +5079,21 @@
         
         
         
+        // 🔥 完全Firebase化: タスク保存機能
         function saveTasks() {
-            const stack = new Error().stack;
-            const caller = stack.split('\n')[2]?.trim() || 'unknown';
-            console.log('💾 [SAVE] Saving tasks to localStorage, count:', tasks.length);
-            console.log('💾 [SAVE] Called from:', caller);
+            console.log('🔥 [FIREBASE-ONLY] saveTasksは不要 - Firebaseリアルタイム同期により自動保存');
+            console.log('📝 [INFO] タスクの変更はFirebaseDBの各関数で直接Firestoreに保存されます');
             
-            try {
-                // 保存前に現在のLocalStorageの状態を確認
-                const currentStored = localStorage.getItem('salesTasksKanban');
-                const currentStoredTasks = currentStored ? JSON.parse(currentStored) : [];
-                
-                // データの整合性チェック（大幅な削減を検出）
-                if (currentStoredTasks.length > 0 && tasks.length === 0) {
-                    console.warn('⚠️ [SAVE] 警告: 全タスクが消失する可能性があります');
-                    console.warn('⚠️ [SAVE] 現在のStorage:', currentStoredTasks.length, '保存予定:', tasks.length);
-                    
-                    // 緊急バックアップを作成
-                    const backupKey = `salesTasksKanban_emergency_backup_${Date.now()}`;
-                    localStorage.setItem(backupKey, currentStored);
-                    console.log('🚨 [SAVE] 緊急バックアップ作成:', backupKey);
-                }
-                
-                // タスクデータを安全に保存
-                localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
-                console.log('✅ [SAVE] タスクデータ保存完了');
-                
-            } catch (error) {
-                console.error('❌ [SAVE] タスク保存エラー:', error);
-                
-                // フォールバック: 現在のデータをバックアップとして保存
-                try {
-                    const fallbackKey = `salesTasksKanban_fallback_${Date.now()}`;
-                    localStorage.setItem(fallbackKey, JSON.stringify(tasks));
-                    console.log('🔄 [SAVE] フォールバックバックアップ:', fallbackKey);
-                } catch (fallbackError) {
-                    console.error('❌ [SAVE] フォールバック保存も失敗:', fallbackError);
-                }
-            }
-            console.log('💾 [SAVE] Tasks saved successfully');
+            // 🔧 重要: LocalStorageは完全に廃止
+            // ただし、Firebaseリアルタイム同期によってwindow.tasksは自動更新される
+            // 各操作（作成・更新・削除）は個別にFirebaseDB関数を呼ぶ必要がある
+            
+            console.warn('⚠️ [DEPRECATED] saveTasks()は廃止予定です。操作は直接FirebaseDB関数を使用してください：');
+            console.warn('   - 作成: window.FirebaseDB.createTask(task)');
+            console.warn('   - 更新: window.FirebaseDB.updateTask(taskId, updates)');
+            console.warn('   - 削除: window.FirebaseDB.deleteTask(taskId)');
+            
+            return true; // 互換性のため成功を返す
         }
         
         // 通知機能
@@ -5758,8 +5653,16 @@
                 console.log('🧹 クリーンな状態で開始: サンプルタスクなし');
             }
             
-            render();
-            updateStats();
+            // 🔧 Firebase統合時は既にloadTasks内でrender()が実行されるため、重複実行を防ぐ
+            if (!window.FirebaseAuth || !window.FirebaseDB) {
+                console.log('🎨 [INIT] LocalStorageモード: render()実行');
+                render();
+                updateStats();
+            } else {
+                console.log('🎨 [INIT] Firebaseモード: render()はloadTasks内で実行済み');
+                // updateStats()のみ実行（ステータス統計の更新）
+                updateStats();
+            }
             
             // 🔧 UI表示を最新のセッション情報で更新
             setTimeout(() => {
@@ -5869,6 +5772,56 @@
                 }
             });
         }
+        
+        // 🔧 緊急診断: リアルタイムタスク状況確認
+        window.emergencyDiagnosis = function() {
+            console.log('🚨 [EMERGENCY-DIAGNOSIS] 緊急診断開始...');
+            
+            const diagnosis = {
+                timestamp: new Date().toISOString(),
+                globalTasks: {
+                    exists: typeof window.tasks !== 'undefined',
+                    count: window.tasks ? window.tasks.length : 'undefined',
+                    type: typeof window.tasks,
+                    sample: window.tasks ? window.tasks.slice(0, 2).map(t => ({id: t.id, title: t.title?.substring(0, 20)})) : 'none'
+                },
+                localStorage: {
+                    exists: !!localStorage.getItem('salesTasksKanban'),
+                    size: localStorage.getItem('salesTasksKanban')?.length || 0,
+                    count: (() => {
+                        try {
+                            const stored = localStorage.getItem('salesTasksKanban');
+                            return stored ? JSON.parse(stored).length : 0;
+                        } catch(e) { return 'parse-error'; }
+                    })()
+                },
+                firebase: {
+                    hasAuth: !!window.FirebaseAuth,
+                    hasDB: !!window.FirebaseDB,
+                    currentUser: window.firebaseAuth?.currentUser?.email || 'none',
+                    debugFunctions: !!window.FirebaseDebug
+                },
+                dom: {
+                    kanbanExists: !!document.querySelector('.kanban-board'),
+                    columnsCount: document.querySelectorAll('.kanban-column').length,
+                    tasksInDOM: document.querySelectorAll('.kanban-task').length
+                }
+            };
+            
+            console.log('🔍 [EMERGENCY-DIAGNOSIS] 診断結果:', diagnosis);
+            
+            // アラートでも表示
+            alert(`緊急診断結果:
+            
+グローバルtasks: ${diagnosis.globalTasks.count}件
+LocalStorage: ${diagnosis.localStorage.count}件  
+DOM内タスク: ${diagnosis.dom.tasksInDOM}件
+Firebase認証: ${diagnosis.firebase.currentUser}
+
+詳細はコンソールを確認してください。`);
+            
+            return diagnosis;
+        };
         
         // Firebase状態確認関数
         window.debugFirebase = async function() {
@@ -6027,6 +5980,30 @@
         };
 
         // 担当者選択の変更イベント
+        // 🔧 即座にページ更新を検知して診断
+        console.log('🚨 [PAGE-RELOAD-DETECTION] ページが読み込まれました');
+        console.log('🔍 [IMMEDIATE-CHECK] 即座にLocalStorageを確認...');
+        
+        const immediateLocalStorageCheck = localStorage.getItem('salesTasksKanban');
+        console.log('🔍 [IMMEDIATE-CHECK] salesTasksKanban存在:', !!immediateLocalStorageCheck);
+        console.log('🔍 [IMMEDIATE-CHECK] データサイズ:', immediateLocalStorageCheck ? immediateLocalStorageCheck.length : 0);
+        
+        if (immediateLocalStorageCheck) {
+            try {
+                const parsed = JSON.parse(immediateLocalStorageCheck);
+                console.log('✅ [IMMEDIATE-CHECK] LocalStorageに', parsed.length, '件のタスクが保存されています');
+                console.log('🔍 [IMMEDIATE-CHECK] 最初の3件:', parsed.slice(0, 3).map(t => ({
+                    id: t.id, 
+                    title: t.title?.substring(0, 20),
+                    createdBy: t.createdBy
+                })));
+            } catch(e) {
+                console.error('❌ [IMMEDIATE-CHECK] LocalStorageデータの解析に失敗:', e);
+            }
+        } else {
+            console.warn('⚠️ [IMMEDIATE-CHECK] LocalStorageが空です');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // 🔧 【最優先】ユーザーデータベース初期化
             try {
@@ -6089,6 +6066,41 @@
                 updateHamburgerMenu();
                 console.log('🍔 ハンバーガーメニュー更新完了');
             }, 100);
+            
+            // 🔧 【緊急修正】init()関数が呼ばれていない問題を解決
+            console.log('🚨 [CRITICAL] init()関数を手動実行開始...');
+            init().then(() => {
+                console.log('✅ [CRITICAL] init()関数実行完了');
+                
+                // 🔧 5秒後にタスク数を最終確認
+                setTimeout(() => {
+                    const finalTaskCount = window.tasks?.length || 0;
+                    console.log('🔍 [FINAL-VERIFICATION] 5秒後のタスク数:', finalTaskCount);
+                    
+                    if (finalTaskCount === 0) {
+                        console.warn('⚠️ [CRITICAL] タスクが0件 - 強制Firebase取得実行');
+                        
+                        if (window.FirebaseDebug?.forceReloadTasks) {
+                            window.FirebaseDebug.forceReloadTasks();
+                        } else if (window.FirebaseDB) {
+                            window.FirebaseDB.getTasks().then(result => {
+                                if (result.success && result.tasks.length > 0) {
+                                    window.tasks = result.tasks;
+                                    localStorage.setItem('salesTasksKanban', JSON.stringify(result.tasks));
+                                    if (window.render) window.render();
+                                    if (window.updateStats) window.updateStats();
+                                    console.log('✅ [CRITICAL] 強制取得成功:', result.tasks.length, '件');
+                                }
+                            });
+                        }
+                    } else {
+                        console.log('✅ [FINAL-VERIFICATION] タスク表示正常:', finalTaskCount, '件');
+                    }
+                }, 5000);
+                
+            }).catch(error => {
+                console.error('❌ [CRITICAL] init()関数エラー:', error);
+            });
             
             // OCRモーダルのイベントリスナーを初期化
             initOCRModalEventListeners();

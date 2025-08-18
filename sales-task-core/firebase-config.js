@@ -239,11 +239,29 @@ window.FirebaseDB = {
             resolve({ success: true, tasks: tasks, unsubscribe: unsubscribe });
           } else {
             // リアルタイム更新: グローバルタスク配列を更新して再レンダリング
-            if (window.tasks && window.render) {
+            if (window.tasks !== undefined && window.render) {
+              // 🔧 修正: 一時的にタスクデータを保護
+              const previousTasksLength = window.tasks ? window.tasks.length : 0;
+              
               window.tasks = tasks;
               localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
-              window.render();
-              console.log('🔄 [REALTIME] タスクがリアルタイム更新されました - グローバル配列更新・再レンダリング実行');
+              
+              console.log('🔄 [REALTIME] タスクがリアルタイム更新:', {
+                previous: previousTasksLength,
+                current: tasks.length,
+                timestamp: new Date().toISOString()
+              });
+              
+              // ページ更新時には再描画をスキップしてデータ保護を優先
+              const isPageLoad = window.performance && window.performance.navigation?.type === 1;
+              if (!isPageLoad) {
+                window.render();
+                console.log('🔄 [REALTIME] 再レンダリング実行');
+              } else {
+                console.log('🔄 [REALTIME] ページ更新時: 再レンダリングをスキップ');
+              }
+            } else {
+              console.warn('⚠️ [REALTIME] window.tasksまたはrenderが利用できません');
             }
           }
         }, (error) => {
