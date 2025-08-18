@@ -1801,11 +1801,11 @@
                     }
                 ];
                 
-                localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+                // systemUsersはFirestoreで管理される
                 
                 // 担当者リストも初期化
                 const assignees = systemUsers.map(u => u.name);
-                localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                // 担当者リストはFirestoreで管理される
                 
                 // 権限確認ログ
                 systemUsers.forEach(user => {
@@ -1819,7 +1819,7 @@
                 const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                 if (systemUsers.length > 0) {
                     const assignees = systemUsers.map(u => u.name);
-                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                    // 担当者リストはFirestoreで管理される
                 }
                 
                 // 権限の完全性チェック（権限リセット防止）
@@ -1860,7 +1860,7 @@
             });
             
             // 🔄 常に保存（強制修正）
-            localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+            // systemUsersはFirestoreで管理される
             
             // セッション情報も修復
             const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
@@ -2288,15 +2288,14 @@
         //     console.log('🚫 [INIT] Stale test task creation disabled');
         // }
         
-        // 変更があった場合は保存
-        localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+        // Firebase完全移行: タスクはFirestoreでリアルタイム同期される
         
         let draggedTask = null;
         let editingTask = null;
         let taskCounter = tasks.length || 0;
         
-        // 担当者リスト（グローバル変数として定義）
-        let assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
+        // 担当者リスト（Firebase統合）
+        let assignees = [];
         window.assignees = assignees; // グローバルにも設定
         
         // 「ユーザー」を担当者リストから削除
@@ -2320,7 +2319,7 @@
                 }
             }
         }
-        localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+        // 担当者リストはFirestoreで管理される
         
         // 一回限りのサンプルデータ置換処理
         function migrateSampleDataToRealUser() {
@@ -2363,7 +2362,7 @@
             }
             
             if (updated) {
-                localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                // 担当者リストはFirestoreで管理される
                 console.log(`✅ サンプルデータを実ユーザー「${realUser}」に置換完了:`, assignees);
             }
             
@@ -3148,7 +3147,7 @@
                 const trimmedName = newAssignee.trim();
                 if (!assignees.includes(trimmedName)) {
                     assignees.push(trimmedName);
-                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                    // 担当者リストはFirestoreで管理される
                     updateAssigneeOptions();
                     // 新しく追加した担当者を選択状態にする
                     setTimeout(() => {
@@ -5585,7 +5584,7 @@
                 if (systemUsers.length > 0) {
                     assignees = systemUsers.map(u => u.name);
                     window.assignees = assignees;
-                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                    // 担当者リストはFirestoreで管理される
                 }
                 
                 // 画面上部のユーザー表示更新
@@ -5890,29 +5889,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
         };
 
         // 担当者選択の変更イベント
-        // 🔧 即座にページ更新を検知して診断
-        console.log('🚨 [PAGE-RELOAD-DETECTION] ページが読み込まれました');
-        console.log('🔍 [IMMEDIATE-CHECK] 即座にLocalStorageを確認...');
-        
-        const immediateLocalStorageCheck = localStorage.getItem('salesTasksKanban');
-        console.log('🔍 [IMMEDIATE-CHECK] salesTasksKanban存在:', !!immediateLocalStorageCheck);
-        console.log('🔍 [IMMEDIATE-CHECK] データサイズ:', immediateLocalStorageCheck ? immediateLocalStorageCheck.length : 0);
-        
-        if (immediateLocalStorageCheck) {
-            try {
-                const parsed = JSON.parse(immediateLocalStorageCheck);
-                console.log('✅ [IMMEDIATE-CHECK] LocalStorageに', parsed.length, '件のタスクが保存されています');
-                console.log('🔍 [IMMEDIATE-CHECK] 最初の3件:', parsed.slice(0, 3).map(t => ({
-                    id: t.id, 
-                    title: t.title?.substring(0, 20),
-                    createdBy: t.createdBy
-                })));
-            } catch(e) {
-                console.error('❌ [IMMEDIATE-CHECK] LocalStorageデータの解析に失敗:', e);
-            }
-        } else {
-            console.warn('⚠️ [IMMEDIATE-CHECK] LocalStorageが空です');
-        }
+        // Firebase完全移行: データはFirestoreから読み込まれる
 
         document.addEventListener('DOMContentLoaded', async () => {
             // 🔧 【最優先】ユーザーデータベース初期化
@@ -5996,7 +5973,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
                             const trimmedName = newAssignee.trim();
                             if (!assignees.includes(trimmedName)) {
                                 assignees.push(trimmedName);
-                                localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                                // 担当者リストはFirestoreで管理される
                             }
                             // 選択肢を更新して新しい担当者を選択
                             updateAssigneeOptions();
@@ -6688,7 +6665,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
                 // 担当者をリストに追加（存在しない場合）
                 if (previewTask.assignee !== '未設定' && !assignees.includes(previewTask.assignee)) {
                     assignees.push(previewTask.assignee);
-                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                    // 担当者リストはFirestoreで管理される
                 }
                 
                 const taskId = Date.now() + index;
@@ -7048,7 +7025,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
                     assignees = users.map(user => user.name);
                     
                     localStorage.setItem('kanbanColumns', JSON.stringify(columns));
-                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                    // 担当者リストはFirestoreで管理される
                     
                     console.log('🧹 システムリセット完了: 実ユーザーベースで再構築', assignees);
                     
@@ -8398,7 +8375,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
                 
                 if (previewTask.assignee !== '未設定' && !assignees.includes(previewTask.assignee)) {
                     assignees.push(previewTask.assignee);
-                    localStorage.setItem('taskAssignees', JSON.stringify(assignees));
+                    // 担当者リストはFirestoreで管理される
                 }
                 
                 const taskId = Date.now() + index;
