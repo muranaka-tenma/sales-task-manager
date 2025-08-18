@@ -2417,8 +2417,9 @@
         let editingTask = null;
         let taskCounter = tasks.length || 0;
         
-        // 担当者リスト
+        // 担当者リスト（グローバル変数として定義）
         let assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
+        window.assignees = assignees; // グローバルにも設定
         
         // 「ユーザー」を担当者リストから削除
         assignees = assignees.filter(assignee => assignee !== 'ユーザー');
@@ -5757,6 +5758,7 @@
                 const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                 if (systemUsers.length > 0) {
                     assignees = systemUsers.map(u => u.name);
+                    window.assignees = assignees; // グローバル変数も更新
                     localStorage.setItem('taskAssignees', JSON.stringify(assignees));
                     console.log('✅ [INIT] 担当者リスト自動更新完了:', assignees);
                 }
