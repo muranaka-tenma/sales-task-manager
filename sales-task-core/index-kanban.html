@@ -2206,6 +2206,31 @@
                 // Firebase未対応またはエラー時のフォールバック
                 const localTasks = loadTasksFromStorage();
                 console.log('📦 [LOCAL] LocalStorageから読み込んだタスク:', localTasks.length, '件');
+                
+                // 🔧 重要修正: LocalStorageが空でもFirebaseから取得を試みる
+                if (localTasks.length === 0 && window.FirebaseDB) {
+                    console.log('🔄 [LOCAL] LocalStorageが空 - Firebaseから再取得を試行');
+                    try {
+                        const result = await window.FirebaseDB.getTasks();
+                        if (result.success && result.tasks.length > 0) {
+                            console.log('✅ [LOCAL] Firebaseから', result.tasks.length, '件のタスクを取得');
+                            tasks = result.tasks;
+                            window.tasks = tasks;
+                            localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+                            
+                            // 画面を更新
+                            setTimeout(() => {
+                                render();
+                                updateStats();
+                            }, 100);
+                            
+                            return tasks;
+                        }
+                    } catch (error) {
+                        console.error('❌ [LOCAL] Firebase取得エラー:', error);
+                    }
+                }
+                
                 return localTasks;
                 
             } catch (error) {
