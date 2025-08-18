@@ -1705,7 +1705,6 @@
                 if (session) {
                     // セッション期限チェック
                     if (new Date() <= new Date(session.expiresAt)) {
-                        console.log('✅ [AUTH] Valid session found for:', session.user.name);
                         
                         // 🔧 権限の完全性チェック（セッション確認時）
                         ensureUserPermissionsIntegrity();
@@ -1713,7 +1712,6 @@
                         displayUserInfo(session.user);
                         return true;
                     } else {
-                        console.log('⚠️ [AUTH] Session expired, removing...');
                         localStorage.removeItem('currentSession');
                     }
                 }
@@ -1735,7 +1733,6 @@
         function initializeUserDatabase() {
             const existingUsers = localStorage.getItem('systemUsers');
             if (!existingUsers || JSON.parse(existingUsers).length === 0) {
-                console.log('🔧 [INIT] ユーザーデータベースを初期化中...');
                 
                 // 正しい権限設定の完全なユーザーデータベース
                 const systemUsers = [
@@ -1805,12 +1802,10 @@
                 ];
                 
                 localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
-                console.log('✅ [INIT] 正しい権限でsystemUsersを初期化:', systemUsers.length, '名');
                 
                 // 担当者リストも初期化
                 const assignees = systemUsers.map(u => u.name);
                 localStorage.setItem('taskAssignees', JSON.stringify(assignees));
-                console.log('✅ [INIT] 担当者リストを初期化:', assignees);
                 
                 // 権限確認ログ
                 systemUsers.forEach(user => {
@@ -1819,14 +1814,12 @@
                     console.log(`  ${roleEmoji} ${user.name} - ${user.role}`);
                 });
             } else {
-                console.log('✅ [INIT] systemUsersが既に存在します - 担当者リスト自動更新');
                 
                 // 🔧 担当者リストをsystemUsersから自動更新
                 const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                 if (systemUsers.length > 0) {
                     const assignees = systemUsers.map(u => u.name);
                     localStorage.setItem('taskAssignees', JSON.stringify(assignees));
-                    console.log('✅ [INIT] 担当者リスト自動更新完了:', assignees);
                 }
                 
                 // 権限の完全性チェック（権限リセット防止）
@@ -1861,7 +1854,6 @@
                     const oldRole = user.role;
                     user.role = correctRole; // 強制的に正しい権限に設定
                     if (oldRole !== correctRole) {
-                        console.log(`🔧 [FORCE-FIX] ${user.name}: ${oldRole} → ${correctRole} (強制修正)`);
                         corrected = true;
                     }
                 }
@@ -1869,7 +1861,6 @@
             
             // 🔄 常に保存（強制修正）
             localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
-            console.log('✅ [FORCE-FIX] 権限の完全性を強制修復しました');
             
             // セッション情報も修復
             const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
@@ -1879,7 +1870,6 @@
                 session.user.role = correctRole; // 強制的に正しい権限に設定
                 localStorage.setItem('currentSession', JSON.stringify(session));
                 if (oldSessionRole !== correctRole) {
-                    console.log(`🔧 [SESSION-FORCE-FIX] セッション権限強制修復: ${session.user.name} ${oldSessionRole} → ${correctRole}`);
                 }
             }
             
@@ -2240,7 +2230,6 @@
 
         // グローバル変数 - Firebase優先読み込みに変更
         let tasks = []; // 初期は空配列、Firebase読み込み完了後にセット
-        console.log('🔥 [INIT] Firebase優先タスク読み込みを開始します...');
         
         // データ移行対策：PJ設定データの互換性チェック
         function migrateProjectData() {
@@ -5037,19 +5026,9 @@
         
         // 🔥 完全Firebase化: タスク保存機能
         function saveTasks() {
-            console.log('🔥 [FIREBASE-ONLY] saveTasksは不要 - Firebaseリアルタイム同期により自動保存');
-            console.log('📝 [INFO] タスクの変更はFirebaseDBの各関数で直接Firestoreに保存されます');
-            
-            // 🔧 重要: LocalStorageは完全に廃止
-            // ただし、Firebaseリアルタイム同期によってwindow.tasksは自動更新される
-            // 各操作（作成・更新・削除）は個別にFirebaseDB関数を呼ぶ必要がある
-            
-            console.warn('⚠️ [DEPRECATED] saveTasks()は廃止予定です。操作は直接FirebaseDB関数を使用してください：');
-            console.warn('   - 作成: window.FirebaseDB.createTask(task)');
-            console.warn('   - 更新: window.FirebaseDB.updateTask(taskId, updates)');
-            console.warn('   - 削除: window.FirebaseDB.deleteTask(taskId)');
-            
-            return true; // 互換性のため成功を返す
+            // Firebase完全移行: タスクはFirestoreでリアルタイム同期される
+            // この関数は互換性のために残存、実際の保存はFirebaseDBで処理される
+            return true;
         }
         
         // 通知機能
@@ -5175,7 +5154,7 @@
                 }
             });
             
-            saveTasks(); // 通知フラグを保存
+            // Firebase統合: 通知フラグはFirestore内で自動保存される
         }
         
         // 設定関連の関数
@@ -5470,14 +5449,10 @@
                     waitTime += checkInterval;
                 }
                 
-                if (!window.FirebaseAuth || !window.FirebaseDB) {
-                    console.warn('⚠️ [INIT] Firebase未準備のためLocalStorageを使用');
-                    tasks = loadTasksFromStorage();
-                } else {
+                if (window.FirebaseAuth && window.FirebaseDB) {
                     // Firebase Authのログインを試行
                     const localSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
                     if (localSession && localSession.user) {
-                        console.log('🔐 [INIT] Firebaseログイン試行中:', localSession.user.email);
                         
                         // ローカルセッションのユーザーでFirebaseログイン
                         // パスワードマッピング（実際の運用では安全な方法で管理）
@@ -5498,16 +5473,12 @@
                         );
                         
                         if (signInResult.success) {
-                            console.log('✅ [INIT] Firebaseログイン成功');
                             
                             // 🔧 Firebase認証状態の確認（強制同期は無効化）
                             const firebaseUser = window.firebaseAuth?.currentUser || signInResult.user;
-                            console.log('🔄 [SYNC] Firebase認証ユーザー確認:', firebaseUser?.email);
-                            console.log('🔄 [SYNC] ローカルセッションユーザー:', localSession?.user?.email);
                             
                             // ローカルセッションが存在しない場合のみFirebase認証に合わせる
                             if (firebaseUser && (!localSession || !localSession.user)) {
-                                console.log('🔧 [SYNC] ローカルセッションが存在しないため、Firebase認証に合わせて初期化');
                                 
                                 const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                                 const correctUser = systemUsers.find(u => u.email === firebaseUser.email);
@@ -5526,39 +5497,34 @@
                                     };
                                     localStorage.setItem('currentSession', JSON.stringify(updatedSession));
                                     localStorage.setItem('currentUser', correctUser.name);
-                                    console.log('✅ [SYNC] Firebase認証に合わせてセッション初期化完了:', correctUser.name, correctUser.role, correctUser.email);
                                 } else {
-                                    console.error('❌ [SYNC] Firebase認証ユーザーがsystemUsersに見つかりません:', firebaseUser.email);
                                 }
                             } else if (firebaseUser && localSession && localSession.user) {
-                                console.log('ℹ️ [SYNC] ローカルセッション維持:', localSession.user.name, '(Firebase:', firebaseUser.email + ')');
                             }
                             
                             // ログイン成功後、少し待ってからタスク読み込み
                             await new Promise(resolve => setTimeout(resolve, 500));
                             
-                            console.log('🔥 [INIT] Firebase統合タスク読み込み開始...');
                             tasks = await loadTasks();
-                            console.log('✅ [INIT] タスクデータ読み込み完了:', tasks.length, '件');
                         } else {
-                            console.warn('⚠️ [INIT] Firebaseログイン失敗:', signInResult.error);
-                            tasks = loadTasksFromStorage();
+                            console.warn('⚠️ Firebaseログイン失敗:', signInResult.error);
+                            tasks = [];
                         }
                     } else {
-                        console.warn('⚠️ [INIT] ローカルセッションなし - LocalStorage使用');
-                        tasks = loadTasksFromStorage();
+                        console.warn('⚠️ ローカルセッションなし');
+                        tasks = [];
                     }
+                } else {
+                    tasks = [];
                 }
             } catch (error) {
-                console.error('❌ [INIT] Firebase統合エラー - LocalStorageフォールバック:', error);
-                tasks = loadTasksFromStorage();
+                console.error('❌ Firebase統合エラー:', error);
+                tasks = [];
             }
             
             // Firebase統合 - テンプレートデータを読み込み
             try {
-                console.log('🔥 [INIT] Firebase統合テンプレート読み込み開始...');
                 taskTemplates = await loadTemplates();
-                console.log('✅ [INIT] テンプレートデータ読み込み完了:', taskTemplates.length, '件');
             } catch (error) {
                 console.error('❌ [INIT] テンプレートFirebase統合エラー - LocalStorageフォールバック:', error);
                 taskTemplates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
