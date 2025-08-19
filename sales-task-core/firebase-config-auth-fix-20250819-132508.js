@@ -1,20 +1,20 @@
 // 🔥 Firebase完全統合設定 - LocalStorage依存削除版
 // 最終更新: 2025-08-19 13:30 - タスク消失問題根本解決
 
-// Firebase設定の完全初期化
+// Firebase設定の完全初期化（正しいプロジェクト: sales-task-manager-af356）
 const firebaseConfig = {
-    apiKey: "AIzaSyBxSsYF4JFRYBNWrJgtG3LR9EUrvR4ZdOo",
-    authDomain: "sales-task-manager-20250731.firebaseapp.com",
-    projectId: "sales-task-manager-20250731",
-    storageBucket: "sales-task-manager-20250731.appspot.com",
-    messagingSenderId: "502695005041",
-    appId: "1:502695005041:web:14d6a9c9b3a1d0b5e2b8f1"
+    apiKey: "AIzaSyAHScwiAkvJ3qwl_VcdDDyzM_Zb37osBMs",
+    authDomain: "sales-task-manager-af356.firebaseapp.com",
+    projectId: "sales-task-manager-af356",
+    storageBucket: "sales-task-manager-af356.firebasestorage.app",
+    messagingSenderId: "953432845897",
+    appId: "1:953432845897:web:bf441cb3590ce1fc455998"
 };
 
-// Firebase初期化
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js';
+// Firebase初期化（バージョン統一: 10.7.1）
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
