@@ -120,24 +120,23 @@ window.FirebaseDB = {
   createTask: async (taskData) => {
     try {
       const user = auth.currentUser;
-      
-      // 🔧 修正: 認証なしでも匿名タスク作成を許可
+      if (!user) throw new Error('認証が必要です');
+
       const taskToCreate = {
         ...taskData,
-        userId: user?.uid || 'anonymous',
-        createdBy: user?.email || 'anonymous_user',
+        userId: user.uid,
+        createdBy: user.email,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
 
       console.log('🆕 [CREATE-TASK] タスク作成開始:', {
         title: taskData.title?.substring(0, 30) + '...',
-        userId: user?.uid || 'anonymous',
-        userEmail: user?.email || 'anonymous_user',
+        userId: user.uid,
+        userEmail: user.email,
         device: navigator.platform,
         taskId: taskData.id || 'new',
-        timestamp: new Date().toISOString(),
-        authState: user ? 'ログイン中' : '未認証'
+        timestamp: new Date().toISOString()
       });
 
       const docRef = await addDoc(collection(db, 'tasks'), taskToCreate);
@@ -145,7 +144,7 @@ window.FirebaseDB = {
       console.log('✅ [CREATE-TASK] Firestore保存成功:', {
         firestoreId: docRef.id,
         title: taskData.title?.substring(0, 30) + '...',
-        userId: user?.uid || 'anonymous',
+        userId: user.uid,
         timestamp: new Date().toISOString()
       });
       
@@ -160,11 +159,12 @@ window.FirebaseDB = {
   updateTask: async (taskId, updates) => {
     try {
       const user = auth.currentUser;
+      if (!user) throw new Error('認証が必要です');
 
       await updateDoc(doc(db, 'tasks', taskId), {
         ...updates,
         updatedAt: new Date().toISOString(),
-        updatedBy: user?.email || 'anonymous_user'
+        updatedBy: user.email
       });
 
       console.log('✅ タスク更新成功:', taskId);
@@ -191,22 +191,11 @@ window.FirebaseDB = {
   getTasks: async () => {
     try {
       const user = auth.currentUser;
-      
-      // 🔧 修正: 認証状態をログ出力するが、認証なしでも続行
-      console.log('🔍 [GET-TASKS] 認証状態確認:', {
-        hasCurrentUser: !!user,
-        userEmail: user?.email || '未認証',
-        authState: user ? 'ログイン中' : '未認証'
-      });
-      
-      // 認証なしでも全タスクを取得（チーム共有のため）
-      if (!user) {
-        console.log('⚠️ [GET-TASKS] 未認証状態ですが、全タスク取得を試行します');
-      }
+      if (!user) throw new Error('認証が必要です');
 
       console.log('🔍 [GET-TASKS] タスク取得開始:', {
-        userId: user?.uid || '未認証',
-        email: user?.email || '未認証',
+        userId: user.uid,
+        email: user.email,
         device: navigator.platform,
         timestamp: new Date().toISOString()
       });

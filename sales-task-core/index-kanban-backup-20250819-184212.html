@@ -7,7 +7,7 @@
     <!-- Deploy: 2025-08-03-17:45 - PJ fields completely removed -->
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
     <!-- Firebase統合システム - マルチユーザー対応 -->
-    <script type="module" src="firebase-config-auth-fix-20250819-132508.js"></script>
+    <script type="module" src="firebase-config.js"></script>
     <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化（セッション保護） -->
     <!-- キャッシュ問題解決のため完全無効化 -->
     <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
@@ -2126,27 +2126,86 @@
         // Firebase完全化: タスクデータ読み込み関数
         async function loadTasks() {
             try {
-                console.log('📥 [LOAD-TASKS] Firebase専用モード - タスク読み込み開始');
+                // 🔧 修正: 認証状態が安定するまで少し待つ
+                console.log('⏳ [LOAD-TASKS] Firebase認証状態を確認中...');
                 
-                // Firebase認証確認
-                if (!window.FirebaseAuth?.currentUser) {
-                    console.warn('⚠️ [LOAD-TASKS] Firebase未認証 - 空のタスク配列を返す');
+                // 認証状態が確定するまで待機（最大500ms）
+                let authCheckCount = 0;
+                while (authCheckCount < 5) {
+                    const currentUser = window.firebaseAuth?.currentUser;
+                    if (currentUser) {
+                        console.log('✅ [LOAD-TASKS] 認証確認完了:', currentUser.email);
+                        break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    authCheckCount++;
+                }
+                
+                const currentUser = window.firebaseAuth?.currentUser || window.FirebaseAuth?.getCurrentUser();
+                
+                console.log('🔍 [LOAD-TASKS] 詳細診断:', {
+                    hasFirebaseDB: !!window.FirebaseDB,
+                    hasCurrentUser: !!currentUser,
+                    userEmail: currentUser?.email || 'なし',
+                    hasFirebaseAuth: !!window.FirebaseAuth,
+                    authState: window.firebaseAuth?.currentUser ? 'ログイン中' : '未ログイン'
+                });
+                
+                if (!window.FirebaseDB) {
+                    console.warn('⚠️ [LOAD-TASKS] Firebase DB未接続 - 待機します');
+                    // Firebase DBが準備できるまで待機
+                    let retryCount = 0;
+                    while (!window.FirebaseDB && retryCount < 20) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        retryCount++;
+                    }
+                    
+                    if (!window.FirebaseDB) {
+                        console.error('❌ [LOAD-TASKS] Firebase DB接続タイムアウト');
+                        tasks = [];
+                        window.tasks = [];
+                        render();
+                        updateStats();
+                        return [];
+                    }
+                }
+                
+                // Firebase DBは接続されているが、ユーザー未認証の場合も読み込みを試行
+                if (!currentUser) {
+                    console.warn('⚠️ [LOAD-TASKS] ユーザー未認証ですが、Firebase読み込みを試行します');
+                }
+                
+                const result = await window.FirebaseDB.getTasks();
+                if (result.success && result.tasks) {
+                    tasks = result.tasks;
+                    window.tasks = result.tasks;
+                    window.firestoreUnsubscribe = result.unsubscribe;
+                    
+                    console.log('✅ [LOAD-TASKS] Firebase読み込み成功:', tasks.length, '件');
+                    console.log('🔄 [LOAD-TASKS] 即座に描画実行...');
+                    
+                    // 🔧 修正: 即座に描画実行（setTimeout削除）
+                    render();
+                    updateStats();
+                    console.log('✅ [LOAD-TASKS] 描画完了');
+                    
+                    return tasks;
+                } else {
+                    tasks = [];
+                    window.tasks = [];
+                    
+                    console.log('⚠️ [LOAD-TASKS] Firebase読み込み失敗 - 空配列で初期化');
+                    render();
+                    updateStats();
                     return [];
                 }
                 
-                // Firebaseからタスク取得
-                const result = await window.FirebaseDB.getTasks();
-                if (result.success) {
-                    tasks = result.tasks || [];
-                    window.tasks = tasks;
-                    console.log('✅ [LOAD-TASKS] Firebase読み込み完了:', tasks.length, '件');
-                    return tasks;
-                }
-                
-                console.error('❌ [LOAD-TASKS] Firebase読み込みエラー:', result.error);
-                return [];
             } catch (error) {
-                console.error('❌ [LOAD-TASKS] 予期せぬエラー:', error);
+                console.error('❌ タスク読み込みエラー:', error);
+                tasks = [];
+                window.tasks = [];
+                render();
+                updateStats();
                 return [];
             }
         }
@@ -5097,25 +5156,36 @@
         // 🔥 完全Firebase化: タスク保存機能
         async function saveTasks() {
             try {
-                console.log('💾 [SAVE-TASKS] Firebase専用モード - タスク保存開始:', tasks.length, '件');
-                
-                // Firebase認証確認
-                if (!window.FirebaseAuth?.currentUser) {
-                    console.warn('⚠️ [SAVE-TASKS] Firebase未認証 - 保存をスキップ');
+                // Firebase認証チェック
+                if (!window.FirebaseDB || !window.firebaseAuth?.currentUser) {
+                    console.warn('⚠️ [SAVE-TASKS] Firebase未接続 - 保存をスキップ');
                     return false;
                 }
-                
-                // Firebase一括保存
-                const result = await window.FirebaseDB.saveTasks(tasks);
-                if (result.success) {
-                    console.log('✅ [SAVE-TASKS] Firebase保存完了');
-                    return true;
-                } else {
-                    console.error('❌ [SAVE-TASKS] Firebase保存エラー:', result.error);
-                    return false;
+
+                console.log('💾 [SAVE-TASKS] 全タスクFirebase同期開始:', tasks.length, '件');
+
+                // 全タスクをFirebaseに同期
+                for (const task of tasks) {
+                    if (!task.firebaseId) {
+                        // 新規タスクの場合は作成
+                        const result = await window.FirebaseDB.createTask(task);
+                        if (result.success) {
+                            task.firebaseId = result.id;
+                            console.log('✅ [SAVE-TASKS] 新規タスク作成:', task.title?.substring(0, 30));
+                        }
+                    } else {
+                        // 既存タスクの場合は更新
+                        const result = await window.FirebaseDB.updateTask(task.firebaseId, task);
+                        if (result.success) {
+                            console.log('✅ [SAVE-TASKS] タスク更新:', task.title?.substring(0, 30));
+                        }
+                    }
                 }
+
+                console.log('✅ [SAVE-TASKS] Firebase同期完了');
+                return true;
             } catch (error) {
-                console.error('❌ [SAVE-TASKS] 予期せぬエラー:', error);
+                console.error('❌ [SAVE-TASKS] Firebase同期エラー:', error);
                 return false;
             }
         }
