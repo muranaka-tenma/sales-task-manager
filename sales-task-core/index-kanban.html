@@ -1697,6 +1697,12 @@
     </div>
     
     <script>
+        // 🔥 Firebase専用モード - グローバル変数初期化
+        let tasks = [];
+        window.tasks = [];
+        let assignees = [];
+        let taskTemplates = [];
+        
         // 認証チェック（ページ読み込み時）
         function checkAuthentication() {
             try {
@@ -2313,6 +2319,13 @@
         
         // データ移行実行
         migrateProjectData();
+        
+        // タスク配列の初期化確認
+        if (!tasks || !Array.isArray(tasks)) {
+            tasks = [];
+            window.tasks = [];
+            console.log('🔧 [INIT] タスク配列を初期化しました');
+        }
         
         // 既存タスクにcreatedAtがない場合は、現在時刻から遡って設定
         // （インポートされたタスクなど用）
