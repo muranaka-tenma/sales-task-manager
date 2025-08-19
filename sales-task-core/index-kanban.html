@@ -8194,7 +8194,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             e.dataTransfer.dropEffect = 'move';
         }
         
-        function handleDropModal(e, targetIndex) {
+        async function handleDropModal(e, targetIndex) {
             e.preventDefault();
             if (draggedTaskIndex === null || draggedTaskIndex === targetIndex) return;
             
@@ -12039,7 +12039,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
         }
         
         // タスク削除機能（ゴミ箱移動）
-        function deleteTask(taskId) {
+        async function deleteTask(taskId) {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
             
@@ -12606,7 +12606,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
         }
         
         // プロジェクト編集
-        function editProject(projectId) {
+        async function editProject(projectId) {
             try {
                 const projects = JSON.parse(localStorage.getItem('projects') || '[]');
                 const project = projects.find(p => p.id === projectId);
@@ -12775,7 +12775,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
         }
         
         // プロジェクト削除
-        function deleteProject(projectId) {
+        async function deleteProject(projectId) {
             try {
                 const projects = JSON.parse(localStorage.getItem('projects') || '[]');
                 const project = projects.find(p => p.id === projectId);

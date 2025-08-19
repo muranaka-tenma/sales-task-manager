@@ -85,24 +85,84 @@ window.FirebaseDB = {
         try {
             console.log('📥 [FIREBASE] タスク取得開始');
             const user = window.getCurrentUser();
-            if (!user) throw new Error('認証が必要です');
+            if (!user) {
+                console.warn('⚠️ [FIREBASE] 認証なし - 空配列を返します');
+                return { success: true, tasks: [] };
+            }
 
-            return new Promise((resolve) => {
-                const tasksRef = collection(db, 'tasks');
-                const q = query(tasksRef, orderBy('createdAt', 'desc'));
-                
-                onSnapshot(q, (snapshot) => {
-                    const tasks = [];
-                    snapshot.forEach((doc) => {
-                        tasks.push({ id: doc.id, ...doc.data() });
-                    });
-                    console.log('✅ [FIREBASE] タスク取得完了:', tasks.length);
-                    resolve({ success: true, tasks: tasks });
-                });
+            const tasksRef = collection(db, 'tasks');
+            const q = query(tasksRef, orderBy('createdAt', 'desc'));
+            const snapshot = await getDocs(q);
+            
+            const tasks = [];
+            snapshot.forEach((doc) => {
+                tasks.push({ id: doc.id, ...doc.data() });
             });
+            
+            console.log('✅ [FIREBASE] タスク取得完了:', tasks.length);
+            return { success: true, tasks: tasks };
         } catch (error) {
             console.error('❌ [FIREBASE] タスク取得エラー:', error);
             return { success: false, error: error.message, tasks: [] };
+        }
+    },
+
+    async createTask(task) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user) {
+                return { success: false, error: '認証が必要です' };
+            }
+            
+            const docRef = await addDoc(collection(db, 'tasks'), {
+                ...task,
+                userId: user.id,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+            
+            console.log('✅ [FIREBASE] タスク作成完了:', docRef.id);
+            return { success: true, id: docRef.id };
+        } catch (error) {
+            console.error('❌ [FIREBASE] タスク作成エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async updateTask(taskId, taskData) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user) {
+                return { success: false, error: '認証が必要です' };
+            }
+            
+            await updateDoc(doc(db, 'tasks', taskId), {
+                ...taskData,
+                updatedAt: new Date().toISOString()
+            });
+            
+            console.log('✅ [FIREBASE] タスク更新完了:', taskId);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ [FIREBASE] タスク更新エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async deleteTask(taskId) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user) {
+                return { success: false, error: '認証が必要です' };
+            }
+            
+            await deleteDoc(doc(db, 'tasks', taskId));
+            
+            console.log('✅ [FIREBASE] タスク削除完了:', taskId);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ [FIREBASE] タスク削除エラー:', error);
+            return { success: false, error: error.message };
         }
     }
 };
