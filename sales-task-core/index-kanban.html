@@ -2281,7 +2281,7 @@
         setInterval(checkAndRemoveDuplicates, 10 * 60 * 1000);
 
         // グローバル変数 - Firebase専用 (初期化遅延)
-        let tasks; // loadTasks()で初期化される
+        // tasks変数は既に上部で宣言済み
         window.tasks = undefined; // Firebase読み込み完了まで未定義
         
         // データ移行対策：PJ設定データの互換性チェック
@@ -2355,7 +2355,7 @@
         let taskCounter = tasks.length || 0;
         
         // 担当者リスト（Firebase統合）
-        let assignees = [];
+        // assignees変数は既に上部で宣言済み
         window.assignees = assignees; // グローバルにも設定
         
         // 「ユーザー」を担当者リストから削除
@@ -2450,7 +2450,7 @@
         }
         
         // テンプレート管理（Firebase統合対応）
-        let taskTemplates = [];
+        // taskTemplates変数は既に上部で宣言済み
         let editingTemplateId = null;
         
         // バルク操作管理
