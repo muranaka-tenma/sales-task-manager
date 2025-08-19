@@ -5271,23 +5271,27 @@
         function loadImportDefaults() {
             // 担当者選択肢を更新
             const assigneeSelect = document.getElementById('default-assignee');
-            assigneeSelect.innerHTML = '<option value="">選択してください</option>';
-            assignees.forEach(assignee => {
-                const option = document.createElement('option');
-                option.value = assignee;
-                option.textContent = assignee;
-                assigneeSelect.appendChild(option);
-            });
+            if (assigneeSelect) {
+                assigneeSelect.innerHTML = '<option value="">選択してください</option>';
+                assignees.forEach(assignee => {
+                    const option = document.createElement('option');
+                    option.value = assignee;
+                    option.textContent = assignee;
+                    assigneeSelect.appendChild(option);
+                });
+            }
             
             // カラム選択肢を更新
             const columnSelect = document.getElementById('default-column');
-            columnSelect.innerHTML = '';
-            columns.forEach(column => {
-                const option = document.createElement('option');
-                option.value = column.id;
-                option.textContent = column.title;
-                columnSelect.appendChild(option);
-            });
+            if (columnSelect) {
+                columnSelect.innerHTML = '';
+                columns.forEach(column => {
+                    const option = document.createElement('option');
+                    option.value = column.id;
+                    option.textContent = column.title;
+                    columnSelect.appendChild(option);
+                });
+            }
             
             // デフォルト期限を今日に設定
             document.getElementById('default-deadline').value = new Date().toISOString().split('T')[0];

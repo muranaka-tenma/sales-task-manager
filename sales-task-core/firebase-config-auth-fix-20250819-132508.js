@@ -163,9 +163,17 @@ window.FirebaseDB = {
                 return { success: false, error: '認証が必要です' };
             }
             
-            await deleteDoc(doc(db, 'tasks', taskId));
+            // taskIdが文字列でない場合の安全チェック
+            const documentId = typeof taskId === 'object' ? taskId.id : taskId;
+            if (!documentId || typeof documentId !== 'string') {
+                console.error('❌ [FIREBASE] 無効なタスクID:', taskId, typeof taskId);
+                return { success: false, error: '無効なタスクIDです' };
+            }
             
-            console.log('✅ [FIREBASE] タスク削除完了:', taskId);
+            console.log('🗑️ [FIREBASE] タスク削除実行:', documentId);
+            await deleteDoc(doc(db, 'tasks', documentId));
+            
+            console.log('✅ [FIREBASE] タスク削除完了:', documentId);
             return { success: true };
         } catch (error) {
             console.error('❌ [FIREBASE] タスク削除エラー:', error);
