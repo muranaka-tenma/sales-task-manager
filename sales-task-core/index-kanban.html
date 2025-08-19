@@ -7100,36 +7100,64 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             return Math.max(0, Math.min(100, confidence));
         }
         
-        function clearAllData() {
+        async function clearAllData() {
             if (confirm('本当に全データを削除しますか？この操作は取り消せません。')) {
                 if (confirm('最終確認：全てのタスク、カラム設定、担当者情報が削除されます。続行しますか？')) {
-                    // Firebase専用モード - LocalStorage操作は無効
-                    localStorage.removeItem('kanbanColumns');
-                    localStorage.removeItem('taskAssignees');
-                    localStorage.removeItem('alertSettings');
-                    localStorage.removeItem('selectedTheme');
-                    localStorage.removeItem('themeColors');
+                    console.log('🧹 [CLEAR-ALL] 全データ削除開始...');
                     
-                    // デフォルト状態にリセット
-                    tasks = [];
-                    columns = [
-                        { id: 'todo', title: '📋 TODO', color: '#667eea' },
-                        { id: 'inprogress', title: '⚡ 進行中', color: '#f59e0b' },
-                        { id: 'waiting', title: '⏳ 連絡待ち', color: '#8b5cf6' },
-                        { id: 'done', title: '✅ Done', color: '#10b981' }
-                    ];
-                    // 実ユーザーから担当者リストを再構築
-                    const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                    assignees = users.map(user => user.name);
-                    
-                    localStorage.setItem('kanbanColumns', JSON.stringify(columns));
-                    // 担当者リストはFirestoreで管理される
-                    
-                    console.log('🧹 システムリセット完了: 実ユーザーベースで再構築', assignees);
-                    
-                    render();
-                    closeSettingsModal();
-                    alert('全データを削除しました');
+                    try {
+                        // 🔥 重要: Firebaseからタスクを完全削除
+                        if (window.FirebaseDB && window.getCurrentUser() && window.getCurrentUser().isLoggedIn) {
+                            console.log('🔥 [CLEAR-ALL] Firebaseからタスクを削除中...');
+                            
+                            // 現在のタスクを取得して個別削除
+                            const result = await window.FirebaseDB.getTasks();
+                            if (result.success && result.tasks) {
+                                console.log(`🗑️ [CLEAR-ALL] ${result.tasks.length}個のタスクをFirebaseから削除します`);
+                                
+                                // 各タスクを個別削除
+                                for (const task of result.tasks) {
+                                    await window.FirebaseDB.deleteTask(task.id);
+                                }
+                                
+                                console.log('✅ [CLEAR-ALL] Firebase削除完了');
+                            }
+                        } else {
+                            console.warn('⚠️ [CLEAR-ALL] Firebase未接続 - ローカルのみ削除');
+                        }
+                        
+                        // ローカルデータをリセット
+                        tasks = [];
+                        window.tasks = [];
+                        
+                        // 🔥 重要: 空の配列をFirebaseに保存して削除を確実にする
+                        if (window.FirebaseDB && window.getCurrentUser() && window.getCurrentUser().isLoggedIn) {
+                            console.log('💾 [CLEAR-ALL] 空の状態をFirebaseに保存中...');
+                            await window.FirebaseDB.saveTasks([]);
+                            console.log('✅ [CLEAR-ALL] Firebase空保存完了');
+                        }
+                        
+                        // デフォルト状態にリセット
+                        columns = [
+                            { id: 'todo', title: '📋 TODO', color: '#667eea' },
+                            { id: 'inprogress', title: '⚡ 進行中', color: '#f59e0b' },
+                            { id: 'waiting', title: '⏳ 連絡待ち', color: '#8b5cf6' },
+                            { id: 'done', title: '✅ Done', color: '#10b981' }
+                        ];
+                        
+                        // 担当者リストをシステムユーザーから再構築
+                        assignees = ['邨中天真', '加藤純', '田村渉', '半澤侑果', '朝日圭一', '福島亜未', '橋本友美'];
+                        
+                        console.log('🧹 [CLEAR-ALL] システムリセット完了');
+                        
+                        render();
+                        closeSettingsModal();
+                        alert('✅ 全データを削除しました\n（Firebase & ローカル完全削除）');
+                        
+                    } catch (error) {
+                        console.error('❌ [CLEAR-ALL] 削除エラー:', error);
+                        alert('❌ 削除中にエラーが発生しました: ' + error.message);
+                    }
                 }
             }
         }
