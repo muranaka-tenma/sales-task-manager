@@ -41,10 +41,17 @@ window.getCurrentUser = function() {
             id: window.currentFirebaseUser.uid,
             name: window.currentFirebaseUser.email.split('@')[0],
             email: window.currentFirebaseUser.email,
-            role: window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ? 'developer' : 'user'
+            role: window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ? 'developer' : 'user',
+            isLoggedIn: true
         };
     }
-    return null;
+    return {
+        id: null,
+        name: 'ゲスト',
+        email: null,
+        role: 'guest',
+        isLoggedIn: false
+    };
 };
 
 // タスク管理 - Firebase専用
@@ -181,6 +188,10 @@ window.FirebaseAuth = {
             console.error('❌ Firebase認証エラー:', error);
             return { success: false, error: error.message };
         }
+    },
+
+    getCurrentUser() {
+        return window.getCurrentUser();
     },
 
     get currentUser() {

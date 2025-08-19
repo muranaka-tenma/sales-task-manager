@@ -2031,7 +2031,7 @@
             const currentUser = getCurrentUser();
             console.log('🔐 現在のユーザー情報:', currentUser);
             
-            if (currentUser.isLoggedIn) {
+            if (currentUser && currentUser.isLoggedIn) {
                 console.log(`✅ ログイン確認: ${currentUser.name} (${currentUser.role})`);
                 
                 // 権限に基づくUI制御を実行
@@ -6023,20 +6023,27 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             
             // onAuthStateChangedで認証状態を監視
             const authPromise = new Promise((resolve) => {
-                const unsubscribe = window.firebaseAuth?.onAuthStateChanged((user) => {
-                    if (user) {
-                        console.log('✅ [INIT] Firebase認証復元完了:', user.email);
-                        authRestored = true;
-                        unsubscribe();
-                        resolve();
-                    }
-                });
+                let unsubscribe = null;
+                
+                if (window.firebaseAuth?.onAuthStateChanged) {
+                    unsubscribe = window.firebaseAuth.onAuthStateChanged((user) => {
+                        if (user) {
+                            console.log('✅ [INIT] Firebase認証復元完了:', user.email);
+                            authRestored = true;
+                            if (unsubscribe) unsubscribe();
+                            resolve();
+                        }
+                    });
+                } else {
+                    console.log('⚠️ [INIT] Firebase Auth未初期化 - 認証なしで続行');
+                    resolve();
+                }
                 
                 // タイムアウト処理
                 setTimeout(() => {
                     if (!authRestored) {
                         console.log('⏱️ [INIT] 認証待機タイムアウト - 認証なしで続行');
-                        unsubscribe();
+                        if (unsubscribe) unsubscribe();
                         resolve();
                     }
                 }, maxWaitTime);
@@ -12168,7 +12175,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             const currentUser = getCurrentUser();
             console.log('🍔 ハンバーガーメニュー更新中:', currentUser);
             
-            if (currentUser.isLoggedIn) {
+            if (currentUser && currentUser.isLoggedIn) {
                 // ユーザー情報を表示
                 const avatar = document.getElementById('user-menu-avatar');
                 const name = document.getElementById('user-menu-name');
