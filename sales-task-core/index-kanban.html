@@ -1995,6 +1995,82 @@
             }, 5 * 60 * 1000); // 5分ごと
         }
         
+        // LocalStorageプロジェクトのFirebase移行
+        async function migrateProjectsToFirebase() {
+            try {
+                // Firebase接続とユーザー認証確認
+                if (!window.FirebaseDB?.saveProject || !window.getCurrentUser()?.isLoggedIn) {
+                    console.log('📁 [PROJECT MIGRATE] Firebase未準備 - 移行スキップ');
+                    return;
+                }
+                
+                // 重複移行防止チェック
+                if (localStorage.getItem('projectsMigratedToFirebase') === 'true') {
+                    console.log('📁 [PROJECT MIGRATE] 既に移行済み - スキップ');
+                    return;
+                }
+                
+                // LocalStorageからプロジェクト設定とprojectsを取得
+                const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                
+                const projectsToMigrate = [];
+                
+                // projectSettingsからプロジェクトを収集
+                Object.keys(projectSettings).forEach(projectId => {
+                    const project = projectSettings[projectId];
+                    projectsToMigrate.push({
+                        id: projectId,
+                        name: project.name,
+                        description: project.description || '',
+                        createdAt: project.createdAt,
+                        createdBy: project.createdBy,
+                        columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                    });
+                });
+                
+                // projectsからもプロジェクトを収集（重複除去）
+                projects.forEach(project => {
+                    if (!projectsToMigrate.find(p => p.id === project.id)) {
+                        projectsToMigrate.push(project);
+                    }
+                });
+                
+                if (projectsToMigrate.length === 0) {
+                    console.log('📁 [PROJECT MIGRATE] 移行対象のプロジェクトなし');
+                    return;
+                }
+                
+                console.log(`🔥 [PROJECT MIGRATE] ${projectsToMigrate.length}件のプロジェクトをFirebaseに移行中...`);
+                
+                // 各プロジェクトをFirebaseに保存
+                let migratedCount = 0;
+                for (const project of projectsToMigrate) {
+                    try {
+                        const result = await window.FirebaseDB.saveProject(project);
+                        if (result.success) {
+                            migratedCount++;
+                            console.log(`✅ [PROJECT MIGRATE] 移行成功: ${project.name} (${project.id})`);
+                        } else {
+                            console.error(`❌ [PROJECT MIGRATE] 移行失敗: ${project.name}`, result.error);
+                        }
+                    } catch (error) {
+                        console.error(`❌ [PROJECT MIGRATE] 移行エラー: ${project.name}`, error);
+                    }
+                }
+                
+                console.log(`✅ [PROJECT MIGRATE] 移行完了: ${migratedCount}/${projectsToMigrate.length}件`);
+                
+                if (migratedCount > 0) {
+                    // 移行成功時のマーク（重複移行防止）
+                    localStorage.setItem('projectsMigratedToFirebase', 'true');
+                }
+                
+            } catch (error) {
+                console.error('❌ [PROJECT MIGRATE] プロジェクト移行エラー:', error);
+            }
+        }
+        
         function displayUserInfo(user) {
             // ヘッダーにユーザー情報を表示
             const headerTitle = document.querySelector('.header-title');
@@ -6077,6 +6153,11 @@ Firebase認証: ${diagnosis.firebase.currentUser}
                 
                 initializeUserDatabase();
                 console.log('✅ [INIT] ユーザーデータベース初期化完了');
+                
+                // 既存プロジェクトのFirebase移行チェック
+                setTimeout(() => {
+                    migrateProjectsToFirebase();
+                }, 3000); // Firebase認証完了後に実行
                 
                 // 🔐 【重要】権限整合性チェック・修正を実行
                 const permissionFixed = ensureUserPermissionsIntegrity();
@@ -12693,8 +12774,15 @@ Firebase認証: ${diagnosis.firebase.currentUser}
                 localStorage.setItem('projects', JSON.stringify(projects));
                 
                 // Firebaseにも保存（接続している場合）
-                if (window.FirebaseAuth?.getCurrentUser() && window.firebaseConfig?.saveProject) {
-                    window.firebaseConfig.saveProject(newProject);
+                if (window.FirebaseDB?.saveProject && window.getCurrentUser()?.isLoggedIn) {
+                    console.log('🔥 [PROJECT SAVE] Firebaseに新規プロジェクトを保存中...');
+                    window.FirebaseDB.saveProject(newProject).then(result => {
+                        if (result.success) {
+                            console.log('✅ [PROJECT SAVE] Firebase保存成功:', result.id);
+                        } else {
+                            console.error('❌ [PROJECT SAVE] Firebase保存エラー:', result.error);
+                        }
+                    });
                 }
                 
                 console.log('✅ 新しいプロジェクトを作成:', newProject.name);
@@ -12927,8 +13015,15 @@ Firebase認証: ${diagnosis.firebase.currentUser}
                 localStorage.setItem('projects', JSON.stringify(projects));
                 
                 // Firebaseにも保存（接続している場合）
-                if (window.FirebaseAuth?.getCurrentUser() && window.firebaseConfig?.saveProject) {
-                    window.firebaseConfig.saveProject(projects[projectIndex]);
+                if (window.FirebaseDB?.saveProject && window.getCurrentUser()?.isLoggedIn) {
+                    console.log('🔥 [PROJECT UPDATE] Firebaseプロジェクト更新中...');
+                    window.FirebaseDB.saveProject(projects[projectIndex]).then(result => {
+                        if (result.success) {
+                            console.log('✅ [PROJECT UPDATE] Firebase更新成功:', result.id);
+                        } else {
+                            console.error('❌ [PROJECT UPDATE] Firebase更新エラー:', result.error);
+                        }
+                    });
                 }
                 
                 console.log('✅ プロジェクトを更新:', projects[projectIndex].name);
