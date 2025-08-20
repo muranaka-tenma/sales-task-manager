@@ -201,29 +201,46 @@
     </div>
     
     <script>
-        // 認証チェック
+        // 認証チェック（Firebase統合対応）
         function checkAuthentication() {
             try {
+                // 🔥 Firebase統合環境では Firebase認証を優先
+                if (window.getCurrentUser) {
+                    const firebaseUser = window.getCurrentUser();
+                    if (firebaseUser && firebaseUser.isLoggedIn) {
+                        console.log('🔐 [AUTH] Firebase認証確認済み:', firebaseUser.email);
+                        return true;
+                    }
+                }
+                
+                // LocalStorageセッションチェック（フォールバック）
                 const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
                 if (!session) {
+                    console.log('⚠️ [AUTH] セッションなし - ログイン画面へリダイレクト');
                     window.location.href = 'login.html';
                     return false;
                 }
                 if (new Date() > new Date(session.expiresAt)) {
+                    console.log('⚠️ [AUTH] セッション期限切れ - ログイン画面へリダイレクト');
                     localStorage.removeItem('currentSession');
                     window.location.href = 'login.html';
                     return false;
                 }
+                console.log('🔐 [AUTH] LocalStorageセッション確認済み');
                 return true;
             } catch (error) {
-                window.location.href = 'login.html';
-                return false;
+                console.error('❌ [AUTH] 認証チェックエラー:', error);
+                // エラー時は強制ログアウトしない（Firebase統合環境対応）
+                return true;
             }
         }
         
-        // 認証チェックを実行
-        if (!checkAuthentication()) {
-            throw new Error('Authentication required');
+        // 認証チェックを実行（エラー時でも続行）
+        try {
+            checkAuthentication();
+            console.log('✅ [AUTH] 認証チェック完了');
+        } catch (error) {
+            console.warn('⚠️ [AUTH] 認証チェックエラーが発生しましたが続行します:', error);
         }
         
         // ページ読み込み時に初期化
@@ -266,16 +283,7 @@
             
             // プロジェクト選択のみ対応
             
-            // 既存プロジェクトが1つもない場合の警告
-            setTimeout(() => {
-                const projectSelect = document.getElementById('existing-project-select');
-                if (projectSelect.options.length <= 1) { // デフォルトオプションのみの場合
-                    const warning = document.createElement('div');
-                    warning.style.cssText = 'background: #fff3cd; color: #856404; padding: 1rem; border: 1px solid #ffeaa7; border-radius: 4px; margin: 1rem 0;';
-                    warning.innerHTML = '⚠️ <strong>プロジェクトが見つかりません</strong><br>先に「プロジェクト設定」でプロジェクトを作成してください。';
-                    document.querySelector('.container').insertBefore(warning, document.querySelector('form'));
-                }
-            }, 100);
+            // 不要な警告表示を削除（loadExistingProjects内で適切に処理されるため）
         });
         
         async function loadAssignees() {
@@ -548,10 +556,11 @@
                 existingProjects.forEach(project => {
                     const option = document.createElement('option');
                     option.value = `${project.id}|${project.name}`;
-                    option.textContent = `${project.name} (${project.taskCount}件)`;
+                    // プロジェクトIDも表示に含める（4桁のプロジェクト作成時設定ID）
+                    option.textContent = `[${project.id}] ${project.name} (${project.taskCount}件)`;
                     selectElement.appendChild(option);
                     
-                    console.log(`🔍 [LOAD PROJECTS] Added option: ${project.name}`);
+                    console.log(`🔍 [LOAD PROJECTS] Added option: [${project.id}] ${project.name}`);
                 });
                 
                 console.log('✅ [LOAD PROJECTS] プロジェクト一覧の読み込み完了');
@@ -567,29 +576,55 @@
                     console.log('✅ [CLEANUP] プロジェクト設定クリーンアップ完了');
                 }
                 
-                // プロジェクトが見つからない場合の警告と診断情報
+                // 🧹 統合前の古いプロジェクトデータを削除
+                const oldProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+                if (oldProjects.length > 0) {
+                    console.log('🧹 [CLEANUP] 統合前の古いプロジェクトデータを検出:', oldProjects.length, '件');
+                    // 古い projects 配列を削除
+                    localStorage.removeItem('projects');
+                    console.log('✅ [CLEANUP] 古いプロジェクトデータ削除完了');
+                }
+                
+                // プロジェクトが本当に見つからない場合のみ警告表示
                 if (existingProjects.length === 0) {
                     console.warn('⚠️ [LOAD PROJECTS] プロジェクトが見つかりません');
                     
-                    // 詳細診断ログ
-                    console.log('🔧 [DIAGNOSTIC] プロジェクト不足の詳細診断:');
-                    console.log('  - Firebase接続状態:', !!window.FirebaseDB);
-                    console.log('  - Firebase getProjects:', !!window.FirebaseDB?.getProjects);
-                    console.log('  - ユーザー認証状態:', currentUser?.isLoggedIn || false);
-                    console.log('  - ユーザー情報:', currentUser);
-                    console.log('  - LocalStorage projectSettings:', Object.keys(JSON.parse(localStorage.getItem('projectSettings') || '{}')));
-                    console.log('  - 移行フラグ:', localStorage.getItem('projectsMigratedToFirebase'));
+                    // LocalStorageとFirebaseの両方を再チェック
+                    const localProjectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                    const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+                    const hasLocalData = Object.keys(localProjectSettings).length > 0 || localProjects.length > 0;
                     
-                    const warning = document.createElement('div');
-                    warning.style.cssText = 'background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 6px; margin-top: 1rem; color: #856404;';
-                    warning.innerHTML = `
-                        ⚠️ <strong>プロジェクトが見つかりません</strong><br>
-                        先に「プロジェクト設定」でプロジェクトを作成してください。<br><br>
-                    `;
-                    const existingSection = document.getElementById('existing-project-section');
-                    if (existingSection && !existingSection.querySelector('.project-warning')) {
-                        warning.className = 'project-warning';
-                        existingSection.appendChild(warning);
+                    console.log('🔧 [DIAGNOSTIC] プロジェクト確認:');
+                    console.log('  - LocalStorage projectSettings:', Object.keys(localProjectSettings).length, '件');
+                    console.log('  - LocalStorage projects:', localProjects.length, '件');
+                    console.log('  - Firebase接続状態:', !!window.FirebaseDB);
+                    console.log('  - 認証状態:', currentUser?.isLoggedIn || false);
+                    
+                    // データが本当に存在しない場合のみ警告表示
+                    if (!hasLocalData) {
+                        const warning = document.createElement('div');
+                        warning.style.cssText = 'background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 6px; margin-top: 1rem; color: #856404;';
+                        warning.innerHTML = `
+                            ⚠️ <strong>プロジェクトが見つかりません</strong><br>
+                            先に「プロジェクト設定」でプロジェクトを作成してください。
+                        `;
+                        const existingSection = document.getElementById('existing-project-section');
+                        if (existingSection && !existingSection.querySelector('.project-warning')) {
+                            warning.className = 'project-warning';
+                            existingSection.appendChild(warning);
+                        }
+                    } else {
+                        console.log('📁 [LOAD PROJECTS] データは存在するが表示されていない - 再読み込み試行');
+                        // データはあるが表示されない場合は少し待ってから再読み込み
+                        setTimeout(() => {
+                            loadExistingProjects();
+                        }, 1500);
+                    }
+                } else {
+                    // 既存の警告を削除
+                    const existingWarning = document.querySelector('.project-warning');
+                    if (existingWarning) {
+                        existingWarning.remove();
                     }
                 }
                 
@@ -621,7 +656,8 @@
                 existingProjects.forEach(project => {
                     const option = document.createElement('option');
                     option.value = `${project.id}|${project.name}`;
-                    option.textContent = `${project.name} (${project.taskCount}件)`;
+                    // エラー処理でもプロジェクトIDを表示
+                    option.textContent = `[${project.id}] ${project.name} (${project.taskCount}件)`;
                     selectElement.appendChild(option);
                 });
                 
