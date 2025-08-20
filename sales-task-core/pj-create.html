@@ -300,8 +300,15 @@
                         console.log('🔥 [LOAD ASSIGNEES] Firebase getUsers 関数を使用');
                         const firebaseUsers = await window.FirebaseDB.getUsers();
                         if (firebaseUsers.success && firebaseUsers.users.length > 0) {
-                            assignees = firebaseUsers.users.map(user => user.name || user.displayName || user.email.split('@')[0]);
-                            console.log('🔥 [LOAD ASSIGNEES] Firebase ユーザー取得成功:', assignees.length, '名');
+                            // 無効化・非表示ユーザーを除外
+                            const activeUsers = firebaseUsers.users.filter(user => !user.isDisabled && !user.isHidden);
+                            assignees = activeUsers.map(user => user.name || user.displayName || user.email.split('@')[0]);
+                            
+                            const excludedCount = firebaseUsers.users.length - activeUsers.length;
+                            if (excludedCount > 0) {
+                                console.log(`🚫 [LOAD ASSIGNEES] 無効化・非表示ユーザー除外: ${excludedCount}名`);
+                            }
+                            console.log('🔥 [LOAD ASSIGNEES] Firebase アクティブユーザー取得成功:', assignees.length, '名');
                         } else {
                             assignees = ['邨中天真', '加藤純', '朝日圭一', '半澤侑果', '田村渉', '橋本友美', '福島亜未'];
                             console.log('📁 [LOAD ASSIGNEES] Firebase ユーザーなし - デフォルトリスト使用');
@@ -317,9 +324,16 @@
                     assignees = JSON.parse(localStorage.getItem('taskAssignees') || '["邨中天真", "加藤純", "朝日圭一", "半澤侑果", "田村渉", "橋本友美", "福島亜未"]');
                     const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                     if (systemUsers.length > 0) {
-                        const systemUserNames = systemUsers.map(user => user.name).filter(name => name && name.trim() !== '');
+                        // 無効化・非表示ユーザーを除外
+                        const activeSystemUsers = systemUsers.filter(user => !user.isDisabled && !user.isHidden);
+                        const systemUserNames = activeSystemUsers.map(user => user.name).filter(name => name && name.trim() !== '');
                         assignees = [...new Set([...assignees, ...systemUserNames])];
-                        console.log('📁 [LOAD ASSIGNEES] エラー時フォールバック: システムユーザー追加');
+                        
+                        const excludedCount = systemUsers.length - activeSystemUsers.length;
+                        if (excludedCount > 0) {
+                            console.log(`🚫 [LOAD ASSIGNEES] LocalStorageから無効化・非表示ユーザー除外: ${excludedCount}名`);
+                        }
+                        console.log('📁 [LOAD ASSIGNEES] エラー時フォールバック: アクティブシステムユーザー追加');
                     }
                 }
             } else {
@@ -327,12 +341,19 @@
                 // LocalStorage フォールバック
                 assignees = JSON.parse(localStorage.getItem('taskAssignees') || '["邨中天真", "加藤純", "朝日圭一", "半澤侑果", "田村渉", "橋本友美", "福島亜未"]');
                 
-                // システムユーザーからも取得を試行
+                // システムユーザーからも取得を試行（無効化・非表示除外）
                 const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                 if (systemUsers.length > 0) {
-                    const systemUserNames = systemUsers.map(user => user.name).filter(name => name && name.trim() !== '');
+                    // 無効化・非表示ユーザーを除外
+                    const activeSystemUsers = systemUsers.filter(user => !user.isDisabled && !user.isHidden);
+                    const systemUserNames = activeSystemUsers.map(user => user.name).filter(name => name && name.trim() !== '');
                     assignees = [...new Set([...assignees, ...systemUserNames])]; // 重複除去
-                    console.log('📁 [LOAD ASSIGNEES] システムユーザーからも追加:', systemUserNames.length, '名');
+                    
+                    const excludedCount = systemUsers.length - activeSystemUsers.length;
+                    if (excludedCount > 0) {
+                        console.log(`🚫 [LOAD ASSIGNEES] LocalStorageモードで無効化・非表示ユーザー除外: ${excludedCount}名`);
+                    }
+                    console.log('📁 [LOAD ASSIGNEES] アクティブシステムユーザーからも追加:', systemUserNames.length, '名');
                 }
             }
             

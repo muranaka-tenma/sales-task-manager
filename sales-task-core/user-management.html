@@ -832,7 +832,7 @@
                 
                 try {
                     // 🔥 完全削除ではなく無効化処理に変更
-                    if (window.FirebaseDB && window.FirebaseDB.deleteUser) {
+                    if (window.FirebaseDB && window.FirebaseDB.saveUser) {
                         console.log('🔥 [DISABLE] ユーザーアカウント無効化中:', deletedUserName);
                         
                         // Firestoreのユーザー情報を無効化マークに変更
@@ -842,6 +842,8 @@
                             disabledAt: new Date().toISOString(),
                             disabledBy: window.getCurrentUser().name
                         };
+                        
+                        console.log('🔍 [DEBUG] 無効化ユーザーデータ:', disabledUser);
                         
                         // 無効化されたユーザーとしてFirestoreに保存
                         const firebaseResult = await window.FirebaseDB.saveUser(disabledUser);
