@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 管理者ダッシュボード - 営業タスク管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f4f5f7;
+            color: #172b4d;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: #026aa7;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 2rem;
+            border-left: 4px solid #026aa7;
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #172b4d;
+        }
+        
+        .alert-item {
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #026aa7;
+        }
+        
+        .chart-container {
+            height: 200px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+        
+        .permission-error {
+            background: #fee;
+            border: 1px solid #fcc;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            color: #c53030;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title">📊 管理者ダッシュボード</div>
+        <a href="index-kanban.html" class="back-btn">← メイン画面に戻る</a>
+    </div>
+    
+    <div class="container">
+        <div id="permission-error" class="permission-error" style="display: none;">
+            <h3>🚫 アクセス権限がありません</h3>
+            <p>この機能は管理者（admin）または開発者（developer）のみ利用可能です。</p>
+            <a href="index-kanban.html">メイン画面に戻る</a>
+        </div>
+        
+        <div id="dashboard-content" style="display: none;">
+            <div class="dashboard-grid">
+                <!-- 緊急対応アラート -->
+                <div class="card">
+                    <div class="card-header">
+                        <span>🚨</span>
+                        <h3 class="card-title">緊急対応が必要な項目</h3>
+                    </div>
+                    <div id="alerts-content">
+                        <div class="alert-item">
+                            <strong>期限切れタスク:</strong> <span id="overdue-count">0</span>件
+                        </div>
+                        <div class="alert-item">
+                            <strong>停滞タスク:</strong> <span id="stale-count">0</span>件
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- チーム生産性 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span>📈</span>
+                        <h3 class="card-title">チーム生産性推移</h3>
+                    </div>
+                    <div class="chart-container">
+                        <div>📊 グラフ機能（開発中）</div>
+                    </div>
+                </div>
+                
+                <!-- メンバー別パフォーマンス -->
+                <div class="card">
+                    <div class="card-header">
+                        <span>👥</span>
+                        <h3 class="card-title">メンバー別パフォーマンス</h3>
+                    </div>
+                    <div id="performance-content">
+                        <!-- 動的に生成 -->
+                    </div>
+                </div>
+                
+                <!-- システム状況監視 -->
+                <div class="card">
+                    <div class="card-header">
+                        <span>🖥️</span>
+                        <h3 class="card-title">システム状況監視</h3>
+                    </div>
+                    <div class="stat-item">
+                        <span>Firebase接続状態:</span>
+                        <span class="stat-value" id="firebase-status">確認中...</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>総タスク数:</span>
+                        <span class="stat-value" id="total-tasks">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>アクティブユーザー:</span>
+                        <span class="stat-value" id="active-users">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 認証チェック
+        function checkPermissions() {
+            // Firebase認証状態を確認
+            if (window.getCurrentUser) {
+                const currentUser = window.getCurrentUser();
+                if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'developer')) {
+                    return true;
+                }
+            }
+            
+            // LocalStorageセッションもチェック
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (session && session.user && (session.user.role === 'admin' || session.user.role === 'developer')) {
+                    return true;
+                }
+            } catch (error) {
+                console.error('セッション確認エラー:', error);
+            }
+            
+            return false;
+        }
+        
+        // ダッシュボードデータ読み込み
+        async function loadDashboardData() {
+            try {
+                // 統計データを取得
+                const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+                const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                
+                // 期限切れタスク
+                const now = new Date();
+                const overdueTasks = tasks.filter(task => 
+                    task.deadline && new Date(task.deadline) < now && task.columnId !== 'done'
+                );
+                
+                // 停滞タスク（3日以上同じステータス）
+                const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+                const staleTasks = tasks.filter(task => 
+                    task.lastMovedAt && new Date(task.lastMovedAt) < threeDaysAgo && task.columnId !== 'done'
+                );
+                
+                // UI更新
+                document.getElementById('overdue-count').textContent = overdueTasks.length;
+                document.getElementById('stale-count').textContent = staleTasks.length;
+                document.getElementById('total-tasks').textContent = tasks.length;
+                document.getElementById('active-users').textContent = users.length;
+                
+                // Firebase状態確認
+                const firebaseStatus = window.currentFirebaseUser ? '🟢 接続中' : '🔴 未接続';
+                document.getElementById('firebase-status').textContent = firebaseStatus;
+                
+                // メンバー別パフォーマンス
+                const performanceContent = document.getElementById('performance-content');
+                const userStats = {};
+                
+                tasks.forEach(task => {
+                    if (task.assignee && task.assignee !== '未設定') {
+                        if (!userStats[task.assignee]) {
+                            userStats[task.assignee] = { total: 0, completed: 0 };
+                        }
+                        userStats[task.assignee].total++;
+                        if (task.columnId === 'done') {
+                            userStats[task.assignee].completed++;
+                        }
+                    }
+                });
+                
+                performanceContent.innerHTML = Object.entries(userStats)
+                    .map(([user, stats]) => {
+                        const completion = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+                        return `
+                            <div class="stat-item">
+                                <span>${user}:</span>
+                                <span class="stat-value">${completion}% (${stats.completed}/${stats.total})</span>
+                            </div>
+                        `;
+                    }).join('');
+                
+            } catch (error) {
+                console.error('ダッシュボードデータ読み込みエラー:', error);
+            }
+        }
+        
+        // 初期化
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (checkPermissions()) {
+                document.getElementById('dashboard-content').style.display = 'block';
+                await loadDashboardData();
+            } else {
+                document.getElementById('permission-error').style.display = 'block';
+            }
+        });
+    </script>
+    
+    <!-- Firebase設定読み込み -->
+    <script type="module" src="firebase-config-auth-fix-20250819-132508.js"></script>
+</body>
+</html>

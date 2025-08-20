@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 // Firebase初期化（バージョン統一: 10.7.1）
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const app = initializeApp(firebaseConfig);
@@ -42,20 +42,49 @@ onAuthStateChanged(auth, (user) => {
             projectId: db.app.options.projectId,
             timestamp: new Date().toISOString()
         });
+        
+        // ハンバーガーメニューを更新（診断ボタンも含む）
+        setTimeout(() => {
+            if (window.updateHamburgerMenu) {
+                window.updateHamburgerMenu();
+                console.log('🍔 [FIREBASE] Firebase認証後にメニューを更新');
+            }
+        }, 100);
     } else {
         console.log('⚠️ Firebase未認証');
         window.currentFirebaseUser = null;
+        
+        // ログアウト時もハンバーガーメニューを更新（診断ボタンも含む）
+        setTimeout(() => {
+            if (window.updateHamburgerMenu) {
+                window.updateHamburgerMenu();
+                console.log('🍔 [FIREBASE] Firebase未認証時にメニューを更新');
+            }
+        }, 100);
     }
 });
 
 // セッション管理 - Firebase専用
 window.getCurrentUser = function() {
     if (window.currentFirebaseUser) {
+        // 正しい権限マッピング
+        const roleMap = {
+            'muranaka-tenma@terracom.co.jp': 'developer',
+            'kato-jun@terracom.co.jp': 'admin',
+            'asahi-keiichi@terracom.co.jp': 'admin',
+            'hanzawa-yuka@terracom.co.jp': 'user',
+            'tamura-wataru@terracom.co.jp': 'user',
+            'hashimoto-yumi@terracom.co.jp': 'user',
+            'fukushima-ami@terracom.co.jp': 'user'
+        };
+        
+        const userRole = roleMap[window.currentFirebaseUser.email] || 'user';
+        
         return {
             id: window.currentFirebaseUser.uid,
             name: window.currentFirebaseUser.email.split('@')[0],
             email: window.currentFirebaseUser.email,
-            role: window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ? 'developer' : 'user',
+            role: userRole,
             isLoggedIn: true
         };
     }
@@ -177,9 +206,15 @@ window.FirebaseDB = {
                 return { success: false, error: '認証が必要です' };
             }
             
-            // taskIdが文字列でない場合の安全チェック
-            const documentId = typeof taskId === 'object' ? taskId.id : taskId;
-            if (!documentId || typeof documentId !== 'string') {
+            // taskIdが数値の場合は文字列に変換
+            let documentId;
+            if (typeof taskId === 'object' && taskId.id) {
+                documentId = String(taskId.id);
+            } else if (typeof taskId === 'number') {
+                documentId = String(taskId);
+            } else if (typeof taskId === 'string') {
+                documentId = taskId;
+            } else {
                 console.error('❌ [FIREBASE] 無効なタスクID:', taskId, typeof taskId);
                 return { success: false, error: '無効なタスクIDです' };
             }
@@ -314,6 +349,18 @@ window.FirebaseAuth = {
             return { success: true, user: userCredential.user };
         } catch (error) {
             console.error('❌ Firebase認証エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async createUser(email, password, displayName) {
+        try {
+            console.log('🔥 [AUTH] Firebase Authユーザー作成中:', email);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            console.log('✅ [AUTH] Firebase Authユーザー作成成功:', userCredential.user.uid);
+            return { success: true, user: userCredential.user };
+        } catch (error) {
+            console.error('❌ [AUTH] Firebase Authユーザー作成エラー:', error);
             return { success: false, error: error.message };
         }
     },

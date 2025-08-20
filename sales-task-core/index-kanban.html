@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>🎯 営業タスク管理 - Kanbanボード</title>
-    <!-- Deploy: 2025-08-03-17:45 - PJ fields completely removed -->
+    <!-- Deploy: 2025-08-20-13:30 - THIS FILE HAS NO DEBUG BUTTONS -->
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
     <!-- Firebase統合システム - マルチユーザー対応 -->
-    <script type="module" src="firebase-config-auth-fix-20250819-132508.js"></script>
+    <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20250820-13-25-cachekiller"></script>
     <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化（セッション保護） -->
     <!-- キャッシュ問題解決のため完全無効化 -->
     <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
@@ -43,6 +46,7 @@
             font-weight: 600;
         }
         
+
         /* ハンバーガーメニュー */
         .hamburger-menu {
             position: fixed;
@@ -1009,10 +1013,6 @@
             <button class="hamburger-btn" onclick="toggleHamburgerMenu()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem;" title="メニュー">
                 ☰
             </button>
-            <!-- 🔧 緊急診断ボタンを追加 -->
-            <button onclick="emergencyDiagnosis()" style="background: #dc3545; color: white; border: none; padding: 0.25rem 0.5rem; margin-left: 0.5rem; border-radius: 3px; font-size: 0.7rem; cursor: pointer;" title="緊急診断">
-                🚨診断
-            </button>
             <div class="header-title">🎯 営業タスク管理 - Kanbanボード 
                 <span style="font-size: 0.7rem; background: #ff6b6b; color: white; padding: 0.2rem 0.4rem; border-radius: 3px; margin-left: 0.5rem;">
                     v2025.08.18-Firebase完全化
@@ -1020,8 +1020,6 @@
             </div>
         </div>
         <div class="header-controls">
-            <button onclick="debugFirebase()" class="settings-btn" title="Firebase状態確認" style="background: #ff6b6b; margin-right: 10px;">🔍</button>
-            <button onclick="forceSync()" class="settings-btn" title="強制同期" style="background: #4CAF50; margin-right: 10px;">🔄</button>
             <button onclick="openSettingsModal()" class="settings-btn" title="設定" style="display: none;">⚙️</button>
         </div>
     </div>
@@ -2088,7 +2086,7 @@
             const headerTitle = document.querySelector('.header-title');
             if (headerTitle) {
                 headerTitle.innerHTML = `
-                    🎯 営業タスク管理
+                    🎯 営業タスク管理 - Kanbanボード
                     <span style="font-size: 0.8rem; font-weight: normal; margin-left: 1rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.5rem; border-radius: 4px;">
                         ${user.name} (${getRoleDisplayName(user.role)})
                     </span>
@@ -5897,7 +5895,7 @@
                         const roleName = roleNames[currentSession.user.role] || currentSession.user.role;
                         
                         headerTitle.innerHTML = `
-                            🎯 営業タスク管理
+                            🎯 営業タスク管理 - Kanbanボード
                             <span style="font-size: 0.8rem; font-weight: normal; margin-left: 1rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.5rem; border-radius: 4px;">
                                 ${currentSession.user.name} (${roleName})
                             </span>
@@ -5976,183 +5974,7 @@
             });
         }
         
-        // 🔧 緊急診断: リアルタイムタスク状況確認
-        function emergencyDiagnosis() {
-            console.log('🚨 [EMERGENCY-DIAGNOSIS] 緊急診断開始...');
-            
-            const diagnosis = {
-                timestamp: new Date().toISOString(),
-                globalTasks: {
-                    exists: typeof window.tasks !== 'undefined',
-                    count: window.tasks ? window.tasks.length : 'undefined',
-                    type: typeof window.tasks,
-                    sample: window.tasks ? window.tasks.slice(0, 2).map(t => ({id: t.id, title: t.title?.substring(0, 20)})) : 'none'
-                },
-                localStorage: {
-                    status: 'Firebase専用モード - LocalStorageは無効',
-                    exists: false,
-                    size: 0,
-                    count: 0
-                },
-                firebase: {
-                    hasAuth: !!window.FirebaseAuth,
-                    hasDB: !!window.FirebaseDB,
-                    currentUser: window.firebaseAuth?.currentUser?.email || 'none',
-                    debugFunctions: !!window.FirebaseDebug
-                },
-                dom: {
-                    kanbanExists: !!document.querySelector('.kanban-board'),
-                    columnsCount: document.querySelectorAll('.kanban-column').length,
-                    tasksInDOM: document.querySelectorAll('.kanban-task').length
-                }
-            };
-            
-            console.log('🔍 [EMERGENCY-DIAGNOSIS] 診断結果:', diagnosis);
-            
-            // アラートでも表示
-            alert(`緊急診断結果:
-            
-グローバルtasks: ${diagnosis.globalTasks.count}件
-LocalStorage: ${diagnosis.localStorage.count}件  
-DOM内タスク: ${diagnosis.dom.tasksInDOM}件
-Firebase認証: ${diagnosis.firebase.currentUser}
-
-詳細はコンソールを確認してください。`);
-            
-            return diagnosis;
-        }
         
-        // グローバル関数として公開
-        window.emergencyDiagnosis = emergencyDiagnosis;
-        
-        // Firebase状態確認関数
-        window.debugFirebase = async function() {
-            const user = window.firebaseAuth?.currentUser;
-            // Firebase専用モードのため、LocalStorageは無効
-            const localTasks = [];
-            
-            let message = '【Firebase状態】\n';
-            message += `認証: ${user ? '✅ログイン中' : '❌未ログイン'}\n`;
-            message += `ユーザー: ${user?.email || 'なし'}\n`;
-            message += `ローカルタスク: ${localTasks.length}件\n`;
-            message += `表示中タスク: ${tasks.length}件\n`;
-            
-            alert(message);
-            
-            if (!user) {
-                if (confirm('Firebaseにログインしますか？')) {
-                    const localSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
-                    if (localSession?.user) {
-                        // パスワードマッピング
-                        const passwordMap = {
-                            'muranaka-tenma@terracom.co.jp': 'Tenma7041',
-                            'kato-jun@terracom.co.jp': 'aikakumei',
-                            'asahi-keiichi@terracom.co.jp': 'aikakumei',
-                            'hanzawa-yuka@terracom.co.jp': 'aikakumei',
-                            'tamura-wataru@terracom.co.jp': 'aikakumei',
-                            'hashimoto-yumi@terracom.co.jp': 'aikakumei',
-                            'fukushima-ami@terracom.co.jp': 'aikakumei'
-                        };
-                        
-                        const password = passwordMap[localSession.user.email] || 'aikakumei';
-                        const result = await window.FirebaseAuth.signIn(localSession.user.email, password);
-                        
-                        if (result.success) {
-                            alert('✅ Firebaseログイン成功！\nタスクを再読み込みします。');
-                            const newTasks = await loadTasks();
-                            render();
-                            alert(`✅ タスク読み込み完了: ${newTasks.length}件`);
-                        } else {
-                            alert('❌ ログイン失敗: ' + result.error);
-                        }
-                    }
-                }
-            } else {
-                if (confirm('Firestoreからタスクを再読み込みしますか？')) {
-                    const newTasks = await loadTasks();
-                    render();
-                    alert(`✅ タスク読み込み完了: ${newTasks.length}件`);
-                }
-            }
-        };
-        
-        // デバッグ用テスト関数（本番環境では無効化）
-        window.testFirebaseSync = async function() {
-            alert('⚠️ テスト機能は本番環境では無効化されています。');
-            return;
-        };
-
-        // 強制同期関数
-        window.forceSync = async function() {
-            alert('Firebase同期を開始します...');
-            
-            // LocalStorageをクリア（古いデータを削除）
-            // Firebase専用モード - LocalStorage操作は無効
-            
-            // Firebaseログインを試行
-            const localSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
-            if (!localSession?.user) {
-                alert('ログインしてください');
-                return;
-            }
-            
-            // パスワードマッピング
-            const passwordMap = {
-                'muranaka-tenma@terracom.co.jp': 'Tenma7041',
-                'kato-jun@terracom.co.jp': 'aikakumei',
-                'asahi-keiichi@terracom.co.jp': 'aikakumei',
-                'hanzawa-yuka@terracom.co.jp': 'aikakumei',
-                'tamura-wataru@terracom.co.jp': 'aikakumei',
-                'hashimoto-yumi@terracom.co.jp': 'aikakumei',
-                'fukushima-ami@terracom.co.jp': 'aikakumei'
-            };
-            
-            try {
-                // Firebaseログイン
-                if (!window.firebaseAuth?.currentUser) {
-                    const password = passwordMap[localSession.user.email] || 'aikakumei';
-                    const result = await window.FirebaseAuth.signIn(localSession.user.email, password);
-                    
-                    if (!result.success) {
-                        alert('ログイン失敗: ' + result.error);
-                        return;
-                    }
-                    
-                    alert('✅ Firebaseログイン成功');
-                }
-                
-                // タスクを強制的にFirestoreから読み込み
-                const tasksResult = await window.FirebaseDB.getTasks();
-                if (tasksResult.success) {
-                    tasks = tasksResult.tasks;
-                    window.tasks = tasks;
-                    render();
-                    updateStats();
-                    alert(`✅ 同期完了！\n${tasks.length}件のタスクを読み込みました`);
-                } else {
-                    alert('タスク読み込みエラー: ' + tasksResult.error);
-                }
-            } catch (error) {
-                alert('エラー: ' + error.message);
-            }
-        };
-        
-        window.checkFirebaseAuth = function() {
-            const currentUser = window.firebaseAuth?.currentUser || window.FirebaseAuth?.getCurrentUser();
-            const message = currentUser 
-                ? `✅ ログイン中\nユーザー: ${currentUser.email}\nUID: ${currentUser.uid.substring(0, 8)}...`
-                : '❌ 未ログイン';
-            
-            console.log('🔍 Firebase認証状態:', {
-                isAuthenticated: !!currentUser,
-                user: currentUser ? currentUser.email : null,
-                hasFirebaseAuth: !!window.FirebaseAuth,
-                hasFirebaseDB: !!window.FirebaseDB,
-                device: navigator.platform
-            });
-            
-            alert(message);
-        };
 
         // 担当者選択の変更イベント
         // Firebase完全移行: データはFirestoreから読み込まれる
@@ -6200,17 +6022,10 @@ Firebase認証: ${diagnosis.firebase.currentUser}
                     hasFirebaseAuthObject: !!window.firebaseAuth
                 },
                 debugFunctions: {
-                    hasCheckFirebaseAuth: typeof window.checkFirebaseAuth === 'function',
                     hasTestFirebaseSync: typeof window.testFirebaseSync === 'function'
                 }
             });
 
-            // デバッグ関数が利用可能になったことを通知
-            console.log('🧪 デバッグ関数が利用可能です:');
-            console.log('  - 認証状態確認: checkFirebaseAuth()');
-            console.log('  - 同期テスト: testFirebaseSync()');
-            console.log('  - プロジェクト移行: migrateProjectsToFirebase()');
-            console.log('  - LocalStorageプロジェクト確認: checkLocalStorageProjects()');
 
             // Firebase認証状態の確認
             setTimeout(() => {
@@ -6292,6 +6107,7 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             
             // OCRモーダルのイベントリスナーを初期化
             initOCRModalEventListeners();
+            
             
             const assigneeSelect = document.getElementById('task-assignee-input');
             if (assigneeSelect) {
@@ -12434,50 +12250,70 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             const currentUser = getCurrentUser();
             console.log('🍔 ハンバーガーメニュー更新中:', currentUser);
             
-            if (currentUser && currentUser.isLoggedIn) {
-                // ユーザー情報を表示
-                const avatar = document.getElementById('user-menu-avatar');
-                const name = document.getElementById('user-menu-name');
-                const role = document.getElementById('user-menu-role');
-                
-                if (avatar) avatar.textContent = currentUser.name ? currentUser.name.charAt(0) : '-';
-                if (name) name.textContent = currentUser.name || 'ゲスト';
-                
-                let roleText = 'ユーザー';
-                if (currentUser.role === 'developer') roleText = '開発者';
-                else if (currentUser.role === 'admin') roleText = '管理者';
-                if (role) role.textContent = roleText;
-                
-                // 開発者機能の表示制御
-                const developerSection = document.getElementById('developer-menu-section');
-                if (developerSection) {
-                    if (currentUser.role === 'developer') {
-                        developerSection.style.display = 'block';
-                    } else {
-                        developerSection.style.display = 'none';
-                    }
-                }
-                
-                // 管理機能の表示制御
-                const adminSection = document.getElementById('admin-menu-section');
-                if (adminSection) {
-                    // PJ設定は全ユーザーアクセス可能、その他管理機能はadmin以上
-                    adminSection.style.display = 'block';
-                    
-                    // ユーザー管理と管理ダッシュボードはadmin以上のみ
-                    const userManagementLink = adminSection.querySelector('a[href="user-management.html"]');
-                    const adminDashboardLink = adminSection.querySelector('a[href="admin-dashboard.html"]');
-                    
-                    if (currentUser.role === 'developer' || currentUser.role === 'admin') {
-                        if (userManagementLink) userManagementLink.style.display = 'block';
-                        if (adminDashboardLink) adminDashboardLink.style.display = 'block';
-                    } else {
-                        if (userManagementLink) userManagementLink.style.display = 'none';
-                        if (adminDashboardLink) adminDashboardLink.style.display = 'none';
-                    }
+            // ユーザー情報を表示
+            const avatar = document.getElementById('user-menu-avatar');
+            const name = document.getElementById('user-menu-name');
+            const role = document.getElementById('user-menu-role');
+            
+            if (avatar) avatar.textContent = currentUser.name ? currentUser.name.charAt(0) : '-';
+            if (name) name.textContent = currentUser.name || 'ゲスト';
+            
+            let roleText = 'ユーザー';
+            if (currentUser.role === 'developer') roleText = '開発者';
+            else if (currentUser.role === 'admin') roleText = '管理者';
+            else if (currentUser.role === 'guest') roleText = '未ログイン';
+            if (role) role.textContent = roleText;
+            
+            // 開発者機能の表示制御
+            const developerSection = document.getElementById('developer-menu-section');
+            if (developerSection) {
+                if (currentUser.role === 'developer') {
+                    developerSection.style.display = 'block';
+                } else {
+                    developerSection.style.display = 'none';
                 }
             }
+            
+            // 診断ボタンの表示制御（完全無効化）
+            const diagnosisBtn = document.getElementById('emergency-diagnosis-btn');
+            if (diagnosisBtn) {
+                diagnosisBtn.style.display = 'none';
+                console.log('🔧 [MENU] 診断ボタンを完全非表示');
+            }
+            
+            // 管理機能の表示制御（ログイン状態に関係なく）
+            const adminSection = document.getElementById('admin-menu-section');
+            console.log('🍔 [DEBUG] adminSection found:', !!adminSection);
+            if (adminSection) {
+                // ユーザー管理と管理ダッシュボードはadmin以上のみ
+                const userManagementLink = adminSection.querySelector('a[href="user-management.html"]');
+                const adminDashboardLink = adminSection.querySelector('a[href="admin-dashboard.html"]');
+                
+                console.log('🍔 [DEBUG] Links found:', {
+                    userManagement: !!userManagementLink,
+                    adminDashboard: !!adminDashboardLink,
+                    userRole: currentUser.role
+                });
+                
+                if (currentUser.role === 'developer' || currentUser.role === 'admin') {
+                    adminSection.style.display = 'block';
+                    if (userManagementLink) userManagementLink.style.display = 'block';
+                    if (adminDashboardLink) adminDashboardLink.style.display = 'block';
+                    console.log('🍔 管理機能を表示:', currentUser.role);
+                } else {
+                    adminSection.style.display = 'none';
+                    console.log('🍔 管理機能を非表示:', currentUser.role);
+                }
+            } else {
+                console.error('🍔 [ERROR] admin-menu-section not found in DOM');
+            }
         }
+        
+        // ハンバーガーメニュー更新関数をグローバルに公開
+        window.updateHamburgerMenu = updateHamburgerMenu;
+        
+        
+        
         
         // ログアウト関数
         function logout() {
@@ -13138,98 +12974,6 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             }
         }
         
-        // Firebase移行モーダル表示
-        function showFirebaseMigrationModal() {
-            if (!window.FirebaseAuth?.getCurrentUser()) {
-                alert('🔥 Firebase移行にはログインが必要です。\n\nFirebase認証でログインしてからお試しください。');
-                return;
-            }
-            
-            const modalHTML = `
-                <div id="firebase-migration-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;" onclick="if(event.target === this) closeFirebaseMigrationModal()">
-                    <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem;">
-                            <h3 style="margin: 0; color: #2d3748;">🔥 Firebaseデータ移行</h3>
-                            <button onclick="closeFirebaseMigrationModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #a0aec0; padding: 0.5rem;">&times;</button>
-                        </div>
-                        
-                        <div style="background: #e3f2fd; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #2196f3;">
-                            <div style="font-size: 0.9rem; color: #1565c0; line-height: 1.5;">
-                                💡 <strong>Firebaseクラウド同期について</strong><br>
-                                LocalStorageのタスクデータをFirebaseクラウドに移行することで：<br>
-                                ✅ 複数デバイス間でのリアルタイム同期<br>
-                                ✅ データの永続化と安全性向上<br>
-                                ✅ 他ユーザーとのタスク共有（将来対応）<br>
-                                ※ 移行後もLocalStorageのデータは保持されます
-                            </div>
-                        </div>
-                        
-                        <div id="migration-status" style="margin-bottom: 1rem;"></div>
-                        
-                        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                            <button onclick="closeFirebaseMigrationModal()" style="padding: 0.75rem 1.5rem; background: #e4e6eb; color: #172b4d; border: none; border-radius: 6px; cursor: pointer;">キャンセル</button>
-                            <button onclick="startFirebaseMigration()" style="padding: 0.75rem 1.5rem; background: #026aa7; color: white; border: none; border-radius: 6px; cursor: pointer;">移行開始</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-        }
-        
-        function closeFirebaseMigrationModal() {
-            const modal = document.getElementById('firebase-migration-modal');
-            if (modal) {
-                modal.remove();
-            }
-        }
-        
-        async function startFirebaseMigration() {
-            const statusDiv = document.getElementById('migration-status');
-            
-            try {
-                statusDiv.innerHTML = '<div style="text-align: center; padding: 1rem;"><div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #026aa7; border-radius: 50%; animation: spin 1s linear infinite;"></div> 移行中...</div>';
-                
-                // LocalStorageのタスクデータを取得
-                // Firebase専用モードのため、LocalStorageは無効
-            const localTasks = [];
-                
-                if (localTasks.length === 0) {
-                    statusDiv.innerHTML = '<div style="background: #fff3cd; color: #856404; padding: 1rem; border-radius: 6px;">⚠️ 移行するタスクが見つかりません</div>';
-                    return;
-                }
-                
-                // Firebase移行を実行
-                const result = await window.FirebaseMigration.migrateFromLocalStorage();
-                
-                if (result.success) {
-                    statusDiv.innerHTML = `
-                        <div style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
-                            ✅ 移行完了: ${result.migratedCount}/${result.totalCount} タスクをFirebaseに移行しました
-                        </div>
-                        <div style="font-size: 0.9rem; color: #666;">
-                            これで複数デバイス間でタスクが同期されます。<br>
-                            新しいタスクは自動的にFirebaseに保存されます。
-                        </div>
-                    `;
-                    
-                    // 3秒後にモーダルを閉じる
-                    setTimeout(() => {
-                        closeFirebaseMigrationModal();
-                        // ページを再読み込みしてFirebaseデータを反映
-                        if (confirm('移行が完了しました。ページを再読み込みしてFirebaseデータを表示しますか？')) {
-                            window.location.reload();
-                        }
-                    }, 3000);
-                } else {
-                    statusDiv.innerHTML = `<div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 6px;">❌ 移行エラー: ${result.error}</div>`;
-                }
-                
-            } catch (error) {
-                console.error('❌ Firebase移行エラー:', error);
-                statusDiv.innerHTML = `<div style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 6px;">❌ 移行中にエラーが発生しました: ${error.message}</div>`;
-            }
-        }
         
         window.deleteTask = deleteTask;
         window.toggleHamburgerMenu = toggleHamburgerMenu;
@@ -13239,7 +12983,6 @@ Firebase認証: ${diagnosis.firebase.currentUser}
         window.processImportText = processImportText;
         window.toggleTaskSkipModal = toggleTaskSkipModal;
         window.executeImportFromModal = executeImportFromModal;
-        window.showFirebaseMigrationModal = showFirebaseMigrationModal;
     </script>
     
     <!-- ハンバーガーメニュー -->
@@ -13260,11 +13003,6 @@ Firebase認証: ${diagnosis.firebase.currentUser}
                 <span>⚙️</span>
                 <span>基本設定</span>
                 <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">カラム・通知・テーマ設定</div>
-            </a>
-            <a href="#" class="menu-item" onclick="showFirebaseMigrationModal(); toggleHamburgerMenu(); return false;">
-                <span>🔥</span>
-                <span>Firebaseデータ移行</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">タスクをクラウドに同期・端末間共有</div>
             </a>
         </div>
         
@@ -13327,6 +13065,6 @@ Firebase認証: ${diagnosis.firebase.currentUser}
     <!-- 隠しファイル入力 -->
     <input type="file" id="file-import" accept=".csv,.xlsx,.xls,.txt,.png,.jpg,.jpeg" multiple style="display: none;" onchange="handleFileImport(event)">
 </body>
-</html><!-- Cache bust: 1754211273 -->
-<!-- UI Update: 1754211273 -->
-<!-- EMERGENCY FIX: Force cache refresh for PJ creation feature -->
+</html><!-- Cache bust: 20250820-debug-buttons-removed -->
+<!-- UI Update: 20250820-debug-buttons-removed -->
+<!-- DEBUG BUTTONS COMPLETELY REMOVED: All Firebase debug buttons eliminated -->

@@ -582,6 +582,27 @@
                         showSuccess();
                         console.log('✅ [FIREBASE] 新規ユーザー追加成功:', name, email, role);
                         
+                    } else if (authResult.error && authResult.error.includes('email-already-in-use')) {
+                        // メールアドレスが既に使用されている場合
+                        console.log('⚠️ [FIREBASE] メールアドレス既存 - 既存ユーザーとして登録:', email);
+                        
+                        // 既存のFirebaseユーザーを利用してFirestoreに追加
+                        const newUser = {
+                            id: Date.now(),
+                            name: name,
+                            email: email,
+                            role: role,
+                            department: department,
+                            createdAt: new Date().toISOString(),
+                            isFirebaseExisting: true // 既存Firebase認証ユーザー
+                        };
+                        
+                        users.push(newUser);
+                        saveUsers();
+                        updateAssigneesList();
+                        showSuccess();
+                        console.log('✅ [FIREBASE-EXISTING] 既存Firebaseユーザーを追加:', name, email, role);
+                        alert(`✅ ユーザー「${name}」を追加しました。\n\n※ このメールアドレスは既にFirebase認証に登録済みです。\n既存のFirebaseパスワードでログイン可能です。`);
                     } else {
                         console.error('❌ [FIREBASE] Firebase Authユーザー作成エラー:', authResult.error);
                         alert(`ユーザー作成エラー: ${authResult.error}`);
@@ -668,8 +689,12 @@
             tbody.innerHTML = '';
             users.forEach(user => {
                 const row = document.createElement('tr');
+                // ローカル専用ユーザーかFirebaseユーザーかを判定
+                const userType = user.isLocalOnly ? '📁 ローカル' : (user.uid ? '🔥 Firebase' : '📁 ローカル');
+                const userTypeClass = user.isLocalOnly ? 'local-user' : (user.uid ? 'firebase-user' : 'local-user');
+                
                 row.innerHTML = `
-                    <td>${user.name}</td>
+                    <td>${user.name} <small style="color: #666;">(${userType})</small></td>
                     <td>${user.email}</td>
                     <td><span class="role-badge role-${user.role}">${getRoleDisplayName(user.role)}</span></td>
                     <td>${user.department || '-'}</td>
@@ -682,6 +707,7 @@
                         </div>
                     </td>
                 `;
+                row.className = userTypeClass;
                 tbody.appendChild(row);
             });
         }
