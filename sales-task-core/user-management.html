@@ -824,23 +824,40 @@
         }
         
         async function deleteUser(userId) {
-            const user = users.find(u => u.id === userId || u.uid === userId);
-            if (!user) return;
+            console.log('🚨 [DEBUG] deleteUser関数が呼ばれました:', userId);
             
+            const user = users.find(u => u.id === userId || u.uid === userId);
+            console.log('🚨 [DEBUG] 対象ユーザー検索結果:', user);
+            
+            if (!user) {
+                console.error('❌ [DEBUG] ユーザーが見つかりません:', userId);
+                return;
+            }
+            
+            console.log('🚨 [DEBUG] 確認ダイアログ表示前');
             if (confirm(`${user.name}を削除しますか？\nこの操作は取り消せません。`)) {
+                console.log('🚨 [DEBUG] 確認ダイアログでOKがクリックされました');
                 const deletedUserName = user.name;
                 
                 try {
                     // 🔥 完全削除ではなく無効化処理に変更
+                    console.log('🚨 [DEBUG] window.FirebaseDB存在チェック:', !!window.FirebaseDB);
+                    console.log('🚨 [DEBUG] window.FirebaseDB.saveUser存在チェック:', !!(window.FirebaseDB && window.FirebaseDB.saveUser));
+                    
                     if (window.FirebaseDB && window.FirebaseDB.saveUser) {
                         console.log('🔥 [DISABLE] ユーザーアカウント無効化中:', deletedUserName);
                         
                         // Firestoreのユーザー情報を無効化マークに変更
+                        console.log('🚨 [DEBUG] window.getCurrentUser()テスト:', window.getCurrentUser());
+                        
+                        const currentUser = window.getCurrentUser();
+                        console.log('🚨 [DEBUG] 現在のユーザー:', currentUser);
+                        
                         const disabledUser = {
                             ...user,
                             isDisabled: true,
                             disabledAt: new Date().toISOString(),
-                            disabledBy: window.getCurrentUser().name
+                            disabledBy: currentUser ? currentUser.name : 'unknown'
                         };
                         
                         console.log('🔍 [DEBUG] 無効化ユーザーデータ:', disabledUser);
@@ -855,7 +872,9 @@
                             console.error('❌ [DISABLE] ユーザー無効化エラー:', firebaseResult.error);
                         }
                     } else {
+                        console.log('🚨 [DEBUG] Firebase条件に該当せず - LocalStorageフォールバック');
                         console.log('📁 [DISABLE] Firebase無効化機能未対応 - LocalStorageのみ削除');
+                        alert('⚠️ デバッグ: Firebase機能が利用できないため、LocalStorageでの削除処理を実行します。');
                     }
                     
                     // LocalStorageからも削除
@@ -874,6 +893,8 @@
                     console.error('❌ [DELETE] ユーザー削除エラー:', error);
                     alert('ユーザー削除中にエラーが発生しました。\n\n' + error.message);
                 }
+            } else {
+                console.log('🚨 [DEBUG] ユーザーが確認ダイアログでキャンセルしました');
             }
         }
 
