@@ -455,9 +455,31 @@
         }
         
         // ページ読み込み時に実行（Firebase認証待ち対応）
+        // Firebase初期化状態確認
+        function checkFirebaseStatus() {
+            console.log('🔍 [FIREBASE-CHECK] Firebase初期化状態確認:');
+            console.log('  window.FirebaseDB:', !!window.FirebaseDB);
+            console.log('  window.FirebaseAuth:', !!window.FirebaseAuth);
+            console.log('  window.getCurrentUser:', !!window.getCurrentUser);
+            
+            if (window.FirebaseDB) {
+                console.log('  FirebaseDB.getUsers:', !!window.FirebaseDB.getUsers);
+                console.log('  FirebaseDB.saveUser:', !!window.FirebaseDB.saveUser);
+                console.log('  FirebaseDB.deleteUser:', !!window.FirebaseDB.deleteUser);
+            }
+            
+            if (window.getCurrentUser) {
+                const currentUser = window.getCurrentUser();
+                console.log('  現在のユーザー:', currentUser);
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', async () => {
             try {
                 console.log('🔄 [USER-MGMT] Firebase認証を待機中...');
+                
+                // Firebase初期化状態を確認
+                setTimeout(checkFirebaseStatus, 500);
                 
                 // 🔧 権限完全性チェックを最初に実行
                 ensureUserPermissionsIntegrity();
@@ -1089,6 +1111,6 @@
     </script>
     
     <!-- Firebase統合システム - マルチユーザー対応 -->
-    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20250820-user-mgmt"></script>
 </body>
 </html>
