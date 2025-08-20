@@ -349,6 +349,43 @@
             console.log('✅ [LOAD ASSIGNEES] 担当者・承認者チェックボックス生成完了');
         }
         
+        // デバッグ関数
+        window.debugProjectData = function() {
+            console.log('🔍 [DEBUG] プロジェクトデータ詳細デバッグ開始');
+            
+            // LocalStorageの全データ
+            const projectSettings = localStorage.getItem('projectSettings');
+            const projects = localStorage.getItem('projects');
+            const migrationFlag = localStorage.getItem('projectsMigratedToFirebase');
+            
+            console.log('📁 [DEBUG] LocalStorage projectSettings RAW:', projectSettings);
+            console.log('📁 [DEBUG] LocalStorage projects RAW:', projects);
+            console.log('🔄 [DEBUG] Migration flag:', migrationFlag);
+            
+            if (projectSettings) {
+                const parsed = JSON.parse(projectSettings);
+                console.log('📁 [DEBUG] Parsed projectSettings:', parsed);
+                Object.keys(parsed).forEach(key => {
+                    console.log(`  - Project ${key}:`, parsed[key]);
+                });
+            }
+            
+            if (projects) {
+                const parsed = JSON.parse(projects);
+                console.log('📁 [DEBUG] Parsed projects array:', parsed);
+            }
+            
+            // Firebase接続状況
+            console.log('🔥 [DEBUG] Firebase状況:');
+            console.log('  - FirebaseDB:', !!window.FirebaseDB);
+            console.log('  - getCurrentUser:', !!window.getCurrentUser);
+            console.log('  - Current user:', window.getCurrentUser ? window.getCurrentUser() : 'None');
+            
+            // 手動でプロジェクト読み込みテスト
+            console.log('🔄 [DEBUG] 手動プロジェクト読み込みテスト実行...');
+            loadExistingProjects();
+        };
+        
         function createCheckboxItem(name, type) {
             const div = document.createElement('div');
             div.className = 'checkbox-item';
@@ -594,6 +631,10 @@
                                 <button onclick="localStorage.removeItem('projectsMigratedToFirebase'); location.reload();" 
                                         style="background: #ff6b6b; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
                                     🔄 移行フラグリセット & 再読込
+                                </button>
+                                <button onclick="window.debugProjectData && window.debugProjectData()" 
+                                        style="background: #17a2b8; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-left: 4px;">
+                                    🔍 詳細デバッグ
                                 </button>
                             </div>
                         </details>
