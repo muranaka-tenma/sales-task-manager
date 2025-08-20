@@ -755,23 +755,43 @@
             }
         }
         
-        function deleteUser(userId) {
-            const user = users.find(u => u.id === userId);
+        async function deleteUser(userId) {
+            const user = users.find(u => u.id === userId || u.uid === userId);
             if (!user) return;
             
             if (confirm(`${user.name}を削除しますか？\nこの操作は取り消せません。`)) {
                 const deletedUserName = user.name;
                 
-                // ユーザーリストから削除
-                users = users.filter(u => u.id !== userId);
-                saveUsers();
-                
-                // 担当者リストからも削除（表示対象同期）
-                removeFromAssigneesList(deletedUserName);
-                
-                loadUsers();
-                showSuccess();
-                console.log('🗑️ ユーザー削除:', deletedUserName, '- 担当者リストからも削除済み');
+                try {
+                    // 🔥 Firebase統合モード: Firestoreからも削除
+                    if (window.FirebaseDB && window.FirebaseDB.deleteUser) {
+                        console.log('🔥 [DELETE] Firebaseからユーザー削除中:', deletedUserName);
+                        const firebaseResult = await window.FirebaseDB.deleteUser(userId);
+                        if (firebaseResult.success) {
+                            console.log('✅ [DELETE] Firebase削除成功:', deletedUserName);
+                        } else {
+                            console.error('❌ [DELETE] Firebase削除エラー:', firebaseResult.error);
+                        }
+                    } else {
+                        console.log('📁 [DELETE] Firebase削除機能未対応 - LocalStorageのみ削除');
+                    }
+                    
+                    // LocalStorageからも削除
+                    users = users.filter(u => u.id !== userId && u.uid !== userId);
+                    saveUsers();
+                    
+                    // 担当者リストからも削除（表示対象同期）
+                    removeFromAssigneesList(deletedUserName);
+                    
+                    // 🔄 再読み込みでFirebaseとの同期を確認
+                    await loadUsers();
+                    showSuccess();
+                    console.log('🗑️ ユーザー削除完了:', deletedUserName, '- 全データソースから削除済み');
+                    
+                } catch (error) {
+                    console.error('❌ [DELETE] ユーザー削除エラー:', error);
+                    alert('ユーザー削除中にエラーが発生しました。\n\n' + error.message);
+                }
             }
         }
         

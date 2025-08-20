@@ -271,7 +271,7 @@
                 if (projectSelect.options.length <= 1) { // デフォルトオプションのみの場合
                     const warning = document.createElement('div');
                     warning.style.cssText = 'background: #fff3cd; color: #856404; padding: 1rem; border: 1px solid #ffeaa7; border-radius: 4px; margin: 1rem 0;';
-                    warning.innerHTML = '⚠️ <strong>プロジェクトが見つかりません</strong><br>先に「PJ設定」でプロジェクトを作成してください。';
+                    warning.innerHTML = '⚠️ <strong>プロジェクトが見つかりません</strong><br>先に「プロジェクト設定」でプロジェクトを作成してください。';
                     document.querySelector('.container').insertBefore(warning, document.querySelector('form'));
                 }
             }, 100);
@@ -304,12 +304,27 @@
                     }
                 } catch (error) {
                     console.error('❌ [LOAD ASSIGNEES] Firebase取得エラー:', error);
-                    assignees = ['邨中天真', '加藤純', '朝日圭一', '半澤侑果', '田村渉', '橋本友美', '福島亜未'];
+                    // エラー時でもLocalStorageとシステムユーザーを確認
+                    assignees = JSON.parse(localStorage.getItem('taskAssignees') || '["邨中天真", "加藤純", "朝日圭一", "半澤侑果", "田村渉", "橋本友美", "福島亜未"]');
+                    const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                    if (systemUsers.length > 0) {
+                        const systemUserNames = systemUsers.map(user => user.name).filter(name => name && name.trim() !== '');
+                        assignees = [...new Set([...assignees, ...systemUserNames])];
+                        console.log('📁 [LOAD ASSIGNEES] エラー時フォールバック: システムユーザー追加');
+                    }
                 }
             } else {
                 console.log('📁 [LOAD ASSIGNEES] LocalStorageモード');
                 // LocalStorage フォールバック
                 assignees = JSON.parse(localStorage.getItem('taskAssignees') || '["邨中天真", "加藤純", "朝日圭一", "半澤侑果", "田村渉", "橋本友美", "福島亜未"]');
+                
+                // システムユーザーからも取得を試行
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                if (systemUsers.length > 0) {
+                    const systemUserNames = systemUsers.map(user => user.name).filter(name => name && name.trim() !== '');
+                    assignees = [...new Set([...assignees, ...systemUserNames])]; // 重複除去
+                    console.log('📁 [LOAD ASSIGNEES] システムユーザーからも追加:', systemUserNames.length, '名');
+                }
             }
             
             console.log('👥 [LOAD ASSIGNEES] 最終担当者リスト:', assignees);
