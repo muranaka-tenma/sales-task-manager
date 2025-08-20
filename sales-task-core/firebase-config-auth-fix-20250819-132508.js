@@ -64,8 +64,8 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// セッション管理 - Firebase専用（無効化チェック付き）
-window.getCurrentUser = async function() {
+// セッション管理 - Firebase専用
+window.getCurrentUser = function() {
     if (window.currentFirebaseUser) {
         // 正しい権限マッピング
         const roleMap = {
@@ -79,35 +79,6 @@ window.getCurrentUser = async function() {
         };
         
         const userRole = roleMap[window.currentFirebaseUser.email] || 'user';
-        
-        // 無効化チェック - Firestoreからユーザー情報を取得
-        try {
-            const usersResult = await window.FirebaseDB.getUsers();
-            if (usersResult.success) {
-                const currentUserData = usersResult.users.find(u => u.email === window.currentFirebaseUser.email);
-                if (currentUserData && currentUserData.isDisabled) {
-                    console.log('🚫 [AUTH] 無効化されたユーザーのアクセスを拒否:', window.currentFirebaseUser.email);
-                    
-                    // 強制ログアウト
-                    if (auth.currentUser) {
-                        await auth.signOut();
-                    }
-                    window.currentFirebaseUser = null;
-                    
-                    alert('このアカウントは無効化されています。\n管理者にお問い合わせください。');
-                    window.location.href = 'login.html';
-                    return {
-                        id: null,
-                        name: 'ゲスト',
-                        email: null,
-                        role: 'guest',
-                        isLoggedIn: false
-                    };
-                }
-            }
-        } catch (error) {
-            console.error('⚠️ [AUTH] 無効化チェックエラー:', error);
-        }
         
         return {
             id: window.currentFirebaseUser.uid,
@@ -124,6 +95,34 @@ window.getCurrentUser = async function() {
         role: 'guest',
         isLoggedIn: false
     };
+};
+
+// 無効化チェック専用関数（別途定義）
+window.checkUserDisabled = async function() {
+    if (!window.currentFirebaseUser) return false;
+    
+    try {
+        const usersResult = await window.FirebaseDB.getUsers();
+        if (usersResult.success) {
+            const currentUserData = usersResult.users.find(u => u.email === window.currentFirebaseUser.email);
+            if (currentUserData && currentUserData.isDisabled) {
+                console.log('🚫 [AUTH] 無効化されたユーザーのアクセスを拒否:', window.currentFirebaseUser.email);
+                
+                // 強制ログアウト
+                if (auth.currentUser) {
+                    await auth.signOut();
+                }
+                window.currentFirebaseUser = null;
+                
+                alert('このアカウントは無効化されています。\n管理者にお問い合わせください。');
+                window.location.href = 'login.html';
+                return true;
+            }
+        }
+    } catch (error) {
+        console.error('⚠️ [AUTH] 無効化チェックエラー:', error);
+    }
+    return false;
 };
 
 // タスク管理 - Firebase専用
