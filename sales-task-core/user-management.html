@@ -795,6 +795,15 @@
                         const firebaseResult = await window.FirebaseDB.deleteUser(userId);
                         if (firebaseResult.success) {
                             console.log('✅ [DELETE] Firebase削除成功:', deletedUserName);
+                            
+                            // Firebase Authからの削除も試行（管理者への通知）
+                            if (window.FirebaseDB.deleteAuthUser) {
+                                const authResult = await window.FirebaseDB.deleteAuthUser(user.email);
+                                if (authResult.requiresManualDeletion) {
+                                    console.log('⚠️ [DELETE] Firebase Auth削除は手動で実行が必要:', user.email);
+                                    alert(`ユーザー「${deletedUserName}」を削除しました。\n\n⚠️ 注意: Firebase Authからの削除が必要な場合があります。\nFirebase Consoleで ${user.email} を確認してください。`);
+                                }
+                            }
                         } else {
                             console.error('❌ [DELETE] Firebase削除エラー:', firebaseResult.error);
                         }

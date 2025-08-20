@@ -334,6 +334,31 @@ window.FirebaseDB = {
             console.error('❌ [FIREBASE] ユーザー削除エラー:', error);
             return { success: false, error: error.message };
         }
+    },
+
+    // Firebase Authユーザーの完全削除（管理者専用）
+    async deleteAuthUser(email) {
+        try {
+            const currentUser = window.getCurrentUser();
+            if (!currentUser || (currentUser.role !== 'developer' && currentUser.role !== 'admin')) {
+                return { success: false, error: '管理者権限が必要です' };
+            }
+            
+            console.log('🗑️ [FIREBASE-AUTH] Firebase Authユーザー削除を試行:', email);
+            
+            // 注意: フロントエンドからはFirebase Authのユーザー削除は制限されている
+            // 実際の削除は管理者がFirebase Consoleで行う必要がある
+            console.log('⚠️ [FIREBASE-AUTH] Firebase Authからの削除はFirebase Consoleで実行してください');
+            
+            return { 
+                success: true, 
+                message: 'Firestoreからは削除済み。Firebase Authからの削除はFirebase Consoleで実行してください。',
+                requiresManualDeletion: true
+            };
+        } catch (error) {
+            console.error('❌ [FIREBASE-AUTH] 削除処理エラー:', error);
+            return { success: false, error: error.message };
+        }
     }
 };
 
