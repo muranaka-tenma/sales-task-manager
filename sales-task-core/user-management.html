@@ -824,20 +824,36 @@
         }
         
         async function deleteUser(userId) {
-            console.log('🚨 [DEBUG] deleteUser関数が呼ばれました:', userId);
+            console.log('🚨 [DEBUG] deleteUser関数が呼ばれました:', userId, typeof userId);
+            console.log('🚨 [DEBUG] 現在のusers配列:', users);
+            console.log('🚨 [DEBUG] 各ユーザーのID形式:');
+            users.forEach((u, index) => {
+                console.log(`  ${index}: id=${u.id}(${typeof u.id}), uid=${u.uid}(${typeof u.uid}), name=${u.name}`);
+            });
             
             const user = users.find(u => u.id === userId || u.uid === userId);
             console.log('🚨 [DEBUG] 対象ユーザー検索結果:', user);
             
-            if (!user) {
+            // 型変換を試して再検索
+            const userById = users.find(u => String(u.id) === String(userId));
+            const userByUid = users.find(u => String(u.uid) === String(userId));
+            console.log('🚨 [DEBUG] 文字列変換での検索結果 - id:', userById, 'uid:', userByUid);
+            
+            // 見つからない場合は型変換で再試行
+            let targetUser = user || userById || userByUid;
+            
+            if (!targetUser) {
                 console.error('❌ [DEBUG] ユーザーが見つかりません:', userId);
+                alert('ユーザーが見つかりません。ページをリロードしてください。');
                 return;
             }
             
+            console.log('🚨 [DEBUG] 最終的に使用するユーザー:', targetUser);
+            
             console.log('🚨 [DEBUG] 確認ダイアログ表示前');
-            if (confirm(`${user.name}を削除しますか？\nこの操作は取り消せません。`)) {
+            if (confirm(`${targetUser.name}を削除しますか？\nこの操作は取り消せません。`)) {
                 console.log('🚨 [DEBUG] 確認ダイアログでOKがクリックされました');
-                const deletedUserName = user.name;
+                const deletedUserName = targetUser.name;
                 
                 try {
                     // 🔥 完全削除ではなく無効化処理に変更
@@ -854,7 +870,7 @@
                         console.log('🚨 [DEBUG] 現在のユーザー:', currentUser);
                         
                         const disabledUser = {
-                            ...user,
+                            ...targetUser,
                             isDisabled: true,
                             disabledAt: new Date().toISOString(),
                             disabledBy: currentUser ? currentUser.name : 'unknown'
@@ -867,7 +883,7 @@
                         if (firebaseResult.success) {
                             console.log('✅ [DISABLE] ユーザー無効化成功:', deletedUserName);
                             
-                            alert(`ユーザー「${deletedUserName}」を無効化しました。\n\n📋 処理内容:\n• システムからログアウト\n• 新規ログイン拒否\n• データは保持（監査用）\n\n🔧 完全削除が必要な場合は、Firebase Consoleで ${user.email} を削除してください。`);
+                            alert(`ユーザー「${deletedUserName}」を無効化しました。\n\n📋 処理内容:\n• システムからログアウト\n• 新規ログイン拒否\n• データは保持（監査用）\n\n🔧 完全削除が必要な場合は、Firebase Consoleで ${targetUser.email} を削除してください。`);
                         } else {
                             console.error('❌ [DISABLE] ユーザー無効化エラー:', firebaseResult.error);
                         }
