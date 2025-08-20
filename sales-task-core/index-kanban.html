@@ -2004,11 +2004,7 @@
                     return;
                 }
                 
-                // 重複移行防止チェック
-                if (localStorage.getItem('projectsMigratedToFirebase') === 'true') {
-                    console.log('📁 [PROJECT MIGRATE] 既に移行済み - スキップ');
-                    return;
-                }
+                // 移行フラグチェックを削除し、常に同期実行
                 
                 // LocalStorageからプロジェクト設定とprojectsを取得
                 const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
@@ -2059,12 +2055,7 @@
                     }
                 }
                 
-                console.log(`✅ [PROJECT MIGRATE] 移行完了: ${migratedCount}/${projectsToMigrate.length}件`);
-                
-                if (migratedCount > 0) {
-                    // 移行成功時のマーク（重複移行防止）
-                    localStorage.setItem('projectsMigratedToFirebase', 'true');
-                }
+                console.log(`✅ [PROJECT SYNC] 同期完了: ${migratedCount}/${projectsToMigrate.length}件`);
                 
             } catch (error) {
                 console.error('❌ [PROJECT MIGRATE] プロジェクト移行エラー:', error);
@@ -6282,13 +6273,18 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             try {
                 await init();
                 
-                // プロジェクトデータの自動移行を実行
-                console.log('🔄 [AUTO-MIGRATION] プロジェクトデータの自動移行を開始');
+                // プロジェクトデータの自動同期（移行フラグに依存しない）
+                console.log('🔄 [AUTO-SYNC] プロジェクトデータの自動同期を開始');
                 try {
-                    await migrateProjectsToFirebase();
-                    console.log('✅ [AUTO-MIGRATION] プロジェクト移行完了');
-                } catch (migrationError) {
-                    console.error('⚠️ [AUTO-MIGRATION] プロジェクト移行エラー:', migrationError);
+                    // Firebase認証済みの場合のみ実行
+                    if (window.getCurrentUser()?.isLoggedIn && window.FirebaseDB?.saveProject) {
+                        await migrateProjectsToFirebase();
+                        console.log('✅ [AUTO-SYNC] プロジェクト同期完了');
+                    } else {
+                        console.log('📁 [AUTO-SYNC] Firebase未対応またはログアウト状態 - スキップ');
+                    }
+                } catch (syncError) {
+                    console.error('⚠️ [AUTO-SYNC] プロジェクト同期エラー:', syncError);
                 }
             } catch (error) {
                 console.error('❌ 初期化エラー:', error);

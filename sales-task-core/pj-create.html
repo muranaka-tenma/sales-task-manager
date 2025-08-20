@@ -228,25 +228,19 @@
         
         // ページ読み込み時に初期化
         window.addEventListener('DOMContentLoaded', async () => {
-            loadAssignees();
+            console.log('🚀 [INIT] プロジェクトタスク作成画面初期化開始');
+            
+            // 担当者リスト読み込み
+            await loadAssignees();
             setDefaultDeadline();
             
-            // Firebase統合システムの読み込み待機
+            // Firebase統合システムの読み込み待機（短縮）
             let retryCount = 0;
-            const maxRetries = 20; // 最大10秒待機
+            const maxRetries = 10; // 最大5秒待機
             
             const waitForFirebase = async () => {
                 if (window.FirebaseDB && window.getCurrentUser) {
                     console.log('🔥 [INIT] Firebase統合システム準備完了');
-                    
-                    // デバッグ情報を追加
-                    const currentUser = window.getCurrentUser();
-                    console.log('🔍 [DEBUG] pj-create.html起動時状況:');
-                    console.log('  - FirebaseDB available:', !!window.FirebaseDB);
-                    console.log('  - getCurrentUser available:', !!window.getCurrentUser);
-                    console.log('  - Current user:', currentUser);
-                    console.log('  - Firebase getProjects available:', !!window.FirebaseDB?.getProjects);
-                    
                     await loadExistingProjects();
                     return;
                 }
@@ -256,12 +250,19 @@
                     console.log(`⏳ [INIT] Firebase読み込み待機中... (${retryCount}/${maxRetries})`);
                     setTimeout(waitForFirebase, 500);
                 } else {
-                    console.warn('⚠️ [INIT] Firebase読み込みタイムアウト - LocalStorageモードで実行');
+                    console.log('📁 [INIT] Firebase待機終了 - LocalStorageモードで実行');
                     await loadExistingProjects();
                 }
             };
             
+            // Firebase待機と並行してLocalStorageからも読み込み
             waitForFirebase();
+            
+            // 1秒後に追加で読み込み（フォールバック）
+            setTimeout(async () => {
+                console.log('🔄 [INIT] フォールバック プロジェクト読み込み実行');
+                await loadExistingProjects();
+            }, 1000);
             
             // プロジェクト選択のみ対応
             
@@ -349,42 +350,6 @@
             console.log('✅ [LOAD ASSIGNEES] 担当者・承認者チェックボックス生成完了');
         }
         
-        // デバッグ関数
-        window.debugProjectData = function() {
-            console.log('🔍 [DEBUG] プロジェクトデータ詳細デバッグ開始');
-            
-            // LocalStorageの全データ
-            const projectSettings = localStorage.getItem('projectSettings');
-            const projects = localStorage.getItem('projects');
-            const migrationFlag = localStorage.getItem('projectsMigratedToFirebase');
-            
-            console.log('📁 [DEBUG] LocalStorage projectSettings RAW:', projectSettings);
-            console.log('📁 [DEBUG] LocalStorage projects RAW:', projects);
-            console.log('🔄 [DEBUG] Migration flag:', migrationFlag);
-            
-            if (projectSettings) {
-                const parsed = JSON.parse(projectSettings);
-                console.log('📁 [DEBUG] Parsed projectSettings:', parsed);
-                Object.keys(parsed).forEach(key => {
-                    console.log(`  - Project ${key}:`, parsed[key]);
-                });
-            }
-            
-            if (projects) {
-                const parsed = JSON.parse(projects);
-                console.log('📁 [DEBUG] Parsed projects array:', parsed);
-            }
-            
-            // Firebase接続状況
-            console.log('🔥 [DEBUG] Firebase状況:');
-            console.log('  - FirebaseDB:', !!window.FirebaseDB);
-            console.log('  - getCurrentUser:', !!window.getCurrentUser);
-            console.log('  - Current user:', window.getCurrentUser ? window.getCurrentUser() : 'None');
-            
-            // 手動でプロジェクト読み込みテスト
-            console.log('🔄 [DEBUG] 手動プロジェクト読み込みテスト実行...');
-            loadExistingProjects();
-        };
         
         function createCheckboxItem(name, type) {
             const div = document.createElement('div');
@@ -620,24 +585,6 @@
                     warning.innerHTML = `
                         ⚠️ <strong>プロジェクトが見つかりません</strong><br>
                         先に「プロジェクト設定」でプロジェクトを作成してください。<br><br>
-                        <details style="margin-top: 0.5rem;">
-                            <summary style="cursor: pointer; font-weight: bold;">🔧 診断情報を表示</summary>
-                            <div style="margin-top: 0.5rem; font-size: 0.9rem; font-family: monospace;">
-                                Firebase接続: ${!!window.FirebaseDB ? '✅' : '❌'}<br>
-                                認証状態: ${currentUser?.isLoggedIn ? '✅' : '❌'}<br>
-                                LocalStorage PJ数: ${Object.keys(JSON.parse(localStorage.getItem('projectSettings') || '{}')).length}件<br>
-                                LocalStorage projects配列: ${JSON.parse(localStorage.getItem('projects') || '[]').length}件<br>
-                                移行状態: ${localStorage.getItem('projectsMigratedToFirebase') || '未実行'}<br><br>
-                                <button onclick="localStorage.removeItem('projectsMigratedToFirebase'); location.reload();" 
-                                        style="background: #ff6b6b; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
-                                    🔄 移行フラグリセット & 再読込
-                                </button>
-                                <button onclick="window.debugProjectData && window.debugProjectData()" 
-                                        style="background: #17a2b8; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; margin-left: 4px;">
-                                    🔍 詳細デバッグ
-                                </button>
-                            </div>
-                        </details>
                     `;
                     const existingSection = document.getElementById('existing-project-section');
                     if (existingSection && !existingSection.querySelector('.project-warning')) {
