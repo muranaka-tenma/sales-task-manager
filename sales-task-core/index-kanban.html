@@ -6281,6 +6281,15 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             // 主要初期化を実行
             try {
                 await init();
+                
+                // プロジェクトデータの自動移行を実行
+                console.log('🔄 [AUTO-MIGRATION] プロジェクトデータの自動移行を開始');
+                try {
+                    await migrateProjectsToFirebase();
+                    console.log('✅ [AUTO-MIGRATION] プロジェクト移行完了');
+                } catch (migrationError) {
+                    console.error('⚠️ [AUTO-MIGRATION] プロジェクト移行エラー:', migrationError);
+                }
             } catch (error) {
                 console.error('❌ 初期化エラー:', error);
             }

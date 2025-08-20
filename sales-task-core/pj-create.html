@@ -378,13 +378,22 @@
                             });
                             console.log('🔥 [LOAD PROJECTS] Firebase projects converted:', Object.keys(projectSettings).length);
                         } else {
-                            console.log('📁 [LOAD PROJECTS] Firebaseにプロジェクトなし - LocalStorageから取得');
+                            console.log('📁 [LOAD PROJECTS] Firebaseにプロジェクトなし - LocalStorageも確認');
+                            // LocalStorageのプロジェクト設定を確認
                             projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                            console.log('📁 [LOAD PROJECTS] LocalStorage projectSettings:', Object.keys(projectSettings).length, '件');
+                            
+                            // LocalStorageプロジェクトの詳細をログ出力
+                            Object.keys(projectSettings).forEach(projectId => {
+                                const project = projectSettings[projectId];
+                                console.log(`📁 [LOAD PROJECTS] LocalStorage Project: ${projectId} - ${project.name}`);
+                            });
                         }
                     } else {
                         // プロジェクト機能未対応の場合はLocalStorageフォールバック
                         console.log('📁 [LOAD PROJECTS] Firebase project機能未対応 - LocalStorageから取得');
                         projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                        console.log('📁 [LOAD PROJECTS] LocalStorage fallback:', Object.keys(projectSettings).length, '件');
                     }
                 } else {
                     console.log('📁 [LOAD PROJECTS] LocalStorageモード - 従来の方式');
@@ -435,12 +444,34 @@
                 
                 console.log('✅ [LOAD PROJECTS] プロジェクト一覧の読み込み完了');
                 
-                // プロジェクトが見つからない場合の警告
+                // プロジェクトが見つからない場合の警告と診断情報
                 if (existingProjects.length === 0) {
                     console.warn('⚠️ [LOAD PROJECTS] プロジェクトが見つかりません');
+                    
+                    // 詳細診断ログ
+                    console.log('🔧 [DIAGNOSTIC] プロジェクト不足の詳細診断:');
+                    console.log('  - Firebase接続状態:', !!window.FirebaseDB);
+                    console.log('  - Firebase getProjects:', !!window.FirebaseDB?.getProjects);
+                    console.log('  - ユーザー認証状態:', currentUser?.isLoggedIn || false);
+                    console.log('  - ユーザー情報:', currentUser);
+                    console.log('  - LocalStorage projectSettings:', Object.keys(JSON.parse(localStorage.getItem('projectSettings') || '{}')));
+                    console.log('  - 移行フラグ:', localStorage.getItem('projectsMigratedToFirebase'));
+                    
                     const warning = document.createElement('div');
                     warning.style.cssText = 'background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 6px; margin-top: 1rem; color: #856404;';
-                    warning.innerHTML = '⚠️ <strong>プロジェクトが見つかりません</strong><br>先に「PJ設定」でプロジェクトを作成してください。';
+                    warning.innerHTML = `
+                        ⚠️ <strong>プロジェクトが見つかりません</strong><br>
+                        先に「PJ設定」でプロジェクトを作成してください。<br><br>
+                        <details style="margin-top: 0.5rem;">
+                            <summary style="cursor: pointer; font-weight: bold;">🔧 診断情報を表示</summary>
+                            <div style="margin-top: 0.5rem; font-size: 0.9rem; font-family: monospace;">
+                                Firebase接続: ${!!window.FirebaseDB ? '✅' : '❌'}<br>
+                                認証状態: ${currentUser?.isLoggedIn ? '✅' : '❌'}<br>
+                                LocalStorage PJ数: ${Object.keys(JSON.parse(localStorage.getItem('projectSettings') || '{}')).length}件<br>
+                                移行状態: ${localStorage.getItem('projectsMigratedToFirebase') || '未実行'}
+                            </div>
+                        </details>
+                    `;
                     const existingSection = document.getElementById('existing-project-section');
                     if (existingSection && !existingSection.querySelector('.project-warning')) {
                         warning.className = 'project-warning';

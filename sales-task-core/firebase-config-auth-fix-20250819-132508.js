@@ -14,7 +14,7 @@ const firebaseConfig = {
 // Firebase初期化（バージョン統一: 10.7.1）
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -229,15 +229,27 @@ window.FirebaseDB = {
                 return { success: false, error: '認証が必要です' };
             }
             
-            const docRef = await addDoc(collection(db, 'projects'), {
+            // プロジェクトIDが指定されている場合はそれを使用、未指定の場合は自動生成
+            const projectData = {
                 ...project,
                 userId: user.id,
-                createdAt: new Date().toISOString(),
+                createdBy: user.name,
+                createdAt: project.createdAt || new Date().toISOString(),
                 updatedAt: new Date().toISOString()
-            });
+            };
             
-            console.log('✅ [FIREBASE] プロジェクト保存完了:', docRef.id);
-            return { success: true, id: docRef.id };
+            // プロジェクトIDが既に存在する場合は、そのIDを使用してドキュメントを作成
+            let docRef;
+            if (project.id) {
+                docRef = doc(db, 'projects', project.id);
+                await setDoc(docRef, projectData);
+                console.log('✅ [FIREBASE] プロジェクト保存完了（指定ID）:', project.id);
+                return { success: true, id: project.id };
+            } else {
+                docRef = await addDoc(collection(db, 'projects'), projectData);
+                console.log('✅ [FIREBASE] プロジェクト保存完了（自動ID）:', docRef.id);
+                return { success: true, id: docRef.id };
+            }
         } catch (error) {
             console.error('❌ [FIREBASE] プロジェクト保存エラー:', error);
             return { success: false, error: error.message };
