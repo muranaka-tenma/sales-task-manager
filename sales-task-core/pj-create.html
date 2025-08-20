@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>👥 PJタスク作成 - 営業タスク管理</title>
+    <!-- Firebase統合システム - タスク作成画面専用 -->
+    <script type="module" src="firebase-config-auth-fix-20250819-132508.js"></script>
     <style>
         * {
             margin: 0;
@@ -225,10 +227,32 @@
         }
         
         // ページ読み込み時に初期化
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             loadAssignees();
             setDefaultDeadline();
-            loadExistingProjects();
+            
+            // Firebase統合システムの読み込み待機
+            let retryCount = 0;
+            const maxRetries = 20; // 最大10秒待機
+            
+            const waitForFirebase = async () => {
+                if (window.FirebaseDB && window.getCurrentUser) {
+                    console.log('🔥 [INIT] Firebase統合システム準備完了');
+                    await loadExistingProjects();
+                    return;
+                }
+                
+                retryCount++;
+                if (retryCount < maxRetries) {
+                    console.log(`⏳ [INIT] Firebase読み込み待機中... (${retryCount}/${maxRetries})`);
+                    setTimeout(waitForFirebase, 500);
+                } else {
+                    console.warn('⚠️ [INIT] Firebase読み込みタイムアウト - LocalStorageモードで実行');
+                    await loadExistingProjects();
+                }
+            };
+            
+            waitForFirebase();
             
             // プロジェクト選択のみ対応
             
@@ -305,53 +329,150 @@
         }
         
         // 既存プロジェクト一覧を読み込み（PJ設定から）
-        function loadExistingProjects() {
-            console.log('🔍 [LOAD PROJECTS] Loading from projectSettings...');
+        async function loadExistingProjects() {
+            console.log('🔍 [LOAD PROJECTS] Loading projects from Firebase and LocalStorage...');
             
-            // ★★★ PJ設定から直接読み込み ★★★
-            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-            const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
-            
-            console.log('🔍 [LOAD PROJECTS] Project settings found:', Object.keys(projectSettings).length);
-            
-            // PJ設定に存在するプロジェクトを使用
-            const existingProjects = Object.keys(projectSettings).map(projectId => {
-                const project = projectSettings[projectId];
+            try {
+                // Firebase認証チェック
+                const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
+                console.log('🔍 [LOAD PROJECTS] Current user:', currentUser);
                 
-                // 各プロジェクトのタスク数を計算
-                const projectTasks = tasks.filter(task => task.projectId === projectId);
-                const taskCount = projectTasks.length;
+                let projectSettings = {};
+                let tasks = [];
                 
-                console.log(`🔍 [LOAD PROJECTS] Project ${projectId}: ${project.name} (${taskCount} tasks)`);
+                // Firebase統合モード: Firebaseからプロジェクトデータを取得
+                if (window.FirebaseDB && currentUser && currentUser.isLoggedIn) {
+                    console.log('🔥 [LOAD PROJECTS] Firebase統合モード - Firestoreからデータ取得');
+                    
+                    // Firebaseからタスクデータを取得
+                    const firebaseTasks = await window.FirebaseDB.getTasks();
+                    if (firebaseTasks.success) {
+                        tasks = firebaseTasks.tasks;
+                        console.log('🔥 [LOAD PROJECTS] Firebase tasks loaded:', tasks.length);
+                    }
+                    
+                    // 🆕 Firebase経由でプロジェクトデータを取得
+                    if (window.FirebaseDB.getProjects) {
+                        console.log('🔥 [LOAD PROJECTS] Firebaseからプロジェクト取得中...');
+                        const firebaseProjects = await window.FirebaseDB.getProjects();
+                        if (firebaseProjects.success && firebaseProjects.projects.length > 0) {
+                            // Firebase形式からLocalStorage形式に変換
+                            projectSettings = {};
+                            firebaseProjects.projects.forEach(project => {
+                                projectSettings[project.id] = {
+                                    name: project.name,
+                                    description: project.description || '',
+                                    createdAt: project.createdAt,
+                                    createdBy: project.createdBy || currentUser.name,
+                                    columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                                };
+                            });
+                            console.log('🔥 [LOAD PROJECTS] Firebase projects converted:', Object.keys(projectSettings).length);
+                        } else {
+                            console.log('📁 [LOAD PROJECTS] Firebaseにプロジェクトなし - LocalStorageから取得');
+                            projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                        }
+                    } else {
+                        // プロジェクト機能未対応の場合はLocalStorageフォールバック
+                        console.log('📁 [LOAD PROJECTS] Firebase project機能未対応 - LocalStorageから取得');
+                        projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                    }
+                } else {
+                    console.log('📁 [LOAD PROJECTS] LocalStorageモード - 従来の方式');
+                    // LocalStorageから読み込み（フォールバック）
+                    projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                    tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+                }
                 
-                return {
-                    id: projectId,
-                    name: project.name,
-                    description: project.description,
-                    taskCount: taskCount,
-                    createdAt: project.createdAt,
-                    createdBy: project.createdBy
-                };
-            }).sort((a, b) => a.id.localeCompare(b.id)); // ID順でソート
-            const selectElement = document.getElementById('existing-project-select');
-            
-            // 既存のオプションをクリア（最初のデフォルトオプション以外）
-            selectElement.innerHTML = '<option value="">-- プロジェクトを選択してください --</option>';
-            
-            // 既存プロジェクトをオプションに追加
-            console.log('🔍 [LOAD PROJECTS] Creating select options for', existingProjects.length, 'projects');
-            
-            existingProjects.forEach(project => {
-                const option = document.createElement('option');
-                option.value = `${project.id}|${project.name}`;
-                option.textContent = `[${project.id}] ${project.name} (${project.taskCount}件)`;
-                selectElement.appendChild(option);
+                console.log('🔍 [LOAD PROJECTS] Project settings found:', Object.keys(projectSettings).length);
+                console.log('🔍 [LOAD PROJECTS] Tasks loaded:', tasks.length);
                 
-                console.log(`🔍 [LOAD PROJECTS] Added option: [${project.id}] ${project.name}`);
-            });
-            
-            console.log('🔍 [LOAD PROJECTS] Total options in select:', selectElement.options.length);
-            console.log(`📂 既存PJ読み込み完了: ${existingProjects.length}件`, existingProjects);
+                // PJ設定に存在するプロジェクトを使用
+                const existingProjects = Object.keys(projectSettings).map(projectId => {
+                    const project = projectSettings[projectId];
+                    
+                    // 各プロジェクトのタスク数を計算
+                    const projectTasks = tasks.filter(task => task.projectId === projectId);
+                    const taskCount = projectTasks.length;
+                    
+                    console.log(`🔍 [LOAD PROJECTS] Project ${projectId}: ${project.name} (${taskCount} tasks)`);
+                    
+                    return {
+                        id: projectId,
+                        name: project.name,
+                        description: project.description,
+                        taskCount: taskCount,
+                        createdAt: project.createdAt,
+                        createdBy: project.createdBy
+                    };
+                }).sort((a, b) => a.id.localeCompare(b.id)); // ID順でソート
+                
+                const selectElement = document.getElementById('existing-project-select');
+                
+                // 既存のオプションをクリア（最初のデフォルトオプション以外）
+                selectElement.innerHTML = '<option value="">-- プロジェクトを選択してください --</option>';
+                
+                // 既存プロジェクトをオプションに追加
+                console.log('🔍 [LOAD PROJECTS] Creating select options for', existingProjects.length, 'projects');
+                
+                existingProjects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = `${project.id}|${project.name}`;
+                    option.textContent = `[${project.id}] ${project.name} (${project.taskCount}件)`;
+                    selectElement.appendChild(option);
+                    
+                    console.log(`🔍 [LOAD PROJECTS] Added option: [${project.id}] ${project.name}`);
+                });
+                
+                console.log('✅ [LOAD PROJECTS] プロジェクト一覧の読み込み完了');
+                
+                // プロジェクトが見つからない場合の警告
+                if (existingProjects.length === 0) {
+                    console.warn('⚠️ [LOAD PROJECTS] プロジェクトが見つかりません');
+                    const warning = document.createElement('div');
+                    warning.style.cssText = 'background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 6px; margin-top: 1rem; color: #856404;';
+                    warning.innerHTML = '⚠️ <strong>プロジェクトが見つかりません</strong><br>先に「PJ設定」でプロジェクトを作成してください。';
+                    const existingSection = document.getElementById('existing-project-section');
+                    if (existingSection && !existingSection.querySelector('.project-warning')) {
+                        warning.className = 'project-warning';
+                        existingSection.appendChild(warning);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('❌ [LOAD PROJECTS] プロジェクト読み込みエラー:', error);
+                
+                // エラー時はLocalStorageフォールバック
+                const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+                
+                console.log('📁 [LOAD PROJECTS] LocalStorageフォールバック実行');
+                
+                const existingProjects = Object.keys(projectSettings).map(projectId => {
+                    const project = projectSettings[projectId];
+                    const projectTasks = tasks.filter(task => task.projectId === projectId);
+                    return {
+                        id: projectId,
+                        name: project.name,
+                        description: project.description,
+                        taskCount: projectTasks.length,
+                        createdAt: project.createdAt,
+                        createdBy: project.createdBy
+                    };
+                });
+                
+                const selectElement = document.getElementById('existing-project-select');
+                selectElement.innerHTML = '<option value="">-- プロジェクトを選択してください --</option>';
+                
+                existingProjects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = `${project.id}|${project.name}`;
+                    option.textContent = `[${project.id}] ${project.name} (${project.taskCount}件)`;
+                    selectElement.appendChild(option);
+                });
+                
+                console.log(`📂 既存PJ読み込み完了（フォールバック）: ${existingProjects.length}件`);
+            }
         }
         
         // 既存プロジェクト選択のみ対応（新規作成機能は削除済み）

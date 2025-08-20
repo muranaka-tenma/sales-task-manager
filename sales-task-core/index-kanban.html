@@ -1067,8 +1067,8 @@
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
             <!-- PJ作成ボタン -->
-            <button onclick="window.location.href='pj-create.html'" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいPJタスクを作成">
-                👥 PJ作成
+            <button onclick="window.location.href='pj-create.html'" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいプロジェクトタスクを作成">
+                👥 プロジェクトタスク作成
             </button>
             <!-- ユーザー管理ボタンをマイページに移植のため非表示 -->
             <button onclick="window.location.href='user-management.html'" style="display: none; padding: 0.5rem 0.75rem; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="ユーザー管理">
@@ -1807,13 +1807,25 @@
                     }
                 ];
                 
-                // systemUsersはFirestoreで管理される
+                // 🔧 重要: 初期データをLocalStorageに保存（権限リセット防止）
+                console.log('💾 [INIT] 初期ユーザーデータ保存前の権限確認:', systemUsers.map(u => ({name: u.name, role: u.role})));
+                localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
+                console.log('💾 [INIT] 初期ユーザーデータをLocalStorageに保存完了');
+                
+                // 保存直後に読み込んで検証
+                const savedData = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                console.log('🔍 [INIT] 保存検証 - 読み込み結果:', savedData.map(u => ({name: u.name, role: u.role})));
+                
+                if (savedData.every(u => u.role === 'user')) {
+                    console.error('🚨 [INIT] 緊急警告: 保存直後に全ユーザーがuserになっています！');
+                }
                 
                 // 担当者リストも初期化
                 const assignees = systemUsers.map(u => u.name);
                 // 担当者リストはFirestoreで管理される
                 
                 // 権限確認ログ
+                console.log('🔐 [INIT] 初期ユーザー権限設定:');
                 systemUsers.forEach(user => {
                     const roleEmoji = user.role === 'developer' ? '👨‍💻' : 
                                      user.role === 'admin' ? '👤' : '🧑‍💼';
@@ -1833,9 +1845,37 @@
             }
         }
         
+        // 権限チェック実行中フラグ（重複実行防止）
+        let permissionCheckInProgress = false;
+        let lastPermissionCheckTime = 0;
+        
         // 権限の完全性を保証する関数（権限リセット防止）
         function ensureUserPermissionsIntegrity() {
-            const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            // 重複実行防止: 3秒以内の連続実行をブロック
+            const now = Date.now();
+            if (permissionCheckInProgress || (now - lastPermissionCheckTime < 3000)) {
+                console.log('⏸️ [PERMISSION-INTEGRITY] 重複実行防止 - スキップ');
+                return false;
+            }
+            
+            permissionCheckInProgress = true;
+            lastPermissionCheckTime = now;
+            
+            try {
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                
+                // 🔍 権限チェック前の状態を詳細に記録
+                console.log('🔍 [PERMISSION-INTEGRITY] 権限整合性チェック開始');
+                console.log('🔍 [PERMISSION-INTEGRITY] 現在のsystemUsers:', systemUsers.map(u => ({
+                    name: u.name,
+                    email: u.email,
+                    role: u.role,
+                    id: u.id
+                })));
+                
+                // 呼び出し元のスタックトレースを記録
+                console.trace('🔍 [PERMISSION-INTEGRITY] 呼び出し元:');
+            
             const correctRoles = {
                 'muranaka-tenma@terracom.co.jp': 'developer',
                 'kato-jun@terracom.co.jp': 'user',
@@ -1851,6 +1891,18 @@
             
             if (allUsersAreUser) {
                 console.warn('⚠️ [CRITICAL] 全ユーザーがuserになっている - 緊急修復実行');
+                
+                // LocalStorage全体をチェックして権限変更の原因を特定
+                console.log('🔍 [CRITICAL-DEBUG] LocalStorage内の関連データ:');
+                Object.keys(localStorage).forEach(key => {
+                    if (key.includes('user') || key.includes('User') || key.includes('session') || key.includes('Session')) {
+                        const value = localStorage.getItem(key);
+                        console.log(`  - ${key}: ${value?.substring(0, 200)}...`);
+                    }
+                });
+                
+                // 外部スクリプトによる変更の可能性をチェック
+                console.log('🔍 [CRITICAL-DEBUG] 他のタブやウィンドウからの変更の可能性も考慮');
             }
             
             // 🔧 強制的に正しい権限を適用
@@ -1885,9 +1937,51 @@
                 const roleEmoji = user.role === 'developer' ? '👨‍💻' : 
                                  user.role === 'admin' ? '👤' : '🧑‍💼';
                 console.log(`  ${roleEmoji} ${user.name} (${user.email}) - ${user.role}`);
-            });
+                });
+                
+                return corrected;
+                
+            } catch (error) {
+                console.error('❌ [PERMISSION-INTEGRITY] 権限チェックエラー:', error);
+                return false;
+            } finally {
+                // 実行中フラグをリセット
+                permissionCheckInProgress = false;
+                console.log('✅ [PERMISSION-INTEGRITY] 権限整合性チェック完了');
+            }
+        }
+        
+        // LocalStorage変更の監視（デバッグ用）- 権限リセットの原因特定
+        function setupLocalStorageMonitoring() {
+            const originalSetItem = localStorage.setItem;
+            localStorage.setItem = function(key, value) {
+                if (key === 'systemUsers') {
+                    console.log('🔍 [LOCALSTORAGE-MONITOR] systemUsersへの書き込みを検出');
+                    console.log('🔍 [LOCALSTORAGE-MONITOR] 新しい値:', value?.substring(0, 300));
+                    console.trace('🔍 [LOCALSTORAGE-MONITOR] 書き込み元スタックトレース:');
+                    
+                    // 権限が全てuserになっているかチェック
+                    try {
+                        const users = JSON.parse(value);
+                        if (Array.isArray(users) && users.length > 0) {
+                            const developerCount = users.filter(u => u.role === 'developer').length;
+                            const userCount = users.filter(u => u.role === 'user').length;
+                            
+                            console.log(`🔍 [LOCALSTORAGE-MONITOR] 権限分布: developer(${developerCount}), user(${userCount})`);
+                            
+                            if (users.every(u => u.role === 'user')) {
+                                console.error('⚠️ [LOCALSTORAGE-MONITOR] 🚨 緊急警告: 全ユーザーがuserロールで書き込まれようとしています！');
+                                console.error('🔍 [LOCALSTORAGE-MONITOR] これは権限リセットの瞬間です');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('❌ [LOCALSTORAGE-MONITOR] パースエラー:', e);
+                    }
+                }
+                return originalSetItem.apply(this, arguments);
+            };
             
-            return corrected;
+            console.log('✅ [LOCALSTORAGE-MONITOR] LocalStorage監視システム開始');
         }
         
         // 定期的権限チェック（5分ごと）
@@ -5212,14 +5306,33 @@
             const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
             const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
             
+            // 現在のユーザー情報を取得
+            const currentUser = getCurrentUser();
+            if (!currentUser || !currentUser.isLoggedIn) {
+                console.log('⚠️ [DEADLINE] ユーザー未ログイン - 通知スキップ');
+                return;
+            }
+            
             tasks.forEach(task => {
                 if (task.columnId === 'done') return; // 完了済みは除外
+                
+                // 担当者チェック: 現在のユーザーが担当者でない場合は通知しない
+                if (task.assignees && task.assignees.length > 0) {
+                    const isAssignedToCurrentUser = task.assignees.includes(currentUser.name) || 
+                                                  task.assignees.includes(currentUser.email) ||
+                                                  task.assignees.includes(currentUser.id);
+                    if (!isAssignedToCurrentUser) {
+                        console.log(`🔇 [DEADLINE] タスク「${task.title}」- 担当者ではないためスキップ (担当者: ${task.assignees.join(', ')}, 現在のユーザー: ${currentUser.name})`);
+                        return;
+                    }
+                }
                 
                 const deadline = new Date(task.deadline);
                 const timeUntilDeadline = deadline.getTime() - now.getTime();
                 
                 // 期限切れ通知
                 if (deadline < now && !task.overdueNotified) {
+                    console.log(`🔔 [DEADLINE] 期限切れ通知送信: ${task.title} (担当者: ${task.assignees?.join(', ') || '未設定'})`);
                     showNotification(
                         '🚨 期限切れタスク',
                         `「${task.title}」の期限が過ぎています！`,
@@ -5229,6 +5342,7 @@
                 }
                 // 5分前通知
                 else if (timeUntilDeadline > 0 && timeUntilDeadline <= 5 * 60 * 1000 && !task.fiveMinNotified) {
+                    console.log(`🔔 [DEADLINE] 5分前通知送信: ${task.title} (担当者: ${task.assignees?.join(', ') || '未設定'})`);
                     showNotification(
                         '🚨 緊急期限',
                         `「${task.title}」の期限まで5分です！`,
@@ -5238,6 +5352,7 @@
                 }
                 // 3時間前通知
                 else if (timeUntilDeadline > 0 && timeUntilDeadline <= 3 * 60 * 60 * 1000 && !task.threeHourNotified) {
+                    console.log(`🔔 [DEADLINE] 3時間前通知送信: ${task.title} (担当者: ${task.assignees?.join(', ') || '未設定'})`);
                     showNotification(
                         '⚠️ 期限間近',
                         `「${task.title}」の期限まで3時間です`,
@@ -5247,6 +5362,7 @@
                 }
                 // 1日前通知
                 else if (timeUntilDeadline > 0 && timeUntilDeadline <= 24 * 60 * 60 * 1000 && !task.oneDayNotified) {
+                    console.log(`🔔 [DEADLINE] 1日前通知送信: ${task.title} (担当者: ${task.assignees?.join(', ') || '未設定'})`);
                     showNotification(
                         '📅 期限予告',
                         `「${task.title}」の期限まで1日です`,
@@ -5956,13 +6072,15 @@ Firebase認証: ${diagnosis.firebase.currentUser}
         document.addEventListener('DOMContentLoaded', async () => {
             // 🔧 【最優先】ユーザーデータベース初期化
             try {
+                // 🔍 最優先: LocalStorage監視システム開始（データ変更を全て記録）
+                setupLocalStorageMonitoring();
+                
                 initializeUserDatabase();
                 console.log('✅ [INIT] ユーザーデータベース初期化完了');
                 
-                // 🔐 【重要】権限整合性チェック・修正を即座に実行（2回実行で確実に修正）
-                ensureUserPermissionsIntegrity();
-                setTimeout(() => ensureUserPermissionsIntegrity(), 100); // 0.1秒後に再実行
-                console.log('✅ [INIT] 権限整合性チェック完了（2回実行）');
+                // 🔐 【重要】権限整合性チェック・修正を実行
+                const permissionFixed = ensureUserPermissionsIntegrity();
+                console.log('✅ [INIT] 権限整合性チェック完了', permissionFixed ? '(修正あり)' : '(問題なし)');
                 
                 // 🔍 権限チェックを実行（UI制御含む）
                 setTimeout(() => {

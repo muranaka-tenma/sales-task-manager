@@ -18,7 +18,13 @@ import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, o
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+// Firestore設定 - リアルタイムリスナー無効化でWebchannel接続エラーを回避
 const db = getFirestore(app);
+
+// 接続エラー回避: リアルタイム機能を使用しない設定
+// ※onSnapshotを使用せず、getDocs()による手動更新のみ使用
+console.log('🔧 [FIREBASE CONFIG] Firestore設定: リアルタイムリスナー無効化');
 
 // 🚫 LocalStorage完全削除モード
 console.log('🔥 Firebase完全統合モード - LocalStorage依存削除');
@@ -28,6 +34,14 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         console.log('🔐 Firebase認証成功:', user.email);
         window.currentFirebaseUser = user;
+        
+        // 接続状態確認
+        console.log('🔍 [FIREBASE DEBUG] 認証後の接続状態:', {
+            uid: user.uid,
+            email: user.email,
+            projectId: db.app.options.projectId,
+            timestamp: new Date().toISOString()
+        });
     } else {
         console.log('⚠️ Firebase未認証');
         window.currentFirebaseUser = null;
@@ -177,6 +191,55 @@ window.FirebaseDB = {
             return { success: true };
         } catch (error) {
             console.error('❌ [FIREBASE] タスク削除エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // プロジェクト管理機能（pj-create.html対応）
+    async getProjects() {
+        try {
+            console.log('📥 [FIREBASE] プロジェクト取得開始');
+            const user = window.getCurrentUser();
+            if (!user) {
+                console.warn('⚠️ [FIREBASE] 認証なし - 空配列を返します');
+                return { success: true, projects: [] };
+            }
+
+            const projectsRef = collection(db, 'projects');
+            const q = query(projectsRef, orderBy('createdAt', 'desc'));
+            const snapshot = await getDocs(q);
+            
+            const projects = [];
+            snapshot.forEach((doc) => {
+                projects.push({ id: doc.id, ...doc.data() });
+            });
+            
+            console.log('✅ [FIREBASE] プロジェクト取得完了:', projects.length);
+            return { success: true, projects: projects };
+        } catch (error) {
+            console.error('❌ [FIREBASE] プロジェクト取得エラー:', error);
+            return { success: false, error: error.message, projects: [] };
+        }
+    },
+
+    async saveProject(project) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user) {
+                return { success: false, error: '認証が必要です' };
+            }
+            
+            const docRef = await addDoc(collection(db, 'projects'), {
+                ...project,
+                userId: user.id,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+            
+            console.log('✅ [FIREBASE] プロジェクト保存完了:', docRef.id);
+            return { success: true, id: docRef.id };
+        } catch (error) {
+            console.error('❌ [FIREBASE] プロジェクト保存エラー:', error);
             return { success: false, error: error.message };
         }
     }
