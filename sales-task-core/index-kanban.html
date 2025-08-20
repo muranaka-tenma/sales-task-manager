@@ -1054,19 +1054,19 @@
     <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; gap: 1rem; align-items: center;">
             <span style="font-weight: 600; color: #2d3748;">👥 表示対象:</span>
-            <!-- 統合担当者・PJフィルター -->
+            <!-- 統合担当者・プロジェクトフィルター -->
             <div style="position: relative;" id="assignee-filter-container">
                 <button onclick="toggleAssigneeFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; min-width: 150px;">
                     <span id="assignee-filter-text">全員</span>
                     <span>▼</span>
                 </button>
                 <div id="assignee-filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 1000; min-width: 250px;">
-                    <!-- 担当者・PJ選択肢がここに動的追加される -->
+                    <!-- 担当者・プロジェクト選択肢がここに動的追加される -->
                 </div>
             </div>
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
-            <!-- PJ作成ボタン -->
+            <!-- プロジェクトタスク作成ボタン -->
             <button onclick="window.location.href='pj-create.html'" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいプロジェクトタスクを作成">
                 👥 プロジェクトタスク作成
             </button>
@@ -2475,7 +2475,7 @@
         // tasks変数は既に上部で宣言済み
         window.tasks = undefined; // Firebase読み込み完了まで未定義
         
-        // データ移行対策：PJ設定データの互換性チェック
+        // データ移行対策：プロジェクト設定データの互換性チェック
         function migrateProjectData() {
             try {
                 const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
@@ -2656,9 +2656,9 @@
         // 定期タスク管理
         let recurringTemplates = JSON.parse(localStorage.getItem('recurringTemplates') || '[]');
         
-        // Phase 2: PJタスク関連関数（PJ作成専用）
+        // Phase 2: プロジェクトタスク関連関数（プロジェクトタスク作成専用）
         function isPJTaskMode() {
-            // PJ設定が表示されているかどうかでPJモードを判定
+            // プロジェクト設定が表示されているかどうかでプロジェクトモードを判定
             const projectSettings = document.getElementById('project-task-settings');
             return projectSettings && projectSettings.style.display === 'block';
         }
@@ -13294,18 +13294,13 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             </a>
         </div>
         
-        <!-- PJ設定は全ユーザーアクセス可能 -->
+        <!-- プロジェクト設定は全ユーザーアクセス可能 -->
         <div class="menu-section">
             <div class="menu-section-title">プロジェクト</div>
-            <a href="#" class="menu-item" onclick="openProjectManagementModal(); toggleHamburgerMenu(); return false;">
-                <span>📂</span>
-                <span>プロジェクト管理</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">プロジェクト作成・メンバー管理・共有設定</div>
-            </a>
             <a href="pj-settings.html" class="menu-item" onclick="toggleHamburgerMenu();">
                 <span>🏗️</span>
-                <span>PJ設定・管理</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">プロジェクト作成・カラム設定</div>
+                <span>プロジェクト設定・管理</span>
+                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">プロジェクト作成・カラム設定・メンバー管理</div>
             </a>
         </div>
 

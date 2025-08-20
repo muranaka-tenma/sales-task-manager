@@ -277,10 +277,49 @@
             }, 100);
         });
         
-        function loadAssignees() {
-            const assignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
+        async function loadAssignees() {
+            console.log('👥 [LOAD ASSIGNEES] 担当者一覧の動的読み込み開始');
+            
+            let assignees = [];
+            
+            // Firebase統合モード: システムユーザーから取得
+            if (window.FirebaseDB && window.getCurrentUser()?.isLoggedIn) {
+                console.log('🔥 [LOAD ASSIGNEES] Firebase統合モード - システムユーザーから取得');
+                try {
+                    // 🔥 Firebase統合：ユーザー管理機能を直接利用
+                    if (window.FirebaseDB.getUsers) {
+                        console.log('🔥 [LOAD ASSIGNEES] Firebase getUsers 関数を使用');
+                        const firebaseUsers = await window.FirebaseDB.getUsers();
+                        if (firebaseUsers.success && firebaseUsers.users.length > 0) {
+                            assignees = firebaseUsers.users.map(user => user.name || user.displayName || user.email.split('@')[0]);
+                            console.log('🔥 [LOAD ASSIGNEES] Firebase ユーザー取得成功:', assignees.length, '名');
+                        } else {
+                            assignees = ['邨中天真', '加藤純', '朝日圭一', '半澤侑果', '田村渉', '橋本友美', '福島亜未'];
+                            console.log('📁 [LOAD ASSIGNEES] Firebase ユーザーなし - デフォルトリスト使用');
+                        }
+                    } else {
+                        // フォールバック: 最低限のユーザーリスト
+                        assignees = ['邨中天真', '加藤純', '朝日圭一', '半澤侑果', '田村渉', '橋本友美', '福島亜未'];
+                        console.log('📁 [LOAD ASSIGNEES] Firebase getUsers 未対応 - デフォルトリスト使用');
+                    }
+                } catch (error) {
+                    console.error('❌ [LOAD ASSIGNEES] Firebase取得エラー:', error);
+                    assignees = ['邨中天真', '加藤純', '朝日圭一', '半澤侑果', '田村渉', '橋本友美', '福島亜未'];
+                }
+            } else {
+                console.log('📁 [LOAD ASSIGNEES] LocalStorageモード');
+                // LocalStorage フォールバック
+                assignees = JSON.parse(localStorage.getItem('taskAssignees') || '["邨中天真", "加藤純", "朝日圭一", "半澤侑果", "田村渉", "橋本友美", "福島亜未"]');
+            }
+            
+            console.log('👥 [LOAD ASSIGNEES] 最終担当者リスト:', assignees);
+            
             const assigneesDiv = document.getElementById('assignees');
             const approversDiv = document.getElementById('approvers');
+            
+            // 既存のチェックボックスをクリア
+            assigneesDiv.innerHTML = '';
+            approversDiv.innerHTML = '';
             
             assignees.forEach(assignee => {
                 // 担当者用チェックボックス
@@ -291,6 +330,8 @@
                 const approverItem = createCheckboxItem(assignee, 'approver');
                 approversDiv.appendChild(approverItem);
             });
+            
+            console.log('✅ [LOAD ASSIGNEES] 担当者・承認者チェックボックス生成完了');
         }
         
         function createCheckboxItem(name, type) {
