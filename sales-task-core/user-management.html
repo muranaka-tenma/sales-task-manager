@@ -789,26 +789,29 @@
                 const deletedUserName = user.name;
                 
                 try {
-                    // 🔥 Firebase統合モード: Firestoreからも削除
+                    // 🔥 完全削除ではなく無効化処理に変更
                     if (window.FirebaseDB && window.FirebaseDB.deleteUser) {
-                        console.log('🔥 [DELETE] Firebaseからユーザー削除中:', deletedUserName);
-                        const firebaseResult = await window.FirebaseDB.deleteUser(userId);
+                        console.log('🔥 [DISABLE] ユーザーアカウント無効化中:', deletedUserName);
+                        
+                        // Firestoreのユーザー情報を無効化マークに変更
+                        const disabledUser = {
+                            ...user,
+                            isDisabled: true,
+                            disabledAt: new Date().toISOString(),
+                            disabledBy: window.getCurrentUser().name
+                        };
+                        
+                        // 無効化されたユーザーとしてFirestoreに保存
+                        const firebaseResult = await window.FirebaseDB.saveUser(disabledUser);
                         if (firebaseResult.success) {
-                            console.log('✅ [DELETE] Firebase削除成功:', deletedUserName);
+                            console.log('✅ [DISABLE] ユーザー無効化成功:', deletedUserName);
                             
-                            // Firebase Authからの削除も試行（管理者への通知）
-                            if (window.FirebaseDB.deleteAuthUser) {
-                                const authResult = await window.FirebaseDB.deleteAuthUser(user.email);
-                                if (authResult.requiresManualDeletion) {
-                                    console.log('⚠️ [DELETE] Firebase Auth削除は手動で実行が必要:', user.email);
-                                    alert(`ユーザー「${deletedUserName}」を削除しました。\n\n⚠️ 注意: Firebase Authからの削除が必要な場合があります。\nFirebase Consoleで ${user.email} を確認してください。`);
-                                }
-                            }
+                            alert(`ユーザー「${deletedUserName}」を無効化しました。\n\n📋 処理内容:\n• システムからログアウト\n• 新規ログイン拒否\n• データは保持（監査用）\n\n🔧 完全削除が必要な場合は、Firebase Consoleで ${user.email} を削除してください。`);
                         } else {
-                            console.error('❌ [DELETE] Firebase削除エラー:', firebaseResult.error);
+                            console.error('❌ [DISABLE] ユーザー無効化エラー:', firebaseResult.error);
                         }
                     } else {
-                        console.log('📁 [DELETE] Firebase削除機能未対応 - LocalStorageのみ削除');
+                        console.log('📁 [DISABLE] Firebase無効化機能未対応 - LocalStorageのみ削除');
                     }
                     
                     // LocalStorageからも削除

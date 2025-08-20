@@ -64,8 +64,8 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// セッション管理 - Firebase専用
-window.getCurrentUser = function() {
+// セッション管理 - Firebase専用（無効化チェック付き）
+window.getCurrentUser = async function() {
     if (window.currentFirebaseUser) {
         // 正しい権限マッピング
         const roleMap = {
@@ -79,6 +79,35 @@ window.getCurrentUser = function() {
         };
         
         const userRole = roleMap[window.currentFirebaseUser.email] || 'user';
+        
+        // 無効化チェック - Firestoreからユーザー情報を取得
+        try {
+            const usersResult = await window.FirebaseDB.getUsers();
+            if (usersResult.success) {
+                const currentUserData = usersResult.users.find(u => u.email === window.currentFirebaseUser.email);
+                if (currentUserData && currentUserData.isDisabled) {
+                    console.log('🚫 [AUTH] 無効化されたユーザーのアクセスを拒否:', window.currentFirebaseUser.email);
+                    
+                    // 強制ログアウト
+                    if (auth.currentUser) {
+                        await auth.signOut();
+                    }
+                    window.currentFirebaseUser = null;
+                    
+                    alert('このアカウントは無効化されています。\n管理者にお問い合わせください。');
+                    window.location.href = 'login.html';
+                    return {
+                        id: null,
+                        name: 'ゲスト',
+                        email: null,
+                        role: 'guest',
+                        isLoggedIn: false
+                    };
+                }
+            }
+        } catch (error) {
+            console.error('⚠️ [AUTH] 無効化チェックエラー:', error);
+        }
         
         return {
             id: window.currentFirebaseUser.uid,
@@ -332,6 +361,29 @@ window.FirebaseDB = {
             return { success: true };
         } catch (error) {
             console.error('❌ [FIREBASE] ユーザー削除エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async saveUser(userObj) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user) {
+                return { success: false, error: '認証が必要です' };
+            }
+            
+            const userDocId = userObj.uid || userObj.id || Date.now().toString();
+            console.log('💾 [FIREBASE] ユーザー情報保存中:', userDocId);
+            
+            await setDoc(doc(db, 'users', userDocId), {
+                ...userObj,
+                updatedAt: new Date().toISOString()
+            });
+            
+            console.log('✅ [FIREBASE] ユーザー情報保存完了:', userDocId);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ [FIREBASE] ユーザー保存エラー:', error);
             return { success: false, error: error.message };
         }
     },
