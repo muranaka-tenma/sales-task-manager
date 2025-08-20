@@ -2683,7 +2683,7 @@
             return Array.from(checkboxes).map(cb => cb.value);
         }
         
-        // 統合フィルター機能（担当者 + PJ）
+        // 統合フィルター機能（担当者 + プロジェクト）
         function toggleAssigneeFilterDropdown() {
             const dropdown = document.getElementById('assignee-filter-dropdown');
             const isVisible = dropdown.style.display === 'block';
@@ -2787,22 +2787,22 @@
 
 【👥 プロジェクト選択】
 • 特定プロジェクトのタスクのみ表示
-• PJタスクのWチェック管理用
+• プロジェクトタスクのWチェック管理用
 • プロジェクト進捗の一元確認
 
 【全員】
 • 全てのタスクを表示
 • チーム全体の状況把握
 
-💡 個人表示とPJ表示は排他的です。
+💡 個人表示とプロジェクト表示は排他的です。
 `;
             alert(helpText);
         }
         
-        // PJ作成機能
+        // プロジェクトタスク作成機能
         function createProjectTask() {
-            // PJタスク作成は pj-create.html で実行
-            console.log('🔄 [PJ CREATE] Redirecting to pj-create.html...');
+            // プロジェクトタスク作成は pj-create.html で実行
+            console.log('🔄 [PROJECT CREATE] Redirecting to pj-create.html...');
             window.location.href = 'pj-create.html';
         }
         
@@ -3477,11 +3477,11 @@
             // Phase 2: PJタスク編集時はPJ設定を非表示（作成時のみ使用）
             // PJタスク設定は別ページに移動
             
-            // PJタスクの場合はタイトルに表示
+            // プロジェクトタスクの場合はタイトルに表示
             const isPJTask = editingTask.projectId && editingTask.projectId !== null;
             if (isPJTask) {
-                document.getElementById('modal-title').textContent = `👥 PJタスク編集: ${editingTask.projectId}`;
-                console.log(`🎯 [EDIT] Editing PJ task: ${editingTask.projectId} - ${editingTask.projectName}`);
+                document.getElementById('modal-title').textContent = `👥 プロジェクトタスク編集: ${editingTask.projectId}`;
+                console.log(`🎯 [EDIT] Editing project task: ${editingTask.projectId} - ${editingTask.projectName}`);
             } else {
                 console.log(`👤 [EDIT] Editing personal task: ${editingTask.title}`);
             }

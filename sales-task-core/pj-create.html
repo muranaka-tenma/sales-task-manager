@@ -488,25 +488,37 @@
                 console.log('🔍 [LOAD PROJECTS] Project settings found:', Object.keys(projectSettings).length);
                 console.log('🔍 [LOAD PROJECTS] Tasks loaded:', tasks.length);
                 
-                // プロジェクト設定に存在するプロジェクトを使用
-                const existingProjects = Object.keys(projectSettings).map(projectId => {
-                    const project = projectSettings[projectId];
-                    
-                    // 各プロジェクトのタスク数を計算
-                    const projectTasks = tasks.filter(task => task.projectId === projectId);
-                    const taskCount = projectTasks.length;
-                    
-                    console.log(`🔍 [LOAD PROJECTS] Project ${projectId}: ${project.name} (${taskCount} tasks)`);
-                    
-                    return {
-                        id: projectId,
-                        name: project.name,
-                        description: project.description,
-                        taskCount: taskCount,
-                        createdAt: project.createdAt,
-                        createdBy: project.createdBy
-                    };
-                }).sort((a, b) => a.id.localeCompare(b.id)); // ID順でソート
+                // プロジェクト設定に存在するプロジェクトを使用（データクリーニング付き）
+                const existingProjects = Object.keys(projectSettings)
+                    .filter(projectId => {
+                        const project = projectSettings[projectId];
+                        // 無効なプロジェクトデータを除外
+                        if (!project || !project.name || project.name.trim() === '') {
+                            console.warn(`⚠️ [LOAD PROJECTS] 無効なプロジェクトデータをスキップ: ${projectId}`);
+                            return false;
+                        }
+                        return true;
+                    })
+                    .map(projectId => {
+                        const project = projectSettings[projectId];
+                        
+                        // 各プロジェクトのタスク数を計算
+                        const projectTasks = tasks.filter(task => task.projectId === projectId);
+                        const taskCount = projectTasks.length;
+                        
+                        console.log(`🔍 [LOAD PROJECTS] Project ${projectId}: ${project.name} (${taskCount} tasks)`);
+                        
+                        return {
+                            id: projectId,
+                            name: project.name.trim(),
+                            description: project.description || '',
+                            taskCount: taskCount,
+                            createdAt: project.createdAt || new Date().toISOString(),
+                            createdBy: project.createdBy || 'Unknown'
+                        };
+                    })
+                    .filter(project => project.name && project.name !== 'undefined' && project.name !== 'null')
+                    .sort((a, b) => a.name.localeCompare(b.name)); // 名前順でソート
                 
                 const selectElement = document.getElementById('existing-project-select');
                 
@@ -526,6 +538,17 @@
                 });
                 
                 console.log('✅ [LOAD PROJECTS] プロジェクト一覧の読み込み完了');
+                
+                // 無効なプロジェクトデータのクリーンアップ
+                if (Object.keys(projectSettings).length !== existingProjects.length) {
+                    console.log('🧹 [CLEANUP] 無効なプロジェクトデータを検出 - クリーンアップを実行');
+                    const cleanedSettings = {};
+                    existingProjects.forEach(project => {
+                        cleanedSettings[project.id] = projectSettings[project.id];
+                    });
+                    localStorage.setItem('projectSettings', JSON.stringify(cleanedSettings));
+                    console.log('✅ [CLEANUP] プロジェクト設定クリーンアップ完了');
+                }
                 
                 // プロジェクトが見つからない場合の警告と診断情報
                 if (existingProjects.length === 0) {

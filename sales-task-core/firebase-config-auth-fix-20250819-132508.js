@@ -254,6 +254,51 @@ window.FirebaseDB = {
             console.error('❌ [FIREBASE] プロジェクト保存エラー:', error);
             return { success: false, error: error.message };
         }
+    },
+
+    // ユーザー管理機能
+    async getUsers() {
+        try {
+            console.log('👥 [FIREBASE] ユーザー一覧取得開始');
+            const user = window.getCurrentUser();
+            if (!user) {
+                console.warn('⚠️ [FIREBASE] 認証なし - 空配列を返します');
+                return { success: true, users: [] };
+            }
+
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, orderBy('createdAt', 'desc'));
+            const snapshot = await getDocs(q);
+            
+            const users = [];
+            snapshot.forEach((doc) => {
+                users.push({ id: doc.id, ...doc.data() });
+            });
+            
+            console.log('✅ [FIREBASE] ユーザー取得完了:', users.length);
+            return { success: true, users: users };
+        } catch (error) {
+            console.error('❌ [FIREBASE] ユーザー取得エラー:', error);
+            return { success: false, error: error.message, users: [] };
+        }
+    },
+
+    async deleteUser(userId) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user) {
+                return { success: false, error: '認証が必要です' };
+            }
+            
+            console.log('🗑️ [FIREBASE] ユーザー削除実行:', userId);
+            await deleteDoc(doc(db, 'users', userId));
+            
+            console.log('✅ [FIREBASE] ユーザー削除完了:', userId);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ [FIREBASE] ユーザー削除エラー:', error);
+            return { success: false, error: error.message };
+        }
     }
 };
 
