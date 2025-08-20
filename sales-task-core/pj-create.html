@@ -238,6 +238,15 @@
             const waitForFirebase = async () => {
                 if (window.FirebaseDB && window.getCurrentUser) {
                     console.log('🔥 [INIT] Firebase統合システム準備完了');
+                    
+                    // デバッグ情報を追加
+                    const currentUser = window.getCurrentUser();
+                    console.log('🔍 [DEBUG] pj-create.html起動時状況:');
+                    console.log('  - FirebaseDB available:', !!window.FirebaseDB);
+                    console.log('  - getCurrentUser available:', !!window.getCurrentUser);
+                    console.log('  - Current user:', currentUser);
+                    console.log('  - Firebase getProjects available:', !!window.FirebaseDB?.getProjects);
+                    
                     await loadExistingProjects();
                     return;
                 }

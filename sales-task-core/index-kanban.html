@@ -2071,6 +2071,27 @@
             }
         }
         
+        // デバッグ用: LocalStorageプロジェクト確認
+        function checkLocalStorageProjects() {
+            console.log('🔍 [DEBUG] LocalStorageプロジェクトデータ確認:');
+            
+            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+            const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+            
+            console.log('📂 projectSettings:', Object.keys(projectSettings).length, '件');
+            Object.keys(projectSettings).forEach(projectId => {
+                const project = projectSettings[projectId];
+                console.log(`  - ${projectId}: ${project.name}`);
+            });
+            
+            console.log('📂 projects:', projects.length, '件');
+            projects.forEach(project => {
+                console.log(`  - ${project.id}: ${project.name}`);
+            });
+            
+            console.log('🔄 移行フラグ:', localStorage.getItem('projectsMigratedToFirebase'));
+        }
+        
         function displayUserInfo(user) {
             // ヘッダーにユーザー情報を表示
             const headerTitle = document.querySelector('.header-title');
@@ -6197,6 +6218,8 @@ Firebase認証: ${diagnosis.firebase.currentUser}
             console.log('🧪 デバッグ関数が利用可能です:');
             console.log('  - 認証状態確認: checkFirebaseAuth()');
             console.log('  - 同期テスト: testFirebaseSync()');
+            console.log('  - プロジェクト移行: migrateProjectsToFirebase()');
+            console.log('  - LocalStorageプロジェクト確認: checkLocalStorageProjects()');
 
             // Firebase認証状態の確認
             setTimeout(() => {
