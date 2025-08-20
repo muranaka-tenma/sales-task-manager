@@ -234,8 +234,9 @@
                                 <label class="form-label">初期パスワード *</label>
                                 <input type="password" class="form-input" id="user-password" required placeholder="8文字以上">
                             </div>
-                            <div class="form-group" style="display: flex; align-items: end;">
+                            <div class="form-group" style="display: flex; gap: 1rem; align-items: end;">
                                 <button type="submit" class="btn btn-primary">ユーザー追加</button>
+                                <button type="button" class="btn btn-secondary" onclick="restoreDeletedUser()" title="完全削除されたユーザーを復旧">🔄 削除済み復旧</button>
                             </div>
                         </div>
                     </form>
@@ -910,13 +911,25 @@
                             console.error('❌ [DISABLE] ユーザー無効化エラー:', firebaseResult.error);
                         }
                     } else {
-                        console.log('🚨 [DEBUG] Firebase条件に該当せず - LocalStorageフォールバック');
-                        console.log('📁 [DISABLE] Firebase無効化機能未対応 - LocalStorageのみ削除');
-                        alert('⚠️ デバッグ: Firebase機能が利用できないため、LocalStorageでの削除処理を実行します。');
+                        console.log('🚨 [DEBUG] Firebase条件に該当せず - LocalStorageで無効化処理');
+                        console.log('📁 [DISABLE] LocalStorageでユーザー無効化中:', deletedUserName);
+                        
+                        // LocalStorageでも無効化処理（削除ではなく）
+                        const userIndex = users.findIndex(u => u.id === userId || u.uid === userId);
+                        if (userIndex !== -1) {
+                            users[userIndex] = {
+                                ...targetUser,
+                                isDisabled: true,
+                                disabledAt: new Date().toISOString(),
+                                disabledBy: currentUser ? currentUser.name : 'unknown'
+                            };
+                            console.log('✅ [DISABLE] LocalStorageでユーザー無効化完了:', deletedUserName);
+                        }
+                        
+                        alert(`⚠️ Firebase接続なし: ユーザー「${deletedUserName}」をローカルで無効化しました。\n\n📋 処理内容:\n• ローカルでのみ無効化\n• Firebase接続復旧時に同期推奨\n• データは保持（復旧可能）`);
                     }
                     
-                    // LocalStorageからも削除
-                    users = users.filter(u => u.id !== userId && u.uid !== userId);
+                    // LocalStorageに保存（無効化されたユーザー含む）
                     saveUsers();
                     
                     // 担当者リストからも削除（表示対象同期）
@@ -933,6 +946,47 @@
                 }
             } else {
                 console.log('🚨 [DEBUG] ユーザーが確認ダイアログでキャンセルしました');
+            }
+        }
+
+        // 削除されたユーザーを復旧する機能
+        function restoreDeletedUser() {
+            const deletedUserData = prompt('削除されたユーザーの復旧\n\nユーザー情報を以下の形式で入力してください：\n名前,メールアドレス,役職,部署\n\n例：福島亜未,fukushima-ami@terracom.co.jp,user,営業部', '');
+            
+            if (deletedUserData && deletedUserData.trim()) {
+                try {
+                    const [name, email, role, department] = deletedUserData.split(',').map(s => s.trim());
+                    
+                    if (!name || !email) {
+                        alert('名前とメールアドレスは必須です。');
+                        return;
+                    }
+                    
+                    const newUserId = Math.max(...users.map(u => u.id || 0)) + 1;
+                    const restoredUser = {
+                        id: newUserId,
+                        name: name,
+                        email: email,
+                        role: role || 'user',
+                        department: department || '-',
+                        createdAt: new Date().toISOString(),
+                        restoredFromDeletion: true,
+                        restoredAt: new Date().toISOString(),
+                        restoredBy: window.getCurrentUser ? window.getCurrentUser().name : 'unknown'
+                    };
+                    
+                    users.push(restoredUser);
+                    saveUsers();
+                    updateAssigneesList();
+                    loadUsers();
+                    
+                    alert(`✅ ユーザー「${name}」を復旧しました。\n\n📋 復旧情報:\n• 新ID: ${newUserId}\n• 復旧日時: ${new Date().toLocaleString('ja-JP')}\n• データは完全復旧されました`);
+                    
+                    console.log('🔄 [RESTORE-DELETED] 削除済みユーザーを復旧:', restoredUser);
+                } catch (error) {
+                    alert('入力形式が正しくありません。カンマ区切りで入力してください。');
+                    console.error('❌ [RESTORE-DELETED] 復旧エラー:', error);
+                }
             }
         }
 
