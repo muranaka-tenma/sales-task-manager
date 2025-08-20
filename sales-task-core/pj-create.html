@@ -350,7 +350,8 @@
                 let tasks = [];
                 
                 // Firebase統合モード: Firebaseからプロジェクトデータを取得
-                if (window.FirebaseDB && currentUser && currentUser.isLoggedIn) {
+                // ⚠️ 認証状態に関係なくLocalStorageとFirebaseの両方をチェック
+                if (window.FirebaseDB) {
                     console.log('🔥 [LOAD PROJECTS] Firebase統合モード - Firestoreからデータ取得');
                     
                     // Firebaseからタスクデータを取得
@@ -360,46 +361,87 @@
                         console.log('🔥 [LOAD PROJECTS] Firebase tasks loaded:', tasks.length);
                     }
                     
-                    // 🆕 Firebase経由でプロジェクトデータを取得
-                    if (window.FirebaseDB.getProjects) {
-                        console.log('🔥 [LOAD PROJECTS] Firebaseからプロジェクト取得中...');
-                        const firebaseProjects = await window.FirebaseDB.getProjects();
-                        if (firebaseProjects.success && firebaseProjects.projects.length > 0) {
-                            // Firebase形式からLocalStorage形式に変換
-                            projectSettings = {};
-                            firebaseProjects.projects.forEach(project => {
-                                projectSettings[project.id] = {
-                                    name: project.name,
-                                    description: project.description || '',
-                                    createdAt: project.createdAt,
-                                    createdBy: project.createdBy || currentUser.name,
-                                    columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
-                                };
-                            });
-                            console.log('🔥 [LOAD PROJECTS] Firebase projects converted:', Object.keys(projectSettings).length);
-                        } else {
-                            console.log('📁 [LOAD PROJECTS] Firebaseにプロジェクトなし - LocalStorageも確認');
-                            // LocalStorageのプロジェクト設定を確認
-                            projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-                            console.log('📁 [LOAD PROJECTS] LocalStorage projectSettings:', Object.keys(projectSettings).length, '件');
-                            
-                            // LocalStorageプロジェクトの詳細をログ出力
-                            Object.keys(projectSettings).forEach(projectId => {
-                                const project = projectSettings[projectId];
-                                console.log(`📁 [LOAD PROJECTS] LocalStorage Project: ${projectId} - ${project.name}`);
-                            });
+                    // 🔥 認証状態をチェックしてからFirebaseアクセス
+                    if (currentUser && currentUser.isLoggedIn && window.FirebaseDB.getProjects) {
+                        console.log('🔥 [LOAD PROJECTS] 認証済み - Firebaseからプロジェクト取得中...');
+                        try {
+                            const firebaseProjects = await window.FirebaseDB.getProjects();
+                            if (firebaseProjects.success && firebaseProjects.projects.length > 0) {
+                                // Firebase形式からLocalStorage形式に変換
+                                projectSettings = {};
+                                firebaseProjects.projects.forEach(project => {
+                                    projectSettings[project.id] = {
+                                        name: project.name,
+                                        description: project.description || '',
+                                        createdAt: project.createdAt,
+                                        createdBy: project.createdBy || (currentUser ? currentUser.name : 'Unknown'),
+                                        columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                                    };
+                                });
+                                console.log('🔥 [LOAD PROJECTS] Firebase projects converted:', Object.keys(projectSettings).length);
+                            } else {
+                                console.log('📁 [LOAD PROJECTS] Firebaseにプロジェクトなし');
+                            }
+                        } catch (firebaseError) {
+                            console.error('❌ [LOAD PROJECTS] Firebase取得エラー:', firebaseError);
                         }
                     } else {
-                        // プロジェクト機能未対応の場合はLocalStorageフォールバック
-                        console.log('📁 [LOAD PROJECTS] Firebase project機能未対応 - LocalStorageから取得');
-                        projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-                        console.log('📁 [LOAD PROJECTS] LocalStorage fallback:', Object.keys(projectSettings).length, '件');
+                        console.log('⚠️ [LOAD PROJECTS] 認証なしまたはFirebase未対応');
+                    }
+                    
+                    // 🆕 必ずLocalStorageもチェック（認証状態に関係なく）
+                    console.log('📁 [LOAD PROJECTS] LocalStorageプロジェクト確認中...');
+                    const localProjectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                    const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+                    console.log('📁 [LOAD PROJECTS] LocalStorage projectSettings:', Object.keys(localProjectSettings).length, '件');
+                    console.log('📁 [LOAD PROJECTS] LocalStorage projects:', localProjects.length, '件');
+                    
+                    // LocalStorageプロジェクトの詳細をログ出力
+                    Object.keys(localProjectSettings).forEach(projectId => {
+                        const project = localProjectSettings[projectId];
+                        console.log(`📁 [LOAD PROJECTS] LocalStorage ProjectSettings: ${projectId} - ${project.name}`);
+                    });
+                    
+                    // projects配列からもプロジェクトを取得
+                    localProjects.forEach(project => {
+                        console.log(`📁 [LOAD PROJECTS] LocalStorage Projects Array: ${project.id} - ${project.name}`);
+                        if (project.id && project.name) {
+                            localProjectSettings[project.id] = {
+                                name: project.name,
+                                description: project.description || '',
+                                createdAt: project.createdAt || new Date().toISOString(),
+                                createdBy: project.createdBy || 'Unknown',
+                                columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                            };
+                        }
+                    });
+                    
+                    // FirebaseとLocalStorageの両方をマージ
+                    if (Object.keys(localProjectSettings).length > 0) {
+                        projectSettings = { ...projectSettings, ...localProjectSettings };
+                        console.log('🔄 [LOAD PROJECTS] LocalStorageとマージ完了:', Object.keys(projectSettings).length, '件');
                     }
                 } else {
                     console.log('📁 [LOAD PROJECTS] LocalStorageモード - 従来の方式');
                     // LocalStorageから読み込み（フォールバック）
                     projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                    const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
                     tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+                    
+                    // projects配列からもプロジェクトを取得
+                    localProjects.forEach(project => {
+                        if (project.id && project.name) {
+                            projectSettings[project.id] = {
+                                name: project.name,
+                                description: project.description || '',
+                                createdAt: project.createdAt || new Date().toISOString(),
+                                createdBy: project.createdBy || 'Unknown',
+                                columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                            };
+                        }
+                    });
+                    
+                    console.log('📁 [LOAD PROJECTS] LocalStorageモード:', Object.keys(projectSettings).length, '件');
                 }
                 
                 console.log('🔍 [LOAD PROJECTS] Project settings found:', Object.keys(projectSettings).length);
@@ -468,7 +510,12 @@
                                 Firebase接続: ${!!window.FirebaseDB ? '✅' : '❌'}<br>
                                 認証状態: ${currentUser?.isLoggedIn ? '✅' : '❌'}<br>
                                 LocalStorage PJ数: ${Object.keys(JSON.parse(localStorage.getItem('projectSettings') || '{}')).length}件<br>
-                                移行状態: ${localStorage.getItem('projectsMigratedToFirebase') || '未実行'}
+                                LocalStorage projects配列: ${JSON.parse(localStorage.getItem('projects') || '[]').length}件<br>
+                                移行状態: ${localStorage.getItem('projectsMigratedToFirebase') || '未実行'}<br><br>
+                                <button onclick="localStorage.removeItem('projectsMigratedToFirebase'); location.reload();" 
+                                        style="background: #ff6b6b; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                                    🔄 移行フラグリセット & 再読込
+                                </button>
                             </div>
                         </details>
                     `;
