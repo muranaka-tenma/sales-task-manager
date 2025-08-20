@@ -125,7 +125,7 @@
         <h1>👥 新規プロジェクトタスク作成</h1>
         
         <div id="success-message" class="success-message">
-            ✅ PJタスクが正常に作成されました！
+            ✅ プロジェクトタスクが正常に作成されました！
         </div>
         
         <form id="pj-form" onsubmit="createPJTask(event)">
@@ -140,7 +140,7 @@
                 <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #2196f3;">
                     <div style="font-size: 0.9rem; color: #1565c0;">
                         💡 <strong>新規プロジェクト作成について</strong><br>
-                        新しいプロジェクトを作成する場合は、先に「<strong>PJ設定</strong>」ページでプロジェクトを作成してください。<br>
+                        新しいプロジェクトを作成する場合は、先に「<strong>プロジェクト設定</strong>」ページでプロジェクトを作成してください。<br>
                         作成後、このページでそのプロジェクトを選択してタスクを追加できます。
                     </div>
                 </div>
@@ -195,7 +195,7 @@
             
             <div class="actions">
                 <button type="button" class="btn btn-secondary" onclick="window.location.href='index-kanban.html'">キャンセル</button>
-                <button type="submit" class="btn btn-primary">PJタスクを作成</button>
+                <button type="submit" class="btn btn-primary">プロジェクトタスクを作成</button>
             </div>
         </form>
     </div>
@@ -337,7 +337,7 @@
             document.getElementById('deadline-time').value = timeString;
         }
         
-        // 既存プロジェクト一覧を読み込み（PJ設定から）
+        // 既存プロジェクト一覧を読み込み（プロジェクト設定から）
         async function loadExistingProjects() {
             console.log('🔍 [LOAD PROJECTS] Loading projects from Firebase and LocalStorage...');
             
@@ -447,7 +447,7 @@
                 console.log('🔍 [LOAD PROJECTS] Project settings found:', Object.keys(projectSettings).length);
                 console.log('🔍 [LOAD PROJECTS] Tasks loaded:', tasks.length);
                 
-                // PJ設定に存在するプロジェクトを使用
+                // プロジェクト設定に存在するプロジェクトを使用
                 const existingProjects = Object.keys(projectSettings).map(projectId => {
                     const project = projectSettings[projectId];
                     
@@ -478,10 +478,10 @@
                 existingProjects.forEach(project => {
                     const option = document.createElement('option');
                     option.value = `${project.id}|${project.name}`;
-                    option.textContent = `[${project.id}] ${project.name} (${project.taskCount}件)`;
+                    option.textContent = `${project.name} (${project.taskCount}件)`;
                     selectElement.appendChild(option);
                     
-                    console.log(`🔍 [LOAD PROJECTS] Added option: [${project.id}] ${project.name}`);
+                    console.log(`🔍 [LOAD PROJECTS] Added option: ${project.name}`);
                 });
                 
                 console.log('✅ [LOAD PROJECTS] プロジェクト一覧の読み込み完了');
@@ -503,7 +503,7 @@
                     warning.style.cssText = 'background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; border-radius: 6px; margin-top: 1rem; color: #856404;';
                     warning.innerHTML = `
                         ⚠️ <strong>プロジェクトが見つかりません</strong><br>
-                        先に「PJ設定」でプロジェクトを作成してください。<br><br>
+                        先に「プロジェクト設定」でプロジェクトを作成してください。<br><br>
                         <details style="margin-top: 0.5rem;">
                             <summary style="cursor: pointer; font-weight: bold;">🔧 診断情報を表示</summary>
                             <div style="margin-top: 0.5rem; font-size: 0.9rem; font-family: monospace;">
@@ -554,11 +554,11 @@
                 existingProjects.forEach(project => {
                     const option = document.createElement('option');
                     option.value = `${project.id}|${project.name}`;
-                    option.textContent = `[${project.id}] ${project.name} (${project.taskCount}件)`;
+                    option.textContent = `${project.name} (${project.taskCount}件)`;
                     selectElement.appendChild(option);
                 });
                 
-                console.log(`📂 既存PJ読み込み完了（フォールバック）: ${existingProjects.length}件`);
+                console.log(`📂 既存プロジェクト読み込み完了（フォールバック）: ${existingProjects.length}件`);
             }
         }
         
@@ -573,7 +573,7 @@
                 const [projectId, projectName] = selectedValue.split('|');
                 document.getElementById('project-id').value = projectId;
                 document.getElementById('project-name').value = projectName;
-                console.log(`📂 既存PJ選択: ${projectId} - ${projectName}`);
+                console.log(`📂 既存プロジェクト選択: ${projectId} - ${projectName}`);
             } else {
                 document.getElementById('project-id').value = '';
                 document.getElementById('project-name').value = '';
@@ -582,9 +582,9 @@
         
         async function createPJTask(event) {
             event.preventDefault();
-            console.log('PJタスク作成開始...');
+            console.log('プロジェクトタスク作成開始...');
             
-            // ★★★ 既存PJ選択の必須チェック ★★★
+            // ★★★ 既存プロジェクト選択の必須チェック ★★★
             const projectId = document.getElementById('project-id').value.trim();
             const projectName = document.getElementById('project-name').value.trim();
             const selectedProject = document.getElementById('existing-project-select').value;
@@ -595,18 +595,18 @@
             console.log('🔍 [PJ VALIDATION] Project name:', projectName);
             
             if (!selectedProject || !projectId || !projectName) {
-                alert('❌ プロジェクトの選択は必須です。\n\n「PJ設定」で事前にプロジェクトを作成してから、こ処でプロジェクトを選択してください。');
+                alert('❌ プロジェクトの選択は必須です。\n\n「プロジェクト設定」で事前にプロジェクトを作成してから、こ処でプロジェクトを選択してください。');
                 return;
             }
             
-            // PJ設定との整合性チェック
+            // プロジェクト設定との整合性チェック
             const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
             if (!projectSettings[projectId]) {
-                alert(`❌ プロジェクトID「${projectId}」がPJ設定に存在しません。\n\n「PJ設定」でプロジェクトが正しく作成されているか確認してください。`);
+                alert(`❌ プロジェクトID「${projectId}」がプロジェクト設定に存在しません。\n\n「プロジェクト設定」でプロジェクトが正しく作成されているか確認してください。`);
                 return;
             }
             
-            // 既存PJタスクとの重複チェック
+            // 既存プロジェクトタスクとの重複チェック
             const existingTasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
             const duplicateTask = existingTasks.find(task => 
                 task.projectId === projectId && 
@@ -652,7 +652,7 @@
                 createdAt: new Date().toISOString(),
                 comments: [],
                 attachments: [],
-                // PJタスク専用フィールド
+                // プロジェクトタスク専用フィールド
                 isProjectTask: true,
                 finalApprovers: selectedApprovers,
                 approvalStatus: selectedApprovers.reduce((acc, approver) => {
@@ -668,22 +668,22 @@
             localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
             console.log('保存後タスク数:', tasks.length);
             
-            // Firebase同期（PJタスク作成）
+            // Firebase同期（プロジェクトタスク作成）
             if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
                 try {
-                    console.log('🔥 [FIREBASE] PJタスクをFirebaseに同期中...', task.title);
+                    console.log('🔥 [FIREBASE] プロジェクトタスクをFirebaseに同期中...', task.title);
                     const result = await window.FirebaseDB.createTask(task);
                     if (result.success) {
-                        console.log('✅ [FIREBASE] PJタスク作成成功:', result.id);
+                        console.log('✅ [FIREBASE] プロジェクトタスク作成成功:', result.id);
                         // Firebase IDでタスクを更新
                         task.firebaseId = result.id;
                         tasks[tasks.length - 1] = task; // 最後に追加したタスクを更新
                         localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
                     } else {
-                        console.error('❌ [FIREBASE] PJタスク作成エラー:', result.error);
+                        console.error('❌ [FIREBASE] プロジェクトタスク作成エラー:', result.error);
                     }
                 } catch (error) {
-                    console.error('❌ [FIREBASE] PJタスク同期エラー:', error);
+                    console.error('❌ [FIREBASE] プロジェクトタスク同期エラー:', error);
                 }
             } else {
                 console.log('💾 [FIREBASE] Firebase未対応またはログアウト状態 - LocalStorageのみ');
