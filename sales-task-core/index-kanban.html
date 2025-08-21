@@ -3781,9 +3781,13 @@
                 return;
             }
             
+            // タスク作成時の処理
             if (!editingTask) {
-                console.error('❌ [COMMENT] No editing task found!');
-                alert('エラー: 編集中のタスクが見つかりません');
+                console.log('📝 [COMMENT] タスク作成時のコメント - 一時保存します');
+                // タスク作成時はコメントを一時保存
+                window.pendingComment = commentText;
+                commentInput.value = ''; // 入力欄をクリア
+                alert('コメントを保存しました。タスク作成後に追加されます。');
                 return;
             }
             
@@ -4305,6 +4309,42 @@
                     console.log(`👤 [PERSONAL TASK CREATE] Created new personal task: ${title}`);
                 }
                 tasks.unshift(newTask);
+                
+                // タスク作成時の一時保存コメントを追加
+                if (window.pendingComment) {
+                    console.log('📝 [COMMENT] 一時保存されたコメントをタスクに追加:', window.pendingComment);
+                    
+                    // 現在のユーザー名を取得
+                    let currentUser = 'ユーザー';
+                    try {
+                        const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                        if (session && session.user && session.user.name) {
+                            currentUser = session.user.name;
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ [COMMENT] セッション取得失敗:', error);
+                    }
+                    
+                    // コメントをタスクに追加
+                    const comment = {
+                        text: window.pendingComment,
+                        author: currentUser,
+                        timestamp: new Date().toISOString(),
+                        id: Date.now()
+                    };
+                    
+                    if (!newTask.comments) {
+                        newTask.comments = [];
+                    }
+                    newTask.comments.push(comment);
+                    
+                    // メンション処理
+                    processMentions(window.pendingComment, currentUser, newTask);
+                    
+                    // 一時保存をクリア
+                    window.pendingComment = null;
+                    console.log('✅ [COMMENT] コメントをタスクに追加完了');
+                }
                 
                 // 共同タスク作成時の通知
                 checkCollaborativeTaskNotifications(newTask, selectedAssignees);
