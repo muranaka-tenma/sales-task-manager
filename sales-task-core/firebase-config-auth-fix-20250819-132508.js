@@ -19,9 +19,6 @@ import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/fireb
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const messaging = getMessaging(app);
-
-// Firestore設定 - リアルタイムリスナー無効化でWebchannel接続エラーを回避
 const db = getFirestore(app);
 
 // FCM初期化
