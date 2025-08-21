@@ -5547,11 +5547,9 @@
             if (targetEmail) {
                 const currentUser = getCurrentUser();
                 
-                // 自分自身への通知はスキップ
-                if (targetEmail === currentUser.email) {
-                    console.log(`🚫 [EMAIL-SKIP] 自分自身への通知はスキップ: ${targetEmail}`);
-                    return;
-                }
+                // テスト段階では自分への通知も含めて全て送信
+                console.log(`📧 [EMAIL-TARGET] 通知対象: ${targetEmail}`);
+                console.log(`📧 [EMAIL-CURRENT] 現在のユーザー: ${currentUser.email}`);
                 
                 const emailSubject = `[タスク管理] ${title}`;
                 const emailBody = `${body}\n\n詳細はタスク管理システムでご確認ください。\nhttps://sales-task-manager-af356.web.app/`;
