@@ -3175,7 +3175,8 @@
             displayComments([]);
             
             // コメント入力を無効化（新規タスクの場合）
-            document.getElementById('comment-input').disabled = true;
+            // コメント入力を常に有効化
+            document.getElementById('comment-input').disabled = false;
             document.getElementById('comments-section').innerHTML = '<div style="text-align: center; color: #5e6c84; padding: 2rem;">新しいタスクです。保存後にコメントを追加できます。</div>';
             
             // PJタスク設定は別ページに移動したため、この処理は不要
@@ -3234,7 +3235,8 @@
             displayComments([]);
             
             // コメント入力を無効化（新規タスクの場合）
-            document.getElementById('comment-input').disabled = true;
+            // コメント入力を常に有効化
+            document.getElementById('comment-input').disabled = false;
             document.getElementById('comments-section').innerHTML = '<div style="text-align: center; color: #5e6c84; padding: 2rem;">新しいタスクです。保存後にコメントを追加できます。</div>';
             
             // カラム情報を保存
