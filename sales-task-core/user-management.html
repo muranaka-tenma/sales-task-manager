@@ -246,9 +246,8 @@
                                 <label class="form-label">初期パスワード *</label>
                                 <input type="password" class="form-input" id="user-password" required placeholder="8文字以上">
                             </div>
-                            <div class="form-group" style="display: flex; gap: 1rem; align-items: end;">
+                            <div class="form-group">
                                 <button type="submit" class="btn btn-primary">ユーザー追加</button>
-                                <button type="button" class="btn btn-secondary" onclick="restoreDeletedUser()" title="完全削除されたユーザーを復旧">🔄 削除済み復旧</button>
                             </div>
                         </div>
                     </form>
@@ -575,44 +574,17 @@
             }
         }
         
-        // 削除済みユーザーのチェック
-        async function checkIfUserWasDeleted(email) {
+        // シンプルなFirebase Authユーザー確認
+        async function checkFirebaseAuthUser(email) {
             try {
-                // LocalStorageの削除履歴を確認
-                const deletedUsers = JSON.parse(localStorage.getItem('deletedUsersHistory') || '[]');
-                console.log('🔍 [CHECK-DELETED] 削除履歴:', deletedUsers);
-                const isDeleted = deletedUsers.some(u => u.email === email);
-                console.log('🔍 [CHECK-DELETED] チェック結果 -', email, ':', isDeleted);
-                return isDeleted;
+                // Firebase Authにユーザーが存在するかチェック
+                // 実際の実装では、Firebase Auth Admin SDKを使用するか、
+                // バックエンドAPIを通じてチェックする
+                console.log('🔍 [CHECK-AUTH] Firebase Authユーザー確認:', email);
+                return true; // 既存のemail-already-in-useエラーで判断
             } catch (error) {
-                console.error('❌ [CHECK-DELETED] 削除履歴チェックエラー:', error);
+                console.error('❌ [CHECK-AUTH] Firebase Authチェックエラー:', error);
                 return false;
-            }
-        }
-        
-        // ユーザー再活性化の試行
-        async function attemptUserReactivation(email, password, displayName) {
-            try {
-                // まずサインインを試みる
-                const signInResult = await window.FirebaseAuth.signIn(email, password);
-                if (signInResult.success) {
-                    console.log('✅ [REACTIVATE] 既存パスワードでサインイン成功');
-                    return { success: true, uid: signInResult.user.uid };
-                }
-                
-                // サインイン失敗時は、削除履歴から元のUIDを取得
-                const deletedUsers = JSON.parse(localStorage.getItem('deletedUsersHistory') || '[]');
-                const deletedUser = deletedUsers.find(u => u.email === email);
-                
-                if (deletedUser && deletedUser.uid) {
-                    // 削除されたユーザーのUIDを使用して管理情報として登録
-                    return { success: true, uid: deletedUser.uid };
-                }
-                
-                return { success: false };
-            } catch (error) {
-                console.error('❌ [REACTIVATE] 再活性化エラー:', error);
-                return { success: false };
             }
         }
         
@@ -650,7 +622,7 @@
                         
                         // 新規ユーザーデータ
                         const newUser = {
-                            id: Date.now(),
+                            id: String(Date.now()), // 文字列型に変換
                             uid: authResult.user.uid,
                             name: name,
                             email: email,
@@ -681,104 +653,34 @@
                         }
                         
                     } else if (authResult.error && authResult.error.includes('email-already-in-use')) {
-                        // メールアドレスが既に使用されている場合
-                        console.log('⚠️ [FIREBASE-V2] メールアドレス既存 - 削除済みチェック開始:', email);
+                        // Firebase Authに既存のユーザーなので、Firestoreにユーザー情報を追加
+                        console.log('✅ [FIREBASE-EXISTING] Firebase Authの既存ユーザーを管理システムに追加:', email);
                         
-                        // Firebase Authの削除済みユーザーの可能性をチェック
-                        console.log('🔍 [DEBUG] 削除履歴チェック中:', email);
-                        const isDeleted = await checkIfUserWasDeleted(email);
-                        console.log('🔍 [DEBUG] 削除済みユーザーかどうか:', isDeleted);
+                        const newUser = {
+                            id: String(Date.now()), // 文字列型に変換してエラーを回避
+                            name: name,
+                            email: email,
+                            role: role,
+                            department: department,
+                            createdAt: new Date().toISOString(),
+                            isFirebaseExisting: true
+                        };
                         
-                        if (isDeleted) {
-                            // 削除済みユーザーの再活性化を試みる
-                            console.log('🔄 [FIREBASE] 削除済みユーザーの再活性化を試行中...');
-                            const reactivateResult = await attemptUserReactivation(email, password, name);
+                        // Firestoreに保存
+                        const saveResult = await window.FirebaseDB.saveUser(newUser);
+                        if (saveResult.success) {
+                            users.push(newUser);
+                            saveUsers();
+                            updateAssigneesList();
+                            showSuccess();
+                            console.log('✅ [FIREBASE-EXISTING] 既存Firebaseユーザーを追加完了:', name, email, role);
+                            alert(`✅ ユーザー「${name}」を追加しました。\n\n※ このメールアドレスは既にFirebase認証に登録済みです。\n既存のFirebaseパスワードでログイン可能です。`);
                             
-                            if (reactivateResult.success) {
-                                const newUser = {
-                                    id: Date.now(),
-                                    uid: reactivateResult.uid,
-                                    name: name,
-                                    email: email,
-                                    role: role,
-                                    department: department,
-                                    createdAt: new Date().toISOString(),
-                                    reactivated: true
-                                };
-                                
-                                // Firestoreに保存
-                                const saveResult = await window.FirebaseDB.saveUser(newUser);
-                                if (saveResult.success) {
-                                    users.push(newUser);
-                                    saveUsers();
-                                    updateAssigneesList();
-                                    showSuccess();
-                                    console.log('✅ [FIREBASE-REACTIVATE] 削除済みユーザーを再活性化:', name, email);
-                                    alert(`✅ ユーザー「${name}」を再活性化しました。\n\n※ 以前削除されたアカウントを再度有効にしました。`);
-                                    
-                                    // ユーザー一覧を再読み込み
-                                    await loadUsers();
-                                } else {
-                                    console.error('❌ [FIREBASE-REACTIVATE] Firestore保存エラー:', saveResult.error);
-                                    alert(`ユーザー保存エラー: ${saveResult.error}`);
-                                }
-                            } else {
-                                // 再活性化失敗時は管理用としてのみ追加
-                                const newUser = {
-                                    id: Date.now(),
-                                    name: name,
-                                    email: email,
-                                    role: role,
-                                    department: department,
-                                    createdAt: new Date().toISOString(),
-                                    isManagementOnly: true // 管理画面のみで使用
-                                };
-                                
-                                // Firestoreに保存
-                                const saveResult = await window.FirebaseDB.saveUser(newUser);
-                                if (saveResult.success) {
-                                    users.push(newUser);
-                                    saveUsers();
-                                    updateAssigneesList();
-                                    showSuccess();
-                                    console.log('✅ [FIREBASE-MGMT-ONLY] 管理用ユーザーとして追加:', name, email);
-                                    alert(`✅ ユーザー「${name}」を管理用として追加しました。\n\n⚠️ このユーザーはFirebase認証の問題により、ログインできません。\n管理画面でのタスク割り当てのみ可能です。`);
-                                    
-                                    // ユーザー一覧を再読み込み
-                                    await loadUsers();
-                                } else {
-                                    console.error('❌ [FIREBASE-MGMT-ONLY] Firestore保存エラー:', saveResult.error);
-                                    alert(`ユーザー保存エラー: ${saveResult.error}`);
-                                }
-                            }
+                            // ユーザー一覧を再読み込み
+                            await loadUsers();
                         } else {
-                            // 既存のFirebaseユーザーを利用してFirestoreに追加
-                            const newUser = {
-                                id: Date.now(),
-                                name: name,
-                                email: email,
-                                role: role,
-                                department: department,
-                                createdAt: new Date().toISOString(),
-                                isFirebaseExisting: true
-                            };
-                            
-                            // Firestoreに保存
-                            const saveResult = await window.FirebaseDB.saveUser(newUser);
-                            if (saveResult.success) {
-                                users.push(newUser);
-                                saveUsers();
-                                updateAssigneesList();
-                                showSuccess();
-                                console.log('✅ [FIREBASE-EXISTING-V2] 既存Firebaseユーザーを追加:', name, email, role);
-                                alert(`✅ ユーザー「${name}」を追加しました。\n\n※ このメールアドレスは既にFirebase認証に登録済みです。\n既存のFirebaseパスワードでログイン可能です。`);
-                                
-                                // ユーザー一覧を再読み込み
-                                await loadUsers();
-                            } else {
-                                console.error('❌ [FIREBASE-EXISTING] Firestore保存エラー:', saveResult.error);
-                                alert(`ユーザー保存エラー: ${saveResult.error}`);
-                            }
+                            console.error('❌ [FIREBASE-EXISTING] Firestore保存エラー:', saveResult.error);
+                            alert(`ユーザー保存エラー: ${saveResult.error}\n\n管理者にお問い合わせください。`);
                         }
                     } else {
                         console.error('❌ [FIREBASE] Firebase Authユーザー作成エラー:', authResult.error);
@@ -793,7 +695,7 @@
                 
                 // LocalStorageフォールバック
                 const newUser = {
-                    id: Date.now(),
+                    id: String(Date.now()), // 文字列型に変換
                     name: name,
                     email: email,
                     role: role,
@@ -1070,16 +972,6 @@
                 const deletedUserName = targetUser.name;
                 
                 try {
-                    // 削除履歴を保存（再追加時の問題解決用）
-                    const deletedUsersHistory = JSON.parse(localStorage.getItem('deletedUsersHistory') || '[]');
-                    deletedUsersHistory.push({
-                        ...targetUser,
-                        deletedAt: new Date().toISOString(),
-                        deletedBy: window.getCurrentUser ? window.getCurrentUser().name : 'unknown'
-                    });
-                    localStorage.setItem('deletedUsersHistory', JSON.stringify(deletedUsersHistory));
-                    console.log('📝 [DELETE-HISTORY] 削除履歴に保存:', targetUser.email);
-                    
                     // 🔥 完全削除ではなく無効化処理に変更
                     console.log('🚨 [DEBUG] window.FirebaseDB存在チェック:', !!window.FirebaseDB);
                     console.log('🚨 [DEBUG] window.FirebaseDB.saveUser存在チェック:', !!(window.FirebaseDB && window.FirebaseDB.saveUser));
@@ -1150,46 +1042,6 @@
             }
         }
 
-        // 削除されたユーザーを復旧する機能
-        function restoreDeletedUser() {
-            const deletedUserData = prompt('削除されたユーザーの復旧\n\nユーザー情報を以下の形式で入力してください：\n名前,メールアドレス,役職,部署\n\n例：福島亜未,fukushima-ami@terracom.co.jp,user,営業部', '');
-            
-            if (deletedUserData && deletedUserData.trim()) {
-                try {
-                    const [name, email, role, department] = deletedUserData.split(',').map(s => s.trim());
-                    
-                    if (!name || !email) {
-                        alert('名前とメールアドレスは必須です。');
-                        return;
-                    }
-                    
-                    const newUserId = Math.max(...users.map(u => u.id || 0)) + 1;
-                    const restoredUser = {
-                        id: newUserId,
-                        name: name,
-                        email: email,
-                        role: role || 'user',
-                        department: department || '-',
-                        createdAt: new Date().toISOString(),
-                        restoredFromDeletion: true,
-                        restoredAt: new Date().toISOString(),
-                        restoredBy: window.getCurrentUser ? window.getCurrentUser().name : 'unknown'
-                    };
-                    
-                    users.push(restoredUser);
-                    saveUsers();
-                    updateAssigneesList();
-                    loadUsers();
-                    
-                    alert(`✅ ユーザー「${name}」を復旧しました。\n\n📋 復旧情報:\n• 新ID: ${newUserId}\n• 復旧日時: ${new Date().toLocaleString('ja-JP')}\n• データは完全復旧されました`);
-                    
-                    console.log('🔄 [RESTORE-DELETED] 削除済みユーザーを復旧:', restoredUser);
-                } catch (error) {
-                    alert('入力形式が正しくありません。カンマ区切りで入力してください。');
-                    console.error('❌ [RESTORE-DELETED] 復旧エラー:', error);
-                }
-            }
-        }
 
         // ユーザー復旧機能
         async function restoreUser(userId) {
@@ -1473,9 +1325,60 @@
             }, 3000);
         }
     </script>
+
+    <!-- 福島亜未さんのユーザー追加用スクリプト -->
+    <script>
+        // 福島亜未さんのユーザー情報を直接Firestoreに追加
+        async function addFukushimaUser() {
+            if (!window.FirebaseDB) {
+                console.error('❌ Firebase未初期化');
+                return;
+            }
+            
+            const fukushimaUser = {
+                id: String(Date.now()),
+                name: '福島亜未',
+                email: 'fukushima-ami@terracom.co.jp',
+                role: 'user',
+                department: '営業部',
+                createdAt: new Date().toISOString(),
+                isFirebaseExisting: true,
+                addedByScript: true
+            };
+            
+            try {
+                const saveResult = await window.FirebaseDB.saveUser(fukushimaUser);
+                if (saveResult.success) {
+                    console.log('✅ [SCRIPT] 福島亜未さんのユーザー追加成功');
+                    alert('✅ 福島亜未さんを管理システムに追加しました。');
+                    loadUsers(); // ユーザー一覧を再読み込み
+                } else {
+                    console.error('❌ [SCRIPT] 福島亜未さんのユーザー追加失敗:', saveResult.error);
+                }
+            } catch (error) {
+                console.error('❌ [SCRIPT] エラー:', error);
+            }
+        }
+        
+        // Firebase初期化後に実行
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (window.FirebaseDB && window.getCurrentUser && window.getCurrentUser().isLoggedIn) {
+                    // ユーザーがログイン済みかつ、福島亜未さんが存在しない場合に追加
+                    const currentUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                    const fukushimaExists = currentUsers.some(u => u.email === 'fukushima-ami@terracom.co.jp');
+                    
+                    if (!fukushimaExists) {
+                        console.log('🔍 [SCRIPT] 福島亜未さんが見つからないため追加処理を実行');
+                        addFukushimaUser();
+                    }
+                }
+            }, 3000); // Firebase初期化を待つ
+        });
+    </script>
     
     <!-- Firebase統合システム - マルチユーザー対応 -->
     <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20250820-user-mgmt"></script>
-    <!-- File Updated: 2025-08-21 12:49 - Fixed Firebase user re-addition bug -->
+    <!-- File Updated: 2025-08-21 13:30 - Simplified user addition, added Fukushima user script -->
 </body>
 </html>
