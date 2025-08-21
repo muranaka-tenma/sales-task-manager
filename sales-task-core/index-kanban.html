@@ -3936,8 +3936,17 @@
         function checkCollaborativeTaskNotifications(task, assignedUsers) {
             // 現在のログインユーザーを取得
             const currentUser = getCurrentUser();
+            console.log('🔍 [ASSIGN-NOTIFY-DEBUG] 現在のユーザー情報:', currentUser);
+            console.log('🔍 [ASSIGN-NOTIFY-DEBUG] Firebase認証状態:', window.currentFirebaseUser ? 'ログイン済み' : '未ログイン');
+            console.log('🔍 [ASSIGN-NOTIFY-DEBUG] セッション情報:', JSON.parse(localStorage.getItem('currentSession') || 'null'));
+            
             if (!currentUser || !currentUser.isLoggedIn) {
-                console.log('⚠️ [ASSIGN-NOTIFY] ユーザー未ログイン - 割り当て通知スキップ');
+                console.warn('⚠️ [ASSIGN-NOTIFY] ユーザー未ログイン - 割り当て通知スキップ');
+                console.warn('⚠️ [ASSIGN-NOTIFY] デバッグ:', {
+                    hasCurrentUser: !!currentUser,
+                    isLoggedIn: currentUser ? currentUser.isLoggedIn : 'N/A',
+                    hasFirebaseUser: !!window.currentFirebaseUser
+                });
                 return;
             }
             
