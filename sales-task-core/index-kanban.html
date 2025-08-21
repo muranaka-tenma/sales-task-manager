@@ -3900,22 +3900,16 @@
                         
                         const shortComment = text.length > 80 ? text.substring(0, 80) + '...' : text;
                         
-                        // ユーザー名からユーザーIDを取得
-                        getUserIdByName(mentionedUser).then(targetUserId => {
-                            showNotification(
-                                '💬 メンション通知',
-                                `${author}さんが「${task.title}」でメンション\n💬 ${shortComment}`,
-                                { 
-                                    tag: `mention-${task.id}-${Date.now()}`,
-                                    taskId: task.id,
-                                    targetUserId: targetUserId, // FCM通知用
-                                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">💬</text></svg>',
-                                    duration: 8000, // 8秒表示
-                                    requireInteraction: true, // ユーザーが閉じるまで表示
-                                    type: 'mention'
+                        // メール通知を送信
+                        showNotification(
+                            '💬 メンション通知',
+                            `${author}さんが「${task.title}」でメンションしました\n\nコメント内容:\n${shortComment}\n\nタスク詳細:\nタイトル: ${task.title}\n期限: ${task.deadline || '未設定'}`,
+                            { 
+                                taskId: task.id,
+                                targetUser: mentionedUser, // ユーザー名からメールアドレスを取得する
+                                type: 'mention'
                                 }
                             );
-                        });
                         
                         console.log(`✅ [MENTION] 通知送信完了: ${author} → ${mentionedUser}`);
                     } else {
@@ -3957,21 +3951,16 @@
                     console.log(`🔍 [ASSIGN-NOTIFY] ${user}: 現在ユーザーでない = ${isNotCurrentUser}`);
                     
                     if (isNotCurrentUser) {
-                        // ユーザー名からユーザーIDを取得
-                        getUserIdByName(user).then(targetUserId => {
-                            showNotification(
-                                '👥 タスク割り当て通知',
-                                `${currentUser.name}さんがあなたを「${task.title}」の担当者に設定しました`,
-                                { 
-                                    tag: `task-assign-${task.id}-${Date.now()}`,
-                                    taskId: task.id,
-                                    targetUserId: targetUserId, // FCM通知用
-                                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">👥</text></svg>',
-                                    duration: 6000, // 6秒表示
-                                    type: 'assignment'
-                                }
-                            );
-                        });
+                        // メール通知を送信
+                        showNotification(
+                            '👥 タスク割り当て通知',
+                            `${currentUser.name}さんがあなたを「${task.title}」の担当者に設定しました\n\nタスク詳細:\nタイトル: ${task.title}\n期限: ${task.deadline || '未設定'}\n作成者: ${currentUser.name}`,
+                            { 
+                                taskId: task.id,
+                                targetUser: user, // ユーザー名からメールアドレスを取得する
+                                type: 'task_assignment'
+                            }
+                        );
                         
                         console.log(`✅ [ASSIGN-NOTIFY] 割り当て通知送信: ${currentUser.name} → ${user}`);
                     } else {
@@ -5471,112 +5460,109 @@
             }
         }
         
-        async function showNotification(title, body, options = {}) {
-            console.log(`🔔 通知試行: ${title} - ${body}`);
-            console.log(`🔔 通知オプション:`, options);
-            console.log(`🔔 通知許可状態: ${notificationPermission}`);
-            console.log(`🔔 Notification対応: ${'Notification' in window}`);
-            
-            // FCM経由で通知を送信（他のユーザーにも通知される）
-            if (window.FCMNotification && options.targetUserId) {
-                try {
-                    const fcmResult = await window.FCMNotification.sendNotification({
-                        title: title,
-                        body: body,
-                        targetUserId: options.targetUserId,
-                        targetUsers: options.targetUsers,
-                        taskId: options.taskId,
-                        priority: options.priority || 'normal',
-                        type: options.type || 'general'
-                    });
-                    
-                    if (fcmResult.success) {
-                        console.log('✅ [FCM] 通知をFirestoreに保存しました');
-                    }
-                } catch (error) {
-                    console.error('❌ [FCM] 通知送信エラー:', error);
+        // メール通知システム（Google Apps Script経由）
+        async function sendEmailNotification(recipientEmail, subject, body, options = {}) {
+            try {
+                console.log(`📧 [EMAIL] メール通知送信開始: ${recipientEmail}`);
+                console.log(`📧 [EMAIL] 件名: ${subject}`);
+                
+                // Google Apps Script API URL
+                const GAS_API_URL = 'https://script.google.com/a/macros/terracom.co.jp/s/AKfycbxmAhB5IHhyihmBgEZwEO1wlSaxhhuOLXbwHtC-7eoM-HGTYicVlydmMsCMl1tsnD86/exec';
+                
+                // テスト段階では自分のアドレスのみに送信
+                const testEmail = 'muranaka-tenma@terracom.co.jp';
+                
+                const emailData = {
+                    auth: 'temp-dev-token-2025', // 認証トークン
+                    to: testEmail, // テスト段階
+                    originalTo: recipientEmail, // 本来の宛先をログ用に記録
+                    subject: `[TEST] ${subject}`,
+                    body: `【テスト送信】\n本来の宛先: ${recipientEmail}\n\n${body}\n\n詳細はタスク管理システムでご確認ください。\nhttps://sales-task-manager-af356.web.app/`,
+                    taskId: options.taskId,
+                    type: options.type || 'notification'
+                };
+                
+                console.log(`📧 [EMAIL-SENDING] GAS APIに送信中...`);
+                
+                // Google Apps Script APIに送信
+                const response = await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(emailData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
                 }
-            }
-            
-            // 既存の通知システム（フォールバック）
-            if ('Notification' in window) {
-                if (Notification.permission === 'granted') {
-                    console.log(`✅ 通知送信: ${title}`);
-                    
-                    // デフォルト設定
-                    const defaultOptions = {
-                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">🎯</text></svg>',
-                        requireInteraction: false,
-                        duration: 5000 // デフォルト5秒
-                    };
-                    
-                    // オプションをマージ
-                    const finalOptions = { ...defaultOptions, ...options };
-                    
-                    // メンション通知の場合は表示時間を延長
-                    if (title.includes('メンション') || finalOptions.requireInteraction) {
-                        finalOptions.requireInteraction = true; // ユーザーが閉じるまで表示
-                        console.log(`📌 [NOTIFICATION] メンション通知: requireInteraction = true`);
-                    }
-                    
-                    const notification = new Notification(title, {
-                        body: body,
-                        icon: finalOptions.icon,
-                        requireInteraction: finalOptions.requireInteraction,
-                        tag: finalOptions.tag,
-                        silent: false
-                    });
-                    
-                    // 自動消去タイマー（requireInteractionがfalseの場合のみ）
-                    if (!finalOptions.requireInteraction && finalOptions.duration > 0) {
-                        setTimeout(() => {
-                            try {
-                                notification.close();
-                                console.log(`🔔 [NOTIFICATION] 自動消去: ${title} (${finalOptions.duration}ms後)`);
-                            } catch (e) {
-                                console.log(`⚠️ [NOTIFICATION] 自動消去エラー: ${e.message}`);
-                            }
-                        }, finalOptions.duration);
-                    } else {
-                        console.log(`📌 [NOTIFICATION] 手動消去モード: ${title}`);
-                    }
-                    
-                    // タスクIDが指定されている場合はクリックでそのタスクを開く
-                    if (finalOptions.taskId) {
-                        notification.onclick = () => {
-                            console.log(`🖱️ [NOTIFICATION] クリック: タスク ${finalOptions.taskId} を開く`);
-                            window.focus(); // ブラウザウィンドウをアクティブに
-                            editTask(finalOptions.taskId); // タスクモーダルを開く
-                            notification.close();
-                        };
-                    }
-                    
-                    // 通知が閉じられた時のログ
-                    notification.onclose = () => {
-                        console.log(`❌ [NOTIFICATION] 通知が閉じられました: ${title}`);
-                    };
-                    
-                    // 通知エラーハンドリング
-                    notification.onerror = (error) => {
-                        console.error(`❌ [NOTIFICATION] 通知エラー: ${title}`, error);
-                    };
-                    
-                    return notification;
-                } else if (Notification.permission === 'default') {
-                    console.log(`⚠️ 通知許可要求中...`);
-                    Notification.requestPermission().then(permission => {
-                        if (permission === 'granted') {
-                            showNotification(title, body, options); // 再実行
-                        }
-                    });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log(`✅ [EMAIL] メール送信成功: ${testEmail} (本来: ${recipientEmail})`);
+                    console.log(`✅ [EMAIL] GAS応答:`, result);
+                    return { success: true, result };
                 } else {
-                    console.log(`❌ 通知が拒否されています`);
-                    alert(`通知: ${title}\n${body}`); // フォールバック
+                    console.error(`❌ [EMAIL] GAS API エラー:`, result.error);
+                    return { success: false, error: result.error };
                 }
-            } else {
-                console.log(`❌ ブラウザが通知に対応していません`);
-                alert(`通知: ${title}\n${body}`); // フォールバック
+                
+            } catch (error) {
+                console.error(`❌ [EMAIL] メール送信エラー:`, error);
+                return { success: false, error: error.message };
             }
+        }
+
+        // ユーザー名からメールアドレスを取得
+        function getEmailByUserName(userName) {
+            try {
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                const user = systemUsers.find(u => u.name === userName);
+                if (user && user.email) {
+                    console.log(`🔍 [USER-EMAIL] ${userName} → ${user.email}`);
+                    return user.email;
+                } else {
+                    console.warn(`⚠️ [USER-EMAIL] ユーザーが見つかりません: ${userName}`);
+                    return null;
+                }
+            } catch (error) {
+                console.error(`❌ [USER-EMAIL] エラー:`, error);
+                return null;
+            }
+        }
+
+        async function showNotification(title, body, options = {}) {
+            // デスクトップ通知を無効化 - メール通知に移行
+            console.log(`🔇 [NOTIFICATION-DISABLED] デスクトップ通知無効化: ${title} - ${body}`);
+            
+            // メール通知に切り替え
+            let targetEmail = options.targetEmail;
+            
+            // targetEmailが指定されていないが、targetUserがある場合はメールアドレスを取得
+            if (!targetEmail && options.targetUser) {
+                targetEmail = getEmailByUserName(options.targetUser);
+            }
+            
+            if (targetEmail) {
+                const currentUser = getCurrentUser();
+                
+                // 自分自身への通知はスキップ
+                if (targetEmail === currentUser.email) {
+                    console.log(`🚫 [EMAIL-SKIP] 自分自身への通知はスキップ: ${targetEmail}`);
+                    return;
+                }
+                
+                const emailSubject = `[タスク管理] ${title}`;
+                const emailBody = `${body}\n\n詳細はタスク管理システムでご確認ください。\nhttps://sales-task-manager-af356.web.app/`;
+                
+                console.log(`📧 [EMAIL-SEND] メール通知送信: ${targetEmail}`);
+                await sendEmailNotification(targetEmail, emailSubject, emailBody, options);
+            } else {
+                console.log(`📧 [EMAIL-SKIP] 対象ユーザーのメールアドレスが不明`);
+            }
+            
+            return;
         }
         
         function checkDeadlines() {
