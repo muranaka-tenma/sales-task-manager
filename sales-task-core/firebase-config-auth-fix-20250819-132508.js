@@ -15,12 +15,18 @@ const firebaseConfig = {
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging.js';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const messaging = getMessaging(app);
 
 // Firestore設定 - リアルタイムリスナー無効化でWebchannel接続エラーを回避
 const db = getFirestore(app);
+
+// FCM初期化
+const messaging = getMessaging(app);
+console.log('📨 [FCM] Firebase Cloud Messaging初期化完了');
 
 // 接続エラー回避: リアルタイム機能を使用しない設定
 // ※onSnapshotを使用せず、getDocs()による手動更新のみ使用
@@ -447,6 +453,146 @@ window.FirebaseAuth = {
 
     get currentUser() {
         return window.currentFirebaseUser;
+    }
+};
+
+// FCM通知機能
+window.FCMNotification = {
+    // FCMトークンを取得
+    async getToken() {
+        try {
+            // サービスワーカーが登録されているか確認
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (!registration) {
+                    console.log('📨 [FCM] サービスワーカー登録中...');
+                    await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+                }
+            }
+            
+            // 通知権限を要求
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                console.log('⚠️ [FCM] 通知権限が拒否されました');
+                return null;
+            }
+            
+            // FCMトークンを取得
+            const currentToken = await getToken(messaging);
+            
+            if (currentToken) {
+                console.log('✅ [FCM] トークン取得成功:', currentToken);
+                
+                // トークンをFirestoreに保存
+                const user = window.getCurrentUser();
+                if (user && user.id) {
+                    await this.saveToken(user.id, currentToken);
+                }
+                
+                return currentToken;
+            } else {
+                console.log('⚠️ [FCM] トークンを取得できませんでした');
+                return null;
+            }
+        } catch (error) {
+            console.error('❌ [FCM] トークン取得エラー:', error);
+            return null;
+        }
+    },
+    
+    // トークンをFirestoreに保存
+    async saveToken(userId, token) {
+        try {
+            await setDoc(doc(db, 'fcmTokens', userId), {
+                token: token,
+                userId: userId,
+                updatedAt: new Date().toISOString()
+            });
+            console.log('✅ [FCM] トークン保存完了');
+        } catch (error) {
+            console.error('❌ [FCM] トークン保存エラー:', error);
+        }
+    },
+    
+    // 通知を送信（Firestoreに保存）
+    async sendNotification(notification) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user) {
+                return { success: false, error: '認証が必要です' };
+            }
+            
+            // 通知データをFirestoreに保存
+            const notificationData = {
+                ...notification,
+                senderId: user.id,
+                senderName: user.name,
+                createdAt: new Date().toISOString(),
+                read: false
+            };
+            
+            await addDoc(collection(db, 'notifications'), notificationData);
+            console.log('✅ [FCM] 通知送信完了');
+            
+            return { success: true };
+        } catch (error) {
+            console.error('❌ [FCM] 通知送信エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+    
+    // フォアグラウンドでメッセージを受信
+    initMessageListener() {
+        onMessage(messaging, (payload) => {
+            console.log('📨 [FCM] メッセージ受信:', payload);
+            
+            // 通知の表示
+            if (payload.notification) {
+                const notificationTitle = payload.notification.title || 'タスク管理システム';
+                const notificationOptions = {
+                    body: payload.notification.body || '新しい通知があります',
+                    icon: '/icon-192x192.png',
+                    badge: '/badge-72x72.png',
+                    data: payload.data
+                };
+                
+                // 既存の通知システムにもフォールバック
+                if (window.showNotification) {
+                    window.showNotification(notificationTitle, notificationOptions.body, 'info');
+                }
+                
+                // ブラウザ通知も表示
+                if (Notification.permission === 'granted') {
+                    new Notification(notificationTitle, notificationOptions);
+                }
+            }
+        });
+        
+        console.log('✅ [FCM] メッセージリスナー設定完了');
+    },
+    
+    // 通知履歴を取得
+    async getNotifications(userId) {
+        try {
+            const notificationsRef = collection(db, 'notifications');
+            const q = query(notificationsRef, orderBy('createdAt', 'desc'));
+            const snapshot = await getDocs(q);
+            
+            const notifications = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                // 自分宛の通知のみ取得
+                if (data.targetUserId === userId || data.targetUsers?.includes(userId)) {
+                    notifications.push({ id: doc.id, ...data });
+                }
+            });
+            
+            console.log('✅ [FCM] 通知履歴取得完了:', notifications.length);
+            return { success: true, notifications: notifications };
+        } catch (error) {
+            console.error('❌ [FCM] 通知履歴取得エラー:', error);
+            return { success: false, error: error.message, notifications: [] };
+        }
     }
 };
 

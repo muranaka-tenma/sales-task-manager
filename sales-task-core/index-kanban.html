@@ -3855,12 +3855,20 @@
         
         function checkMentionNotifications(text, author, task) {
             console.log(`🔍 [MENTION] チェック開始: "${text}" by ${author}`);
-            console.log(`🔍 [MENTION] 現在の担当者リスト:`, assignees);
+            
+            // 現在のログインユーザーを取得
+            const currentUser = getCurrentUser();
+            if (!currentUser || !currentUser.isLoggedIn) {
+                console.log('⚠️ [MENTION] ユーザー未ログイン - メンション通知スキップ');
+                return;
+            }
+            
+            console.log(`🔍 [MENTION] 現在のログインユーザー: ${currentUser.name} (${currentUser.email})`);
+            console.log(`🔍 [MENTION] コメント作成者: ${author}`);
             
             // @メンションを検出（日本語文字対応）
             const mentionPattern = /@([^\s@]+)/g;
             const mentions = text.match(mentionPattern);
-            console.log(`🔍 [MENTION] 使用した正規表現: ${mentionPattern}`);
             
             console.log(`🔍 [MENTION] 検出されたメンション:`, mentions);
             
@@ -3868,34 +3876,56 @@
                 mentions.forEach(mention => {
                     const mentionedUser = mention.substring(1); // @を除去
                     console.log(`🔍 [MENTION] 処理中: ${mention} → ユーザー名: ${mentionedUser}`);
-                    console.log(`🔍 [MENTION] 担当者リストに存在: ${assignees.includes(mentionedUser)}`);
                     
-                    // メンションされたユーザーが担当者リストに存在する場合（テスト用に自己メンションも許可）
-                    if (assignees.includes(mentionedUser)) {
-                        console.log(`✅ [MENTION] 通知送信準備: ${mentionedUser}`);
+                    // 現在のログインユーザーがメンションされているかチェック
+                    const isCurrentUserMentioned = (
+                        mentionedUser === currentUser.name ||
+                        mentionedUser === currentUser.email ||
+                        mentionedUser === currentUser.id
+                    );
+                    
+                    // 自分自身が作成したコメントで自分をメンションした場合はスキップ
+                    const isSelfMention = (
+                        author === currentUser.name || 
+                        author === currentUser.email || 
+                        author === currentUser.id
+                    ) && isCurrentUserMentioned;
+                    
+                    console.log(`🔍 [MENTION] 現在ユーザーがメンション対象: ${isCurrentUserMentioned}`);
+                    console.log(`🔍 [MENTION] 自己メンション: ${isSelfMention}`);
+                    
+                    // 担当者リストに存在し、現在のユーザーがメンションされ、自己メンションでない場合のみ通知
+                    if (assignees.includes(mentionedUser) && isCurrentUserMentioned && !isSelfMention) {
+                        console.log(`✅ [MENTION] 通知送信準備: ${mentionedUser} ← ${author}`);
                         
-                        // 自分自身へのメンションかどうかで通知内容を変更
-                        const notificationTitle = mentionedUser === author ? '💬 セルフメンション（テスト）' : '💬 メンション通知';
-                        const shortComment = text.length > 50 ? text.substring(0, 50) + '...' : text;
-                        const notificationBody = mentionedUser === author 
-                            ? `「${task.title}」でセルフメンション\n💬 ${shortComment}`
-                            : `${author}さんが「${task.title}」でメンション\n💬 ${shortComment}`;
+                        const shortComment = text.length > 80 ? text.substring(0, 80) + '...' : text;
                         
-                        console.log(`🔔 [MENTION] 通知実行: ${notificationTitle} - ${notificationBody}`);
+                        // ユーザー名からユーザーIDを取得
+                        getUserIdByName(mentionedUser).then(targetUserId => {
+                            showNotification(
+                                '💬 メンション通知',
+                                `${author}さんが「${task.title}」でメンション\n💬 ${shortComment}`,
+                                { 
+                                    tag: `mention-${task.id}-${Date.now()}`,
+                                    taskId: task.id,
+                                    targetUserId: targetUserId, // FCM通知用
+                                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">💬</text></svg>',
+                                    duration: 8000, // 8秒表示
+                                    requireInteraction: true, // ユーザーが閉じるまで表示
+                                    type: 'mention'
+                                }
+                            );
+                        });
                         
-                        showNotification(
-                            notificationTitle,
-                            notificationBody,
-                            { 
-                                tag: `mention-${Date.now()}`,
-                                taskId: task.id,
-                                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">💬</text></svg>'
-                            }
-                        );
-                        
-                        console.log(`✅ [MENTION] 通知送信完了: ${mentionedUser}さん`);
+                        console.log(`✅ [MENTION] 通知送信完了: ${author} → ${mentionedUser}`);
                     } else {
-                        console.log(`❌ [MENTION] 担当者リストに存在しないためスキップ: ${mentionedUser}`);
+                        if (!assignees.includes(mentionedUser)) {
+                            console.log(`❌ [MENTION] 担当者リストに存在しないためスキップ: ${mentionedUser}`);
+                        } else if (!isCurrentUserMentioned) {
+                            console.log(`❌ [MENTION] 現在のユーザーではないためスキップ: ${mentionedUser}`);
+                        } else if (isSelfMention) {
+                            console.log(`❌ [MENTION] 自己メンションのためスキップ: ${mentionedUser}`);
+                        }
                     }
                 });
             } else {
@@ -3904,25 +3934,48 @@
         }
         
         function checkCollaborativeTaskNotifications(task, assignedUsers) {
-            // 現在のユーザー（デモ用: 担当者フィルタの値を使用）
-            const currentUser = document.getElementById('assignee-filter')?.value || '作成者';
+            // 現在のログインユーザーを取得
+            const currentUser = getCurrentUser();
+            if (!currentUser || !currentUser.isLoggedIn) {
+                console.log('⚠️ [ASSIGN-NOTIFY] ユーザー未ログイン - 割り当て通知スキップ');
+                return;
+            }
+            
+            console.log(`🔍 [ASSIGN-NOTIFY] 現在のユーザー: ${currentUser.name}`);
+            console.log(`🔍 [ASSIGN-NOTIFY] 割り当て対象ユーザー:`, assignedUsers);
             
             // 複数の担当者が割り当てられた場合、各担当者に通知
             if (assignedUsers && assignedUsers.length > 0) {
                 assignedUsers.forEach(user => {
-                    // 自分以外の担当者に通知（実際の実装では、ログインユーザーと比較）
-                    if (user !== currentUser) {
-                        showNotification(
-                            '👥 共同タスク割り当て',
-                            `${currentUser}さんがあなたを「${task.title}」の担当者に設定しました`,
-                            { 
-                                tag: `collab-${task.id}-${user}`,
-                                taskId: task.id,
-                                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">👥</text></svg>'
-                            }
-                        );
+                    // 自分以外の担当者に通知（実際のログインユーザーと比較）
+                    const isNotCurrentUser = (
+                        user !== currentUser.name &&
+                        user !== currentUser.email &&
+                        user !== currentUser.id
+                    );
+                    
+                    console.log(`🔍 [ASSIGN-NOTIFY] ${user}: 現在ユーザーでない = ${isNotCurrentUser}`);
+                    
+                    if (isNotCurrentUser) {
+                        // ユーザー名からユーザーIDを取得
+                        getUserIdByName(user).then(targetUserId => {
+                            showNotification(
+                                '👥 タスク割り当て通知',
+                                `${currentUser.name}さんがあなたを「${task.title}」の担当者に設定しました`,
+                                { 
+                                    tag: `task-assign-${task.id}-${Date.now()}`,
+                                    taskId: task.id,
+                                    targetUserId: targetUserId, // FCM通知用
+                                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">👥</text></svg>',
+                                    duration: 6000, // 6秒表示
+                                    type: 'assignment'
+                                }
+                            );
+                        });
                         
-                        console.log(`共同タスク通知: ${user}さんに通知を送信しました`);
+                        console.log(`✅ [ASSIGN-NOTIFY] 割り当て通知送信: ${currentUser.name} → ${user}`);
+                    } else {
+                        console.log(`❌ [ASSIGN-NOTIFY] 自分への割り当てのためスキップ: ${user}`);
                     }
                 });
             }
@@ -5309,8 +5362,46 @@
             }
         }
         
+        // ユーザー名からユーザーIDを取得する関数
+        async function getUserIdByName(userName) {
+            try {
+                // Firebaseからユーザー情報を取得
+                if (window.FirebaseDB && window.FirebaseDB.getUsers) {
+                    const result = await window.FirebaseDB.getUsers();
+                    if (result.success) {
+                        const user = result.users.find(u => 
+                            u.name === userName || 
+                            u.email === userName || 
+                            u.email?.split('@')[0] === userName
+                        );
+                        if (user) {
+                            return user.id || user.uid;
+                        }
+                    }
+                }
+                
+                // ユーザーマッピングからIDを生成（フォールバック）
+                const emailMap = {
+                    'muranaka-tenma': 'muranaka-tenma@terracom.co.jp',
+                    'kato-jun': 'kato-jun@terracom.co.jp',
+                    'asahi-keiichi': 'asahi-keiichi@terracom.co.jp',
+                    'hanzawa-yuka': 'hanzawa-yuka@terracom.co.jp',
+                    'tamura-wataru': 'tamura-wataru@terracom.co.jp',
+                    'hashimoto-yumi': 'hashimoto-yumi@terracom.co.jp',
+                    'fukushima-ami': 'fukushima-ami@terracom.co.jp'
+                };
+                
+                const email = emailMap[userName] || userName;
+                return email.replace('@', '-').replace('.', '-'); // シンプルなID生成
+            } catch (error) {
+                console.error('❌ [USER-ID] ユーザーID取得エラー:', error);
+                return null;
+            }
+        }
+        
         // 通知機能
         let notificationPermission = false;
+        let fcmToken = null;
         
         function requestNotificationPermission() {
             if ('Notification' in window) {
@@ -5326,6 +5417,51 @@
             }
         }
         
+        // FCM初期化
+        async function initializeFCM() {
+            try {
+                console.log('📨 [FCM] 初期化開始...');
+                
+                // FCMが利用可能になるまで待つ
+                let waitTime = 0;
+                while (waitTime < 3000) {
+                    if (window.FCMNotification) {
+                        console.log('✅ [FCM] FCMNotification準備完了');
+                        break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    waitTime += 100;
+                }
+                
+                if (!window.FCMNotification) {
+                    console.warn('⚠️ [FCM] FCMNotificationが利用できません');
+                    return;
+                }
+                
+                // FCMトークンを取得
+                fcmToken = await window.FCMNotification.getToken();
+                if (fcmToken) {
+                    console.log('✅ [FCM] トークン取得成功');
+                    
+                    // メッセージリスナーを初期化
+                    window.FCMNotification.initMessageListener();
+                    
+                    // 通知履歴を取得
+                    const user = getCurrentUser();
+                    if (user && user.id) {
+                        const result = await window.FCMNotification.getNotifications(user.id);
+                        if (result.success) {
+                            console.log('📨 [FCM] 通知履歴取得:', result.notifications.length);
+                        }
+                    }
+                } else {
+                    console.log('⚠️ [FCM] トークンを取得できませんでした');
+                }
+            } catch (error) {
+                console.error('❌ [FCM] 初期化エラー:', error);
+            }
+        }
+        
         function testNotification() {
             if (notificationPermission) {
                 showNotification('🔔 テスト通知', 'これはテスト通知です。通知機能は正常に動作しています！');
@@ -5335,34 +5471,95 @@
             }
         }
         
-        function showNotification(title, body, options = {}) {
+        async function showNotification(title, body, options = {}) {
             console.log(`🔔 通知試行: ${title} - ${body}`);
+            console.log(`🔔 通知オプション:`, options);
             console.log(`🔔 通知許可状態: ${notificationPermission}`);
             console.log(`🔔 Notification対応: ${'Notification' in window}`);
             
+            // FCM経由で通知を送信（他のユーザーにも通知される）
+            if (window.FCMNotification && options.targetUserId) {
+                try {
+                    const fcmResult = await window.FCMNotification.sendNotification({
+                        title: title,
+                        body: body,
+                        targetUserId: options.targetUserId,
+                        targetUsers: options.targetUsers,
+                        taskId: options.taskId,
+                        priority: options.priority || 'normal',
+                        type: options.type || 'general'
+                    });
+                    
+                    if (fcmResult.success) {
+                        console.log('✅ [FCM] 通知をFirestoreに保存しました');
+                    }
+                } catch (error) {
+                    console.error('❌ [FCM] 通知送信エラー:', error);
+                }
+            }
+            
+            // 既存の通知システム（フォールバック）
             if ('Notification' in window) {
                 if (Notification.permission === 'granted') {
                     console.log(`✅ 通知送信: ${title}`);
+                    
+                    // デフォルト設定
+                    const defaultOptions = {
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">🎯</text></svg>',
+                        requireInteraction: false,
+                        duration: 5000 // デフォルト5秒
+                    };
+                    
+                    // オプションをマージ
+                    const finalOptions = { ...defaultOptions, ...options };
+                    
+                    // メンション通知の場合は表示時間を延長
+                    if (title.includes('メンション') || finalOptions.requireInteraction) {
+                        finalOptions.requireInteraction = true; // ユーザーが閉じるまで表示
+                        console.log(`📌 [NOTIFICATION] メンション通知: requireInteraction = true`);
+                    }
+                    
                     const notification = new Notification(title, {
                         body: body,
-                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">🎯</text></svg>',
-                        requireInteraction: false, // 3秒で自動消去するため変更
-                        ...options
+                        icon: finalOptions.icon,
+                        requireInteraction: finalOptions.requireInteraction,
+                        tag: finalOptions.tag,
+                        silent: false
                     });
                     
-                    // 3秒後に自動で通知を閉じる
-                    setTimeout(() => {
-                        notification.close();
-                    }, 3000);
+                    // 自動消去タイマー（requireInteractionがfalseの場合のみ）
+                    if (!finalOptions.requireInteraction && finalOptions.duration > 0) {
+                        setTimeout(() => {
+                            try {
+                                notification.close();
+                                console.log(`🔔 [NOTIFICATION] 自動消去: ${title} (${finalOptions.duration}ms後)`);
+                            } catch (e) {
+                                console.log(`⚠️ [NOTIFICATION] 自動消去エラー: ${e.message}`);
+                            }
+                        }, finalOptions.duration);
+                    } else {
+                        console.log(`📌 [NOTIFICATION] 手動消去モード: ${title}`);
+                    }
                     
                     // タスクIDが指定されている場合はクリックでそのタスクを開く
-                    if (options.taskId) {
+                    if (finalOptions.taskId) {
                         notification.onclick = () => {
+                            console.log(`🖱️ [NOTIFICATION] クリック: タスク ${finalOptions.taskId} を開く`);
                             window.focus(); // ブラウザウィンドウをアクティブに
-                            editTask(options.taskId); // タスクモーダルを開く
+                            editTask(finalOptions.taskId); // タスクモーダルを開く
                             notification.close();
                         };
                     }
+                    
+                    // 通知が閉じられた時のログ
+                    notification.onclose = () => {
+                        console.log(`❌ [NOTIFICATION] 通知が閉じられました: ${title}`);
+                    };
+                    
+                    // 通知エラーハンドリング
+                    notification.onerror = (error) => {
+                        console.error(`❌ [NOTIFICATION] 通知エラー: ${title}`, error);
+                    };
                     
                     return notification;
                 } else if (Notification.permission === 'default') {
@@ -5733,6 +5930,9 @@
             
             // 通知許可を要求
             requestNotificationPermission();
+            
+            // FCM初期化
+            initializeFCM();
             
             // メンションシステムを初期化
             setupMentionSystem();
