@@ -14,6 +14,10 @@
     <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化（セッション保護） -->
     <!-- キャッシュ問題解決のため完全無効化 -->
     <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
+    <!-- Slack通知設定 -->
+    <script src="slack-notification-config.js"></script>
+    <!-- Slack通知プロキシサービス -->
+    <script src="slack-proxy.js"></script>
     <style>
         * {
             margin: 0;
@@ -2133,13 +2137,14 @@
             try {
                 const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
                 if (session && session.user) {
-                    console.log('🔐 [GET-USER] セッションから取得:', {
-                        name: session.user.name,
-                        role: session.user.role,
-                        email: session.user.email
-                    });
+                    // Firebase認証のムラナカ・テンマを邨中天真にマッピング
+                    let displayName = session.user.name;
+                    if (session.user.email === 'muranaka-tenma@terracom.co.jp') {
+                        displayName = '邨中天真';  // 日本名に統一
+                    }
+                    
                     return {
-                        name: session.user.name,
+                        name: displayName,
                         email: session.user.email,
                         role: session.user.role,
                         isLoggedIn: true
@@ -2147,18 +2152,15 @@
                 }
             } catch (error) {
                 console.error('❌ [GET-USER] セッション取得エラー:', error);
-                // セッションデータが破損している場合はクリア
                 localStorage.removeItem('currentSession');
             }
             
-            // フォールバック: currentUserも確認
+            // フォールバック処理
             try {
                 const user = localStorage.getItem('currentUser');
                 if (user) {
-                    console.log('🔧 [GET-USER] フォールバック使用');
-                    // 邨中天真の場合は開発者権限、それ以外は一般ユーザー
                     const userName = typeof user === 'string' ? user : JSON.parse(user).name;
-                    if (userName && userName.includes('邨中天真')) {
+                    if (userName && (userName.includes('邨中天真') || userName.includes('muranaka'))) {
                         return {
                             name: '邨中天真',
                             email: 'muranaka-tenma@terracom.co.jp',
@@ -2171,7 +2173,6 @@
                 console.error('ユーザーデータエラー:', error);
             }
             
-            console.log('⚠️ [GET-USER] ログインユーザーなし');
             return {
                 name: null,
                 email: null,
@@ -4700,9 +4701,7 @@
             let filteredTasks = tasks;
             let currentColumns = columns; // デフォルトカラム
             
-            console.log('🔍 [RENDER] Before filtering - total tasks:', tasks.length);
-            console.log('🔍 [RENDER] selectedProjectFilters:', selectedProjectFilters);
-            console.log('🔍 [RENDER] selectedAssigneeFilters:', selectedAssigneeFilters);
+            // フィルタリングデバッグログは削除済み
             
             if (selectedProjectFilters.length > 0) {
                 // PJフィルター: 特定プロジェクトのタスクのみ表示
@@ -4724,10 +4723,10 @@
                 console.log(`👤 [RENDER] Assignee filter: showing ${filteredTasks.length} tasks for ${selectedAssigneeFilters[0]}`);
             } else {
                 // 全員: 全タスク表示
-                console.log(`👥 [RENDER] Showing all ${filteredTasks.length} tasks`);
+                // 全タスク表示
             }
             
-            console.log('🔍 [RENDER] After filtering - filteredTasks count:', filteredTasks.length);
+            // フィルタ適用後: ${filteredTasks.length}件
             
             // 期限切れタスクを抽出（フィルタリング後のタスクから）
             let overdueTasks = filteredTasks.filter(t => 
@@ -5511,104 +5510,68 @@
             }
         }
         
-        // メール通知システム（Google Apps Script経由）
-        async function sendEmailNotification(recipientEmail, subject, body, options = {}) {
+        // Slack通知システム（CORS対応版）
+        async function sendSlackNotification(recipientEmail, subject, body, options = {}) {
             try {
-                console.log(`📧 [EMAIL] メール通知送信開始: ${recipientEmail}`);
-                console.log(`📧 [EMAIL] 件名: ${subject}`);
+                console.log(`🔔 [SLACK] 通知送信開始: ${subject}`);
                 
-                // Google Apps Script API URL (テストデプロイ版)
-                const GAS_API_URL = 'https://script.google.com/a/macros/terracom.co.jp/s/AKfycbx_ywMA6z3LKNlGL4Gx24jSX1BTCfZ9wxe4OX8Ixa4/dev';
-                
-                // テスト段階では自分のアドレスのみに送信
-                const testEmail = 'muranaka-tenma@terracom.co.jp';
-                
-                const emailData = {
-                    auth: 'temp-dev-token-2025', // 認証トークン
-                    to: testEmail, // テスト段階
-                    originalTo: recipientEmail, // 本来の宛先をログ用に記録
-                    subject: `[TEST] ${subject}`,
-                    body: `【テスト送信】\n本来の宛先: ${recipientEmail}\n\n${body}\n\n詳細はタスク管理システムでご確認ください。\nhttps://sales-task-manager-af356.web.app/`,
-                    taskId: options.taskId,
-                    type: options.type || 'notification'
-                };
-                
-                console.log(`📧 [EMAIL-SENDING] GAS APIに送信中...`);
-                
-                // Google Apps Script APIに送信
-                const response = await fetch(GAS_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(emailData)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
-                }
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    console.log(`✅ [EMAIL] メール送信成功: ${testEmail} (本来: ${recipientEmail})`);
-                    console.log(`✅ [EMAIL] GAS応答:`, result);
-                    return { success: true, result };
+                // SlackNotificationServiceを使用してCORS制限を回避
+                if (window.SlackNotificationService) {
+                    const result = await window.SlackNotificationService.sendNotification(subject, body, options);
+                    
+                    if (result) {
+                        console.log(`✅ [SLACK] 通知送信成功: ${subject}`);
+                    } else {
+                        console.error(`❌ [SLACK] 通知送信失敗: ${subject}`);
+                        // フォールバック: ブラウザ通知で代替
+                        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                            new Notification(`Slack送信失敗: ${subject}`, {
+                                body: `Slack通知が送信できませんでした。\n${body}`,
+                                icon: '/icon-192x192.png'
+                            });
+                        }
+                    }
                 } else {
-                    console.error(`❌ [EMAIL] GAS API エラー:`, result.error);
-                    return { success: false, error: result.error };
+                    console.error('❌ [SLACK] SlackNotificationServiceが利用できません');
                 }
                 
             } catch (error) {
-                console.error(`❌ [EMAIL] メール送信エラー:`, error);
-                return { success: false, error: error.message };
+                console.error(`❌ [SLACK] 通知送信エラー:`, error);
             }
         }
 
-        // ユーザー名からメールアドレスを取得
+        // メール通知システム（削除済み - Slackに統一）
+        function sendEmailNotification() {
+            // メール機能は完全削除済み - Slack通知を使用
+            return Promise.resolve({ success: true });
+        }
+
+        // ユーザー名からメールアドレスを取得（Slack通知用）
         function getEmailByUserName(userName) {
             try {
-                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                 const user = systemUsers.find(u => u.name === userName);
-                if (user && user.email) {
-                    console.log(`🔍 [USER-EMAIL] ${userName} → ${user.email}`);
-                    return user.email;
-                } else {
-                    console.warn(`⚠️ [USER-EMAIL] ユーザーが見つかりません: ${userName}`);
-                    return null;
-                }
+                return user ? user.email : null;
             } catch (error) {
-                console.error(`❌ [USER-EMAIL] エラー:`, error);
                 return null;
             }
         }
 
+        // テスト関数は削除済み（Slack通知テストページを使用）
+
         async function showNotification(title, body, options = {}) {
-            // デスクトップ通知を無効化 - メール通知に移行
-            console.log(`🔇 [NOTIFICATION-DISABLED] デスクトップ通知無効化: ${title} - ${body}`);
+            // デスクトップ通知は無効化（Slackのみ使用）
+            // try {
+            //     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            //         new Notification(title, { body, icon: '/icon-192x192.png' });
+            //     }
+            // } catch (error) {}
+            console.log(`🔔 [SLACK-NOTIFICATION] ${title}: ${body}`);
             
-            // メール通知に切り替え
-            let targetEmail = options.targetEmail;
-            
-            // targetEmailが指定されていないが、targetUserがある場合はメールアドレスを取得
-            if (!targetEmail && options.targetUser) {
-                targetEmail = getEmailByUserName(options.targetUser);
-            }
-            
-            if (targetEmail) {
-                const currentUser = getCurrentUser();
-                
-                // テスト段階では自分への通知も含めて全て送信
-                console.log(`📧 [EMAIL-TARGET] 通知対象: ${targetEmail}`);
-                console.log(`📧 [EMAIL-CURRENT] 現在のユーザー: ${currentUser.email}`);
-                
-                const emailSubject = `[タスク管理] ${title}`;
-                const emailBody = `${body}\n\n詳細はタスク管理システムでご確認ください。\nhttps://sales-task-manager-af356.web.app/`;
-                
-                console.log(`📧 [EMAIL-SEND] メール通知送信: ${targetEmail}`);
-                await sendEmailNotification(targetEmail, emailSubject, emailBody, options);
-            } else {
-                console.log(`📧 [EMAIL-SKIP] 対象ユーザーのメールアドレスが不明`);
+            // 【Slack通知】対象ユーザーがいる場合は自動的にSlack通知を送信
+            if (options.targetUser || options.targetEmail) {
+                console.log(`🔔 [SLACK-AUTO] Slack通知自動実行: ${title}`);
+                const targetEmail = options.targetEmail || getEmailByUserName(options.targetUser);
+                await sendSlackNotification(targetEmail, title, body, options);
             }
             
             return;
@@ -5650,7 +5613,12 @@
                     showNotification(
                         '🚨 期限切れタスク',
                         `「${task.title}」の期限が過ぎています！`,
-                        { tag: `overdue-${task.id}`, taskId: task.id }
+                        { 
+                            tag: `overdue-${task.id}`, 
+                            taskId: task.id,
+                            targetUser: currentUser.name,
+                            type: 'deadline_overdue'
+                        }
                     );
                     task.overdueNotified = true;
                 }
@@ -5660,7 +5628,12 @@
                     showNotification(
                         '🚨 緊急期限',
                         `「${task.title}」の期限まで5分です！`,
-                        { tag: `fivemin-${task.id}`, taskId: task.id }
+                        { 
+                            tag: `fivemin-${task.id}`, 
+                            taskId: task.id,
+                            targetUser: currentUser.name,
+                            type: 'deadline_5min'
+                        }
                     );
                     task.fiveMinNotified = true;
                 }
@@ -5670,7 +5643,12 @@
                     showNotification(
                         '⚠️ 期限間近',
                         `「${task.title}」の期限まで3時間です`,
-                        { tag: `threehour-${task.id}`, taskId: task.id }
+                        { 
+                            tag: `threehour-${task.id}`, 
+                            taskId: task.id,
+                            targetUser: currentUser.name,
+                            type: 'deadline_3hour'
+                        }
                     );
                     task.threeHourNotified = true;
                 }
@@ -5680,7 +5658,12 @@
                     showNotification(
                         '📅 期限予告',
                         `「${task.title}」の期限まで1日です`,
-                        { tag: `oneday-${task.id}`, taskId: task.id }
+                        { 
+                            tag: `oneday-${task.id}`, 
+                            taskId: task.id,
+                            targetUser: currentUser.name,
+                            type: 'deadline_1day'
+                        }
                     );
                     task.oneDayNotified = true;
                 }
@@ -12303,12 +12286,21 @@
             return true; // 証憑なしで強制移動
         }
         
-        // PJタスク移動時の通知機能
+        // PJタスク移動時の通知機能（Slack対応強化版）
         function sendPJMoveNotification(task, newColumnId) {
             try {
                 const currentUser = getCurrentUser();
                 const column = columns.find(c => c.id === newColumnId);
                 const columnTitle = column ? column.title : newColumnId;
+                
+                console.log(`🔔 [SLACK-MOVE] タスク移動通知開始: ${task.title} → ${columnTitle}`);
+                console.log(`🔔 [SLACK-MOVE] タスク情報:`, {
+                    id: task.id,
+                    title: task.title,
+                    assignees: task.assignees,
+                    assignee: task.assignee,
+                    approvers: task.approvers
+                });
                 
                 // 通知対象者を集める（承認者 + 担当者）
                 const notifyUsers = new Set();
@@ -12330,37 +12322,54 @@
                 
                 const notifyUsersList = Array.from(notifyUsers);
                 
+                console.log(`🔔 [SLACK-MOVE] 通知対象ユーザー:`, notifyUsersList);
+                console.log(`🔔 [SLACK-MOVE] 現在のユーザー: ${currentUser.name} (除外済み)`);
+                
+                // 通知メッセージ作成
+                const notificationTitle = `📦 タスク移動通知`;
+                const notificationBody = 
+                    `タスク「${task.title}」が${columnTitle}に移動されました\n\n` +
+                    `移動者: ${currentUser.name}\n` +
+                    `移動先: ${columnTitle}`;
+                
+                // 通知対象者がいない場合でも、テスト用にSlack通知を送信
                 if (notifyUsersList.length === 0) {
-                    console.log(`📧 [PJ NOTIFY] No users to notify for task ${task.id}`);
+                    console.log(`🔔 [SLACK-MOVE] 通知対象者なし - テスト用Slack通知を送信`);
+                    
+                    // テスト用の自分への通知
+                    showNotification(
+                        notificationTitle,
+                        `${notificationBody}\n\n※ テスト用通知（対象者なし）`,
+                        {
+                            tag: `move-test-${task.id}-${Date.now()}`,
+                            taskId: task.id,
+                            targetUser: currentUser.name,  // 自分に送信
+                            type: 'task_move_test'
+                        }
+                    );
                     return;
                 }
                 
-                // 通知メッセージ作成
-                const notificationTitle = `🏗️ PJタスク移動通知`;
-                const notificationBody = 
-                    `${task.projectId}: ${task.title}\n` +
-                    `→ ${columnTitle} に移動\n` +
-                    `移動者: ${currentUser.name}`;
-                
                 // 各対象者に通知を送信
                 notifyUsersList.forEach(user => {
-                    console.log(`📧 [PJ NOTIFY] Sending notification to ${user}`);
+                    console.log(`🔔 [SLACK-MOVE] ${user}にSlack通知送信中...`);
                     
                     showNotification(
                         notificationTitle,
                         `${user}さんへ\n${notificationBody}`,
                         {
-                            tag: `pj-move-${task.id}-${Date.now()}`,
+                            tag: `move-${task.id}-${Date.now()}`,
                             taskId: task.id,
-                            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">🏗️</text></svg>'
+                            targetUser: user,
+                            type: 'task_move'
                         }
                     );
                 });
                 
-                console.log(`📧 [PJ NOTIFY] Sent notifications to: ${notifyUsersList.join(', ')}`);
+                console.log(`✅ [SLACK-MOVE] Slack通知送信完了: ${notifyUsersList.join(', ')}`);
                 
             } catch (error) {
-                console.error('❌ [PJ NOTIFY] Error sending notifications:', error);
+                console.error('❌ [SLACK-MOVE] Slack通知エラー:', error);
             }
         }
         
