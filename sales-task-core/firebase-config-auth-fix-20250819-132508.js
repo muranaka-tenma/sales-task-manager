@@ -38,10 +38,38 @@ onAuthStateChanged(auth, (user) => {
         console.log('🔐 Firebase認証成功:', user.email);
         window.currentFirebaseUser = user;
         
+        // セッション情報をローカルストレージに保存（日本名マッピング込み）
+        const displayName = user.email === 'muranaka-tenma@terracom.co.jp' ? '邨中天真' : 
+                           user.displayName || user.email.split('@')[0];
+        
+        const roleMap = {
+            'muranaka-tenma@terracom.co.jp': 'developer',
+            'kato-jun@terracom.co.jp': 'admin',
+            'asahi-keiichi@terracom.co.jp': 'admin',
+            'hanzawa-yuka@terracom.co.jp': 'user',
+            'tamura-wataru@terracom.co.jp': 'user',
+            'hashimoto-yumi@terracom.co.jp': 'user',
+            'fukushima-ami@terracom.co.jp': 'user'
+        };
+        
+        const sessionData = {
+            user: {
+                id: user.uid,
+                name: displayName,
+                email: user.email,
+                role: roleMap[user.email] || 'user'
+            },
+            loginTime: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24時間後
+        };
+        
+        localStorage.setItem('currentSession', JSON.stringify(sessionData));
+        
         // 接続状態確認
         console.log('🔍 [FIREBASE DEBUG] 認証後の接続状態:', {
             uid: user.uid,
             email: user.email,
+            displayName: displayName,
             projectId: db.app.options.projectId,
             timestamp: new Date().toISOString()
         });
@@ -56,6 +84,7 @@ onAuthStateChanged(auth, (user) => {
     } else {
         console.log('⚠️ Firebase未認証');
         window.currentFirebaseUser = null;
+        localStorage.removeItem('currentSession');
         
         // ログアウト時もハンバーガーメニューを更新（診断ボタンも含む）
         setTimeout(() => {
@@ -83,9 +112,13 @@ window.getCurrentUser = function() {
         
         const userRole = roleMap[window.currentFirebaseUser.email] || 'user';
         
+        // 日本名マッピング
+        const displayName = window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ? 
+                           '邨中天真' : window.currentFirebaseUser.email.split('@')[0];
+        
         return {
             id: window.currentFirebaseUser.uid,
-            name: window.currentFirebaseUser.email.split('@')[0],
+            name: displayName,
             email: window.currentFirebaseUser.email,
             role: userRole,
             isLoggedIn: true
