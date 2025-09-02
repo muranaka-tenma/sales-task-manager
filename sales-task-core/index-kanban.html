@@ -7,27 +7,42 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🎯 営業タスク管理 - Kanbanボード</title>
-    <!-- Deploy: 2025-09-02-18:40 - 強制キャッシュクリア -->
+    <!-- Deploy: 2025-09-02-18:45 - 緊急キャッシュクリア -->
     <script>
-    // 強制キャッシュクリア
+    // 強制キャッシュクリア - 全て削除
+    console.log('🧹 [CACHE] 強制キャッシュクリア開始');
+    
+    // Service Worker キャッシュ削除
     if ('caches' in window) {
         caches.keys().then(names => {
             names.forEach(name => {
+                console.log(`🗑️ [CACHE] キャッシュ削除: ${name}`);
                 caches.delete(name);
             });
         });
     }
+    
+    // LocalStorage の古いキャッシュ情報も削除
+    try {
+        Object.keys(localStorage).forEach(key => {
+            if (key.includes('cache') || key.includes('version')) {
+                localStorage.removeItem(key);
+            }
+        });
+    } catch (e) {}
+    
+    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 20250902-1845');
     </script>
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
     <!-- Firebase統合システム - マルチユーザー対応 -->
-    <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20250902-1840-cleanup"></script>
+    <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20250902-1845-emergency"></script>
     <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化（セッション保護） -->
     <!-- キャッシュ問題解決のため完全無効化 -->
     <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
     <!-- Slack通知設定 -->
-    <script src="slack-notification-config.js?v=20250902-1840-cleanup"></script>
+    <script src="slack-notification-config.js?v=20250902-1845-emergency"></script>
     <!-- Slack通知プロキシサービス -->
-    <script src="slack-proxy.js?v=20250902-1840-cleanup"></script>
+    <script src="slack-proxy.js?v=20250902-1845-emergency"></script>
     <style>
         * {
             margin: 0;
