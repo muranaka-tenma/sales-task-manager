@@ -7,17 +7,27 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🎯 営業タスク管理 - Kanbanボード</title>
-    <!-- Deploy: 2025-08-20-13:30 - THIS FILE HAS NO DEBUG BUTTONS -->
+    <!-- Deploy: 2025-09-02-18:40 - 強制キャッシュクリア -->
+    <script>
+    // 強制キャッシュクリア
+    if ('caches' in window) {
+        caches.keys().then(names => {
+            names.forEach(name => {
+                caches.delete(name);
+            });
+        });
+    }
+    </script>
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
     <!-- Firebase統合システム - マルチユーザー対応 -->
-    <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20250820-13-25-cachekiller"></script>
+    <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20250902-1840-cleanup"></script>
     <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化（セッション保護） -->
     <!-- キャッシュ問題解決のため完全無効化 -->
     <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
     <!-- Slack通知設定 -->
-    <script src="slack-notification-config.js"></script>
+    <script src="slack-notification-config.js?v=20250902-1840-cleanup"></script>
     <!-- Slack通知プロキシサービス -->
-    <script src="slack-proxy.js"></script>
+    <script src="slack-proxy.js?v=20250902-1840-cleanup"></script>
     <style>
         * {
             margin: 0;
@@ -3907,7 +3917,7 @@
                         
                         const shortComment = text.length > 80 ? text.substring(0, 80) + '...' : text;
                         
-                        // メール通知を送信
+                        // Slack通知を送信
                         showNotification(
                             '💬 メンション通知',
                             `${author}さんが「${task.title}」でメンションしました\n\nコメント内容:\n${shortComment}\n\nタスク詳細:\nタイトル: ${task.title}\n期限: ${task.deadline || '未設定'}`,
@@ -3967,7 +3977,7 @@
                     console.log(`🔍 [ASSIGN-NOTIFY] ${user}: 現在ユーザーでない = ${isNotCurrentUser}`);
                     
                     if (isNotCurrentUser) {
-                        // メール通知を送信
+                        // Slack通知を送信
                         showNotification(
                             '👥 タスク割り当て通知',
                             `${currentUser.name}さんがあなたを「${task.title}」の担当者に設定しました\n\nタスク詳細:\nタイトル: ${task.title}\n期限: ${task.deadline || '未設定'}\n作成者: ${currentUser.name}`,
@@ -4189,13 +4199,16 @@
                 const willBeOverdue = isOverdue(newDeadline.toISOString(), editingTask.columnId);
                 
                 console.log(`🔍 [DEADLINE] Checking deadline change for task ${editingTask.id}`);
-                console.log(`🔍 [DEADLINE] Old deadline: ${editingTask.deadline}, wasOverdue: ${wasOverdue}`);
-                console.log(`🔍 [DEADLINE] New deadline: ${newDeadline.toISOString()}, willBeOverdue: ${willBeOverdue}`);
+                // 期限変更の詳細ログ（DEBUG時のみ表示）
+                if (window.DEBUG_MODE) {
+                    console.log(`🔍 [DEADLINE] Old deadline: ${editingTask.deadline}, wasOverdue: ${wasOverdue}`);
+                    console.log(`🔍 [DEADLINE] New deadline: ${newDeadline.toISOString()}, willBeOverdue: ${willBeOverdue}`);
+                }
                 console.log(`🔍 [DEADLINE] Task column: ${editingTask.columnId}`);
                 
                 // 期限切れタスクの期限が延長された場合の確認
                 if (wasOverdue && !willBeOverdue) {
-                    console.log(`📅 [DEADLINE] Overdue task deadline extended, showing confirmation dialog`);
+                    // 期限切れタスクの期限延長時の確認ダイアログ表示
                     const columnTitle = getColumnTitle(editingTask.columnId);
                     const shouldMoveBack = confirm(
                         `📅 期限が延長されました\n\n` +
@@ -4214,9 +4227,9 @@
                             return;
                         }
                     }
-                    console.log(`📅 Deadline extended for overdue task ${editingTask.id}, moving back: ${shouldMoveBack}`);
+                    // 期限延長後の移動処理
                 } else {
-                    console.log(`🔍 [DEADLINE] No confirmation needed: wasOverdue=${wasOverdue}, willBeOverdue=${willBeOverdue}`);
+                    // 確認不要（期限状態に変化なし）
                 }
                 
                 // 編集
@@ -4495,20 +4508,7 @@
             approverCheckboxes.forEach(cb => cb.checked = false);
         }
         
-        async function deleteTask(taskId) {
-            if (confirm('このタスクを削除しますか？')) {
-                // Firebase から削除
-                const task = tasks.find(t => t.id === taskId);
-                if (task && task.firebaseId && window.FirebaseDB) {
-                    await window.FirebaseDB.deleteTask(task.firebaseId);
-                }
-                
-                tasks = tasks.filter(t => t.id !== taskId);
-                await saveTasks();
-                render();
-                playMoveSound();
-            }
-        }
+        // 重複関数削除: deleteTask関数は後で再定義されています（12345行目）
         
         // ドラッグ&ドロップ
         function handleDragStart(e, taskId) {
@@ -4602,16 +4602,14 @@
                     draggedTask.completed = (columnId === 'done');
                     console.log(`🔍 [DROP DEBUG] After column change - Tasks count: ${tasks.length}`);
                     
-                    // PJタスクの場合、最後の移動時刻を記録し、通知を送信
-                    if (draggedTask.projectId && draggedTask.projectName) {
-                        draggedTask.lastMovedAt = new Date().toISOString();
-                        console.log(`📅 [PJ MOVE] Recorded move time: ${draggedTask.lastMovedAt}`);
-                        
-                        // 承認者・担当者への移動通知
-                        console.log(`🔍 [DROP DEBUG] Before notification - Tasks count: ${tasks.length}`);
-                        sendPJMoveNotification(draggedTask, columnId);
-                        console.log(`🔍 [DROP DEBUG] After notification - Tasks count: ${tasks.length}`);
-                    }
+                    // タスク移動時刻を記録し、通知を送信（全タスク対象）
+                    draggedTask.lastMovedAt = new Date().toISOString();
+                    console.log(`📅 [TASK MOVE] Recorded move time: ${draggedTask.lastMovedAt}`);
+                    
+                    // 承認者・担当者への移動通知（プロジェクトタスク・通常タスク両方対応）
+                    console.log(`🔍 [DROP DEBUG] Before notification - Tasks count: ${tasks.length}`);
+                    sendPJMoveNotification(draggedTask, columnId);
+                    console.log(`🔍 [DROP DEBUG] After notification - Tasks count: ${tasks.length}`);
                     
                     console.log(`🔍 [DROP DEBUG] Before saveTasks() - Tasks count: ${tasks.length}`);
                     await saveTasks();
@@ -4767,7 +4765,7 @@
                         const deadline = new Date(t.deadline);
                         const now = new Date();
                         if (deadline < now) {
-                            console.log(`🚨 [RENDER] 期限切れタスク除外: ${t.title} (${t.deadline})`);
+                            // 期限切れタスクは通常カラムから除外（ログ出力簡素化）
                             return false; // 期限切れタスクは通常カラムから除外
                         }
                     }
@@ -4828,14 +4826,10 @@
         }
         
         function createTaskCard(task, isFromOverdueColumn = false) {
-            console.log(`🎴 [CARD] Creating card for task ${task.id}, isBulkMode: ${isBulkMode}, isFromOverdueColumn: ${isFromOverdueColumn}`);
+            // タスクカード作成（詳細ログ削減）
             const deadline = new Date(task.deadline);
             const isOverdueTask = isOverdue(task.deadline, task.columnId);
             const isTodayTask = isToday(task.deadline, task.columnId);
-            const now = new Date();
-            console.log(`🎴 [CARD] Task ${task.id} - deadline: ${task.deadline}, columnId: ${task.columnId}`);
-            console.log(`🎴 [CARD] Task ${task.id} - Current time: ${now.toISOString()}, deadline < now: ${deadline < now}`);
-            console.log(`🎴 [CARD] Task ${task.id} - isOverdueTask: ${isOverdueTask}, draggable: ${!isBulkMode}`);
             
             // 経過時間を計算
             let daysSinceCreated = 0;
@@ -5438,9 +5432,8 @@
             }
         }
         
-        // 通知機能
+        // 通知機能（ブラウザ通知のみ）
         let notificationPermission = false;
-        let fcmToken = null;
         
         function requestNotificationPermission() {
             if ('Notification' in window) {
@@ -5456,50 +5449,8 @@
             }
         }
         
-        // FCM初期化
-        async function initializeFCM() {
-            try {
-                console.log('📨 [FCM] 初期化開始...');
-                
-                // FCMが利用可能になるまで待つ
-                let waitTime = 0;
-                while (waitTime < 3000) {
-                    if (window.FCMNotification) {
-                        console.log('✅ [FCM] FCMNotification準備完了');
-                        break;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    waitTime += 100;
-                }
-                
-                if (!window.FCMNotification) {
-                    console.warn('⚠️ [FCM] FCMNotificationが利用できません');
-                    return;
-                }
-                
-                // FCMトークンを取得
-                fcmToken = await window.FCMNotification.getToken();
-                if (fcmToken) {
-                    console.log('✅ [FCM] トークン取得成功');
-                    
-                    // メッセージリスナーを初期化
-                    window.FCMNotification.initMessageListener();
-                    
-                    // 通知履歴を取得
-                    const user = getCurrentUser();
-                    if (user && user.id) {
-                        const result = await window.FCMNotification.getNotifications(user.id);
-                        if (result.success) {
-                            console.log('📨 [FCM] 通知履歴取得:', result.notifications.length);
-                        }
-                    }
-                } else {
-                    console.log('⚠️ [FCM] トークンを取得できませんでした');
-                }
-            } catch (error) {
-                console.error('❌ [FCM] 初期化エラー:', error);
-            }
-        }
+        // FCM削除: Firebase Cloud Messaging機能を完全削除
+        // Slack通知システムに統一
         
         function testNotification() {
             if (notificationPermission) {
@@ -5540,18 +5491,16 @@
             }
         }
 
-        // メール通知システム（削除済み - Slackに統一）
-        function sendEmailNotification() {
-            // メール機能は完全削除済み - Slack通知を使用
-            return Promise.resolve({ success: true });
-        }
+        // メール通知システム削除済み - Slack通知に統一
 
         // ユーザー名からメールアドレスを取得（Slack通知用）
         function getEmailByUserName(userName) {
             try {
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                 const user = systemUsers.find(u => u.name === userName);
                 return user ? user.email : null;
             } catch (error) {
+                console.error('❌ [EMAIL-LOOKUP] ユーザー情報取得エラー:', error);
                 return null;
             }
         }
@@ -5570,8 +5519,18 @@
             // 【Slack通知】対象ユーザーがいる場合は自動的にSlack通知を送信
             if (options.targetUser || options.targetEmail) {
                 console.log(`🔔 [SLACK-AUTO] Slack通知自動実行: ${title}`);
+                console.log(`🔔 [SLACK-AUTO] 対象ユーザー: ${options.targetUser}, 対象メール: ${options.targetEmail}`);
+                
                 const targetEmail = options.targetEmail || getEmailByUserName(options.targetUser);
-                await sendSlackNotification(targetEmail, title, body, options);
+                console.log(`🔔 [SLACK-AUTO] 取得したメール: ${targetEmail}`);
+                
+                if (targetEmail) {
+                    await sendSlackNotification(targetEmail, title, body, options);
+                } else {
+                    console.error(`❌ [SLACK-AUTO] メールアドレスが取得できません: ${options.targetUser}`);
+                }
+            } else {
+                console.log(`⚠️ [SLACK-AUTO] 対象ユーザー・メール未指定のため通知スキップ`);
             }
             
             return;
@@ -5950,7 +5909,7 @@
             requestNotificationPermission();
             
             // FCM初期化
-            initializeFCM();
+            // FCM削除: initializeFCM(); - Slack通知システムに統一
             
             // メンションシステムを初期化
             setupMentionSystem();
@@ -6225,8 +6184,9 @@
             }
             
             // Firebase初期化状況をデバッグ
-            console.log('🚀 [INIT-DEBUG] DOMContentLoaded発火:', {
+            console.log('🚀 [INIT-DEBUG] DOMContentLoaded発火 - CACHE BUSTED 2025-09-02-17:35:', {
                 timestamp: new Date().toISOString(),
+                cacheVersion: '2025-09-02-17:35-FORCE-RELOAD',
                 device: navigator.platform,
                 userAgent: navigator.userAgent.substring(0, 50) + '...',
                 firebaseModules: {
@@ -12335,15 +12295,17 @@
                 // 通知対象者がいない場合でも、テスト用にSlack通知を送信
                 if (notifyUsersList.length === 0) {
                     console.log(`🔔 [SLACK-MOVE] 通知対象者なし - テスト用Slack通知を送信`);
+                    console.log(`🔔 [SLACK-MOVE] 現在のユーザー情報:`, currentUser);
                     
-                    // テスト用の自分への通知
+                    // テスト用の自分への通知（メールアドレスを直接指定）
                     showNotification(
                         notificationTitle,
                         `${notificationBody}\n\n※ テスト用通知（対象者なし）`,
                         {
                             tag: `move-test-${task.id}-${Date.now()}`,
                             taskId: task.id,
-                            targetUser: currentUser.name,  // 自分に送信
+                            targetUser: currentUser.name,
+                            targetEmail: currentUser.email || 'muranaka-tenma@terracom.co.jp',  // メールアドレスを直接指定
                             type: 'task_move_test'
                         }
                     );

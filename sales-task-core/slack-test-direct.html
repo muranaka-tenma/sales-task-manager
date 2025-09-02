@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slack直接通知テスト</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔔 Slack直接通知テスト</h1>
+    
+    <button onclick="testDirectSlack()">1. 直接Slack通知テスト</button>
+    <button onclick="testCorsProxy()">2. CORSプロキシ経由テスト</button>
+    <button onclick="testFetchNoMode()">3. fetch（no-cors）テスト</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        const SLACK_WEBHOOK = 'https://hooks.slack.com/services/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';
+        
+        function showResult(success, message, details = '') {
+            const resultEl = document.getElementById('result');
+            resultEl.className = `result ${success ? 'success' : 'error'}`;
+            resultEl.innerHTML = `
+                <h3>${success ? '✅ 成功' : '❌ エラー'}</h3>
+                <p>${message}</p>
+                ${details ? `<pre>${details}</pre>` : ''}
+            `;
+        }
+        
+        // 1. 直接Slack通知テスト
+        async function testDirectSlack() {
+            try {
+                console.log('🔔 [TEST1] 直接Slack通知開始');
+                
+                const message = {
+                    text: "🔔 直接通知テスト",
+                    blocks: [{
+                        type: "section",
+                        text: {
+                            type: "mrkdwn",
+                            text: `直接通知テスト - ${new Date().toLocaleString()}`
+                        }
+                    }]
+                };
+                
+                const response = await fetch(SLACK_WEBHOOK, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(message)
+                });
+                
+                console.log('🔔 [TEST1] レスポンス:', response);
+                showResult(response.ok, `直接通知: ${response.status} ${response.statusText}`);
+                
+            } catch (error) {
+                console.error('❌ [TEST1] エラー:', error);
+                showResult(false, '直接通知エラー', error.message);
+            }
+        }
+        
+        // 2. CORSプロキシ経由テスト
+        async function testCorsProxy() {
+            try {
+                console.log('🔔 [TEST2] CORSプロキシ経由テスト開始');
+                
+                const message = {
+                    text: "🔔 プロキシ経由テスト",
+                    blocks: [{
+                        type: "section",
+                        text: {
+                            type: "mrkdwn",
+                            text: `プロキシ経由テスト - ${new Date().toLocaleString()}`
+                        }
+                    }]
+                };
+                
+                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(SLACK_WEBHOOK);
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(message)
+                });
+                
+                console.log('🔔 [TEST2] レスポンス:', response);
+                showResult(response.ok, `プロキシ経由: ${response.status} ${response.statusText}`);
+                
+            } catch (error) {
+                console.error('❌ [TEST2] エラー:', error);
+                showResult(false, 'プロキシ経由エラー', error.message);
+            }
+        }
+        
+        // 3. no-corsモードテスト
+        async function testFetchNoMode() {
+            try {
+                console.log('🔔 [TEST3] no-corsモードテスト開始');
+                
+                const message = {
+                    text: "🔔 no-corsモードテスト",
+                    blocks: [{
+                        type: "section",
+                        text: {
+                            type: "mrkdwn",
+                            text: `no-corsモードテスト - ${new Date().toLocaleString()}`
+                        }
+                    }]
+                };
+                
+                const response = await fetch(SLACK_WEBHOOK, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(message),
+                    mode: 'no-cors'  // CORS制限を無視
+                });
+                
+                console.log('🔔 [TEST3] レスポンス:', response);
+                showResult(true, `no-corsモード: リクエスト送信完了（レスポンス詳細は取得不可）`);
+                
+            } catch (error) {
+                console.error('❌ [TEST3] エラー:', error);
+                showResult(false, 'no-corsモードエラー', error.message);
+            }
+        }
+    </script>
+</body>
+</html>
