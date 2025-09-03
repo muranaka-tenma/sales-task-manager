@@ -1,0 +1,8 @@
+# Slack Webhook URLs (セキュリティのため)
+slack-webhook-private.js
+*.webhook
+webhook-*
+
+# その他のプライベートファイル
+config-private.js
+secrets.js

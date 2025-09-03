@@ -2,19 +2,13 @@
 // 各ユーザーのSlack Webhook URLを管理
 
 const SLACK_CONFIG = {
-    // デフォルトのWebhook URL（グループチャンネル用）
-    defaultWebhook: 'https://hooks.slack.com/services/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',
+    // デフォルトのWebhook URL（直接設定 - キャッシュ問題回避）
+    defaultWebhook: 'https://hooks.slack.com/services/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',
     
     // ユーザーごとのWebhook設定（全員同じグループチャンネルを使用）
-    userWebhooks: {
-        // 全ユーザー共通: グループチャンネル（#テラ）
-        'muranaka-tenma@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'kato-jun@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'asahi-keiichi@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'hanzawa-yuka@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'tamura-wataru@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'hashimoto-yumi@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'fukushima-ami@terracom.co.jp': 'https://hooks.slack.com/services/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',
+    getUserWebhook: function(userEmail) {
+        // 全ユーザー共通で最新のWebhook URLを使用
+        return 'https://hooks.slack.com/services/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';
     },
     
     // Slackユーザー名マッピング（タスク管理システムのユーザー名 → Slackユーザー名）
@@ -48,7 +42,9 @@ const SLACK_CONFIG = {
 
 // Webhook URLを取得する関数
 function getWebhookUrl(userEmail) {
-    return SLACK_CONFIG.userWebhooks[userEmail] || SLACK_CONFIG.defaultWebhook;
+    const webhookUrl = SLACK_CONFIG.getUserWebhook(userEmail);
+    console.log('🔍 [SLACK-CONFIG] getWebhookUrl呼び出し:', { userEmail, webhookUrl, windowSLACK_WEBHOOK_URL: window.SLACK_WEBHOOK_URL });
+    return webhookUrl;
 }
 
 // Slackユーザー名を取得する関数

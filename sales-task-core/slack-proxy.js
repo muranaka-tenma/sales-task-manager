@@ -160,20 +160,62 @@ class SlackNotificationService {
     // 直接送信
     async directSend(message) {
         const webhookUrl = this.getWebhookUrl();
-        if (!webhookUrl) return false;
-        
-        const response = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(message),
-            mode: 'no-cors'  // CORS制限を無視
-        });
-        
-        // no-corsモードでは詳細なレスポンスが取得できないため、
-        // エラーが投げられなければ成功とみなす
-        return true;
+        if (!webhookUrl) {
+            console.error('❌ [SLACK] Webhook URL未設定');
+            return false;
+        }
+
+        // Webhook URLの妥当性チェック
+        if (webhookUrl === 'ここに新しいWebhook URLを貼り付けてください' || 
+            webhookUrl === 'WEBHOOK_URL_NOT_SET') {
+            console.error('❌ [SLACK] Webhook URLが設定されていません（プレースホルダーのまま）');
+            return false;
+        }
+
+        try {
+            // まずCORSモードで試行（正確なエラー情報を取得するため）
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(message),
+                mode: 'cors'  // 詳細なレスポンス情報を取得
+            });
+
+            if (response.ok) {
+                console.log('✅ [SLACK] 直接送信成功（CORS）');
+                return true;
+            } else {
+                console.error(`❌ [SLACK] 直接送信失敗（CORS）: ${response.status} ${response.statusText}`);
+                if (response.status === 404) {
+                    console.error('❌ [SLACK] Webhook URLが無効です（404）- 新しいURLが必要です');
+                }
+                return false;
+            }
+        } catch (corsError) {
+            console.warn('⚠️ [SLACK] CORS制限により詳細情報取得失敗、no-corsで再試行');
+            
+            // CORSエラーの場合はno-corsで再試行（フォールバック）
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(message),
+                    mode: 'no-cors'
+                });
+                
+                // no-corsでは詳細なレスポンスが取得できないため、
+                // エラーが投げられなければ成功の可能性あり（但し保証はなし）
+                console.warn('⚠️ [SLACK] no-cors送信完了（成功/失敗の判定不可）');
+                return true;
+            } catch (noCorsError) {
+                console.error('❌ [SLACK] no-cors送信も失敗:', noCorsError);
+                return false;
+            }
+        }
     }
 
     // プロキシ経由送信
