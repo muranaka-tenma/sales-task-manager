@@ -7,10 +7,20 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🎯 営業タスク管理 - Kanbanボード</title>
-    <!-- Deploy: 2025-09-03-04:35 - 新しいSlack Webhook URL適用 -->
+    <!-- Deploy: 2025-09-03-04:50 - Webhook URL修正 + Service Worker削除 -->
     <script>
     // 強制キャッシュクリア - 全て削除
     console.log('🧹 [CACHE] 強制キャッシュクリア開始');
+    
+    // Service Worker完全削除（message channel エラー対策）
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            registrations.forEach(registration => {
+                console.log('🗑️ [SW] Service Worker削除:', registration.scope);
+                registration.unregister();
+            });
+        });
+    }
     
     // Service Worker キャッシュ削除
     if ('caches' in window) {
@@ -25,13 +35,14 @@
     // LocalStorage の古いキャッシュ情報も削除
     try {
         Object.keys(localStorage).forEach(key => {
-            if (key.includes('cache') || key.includes('version')) {
+            if (key.includes('cache') || key.includes('version') || key.includes('firebase-messaging')) {
+                console.log(`🗑️ [STORAGE] 削除: ${key}`);
                 localStorage.removeItem(key);
             }
         });
     } catch (e) {}
     
-    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 20250903-0435-SLACK-WEBHOOK');
+    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 20250903-0450-WEBHOOK-FIX');
     </script>
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
     <!-- Firebase統合システム - マルチユーザー対応 -->
@@ -40,9 +51,9 @@
     <!-- キャッシュ問題解決のため完全無効化 -->
     <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
     <!-- Slack通知設定 -->
-    <script src="slack-notification-config.js?v=20250903-0435-newwebhook"></script>
+    <script src="slack-notification-config.js?v=20250903-0450-fixed"></script>
     <!-- Slack通知プロキシサービス -->
-    <script src="slack-proxy.js?v=20250903-0435-newwebhook"></script>
+    <script src="slack-proxy.js?v=20250903-0450-fixed"></script>
     <style>
         * {
             margin: 0;

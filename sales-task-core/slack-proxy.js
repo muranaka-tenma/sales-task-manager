@@ -3,7 +3,7 @@
 
 class SlackNotificationService {
     constructor() {
-        this.webhookUrl = 'https://hooks.slack.com/services/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';
+        this.webhookUrl = null; // 設定ファイルから動的に取得
         this.proxyEndpoints = [
             // 複数のプロキシサービスを用意（フォールバック用）
             'https://api.allorigins.win/raw?url=',
@@ -12,8 +12,29 @@ class SlackNotificationService {
         ];
     }
 
+    // WebhookURLを動的に取得
+    getWebhookUrl() {
+        if (!this.webhookUrl) {
+            const currentUser = getCurrentUser ? getCurrentUser() : null;
+            const userEmail = currentUser ? currentUser.email : null;
+            this.webhookUrl = window.SlackConfig ? window.SlackConfig.getWebhookUrl(userEmail) : null;
+            
+            if (!this.webhookUrl) {
+                console.error('❌ [SLACK] Webhook URLが設定されていません');
+                return null;
+            }
+        }
+        return this.webhookUrl;
+    }
+
     // メイン送信機能（複数の方法を試行）
     async sendNotification(title, body, options = {}) {
+        const webhookUrl = this.getWebhookUrl();
+        if (!webhookUrl) {
+            console.error('❌ [SLACK] Webhook URL取得失敗');
+            return false;
+        }
+        
         const message = this.createSlackMessage(title, body, options);
         
         // 方法1: 直接送信を試行
@@ -138,7 +159,10 @@ class SlackNotificationService {
 
     // 直接送信
     async directSend(message) {
-        const response = await fetch(this.webhookUrl, {
+        const webhookUrl = this.getWebhookUrl();
+        if (!webhookUrl) return false;
+        
+        const response = await fetch(webhookUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -154,7 +178,10 @@ class SlackNotificationService {
 
     // プロキシ経由送信
     async proxySend(message, proxyUrl) {
-        const targetUrl = proxyUrl + encodeURIComponent(this.webhookUrl);
+        const webhookUrl = this.getWebhookUrl();
+        if (!webhookUrl) return false;
+        
+        const targetUrl = proxyUrl + encodeURIComponent(webhookUrl);
         
         const response = await fetch(targetUrl, {
             method: 'POST',
@@ -183,7 +210,12 @@ class SlackNotificationService {
             // タイムアウト設定
             setTimeout(() => resolve(true), 2000);  // 2秒後に成功とみなす
             
-            img.src = `${this.webhookUrl}?${params}`;
+            const webhookUrl = this.getWebhookUrl();
+            if (webhookUrl) {
+                img.src = `${webhookUrl}?${params}`;
+            } else {
+                resolve(false);
+            }
         });
     }
 }
