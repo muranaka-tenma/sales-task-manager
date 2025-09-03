@@ -50,10 +50,15 @@
     <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化（セッション保護） -->
     <!-- キャッシュ問題解決のため完全無効化 -->
     <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
+    <!-- Slack Webhook URL - インライン設定（ファイル読み込み問題回避） -->
+    <script>
+        // Slack Webhook URL設定
+        window.SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
+        console.log('🔗 [WEBHOOK-INLINE] Webhook URL設定完了:', window.SLACK_WEBHOOK_URL);
+        console.log('🔗 [WEBHOOK-INLINE] インライン方式で読み込み: v=20250903-1030-OAUTH-INLINE');
+    </script>
     <!-- Slack通知設定 -->
     <script src="slack-notification-config.js?v=20250903-1013-DIRECT-FIX"></script>
-    <!-- Slack Webhook URL - プライベート設定 -->
-    <script src="slack-webhook-private.js?v=20250903-1010-FINAL-FIX"></script>
     <!-- Slack通知プロキシサービス -->
     <script src="slack-proxy.js?v=20250903-0530-WEBHOOK-FIXED"></script>
     <style>
