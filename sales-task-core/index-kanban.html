@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🎯 営業タスク管理 - Kanbanボード</title>
-    <!-- Deploy: 2025-09-03-04:55 - テラチャンネル用Webhook URL更新 -->
+    <!-- Deploy: 2025-09-03-05:00 - Slack通知テスト機能追加 -->
     <script>
     // 強制キャッシュクリア - 全て削除
     console.log('🧹 [CACHE] 強制キャッシュクリア開始');
@@ -42,7 +42,7 @@
         });
     } catch (e) {}
     
-    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 20250903-0450-WEBHOOK-FIX');
+    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 20250903-0500-SLACK-TEST');
     </script>
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
     <!-- Firebase統合システム - マルチユーザー対応 -->
@@ -5478,13 +5478,40 @@
         // FCM削除: Firebase Cloud Messaging機能を完全削除
         // Slack通知システムに統一
         
-        function testNotification() {
-            if (notificationPermission) {
-                showNotification('🔔 テスト通知', 'これはテスト通知です。通知機能は正常に動作しています！');
-            } else {
-                alert('通知が許可されていません。ブラウザの設定で通知を許可してください。');
-                requestNotificationPermission();
+        // Slackテスト通知（テラチャンネルに送信）
+        async function testSlackNotification() {
+            console.log('🧪 [SLACK-TEST] テスト通知送信開始');
+            
+            try {
+                const currentUser = getCurrentUser();
+                const testTime = new Date().toLocaleString('ja-JP');
+                
+                // テスト通知を送信
+                const result = await sendSlackNotification(
+                    currentUser.email,
+                    '🧪 Slack通知テスト',
+                    `これはSlack通知のテストメッセージです。\n送信者: ${currentUser.name}\n送信時刻: ${testTime}`,
+                    {
+                        targetUser: currentUser.name,
+                        targetEmail: currentUser.email
+                    }
+                );
+                
+                // 結果をユーザーに表示
+                if (window.SlackNotificationService && window.SlackNotificationService.webhookUrl) {
+                    alert('✅ Slack通知テストを送信しました。\n#テラチャンネルを確認してください。');
+                } else {
+                    alert('❌ Slack通知の送信に失敗しました。\nコンソールログを確認してください。');
+                }
+            } catch (error) {
+                console.error('❌ [SLACK-TEST] エラー:', error);
+                alert('❌ Slack通知テスト中にエラーが発生しました。');
             }
+        }
+        
+        function testNotification() {
+            // Slack通知テストを実行
+            testSlackNotification();
         }
         
         // Slack通知システム（CORS対応版）
@@ -12706,6 +12733,8 @@
         // グローバル関数として公開
         window.checkTaskEvidence = checkTaskEvidence;
         window.promptForEvidence = promptForEvidence;
+        window.testSlackNotification = testSlackNotification;
+        window.testNotification = testNotification;
         // タスクスキップ機能（設定画面用）
         function toggleTaskSkipModal(index) {
             if (previewTasks[index]) {
