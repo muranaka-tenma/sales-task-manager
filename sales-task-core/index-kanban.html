@@ -50,12 +50,16 @@
     <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化（セッション保護） -->
     <!-- キャッシュ問題解決のため完全無効化 -->
     <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
-    <!-- Slack Webhook URL - インライン設定（ファイル読み込み問題回避） -->
+    <!-- Slack Webhook URL - 環境変数設定（セキュリティ対応） -->
     <script>
-        // Slack Webhook URL設定
-        window.SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/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';
-        console.log('🔗 [WEBHOOK-INLINE] Webhook URL設定完了:', window.SLACK_WEBHOOK_URL);
-        console.log('🔗 [WEBHOOK-INLINE] インライン方式で読み込み: v=20250903-1030-OAUTH-INLINE');
+        // 本番環境: Netlify環境変数から取得
+        // 開発環境: ローカル設定ファイルから取得
+        window.SLACK_WEBHOOK_URL = window.location.hostname.includes('netlify.app') 
+            ? 'NETLIFY_ENV_VAR_PLACEHOLDER'  // Netlify環境変数で置き換え予定
+            : localStorage.getItem('dev_slack_webhook') || 'DEV_WEBHOOK_NOT_SET';
+        
+        console.log('🔗 [WEBHOOK-ENV] Webhook URL初期化:', window.SLACK_WEBHOOK_URL ? '設定済み' : '未設定');
+        console.log('🔗 [WEBHOOK-ENV] 環境:', window.location.hostname.includes('netlify.app') ? 'Production' : 'Development');
     </script>
     <!-- Slack通知設定 -->
     <script src="slack-notification-config.js?v=20250903-1013-DIRECT-FIX"></script>
