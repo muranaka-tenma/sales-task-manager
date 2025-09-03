@@ -3,18 +3,18 @@
 
 const SLACK_CONFIG = {
     // デフォルトのWebhook URL（グループチャンネル用）
-    defaultWebhook: 'https://hooks.slack.com/services/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',
+    defaultWebhook: 'https://hooks.slack.com/services/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',
     
     // ユーザーごとのWebhook設定（全員同じグループチャンネルを使用）
     userWebhooks: {
-        // 全ユーザー共通: グループチャンネル
-        'muranaka-tenma@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'kato-jun@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'asahi-keiichi@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'hanzawa-yuka@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'tamura-wataru@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'hashimoto-yumi@terracom.co.jp': 'https://hooks.slack.com/services/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',
-        'fukushima-ami@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        // 全ユーザー共通: グループチャンネル（#テラ）
+        'muranaka-tenma@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'kato-jun@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'asahi-keiichi@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'hanzawa-yuka@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'tamura-wataru@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'hashimoto-yumi@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'fukushima-ami@terracom.co.jp': 'https://hooks.slack.com/services/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',
     },
     
     // Slackユーザー名マッピング（タスク管理システムのユーザー名 → Slackユーザー名）
