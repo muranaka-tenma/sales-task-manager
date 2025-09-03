@@ -2,13 +2,13 @@
 // 各ユーザーのSlack Webhook URLを管理
 
 const SLACK_CONFIG = {
-    // デフォルトのWebhook URL（直接設定 - キャッシュ問題回避）
-    defaultWebhook: 'https://hooks.slack.com/services/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',
+    // デフォルトのWebhook URL（セキュリティのため環境変数から取得）
+    defaultWebhook: window.SLACK_WEBHOOK_URL || 'WEBHOOK_URL_NOT_SET',
     
     // ユーザーごとのWebhook設定（全員同じグループチャンネルを使用）
     getUserWebhook: function(userEmail) {
-        // 全ユーザー共通で最新のWebhook URLを使用
-        return 'https://hooks.slack.com/services/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';
+        // セキュリティのため環境変数から取得
+        return window.SLACK_WEBHOOK_URL || 'WEBHOOK_URL_NOT_SET';
     },
     
     // Slackユーザー名マッピング（タスク管理システムのユーザー名 → Slackユーザー名）
