@@ -2,13 +2,19 @@
 // 各ユーザーのSlack Webhook URLを管理
 
 const SLACK_CONFIG = {
-    // デフォルトのWebhook URL（テスト用）
-    defaultWebhook: 'https://hooks.slack.com/services/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',
+    // デフォルトのWebhook URL（グループチャンネル用）
+    defaultWebhook: 'https://hooks.slack.com/services/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',
     
-    // ユーザーごとのWebhook設定
+    // ユーザーごとのWebhook設定（全員同じグループチャンネルを使用）
     userWebhooks: {
-        // ユーザーID/メールアドレス: Webhook URL
-        'muranaka-tenma@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        // 全ユーザー共通: グループチャンネル
+        'muranaka-tenma@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'kato-jun@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'asahi-keiichi@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'hanzawa-yuka@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'tamura-wataru@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'hashimoto-yumi@terracom.co.jp': 'https://hooks.slack.com/services/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',
+        'fukushima-ami@terracom.co.jp': 'https://hooks.slack.com/services/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',
     },
     
     // Slackユーザー名マッピング（タスク管理システムのユーザー名 → Slackユーザー名）
