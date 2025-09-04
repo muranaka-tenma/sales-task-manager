@@ -4049,19 +4049,30 @@
             
             const targetUsers = Array.from(notifyTargets);
             
+            // 通知対象者がいない場合でも、コメントされたことを全体に通知
             if (targetUsers.length === 0) {
-                console.log('🔔 [COMMENT-NOTIFY] 通知対象者なし');
+                console.log('🔔 [COMMENT-NOTIFY] 通知対象者なし - 全体通知を実行');
+                
+                const generalMessage = `💭 ${commentAuthor}さんが「${task.title}」にコメントしました\n\n「${commentText}」\n\n担当者: ${task.assignees?.join(', ') || '未設定'}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
+                
+                showNotification('💭 コメント追加', generalMessage, {
+                    taskId: taskId,
+                    targetUser: 'all', // 全体通知を示す特別な値
+                    type: 'comment'
+                });
                 return;
             }
             
             console.log('🔔 [COMMENT-NOTIFY] 通知対象:', targetUsers);
             
-            const message = `💭 タスク「${task.title}」にコメントが追加されました\n\nコメント者: ${commentAuthor}\nコメント: ${commentText}`;
+            // 通知メッセージをより詳細に
+            const detailedMessage = `💭 ${commentAuthor}さんが「${task.title}」にコメントしました\n\n「${commentText}」\n\n担当者: ${task.assignees?.join(', ') || '未設定'}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
             
             targetUsers.forEach(targetUser => {
-                showNotification('💭 コメント通知', message, {
+                showNotification('💭 コメント通知', detailedMessage, {
                     taskId: taskId,
-                    targetUser: targetUser
+                    targetUser: targetUser,
+                    type: 'comment'
                 });
             });
         }
