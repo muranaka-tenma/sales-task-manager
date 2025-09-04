@@ -3988,7 +3988,7 @@
             }
             
             // 一般コメント通知（メンションがあってもなくても実行）
-            sendGeneralCommentNotification(commentText, commentAuthor, taskId);
+            sendGeneralCommentNotification(text, author, taskId);
         }
         
         // 一般コメント通知関数（メンション以外）
@@ -4604,6 +4604,8 @@
                 alert('タスクの保存中にエラーが発生しました: ' + error.message);
                 
                 // エラー時もrequired属性を復活
+                const columnInput = document.getElementById('column-select');
+                const wasRequired = columnInput && columnInput.hasAttribute('required');
                 if (wasRequired && isColumnSelectionHidden) {
                     columnInput.setAttribute('required', '');
                 }
