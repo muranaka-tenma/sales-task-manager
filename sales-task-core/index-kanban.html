@@ -4774,6 +4774,15 @@
                     draggedTask.lastMovedAt = new Date().toISOString();
                     console.log(`📅 [TASK MOVE] Recorded move time: ${draggedTask.lastMovedAt}`);
                     
+                    // タスク移動時に期限通知フラグをリセット（期限切れタスクも再編集可能に）
+                    if (draggedTask.overdueNotified || draggedTask.oneDayNotified || draggedTask.threeHourNotified || draggedTask.fiveMinNotified) {
+                        console.log(`🔄 [TASK MOVE] 期限通知フラグをリセット: ${draggedTask.title}`);
+                        draggedTask.overdueNotified = false;
+                        draggedTask.oneDayNotified = false;
+                        draggedTask.threeHourNotified = false;
+                        draggedTask.fiveMinNotified = false;
+                    }
+                    
                     // 承認者・担当者への移動通知（プロジェクトタスク・通常タスク両方対応）
                     console.log(`🔍 [DROP DEBUG] Before notification - Tasks count: ${tasks.length}`);
                     sendPJMoveNotification(draggedTask, columnId);
@@ -5733,6 +5742,15 @@
             if (options.targetUser || options.targetEmail) {
                 console.log(`🔔 [SLACK-AUTO] Slack通知自動実行: ${title}`);
                 console.log(`🔔 [SLACK-AUTO] 対象ユーザー: ${options.targetUser}, 対象メール: ${options.targetEmail}`);
+                
+                // 'all'の場合は現在のユーザーのメールアドレスを使用して通知送信
+                if (options.targetUser === 'all') {
+                    const currentUser = getCurrentUser();
+                    const senderEmail = currentUser?.email || 'muranaka-tenma@terracom.co.jp';
+                    console.log(`🔔 [SLACK-AUTO] 全体通知 - 送信者メールを使用: ${senderEmail}`);
+                    await sendSlackNotification(senderEmail, title, body, options);
+                    return;
+                }
                 
                 const targetEmail = options.targetEmail || getEmailByUserName(options.targetUser);
                 console.log(`🔔 [SLACK-AUTO] 取得したメール: ${targetEmail}`);
