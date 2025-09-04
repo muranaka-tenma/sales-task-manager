@@ -3929,8 +3929,18 @@
         // addComment関数をグローバルスコープに登録
         window.addComment = addComment;
         
-        function checkMentionNotifications(text, author, task) {
+        function checkMentionNotifications(text, author, taskId) {
             console.log(`🔍 [MENTION] チェック開始: "${text}" by ${author}`);
+            
+            // タスクを取得
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) {
+                console.log(`❌ [MENTION] タスクが見つかりません: ${taskId}`);
+                return;
+            }
+            
+            // 担当者リストを取得
+            const assignees = task.assignees || [];
             
             // 現在のログインユーザーを取得
             const currentUser = getCurrentUser();
