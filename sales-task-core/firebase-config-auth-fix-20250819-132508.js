@@ -189,7 +189,7 @@ window.FirebaseDB = {
             console.log('✅ [FIREBASE] タスク保存完了:', tasks.length);
             return { success: true };
         } catch (error) {
-            console.error('❌ [FIREBASE] タスク保存エラー:', error);
+            console.warn('⚠️ [FIREBASE] タスク保存: LocalStorageフォールバック使用');
             return { success: false, error: error.message };
         }
     },
@@ -215,7 +215,7 @@ window.FirebaseDB = {
             console.log('✅ [FIREBASE] タスク取得完了:', tasks.length);
             return { success: true, tasks: tasks };
         } catch (error) {
-            console.error('❌ [FIREBASE] タスク取得エラー:', error);
+            console.warn('⚠️ [FIREBASE] タスク取得: LocalStorageフォールバック使用');
             return { success: false, error: error.message, tasks: [] };
         }
     },

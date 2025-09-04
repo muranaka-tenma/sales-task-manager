@@ -3981,7 +3981,60 @@
                 });
             } else {
                 console.log(`❌ [MENTION] メンションが検出されませんでした`);
+                
+                // メンション以外の一般コメント通知
+                sendGeneralCommentNotification(commentText, commentAuthor, taskId);
             }
+        }
+        
+        // 一般コメント通知関数（メンション以外）
+        function sendGeneralCommentNotification(commentText, commentAuthor, taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            console.log('🔔 [COMMENT-NOTIFY] 一般コメント通知チェック開始');
+            
+            const currentUser = getCurrentUser();
+            if (!currentUser || !currentUser.name) return;
+            
+            // 担当者と承認者から作成者を除外して通知対象を決定
+            const notifyTargets = new Set();
+            
+            // タスクの担当者
+            if (task.assignees && Array.isArray(task.assignees)) {
+                task.assignees.forEach(assignee => {
+                    if (assignee !== commentAuthor) {
+                        notifyTargets.add(assignee);
+                    }
+                });
+            }
+            
+            // タスクの承認者
+            if (task.approvers && Array.isArray(task.approvers)) {
+                task.approvers.forEach(approver => {
+                    if (approver !== commentAuthor) {
+                        notifyTargets.add(approver);
+                    }
+                });
+            }
+            
+            const targetUsers = Array.from(notifyTargets);
+            
+            if (targetUsers.length === 0) {
+                console.log('🔔 [COMMENT-NOTIFY] 通知対象者なし');
+                return;
+            }
+            
+            console.log('🔔 [COMMENT-NOTIFY] 通知対象:', targetUsers);
+            
+            const message = `💭 タスク「${task.title}」にコメントが追加されました\n\nコメント者: ${commentAuthor}\nコメント: ${commentText}`;
+            
+            targetUsers.forEach(targetUser => {
+                showNotification('💭 コメント通知', message, {
+                    taskId: taskId,
+                    targetUser: targetUser
+                });
+            });
         }
         
         function checkCollaborativeTaskNotifications(task, assignedUsers) {
@@ -4034,6 +4087,36 @@
                     }
                 });
             }
+        }
+        
+        // タスク作成通知関数
+        function sendTaskCreationNotification(task, assignees) {
+            console.log('🔔 [TASK-CREATE] タスク作成通知開始:', task.title);
+            
+            const currentUser = getCurrentUser();
+            if (!currentUser || !currentUser.name) {
+                console.log('❌ [TASK-CREATE] ユーザー情報取得失敗');
+                return;
+            }
+            
+            // 作成者以外の担当者に通知
+            const targetUsers = assignees.filter(assignee => assignee !== currentUser.name);
+            
+            if (targetUsers.length === 0) {
+                console.log('🔔 [TASK-CREATE] 通知対象者なし（自分のみのタスク）');
+                return;
+            }
+            
+            console.log('🔔 [TASK-CREATE] 通知対象:', targetUsers);
+            
+            const message = `📝 新しいタスクが作成されました: 「${task.title}」\n\n作成者: ${currentUser.name}\n担当者: ${assignees.join(', ')}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
+            
+            targetUsers.forEach(targetUser => {
+                showNotification('📝 タスク作成通知', message, {
+                    taskId: task.id,
+                    targetUser: targetUser
+                });
+            });
         }
         
         function getTimeAgo(date) {
@@ -4408,6 +4491,9 @@
                     window.pendingComment = null;
                     console.log('✅ [COMMENT] コメントをタスクに追加完了');
                 }
+                
+                // タスク作成通知（新機能）
+                sendTaskCreationNotification(newTask, selectedAssignees);
                 
                 // 共同タスク作成時の通知
                 checkCollaborativeTaskNotifications(newTask, selectedAssignees);
