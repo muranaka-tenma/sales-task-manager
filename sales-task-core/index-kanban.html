@@ -2376,8 +2376,12 @@
                     return tasks;
                 }
                 
-                console.error('❌ [LOAD-TASKS] Firebase読み込みエラー:', result.error);
-                return [];
+                console.warn('⚠️ [LOAD-TASKS] Firebase読み込み失敗、LocalStorageから読み込み');
+                
+                // LocalStorageフォールバック
+                const localTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+                console.log('📂 [LOAD-TASKS] LocalStorage読み込み完了:', localTasks.length, '件');
+                return localTasks;
             } catch (error) {
                 console.error('❌ [LOAD-TASKS] 予期せぬエラー:', error);
                 return [];
@@ -3981,10 +3985,10 @@
                 });
             } else {
                 console.log(`❌ [MENTION] メンションが検出されませんでした`);
-                
-                // メンション以外の一般コメント通知
-                sendGeneralCommentNotification(commentText, commentAuthor, taskId);
             }
+            
+            // 一般コメント通知（メンションがあってもなくても実行）
+            sendGeneralCommentNotification(commentText, commentAuthor, taskId);
         }
         
         // 一般コメント通知関数（メンション以外）
