@@ -4585,7 +4585,7 @@
                 // 最新のコメントでメンション通知をチェック
                 const latestComment = editingTask.comments[editingTask.comments.length - 1];
                 console.log(`🔔 [SAVE] 最新コメントのメンション通知チェック: "${latestComment.text}"`);
-                checkMentionNotifications(latestComment.text, latestComment.author, editingTask);
+                checkMentionNotifications(latestComment.text, latestComment.author, editingTask.id);
             }
             
             // タスク作成・編集後に即座に期限チェック
