@@ -4506,7 +4506,8 @@
                     if (!editingTask.attachments) editingTask.attachments = [];
                     editingTask.attachments.push(...attachments);
                     
-                    // ファイル添付通知を送信
+                    // ファイル添付通知を送信（コメント通知の重複を防ぐため）
+                    console.log('📎 [FILE-ATTACH] ファイル添付通知を送信します');
                     sendFileAttachmentNotification(editingTask, attachments);
                 }
                 
@@ -4687,12 +4688,18 @@
             render();
             console.log('🎨 [EDIT SAVE] render() completed');
             
-            // 編集保存時のメンション通知チェック
-            if (editingTask && editingTask.comments && editingTask.comments.length > 0) {
-                // 最新のコメントでメンション通知をチェック
+            // 編集保存時の通知処理（ファイル添付は既に通知済みなので、コメント通知のみ）
+            if (editingTask && editingTask.comments && editingTask.comments.length > 0 && attachments.length === 0) {
+                // 最新のコメントでメンション通知をチェック（ファイル添付のみの場合は除外）
                 const latestComment = editingTask.comments[editingTask.comments.length - 1];
-                console.log(`🔔 [SAVE] 最新コメントのメンション通知チェック: "${latestComment.text}"`);
-                checkMentionNotifications(latestComment.text, latestComment.author, editingTask.id);
+                const commentTime = new Date(latestComment.timestamp);
+                const now = new Date();
+                
+                // 5秒以内に作成されたコメントのみ通知（ファイル添付時の誤通知を防ぐ）
+                if ((now - commentTime) < 5000) {
+                    console.log(`🔔 [SAVE] 最新コメントのメンション通知チェック: "${latestComment.text}"`);
+                    checkMentionNotifications(latestComment.text, latestComment.author, editingTask.id);
+                }
             }
             
             // タスク作成・編集後に即座に期限チェック
