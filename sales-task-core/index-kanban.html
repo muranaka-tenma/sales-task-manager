@@ -4162,6 +4162,70 @@
             });
         }
         
+        // ファイル添付通知関数
+        function sendFileAttachmentNotification(task, attachments) {
+            console.log('📎 [FILE-ATTACH] ファイル添付通知開始:', task.title);
+            
+            const currentUser = getCurrentUser();
+            if (!currentUser || !currentUser.name) {
+                console.log('❌ [FILE-ATTACH] ユーザー情報取得失敗');
+                return;
+            }
+            
+            const fileNames = attachments.map(file => file.name).join(', ');
+            const fileCount = attachments.length;
+            
+            // プロジェクトタスクの場合はプロジェクトメンバー全員に通知
+            if (task.projectId && task.projectName) {
+                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                const project = projects.find(p => p.id === task.projectId);
+                
+                if (project && project.members) {
+                    const targetUsers = project.members.filter(member => member !== currentUser.name);
+                    
+                    if (targetUsers.length > 0) {
+                        const message = `📎 「${task.title}」に${fileCount}個のファイルが添付されました\n\nプロジェクト: ${task.projectName}\n添付者: ${currentUser.name}\nファイル: ${fileNames}`;
+                        
+                        targetUsers.forEach(targetUser => {
+                            showNotification('📎 ファイル添付通知', message, {
+                                taskId: task.id,
+                                targetUser: targetUser,
+                                projectId: task.projectId
+                            });
+                        });
+                        
+                        console.log('📎 [FILE-ATTACH] プロジェクトメンバーに通知送信:', targetUsers);
+                    }
+                }
+            } else if (task.assignees && task.assignees.length > 0) {
+                // 個人タスクの場合は担当者に通知
+                const targetUsers = task.assignees.filter(assignee => assignee !== currentUser.name);
+                
+                if (targetUsers.length > 0) {
+                    const message = `📎 「${task.title}」に${fileCount}個のファイルが添付されました\n\n添付者: ${currentUser.name}\nファイル: ${fileNames}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
+                    
+                    targetUsers.forEach(targetUser => {
+                        showNotification('📎 ファイル添付通知', message, {
+                            taskId: task.id,
+                            targetUser: targetUser
+                        });
+                    });
+                    
+                    console.log('📎 [FILE-ATTACH] 担当者に通知送信:', targetUsers);
+                }
+            }
+            
+            // 全体通知（ファイル添付はプロジェクトに関係なく全体に通知）
+            const generalMessage = `📎 ${currentUser.name}さんが「${task.title}」に${fileCount}個のファイルを添付しました\n\nファイル: ${fileNames}`;
+            
+            showNotification('📎 ファイル添付通知', generalMessage, {
+                taskId: task.id,
+                targetUser: 'all'
+            });
+            
+            console.log('📎 [FILE-ATTACH] ファイル添付通知完了');
+        }
+        
         function getTimeAgo(date) {
             const now = new Date();
             const diffMs = now - date;
@@ -4441,6 +4505,9 @@
                 if (attachments.length > 0) {
                     if (!editingTask.attachments) editingTask.attachments = [];
                     editingTask.attachments.push(...attachments);
+                    
+                    // ファイル添付通知を送信
+                    sendFileAttachmentNotification(editingTask, attachments);
                 }
                 
                 // ★★★ 重要：tasks配列内の対応するタスクも更新 ★★★
