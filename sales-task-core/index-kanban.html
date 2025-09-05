@@ -5627,21 +5627,10 @@
             }
         }
         
-        // 通知機能（ブラウザ通知のみ）
-        let notificationPermission = false;
-        
-        function requestNotificationPermission() {
-            if ('Notification' in window) {
-                Notification.requestPermission().then(permission => {
-                    notificationPermission = (permission === 'granted');
-                    console.log('通知許可:', notificationPermission);
-                    
-                    // 許可が取れた場合はテスト通知を表示
-                    if (notificationPermission) {
-                        showNotification('🎯 通知設定完了', 'タスクの期限通知が有効になりました！');
-                    }
-                });
-            }
+        // Slack通知機能初期化
+        function initializeSlackNotification() {
+            // Slack通知テストを実行
+            testSlackNotification();
         }
         
         // FCM削除: Firebase Cloud Messaging機能を完全削除
@@ -5696,13 +5685,6 @@
                         console.log(`✅ [SLACK] 通知送信成功: ${subject}`);
                     } else {
                         console.error(`❌ [SLACK] 通知送信失敗: ${subject}`);
-                        // フォールバック: ブラウザ通知で代替
-                        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                            new Notification(`Slack送信失敗: ${subject}`, {
-                                body: `Slack通知が送信できませんでした。\n${body}`,
-                                icon: '/icon-192x192.png'
-                            });
-                        }
                     }
                 } else {
                     console.error('❌ [SLACK] SlackNotificationServiceが利用できません');
@@ -5733,7 +5715,6 @@
             // デスクトップ通知は無効化（Slackのみ使用）
             // try {
             //     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-            //         new Notification(title, { body, icon: '/icon-192x192.png' });
             //     }
             // } catch (error) {}
             console.log(`🔔 [SLACK-NOTIFICATION] ${title}: ${body}`);
@@ -6137,7 +6118,7 @@
             loadTheme();
             
             // 通知許可を要求
-            requestNotificationPermission();
+            initializeSlackNotification();
             
             // FCM初期化
             // FCM削除: initializeFCM(); - Slack通知システムに統一
