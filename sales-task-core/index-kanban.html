@@ -3785,11 +3785,20 @@
             
             // systemUsersから全ユーザーを動的に取得（新規ユーザー追加時も自動対応）
             const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            
+            // デバッグログ：systemUsersの内容を確認
+            console.log('🔍 [MENTION DEBUG] systemUsers:', systemUsers);
+            console.log('🔍 [MENTION DEBUG] systemUsers length:', systemUsers.length);
+            
             const availableUsers = systemUsers.map(user => user.name).filter(name => name);
+            console.log('🔍 [MENTION DEBUG] availableUsers:', availableUsers);
             
             const filteredUsers = availableUsers.filter(user => 
                 user.toLowerCase().includes(query.toLowerCase())
             ).slice(0, 5);
+            
+            console.log('🔍 [MENTION DEBUG] query:', query);
+            console.log('🔍 [MENTION DEBUG] filteredUsers:', filteredUsers);
             
             if (filteredUsers.length === 0) {
                 hideMentionSuggestions();
