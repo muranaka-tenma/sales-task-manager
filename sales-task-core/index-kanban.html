@@ -3795,7 +3795,7 @@
             
             const filteredUsers = availableUsers.filter(user => 
                 user.toLowerCase().includes(query.toLowerCase())
-            ).slice(0, 5);
+            );
             
             console.log('🔍 [MENTION DEBUG] query:', query);
             console.log('🔍 [MENTION DEBUG] filteredUsers:', filteredUsers);
