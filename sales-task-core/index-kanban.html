@@ -3785,20 +3785,11 @@
             
             // systemUsersから全ユーザーを動的に取得（新規ユーザー追加時も自動対応）
             const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-            
-            // デバッグログ：systemUsersの内容を確認
-            console.log('🔍 [MENTION DEBUG] systemUsers:', systemUsers);
-            console.log('🔍 [MENTION DEBUG] systemUsers length:', systemUsers.length);
-            
             const availableUsers = systemUsers.map(user => user.name).filter(name => name);
-            console.log('🔍 [MENTION DEBUG] availableUsers:', availableUsers);
             
             const filteredUsers = availableUsers.filter(user => 
                 user.toLowerCase().includes(query.toLowerCase())
             );
-            
-            console.log('🔍 [MENTION DEBUG] query:', query);
-            console.log('🔍 [MENTION DEBUG] filteredUsers:', filteredUsers);
             
             if (filteredUsers.length === 0) {
                 hideMentionSuggestions();
@@ -4425,11 +4416,12 @@
                 editingTask.memo = memo;
                 editingTask.updatedAt = new Date().toISOString(); // 更新時刻を記録
                 
-                // プロジェクト情報を更新
+                // プロジェクト情報を更新（編集時は既存情報を保持）
                 if (isProjectTask) {
                     editingTask.projectId = projectId;
                     editingTask.projectName = projectName;
-                } else {
+                } else if (!editingTask.projectId) {
+                    // 新規作成時のみnullに設定、編集時は既存のプロジェクト情報を保持
                     editingTask.projectId = null;
                     editingTask.projectName = null;
                 }
@@ -5641,8 +5633,7 @@
         
         // Slack通知機能初期化
         function initializeSlackNotification() {
-            // Slack通知テストを実行
-            testSlackNotification();
+            // 初期化時の自動テスト通知は無効化
         }
         
         // FCM削除: Firebase Cloud Messaging機能を完全削除
