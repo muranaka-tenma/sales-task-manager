@@ -4152,13 +4152,15 @@
             
             console.log('🔔 [TASK-CREATE] 通知対象:', targetUsers);
             
-            const message = `📝 新しいタスクが作成されました: 「${task.title}」\n\n作成者: ${currentUser.name}\n担当者: ${assignees.join(', ')}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
+            // 複数担当者を1つの通知にまとめて送信
+            const mentionText = targetUsers.map(user => `@${user}`).join(' ');
+            const message = `${mentionText} 新しいタスクが作成されました: 「${task.title}」\n\n作成者: ${currentUser.name}\n担当者: ${assignees.join(', ')}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
             
-            targetUsers.forEach(targetUser => {
-                showNotification('📝 タスク作成通知', message, {
-                    taskId: task.id,
-                    targetUser: targetUser
-                });
+            // 統合通知として1回だけ送信
+            showNotification('📝 タスク作成通知', message, {
+                taskId: task.id,
+                targetUser: 'multiple',
+                mentionUsers: targetUsers
             });
         }
         
@@ -4184,17 +4186,19 @@
                     const targetUsers = project.members.filter(member => member !== currentUser.name);
                     
                     if (targetUsers.length > 0) {
-                        const message = `📎 「${task.title}」に${fileCount}個のファイルが添付されました\n\nプロジェクト: ${task.projectName}\n添付者: ${currentUser.name}\nファイル: ${fileNames}`;
+                        // 複数メンバーを1つの通知にまとめて送信
+                        const mentionText = targetUsers.map(user => `@${user}`).join(' ');
+                        const message = `${mentionText} 「${task.title}」に${fileCount}個のファイルが添付されました\n\nプロジェクト: ${task.projectName}\n添付者: ${currentUser.name}\nファイル: ${fileNames}`;
                         
-                        targetUsers.forEach(targetUser => {
-                            showNotification('📎 ファイル添付通知', message, {
-                                taskId: task.id,
-                                targetUser: targetUser,
-                                projectId: task.projectId
-                            });
+                        // 統合通知として1回だけ送信
+                        showNotification('📎 ファイル添付通知', message, {
+                            taskId: task.id,
+                            targetUser: 'multiple',
+                            projectId: task.projectId,
+                            mentionUsers: targetUsers
                         });
                         
-                        console.log('📎 [FILE-ATTACH] プロジェクトメンバーに通知送信:', targetUsers);
+                        console.log('📎 [FILE-ATTACH] プロジェクトメンバーに統合通知送信:', targetUsers);
                     }
                 }
             } else if (task.assignees && task.assignees.length > 0) {
@@ -4202,16 +4206,18 @@
                 const targetUsers = task.assignees.filter(assignee => assignee !== currentUser.name);
                 
                 if (targetUsers.length > 0) {
-                    const message = `📎 「${task.title}」に${fileCount}個のファイルが添付されました\n\n添付者: ${currentUser.name}\nファイル: ${fileNames}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
+                    // 複数担当者を1つの通知にまとめて送信
+                    const mentionText = targetUsers.map(user => `@${user}`).join(' ');
+                    const message = `${mentionText} 「${task.title}」に${fileCount}個のファイルが添付されました\n\n添付者: ${currentUser.name}\nファイル: ${fileNames}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
                     
-                    targetUsers.forEach(targetUser => {
-                        showNotification('📎 ファイル添付通知', message, {
-                            taskId: task.id,
-                            targetUser: targetUser
-                        });
+                    // 統合通知として1回だけ送信
+                    showNotification('📎 ファイル添付通知', message, {
+                        taskId: task.id,
+                        targetUser: 'multiple',
+                        mentionUsers: targetUsers
                     });
                     
-                    console.log('📎 [FILE-ATTACH] 担当者に通知送信:', targetUsers);
+                    console.log('📎 [FILE-ATTACH] 担当者に統合通知送信:', targetUsers);
                 }
             }
             
