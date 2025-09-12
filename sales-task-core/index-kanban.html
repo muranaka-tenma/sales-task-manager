@@ -4245,8 +4245,11 @@
                     );
                     console.log(`✅ [ASSIGN-NOTIFY] 個別通知送信: ${currentUser.name} → ${notifyUsers[0]}`);
                 } else {
-                    // 複数人の場合は統合通知
-                    const mentionText = notifyUsers.map(user => `@${user}`).join(' ');
+                    // 複数人の場合は統合通知（正しいSlackメンション使用）
+                    const mentionText = notifyUsers.map(user => {
+                        const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(user) : `@${user}`;
+                        return slackUsername;
+                    }).join(' ');
                     const integratedMessage = `${mentionText} さん、新しいタスクの担当者に設定されました\n\nタスク詳細:\nタイトル: ${task.title}\n期限: ${task.deadline || '未設定'}\n作成者: ${currentUser.name}\n\n全担当者: ${assignedUsers.join(', ')}`;
                     
                     showNotification(
@@ -4343,8 +4346,11 @@
             console.log('📎 [FILE-ATTACH] 重複排除後の通知対象者:', targetUsers);
             
             if (targetUsers.length > 0) {
-                // 複数ユーザーを1つの通知にまとめて送信（重複メンション排除済み）
-                const mentionText = targetUsers.map(user => `@${user}`).join(' ');
+                // 複数ユーザーを1つの通知にまとめて送信（重複メンション排除済み・正しいSlackメンション使用）
+                const mentionText = targetUsers.map(user => {
+                    const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(user) : `@${user}`;
+                    return slackUsername;
+                }).join(' ');
                 let message = `${mentionText} 「${task.title}」に${fileCount}個のファイルが添付されました\n\n添付者: ${currentUser.name}\nファイル: ${fileNames}`;
                 
                 // プロジェクト情報があれば追加
@@ -5954,8 +5960,11 @@
                 if (options.targetUser === 'multiple' && options.mentionUsers && Array.isArray(options.mentionUsers)) {
                     console.log(`🔔 [SLACK-AUTO] 複数ユーザー統合通知開始: ${options.mentionUsers.join(', ')}`);
                     
-                    // 複数メンション形式のメッセージを作成
-                    const mentionText = options.mentionUsers.map(user => `@${user}`).join(' ');
+                    // 複数メンション形式のメッセージを作成（正しいSlackメンション使用）
+                    const mentionText = options.mentionUsers.map(user => {
+                        const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(user) : `@${user}`;
+                        return slackUsername;
+                    }).join(' ');
                     const integratedBody = `${mentionText} ${body}`;
                     
                     // 代表して最初のユーザーのメールアドレスを使用してSlack送信
