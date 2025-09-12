@@ -3930,7 +3930,7 @@
                 console.log('📝 [COMMENT] render() completed');
                 
                 // メンション通知と一般コメント通知を統合して実行
-                checkUnifiedCommentNotifications(commentText, currentUser.name, editingTask.id);
+                checkUnifiedCommentNotifications(commentText, currentUser, editingTask.id);
             }
             
             // 入力欄をクリア
@@ -4136,12 +4136,12 @@
         
         function checkMentionNotifications(text, author, taskId) {
             // ⚠️ [廃止] この関数は統合通知システム (checkUnifiedCommentNotifications) に置き換えられました
-            // 重複通知を防ぐため、この関数は無効化されています
-            console.log(`⚠️ [DEPRECATED] checkMentionNotifications は統合通知システムに置き換えられました`);
-            console.log(`🔄 [REDIRECT] 統合通知システムを呼び出します`);
+            // 重複通知を防ぐため、この関数は完全無効化されています
+            console.log(`⚠️ [DEPRECATED] checkMentionNotifications は無効化されました - 重複通知防止`);
+            console.log(`🚫 [BLOCKED] 統合通知システムが既に実行済みのため、通知をスキップします`);
             
-            // 統合通知システムにリダイレクト
-            checkUnifiedCommentNotifications(text, author, taskId);
+            // 何もしない - 重複通知を完全に防ぐ
+            return;
         }
         
         // 一般コメント通知関数（統合通知システムに置き換え済み）
@@ -4961,6 +4961,9 @@
             console.log('🎨 [EDIT SAVE] render() completed');
             
             // 編集保存時の通知処理（ファイル添付は既に通知済みなので、コメント通知のみ）
+            // 🚫 [無効化] 統合通知システムが既にaddComment内で実行されているため、重複通知を防ぐために無効化
+            console.log(`🚫 [SAVE] コメント通知はaddComment()内で実行済み - 重複防止のためスキップ`);
+            /*
             if (editingTask && editingTask.comments && editingTask.comments.length > 0 && attachments.length === 0) {
                 // 最新のコメントでメンション通知をチェック（ファイル添付のみの場合は除外）
                 const latestComment = editingTask.comments[editingTask.comments.length - 1];
@@ -4973,6 +4976,7 @@
                     checkMentionNotifications(latestComment.text, latestComment.author, editingTask.id);
                 }
             }
+            */
             
             // タスク作成・編集後に即座に期限チェック
             setTimeout(() => checkDeadlines(), 100);
