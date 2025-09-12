@@ -3968,23 +3968,41 @@
             // 通知対象者を統合して決定
             const allNotifyTargets = new Set();
             
-            // 1. 担当者を追加（作成者以外）
+            // 🔧 現在のユーザー（コメント作成者）の情報を取得
+            const currentUser = getCurrentUser();
+            const currentUserIdentifiers = [
+                currentUser?.name,
+                currentUser?.email,
+                currentUser?.id,
+                author // コメント作成者も除外対象
+            ].filter(Boolean);
+            
+            console.log(`🔍 [COMMENT-FILTER] 除外対象: ${currentUserIdentifiers.join(', ')}`);
+            
+            // 1. 担当者を追加（現在ユーザー以外）
             assignees.forEach(assignee => {
-                if (assignee !== author) {
+                const isNotCurrentUser = !currentUserIdentifiers.includes(assignee);
+                console.log(`🔍 [COMMENT-FILTER] 担当者 ${assignee}: 現在ユーザーでない=${isNotCurrentUser}`);
+                if (isNotCurrentUser) {
                     allNotifyTargets.add(assignee);
                 }
             });
             
-            // 2. 承認者を追加（作成者以外）  
+            // 2. 承認者を追加（現在ユーザー以外）  
             approvers.forEach(approver => {
-                if (approver !== author) {
+                const isNotCurrentUser = !currentUserIdentifiers.includes(approver);
+                console.log(`🔍 [COMMENT-FILTER] 承認者 ${approver}: 現在ユーザーでない=${isNotCurrentUser}`);
+                if (isNotCurrentUser) {
                     allNotifyTargets.add(approver);
                 }
             });
             
-            // 3. メンション対象者を追加（担当者リストに存在し、作成者以外）
+            // 3. メンション対象者を追加（担当者リストに存在し、現在ユーザー以外）
             mentionedUsers.forEach(mentionedUser => {
-                if (assignees.includes(mentionedUser) && mentionedUser !== author) {
+                const isInAssignees = assignees.includes(mentionedUser);
+                const isNotCurrentUser = !currentUserIdentifiers.includes(mentionedUser);
+                console.log(`🔍 [COMMENT-FILTER] メンション ${mentionedUser}: 担当者=${isInAssignees}, 現在ユーザーでない=${isNotCurrentUser}`);
+                if (isInAssignees && isNotCurrentUser) {
                     allNotifyTargets.add(mentionedUser);
                 }
             });
@@ -4140,7 +4158,7 @@
             const currentUser = getCurrentUser();
             if (!currentUser || !currentUser.name) return;
             
-            // 担当者と承認者から作成者を除外して通知対象を決定
+            // 担当者と承認者の通知対象を決定（作成者も担当者なら含める）
             const notifyTargets = new Set();
             
             // タスクの担当者
@@ -4277,13 +4295,23 @@
                 return;
             }
             
-            // 重複排除：担当者配列から作成者を除外し、重複も排除
+            // 重複排除：担当者配列の重複を排除し、現在のユーザーを除外（自身への通知を防ぐ）
             const uniqueTargetUsers = Array.from(new Set(
-                assignees.filter(assignee => assignee && assignee !== currentUser.name)
+                assignees.filter(assignee => {
+                    const isValidAssignee = assignee && assignee.trim() !== '';
+                    const isNotCurrentUser = (
+                        assignee !== currentUser.name &&
+                        assignee !== currentUser.email &&
+                        assignee !== currentUser.id
+                    );
+                    console.log(`🔍 [CREATE-FILTER] ${assignee}: 有効=${isValidAssignee}, 現在ユーザーでない=${isNotCurrentUser}`);
+                    return isValidAssignee && isNotCurrentUser;
+                })
             ));
             
             console.log('🔔 [TASK-CREATE] 元の担当者:', assignees);
-            console.log('🔔 [TASK-CREATE] 重複排除後の通知対象:', uniqueTargetUsers);
+            console.log('🔔 [TASK-CREATE] フィルター後の通知対象:', uniqueTargetUsers);
+            console.log(`🔔 [TASK-CREATE] 現在のユーザー: ${currentUser.name} (正しく除外)`);
             
             if (uniqueTargetUsers.length === 0) {
                 console.log('🔔 [TASK-CREATE] 通知対象者なし（自分のみのタスク）');
@@ -4326,9 +4354,16 @@
                 
                 if (project && project.members) {
                     project.members.forEach(member => {
-                        if (member !== currentUser.name) {
+                        // 🔧 現在ユーザーの除外を強化（名前・メール・IDの全てをチェック）
+                        const isNotCurrentUser = (
+                            member !== currentUser.name &&
+                            member !== currentUser.email &&
+                            member !== currentUser.id
+                        );
+                        if (isNotCurrentUser) {
                             allNotifyTargets.add(member);
                         }
+                        console.log(`🔍 [FILE-FILTER] ${member}: 現在ユーザーでない=${isNotCurrentUser}`);
                     });
                 }
             }
@@ -4336,9 +4371,16 @@
             // 担当者も追加（プロジェクトメンバーと重複する場合は自動的に排除される）
             if (task.assignees && task.assignees.length > 0) {
                 task.assignees.forEach(assignee => {
-                    if (assignee !== currentUser.name) {
+                    // 🔧 現在ユーザーの除外を強化（名前・メール・IDの全てをチェック）
+                    const isNotCurrentUser = (
+                        assignee !== currentUser.name &&
+                        assignee !== currentUser.email &&
+                        assignee !== currentUser.id
+                    );
+                    if (isNotCurrentUser) {
                         allNotifyTargets.add(assignee);
                     }
+                    console.log(`🔍 [FILE-FILTER] ${assignee}: 現在ユーザーでない=${isNotCurrentUser}`);
                 });
             }
             
@@ -5960,27 +6002,67 @@
                 if (options.targetUser === 'multiple' && options.mentionUsers && Array.isArray(options.mentionUsers)) {
                     console.log(`🔔 [SLACK-AUTO] 複数ユーザー統合通知開始: ${options.mentionUsers.join(', ')}`);
                     
+                    // 現在のユーザーを除外（自身への通知を防ぐ）
+                    const currentUser = getCurrentUser();
+                    const filteredMentionUsers = options.mentionUsers.filter(user => {
+                        const isNotCurrentUser = (
+                            user !== currentUser?.name &&
+                            user !== currentUser?.email &&
+                            user !== currentUser?.id
+                        );
+                        console.log(`🔍 [MENTION-FILTER] ${user}: 現在ユーザーでない = ${isNotCurrentUser}`);
+                        return isNotCurrentUser;
+                    });
+                    
+                    if (filteredMentionUsers.length === 0) {
+                        console.log(`❌ [SLACK-AUTO] 通知対象者なし（全て自分への割り当て）- 通知スキップ`);
+                        return;
+                    }
+                    
+                    console.log(`🔔 [SLACK-AUTO] フィルター後の通知対象: ${filteredMentionUsers.join(', ')}`);
+                    
                     // 複数メンション形式のメッセージを作成（正しいSlackメンション使用）
-                    const mentionText = options.mentionUsers.map(user => {
+                    const mentionText = filteredMentionUsers.map(user => {
                         const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(user) : `@${user}`;
                         return slackUsername;
                     }).join(' ');
-                    const integratedBody = `${mentionText} ${body}`;
+                    
+                    // 🔧 メンション重複を防ぐため、bodyからメンション文字列を除去して統合
+                    let cleanedBody = body;
+                    // body内の既存メンション（@ユーザー名形式）を除去
+                    filteredMentionUsers.forEach(user => {
+                        const patterns = [
+                            new RegExp(`@${user.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`, 'g'),
+                            new RegExp(`@${user.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'g')
+                        ];
+                        patterns.forEach(pattern => {
+                            cleanedBody = cleanedBody.replace(pattern, '');
+                        });
+                    });
+                    
+                    // 先頭と末尾の余分なスペースを削除
+                    cleanedBody = cleanedBody.trim().replace(/^\s+/, '');
+                    
+                    const integratedBody = `${mentionText} ${cleanedBody}`;
+                    
+                    console.log(`🔧 [MENTION-FIX] 元のメッセージ: "${body}"`);
+                    console.log(`🔧 [MENTION-FIX] クリーン後: "${cleanedBody}"`);
+                    console.log(`🔧 [MENTION-FIX] 統合メッセージ: "${integratedBody}"`);
                     
                     // 代表して最初のユーザーのメールアドレスを使用してSlack送信
-                    const representativeEmail = getEmailByUserName(options.mentionUsers[0]);
+                    const representativeEmail = getEmailByUserName(filteredMentionUsers[0]);
                     
                     if (representativeEmail) {
                         console.log(`🔔 [SLACK-AUTO] 統合通知送信: ${representativeEmail} (代表)`);
                         await sendSlackNotification(representativeEmail, title, integratedBody, {
                             ...options,
-                            targetUser: options.mentionUsers[0],
+                            targetUser: filteredMentionUsers[0],
                             targetEmail: representativeEmail,
                             isIntegratedNotification: true,
-                            allTargetUsers: options.mentionUsers
+                            allTargetUsers: filteredMentionUsers
                         });
                     } else {
-                        console.error(`❌ [SLACK-AUTO] 代表ユーザーのメールアドレスが取得できません: ${options.mentionUsers[0]}`);
+                        console.error(`❌ [SLACK-AUTO] 代表ユーザーのメールアドレスが取得できません: ${filteredMentionUsers[0]}`);
                     }
                     return;
                 }
@@ -12741,13 +12823,22 @@
                     notifyUsers.add(task.assignee);
                 }
                 
-                // 移動者自身は通知対象から除外（自分の操作なので）
-                notifyUsers.delete(currentUser.name);
+                // 🔧 現在のユーザーを通知対象から除外（自身への通知を防ぐ）
+                const filteredNotifyUsers = Array.from(notifyUsers).filter(user => {
+                    const isNotCurrentUser = (
+                        user !== currentUser.name &&
+                        user !== currentUser.email &&
+                        user !== currentUser.id
+                    );
+                    console.log(`🔍 [MOVE-FILTER] ${user}: 現在ユーザーでない = ${isNotCurrentUser}`);
+                    return isNotCurrentUser;
+                });
                 
-                const notifyUsersList = Array.from(notifyUsers);
+                const notifyUsersList = filteredNotifyUsers;
                 
-                console.log(`🔔 [SLACK-MOVE] 通知対象ユーザー:`, notifyUsersList);
-                console.log(`🔔 [SLACK-MOVE] 現在のユーザー: ${currentUser.name} (除外済み)`);
+                console.log(`🔔 [SLACK-MOVE] 元の通知対象者:`, Array.from(notifyUsers));
+                console.log(`🔔 [SLACK-MOVE] フィルター後通知対象ユーザー:`, notifyUsersList);
+                console.log(`🔔 [SLACK-MOVE] 現在のユーザー: ${currentUser.name} (正しく除外)`);
                 
                 // 通知メッセージ作成
                 const notificationTitle = `📦 タスク移動通知`;
