@@ -121,22 +121,22 @@ class SlackNotificationService {
             ]
         };
         
-        // タスク情報がある場合は追加
-        if (task) {
-            message.blocks.push({
-                type: "section",
-                fields: [
-                    {
-                        type: "mrkdwn",
-                        text: `*タスク:*\n${task.title}`
-                    },
-                    {
-                        type: "mrkdwn",
-                        text: `*期限:*\n${task.deadline || '未設定'}`
-                    }
-                ]
-            });
-        }
+        // 🔧 タスク情報は非表示（よりシンプルに）
+        // if (task) {
+        //     message.blocks.push({
+        //         type: "section", 
+        //         fields: [
+        //             {
+        //                 type: "mrkdwn",
+        //                 text: `*タスク:*\n${task.title}`
+        //             },
+        //             {
+        //                 type: "mrkdwn", 
+        //                 text: `*期限:*\n${task.deadline || '未設定'}`
+        //             }
+        //         ]
+        //     });
+        // }
         
         // アクションボタンを追加
         message.blocks.push({
