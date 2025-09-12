@@ -102,10 +102,6 @@ class SlackNotificationService {
                     fields: [
                         {
                             type: "mrkdwn",
-                            text: `*通知先:*\n${slackMention || options.targetUser || '全体'}`
-                        },
-                        {
-                            type: "mrkdwn",
                             text: `*送信者:*\n${currentUser.name}`
                         }
                     ]
