@@ -3913,7 +3913,15 @@
                 }
                 
                 console.log('📝 [COMMENT] About to save tasks and render');
+                
+                // 🔧 コメント追加による保存であることをマーク（重複通知防止）
+                window.isCommentSaveOperation = true;
                 saveTasks();
+                // フラグは短時間後にリセット（Firebase onSnapshotの処理後）
+                setTimeout(() => {
+                    window.isCommentSaveOperation = false;
+                }, 1000);
+                
                 displayComments(editingTask.comments);
                 
                 console.log('📝 [COMMENT] About to call render()');
@@ -4344,7 +4352,7 @@
                         const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(user) : `@${user}`;
                         return slackUsername;
                     }).join(' ');
-                    const integratedMessage = `${mentionText} さん、新しいタスクの担当者に設定されました\n\nタスク詳細:\nタイトル: ${task.title}\n期限: ${task.deadline || '未設定'}\n作成者: ${currentUser.name}\n\n全担当者: ${assignedUsers.join(', ')}`;
+                    const integratedMessage = `さん、新しいタスクの担当者に設定されました\n\nタスク詳細:\nタイトル: ${task.title}\n期限: ${task.deadline || '未設定'}\n作成者: ${currentUser.name}\n\n全担当者: ${assignedUsers.join(', ')}`;
                     
                     showNotification(
                         '👥 複数担当者割り当て通知',
@@ -4464,12 +4472,8 @@
             console.log('📎 [FILE-ATTACH] 重複排除後の通知対象者:', targetUsers);
             
             if (targetUsers.length > 0) {
-                // 複数ユーザーを1つの通知にまとめて送信（重複メンション排除済み・正しいSlackメンション使用）
-                const mentionText = targetUsers.map(user => {
-                    const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(user) : `@${user}`;
-                    return slackUsername;
-                }).join(' ');
-                let message = `${mentionText} 「${task.title}」に${fileCount}個のファイルが添付されました\n\n添付者: ${currentUser.name}\nファイル: ${fileNames}`;
+                // 🔧 showNotification内でメンション処理するため、ここではmessageのみ作成
+                let message = `「${task.title}」に${fileCount}個のファイルが添付されました\n\n添付者: ${currentUser.name}\nファイル: ${fileNames}`;
                 
                 // プロジェクト情報があれば追加
                 if (task.projectId && task.projectName) {
