@@ -80,6 +80,11 @@ class SlackNotificationService {
         const currentUser = getCurrentUser ? getCurrentUser() : { name: 'システム' };
         const task = options.taskId && window.tasks ? window.tasks.find(t => t.id === options.taskId) : null;
         
+        // 🔧 デバッグ情報を出力
+        console.log(`🔍 [SLACK-MESSAGE] タイトル: "${title}"`);
+        console.log(`🔍 [SLACK-MESSAGE] ボディ: "${body}"`);
+        console.log(`🔍 [SLACK-MESSAGE] オプション:`, options);
+        
         // メンション用のSlackユーザー名を取得
         let slackMention = '';
         if (options.targetUser && window.SlackConfig) {
@@ -87,7 +92,7 @@ class SlackNotificationService {
         }
         
         const message = {
-            text: title,  // 🔧 タイトルのみ（メンション重複を防ぐ）
+            text: body,  // 🔧 メンション付きbodyを使用（titleではなく）
             blocks: [
                 {
                     type: "header",
