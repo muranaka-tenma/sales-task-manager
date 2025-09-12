@@ -3968,8 +3968,7 @@
             // 通知対象者を統合して決定
             const allNotifyTargets = new Set();
             
-            // 🔧 現在のユーザー（コメント作成者）の情報を取得
-            const currentUser = getCurrentUser();
+            // 🔧 現在のユーザー（コメント作成者）の情報を取得（既に上で取得済み）
             const currentUserIdentifiers = [
                 currentUser?.name,
                 currentUser?.email,
