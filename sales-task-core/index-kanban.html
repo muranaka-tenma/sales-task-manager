@@ -12812,19 +12812,43 @@
                     approvers: task.approvers
                 });
                 
-                // 通知対象者を集める（承認者 + 担当者）
+                // 通知対象者を集める（承認者 + 担当者 + プロジェクトメンバー）
                 const notifyUsers = new Set();
+                
+                // プロジェクトタスクの場合はプロジェクトメンバーを追加
+                if (task.projectId && task.projectName) {
+                    console.log(`🔔 [SLACK-MOVE] プロジェクトタスク検出: ${task.projectName} (${task.projectId})`);
+                    const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                    const project = projects.find(p => p.id === task.projectId);
+                    
+                    if (project && project.members) {
+                        project.members.forEach(member => {
+                            notifyUsers.add(member);
+                            console.log(`🔔 [SLACK-MOVE] プロジェクトメンバー追加: ${member}`);
+                        });
+                        console.log(`🔔 [SLACK-MOVE] プロジェクトメンバー合計: ${project.members.length}人`);
+                    } else {
+                        console.log(`⚠️ [SLACK-MOVE] プロジェクトが見つからないか、メンバー情報なし`);
+                    }
+                }
                 
                 // 承認者を追加
                 if (task.approvers && task.approvers.length > 0) {
-                    task.approvers.forEach(approver => notifyUsers.add(approver));
+                    task.approvers.forEach(approver => {
+                        notifyUsers.add(approver);
+                        console.log(`🔔 [SLACK-MOVE] 承認者追加: ${approver}`);
+                    });
                 }
                 
                 // 担当者を追加
                 if (task.assignees && task.assignees.length > 0) {
-                    task.assignees.forEach(assignee => notifyUsers.add(assignee));
+                    task.assignees.forEach(assignee => {
+                        notifyUsers.add(assignee);
+                        console.log(`🔔 [SLACK-MOVE] 担当者追加: ${assignee}`);
+                    });
                 } else if (task.assignee) {
                     notifyUsers.add(task.assignee);
+                    console.log(`🔔 [SLACK-MOVE] 担当者追加（旧形式）: ${task.assignee}`);
                 }
                 
                 // 🔧 タスク移動通知の場合、自分も含めて全員に通知（情報共有のため）
