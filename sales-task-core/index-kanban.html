@@ -4019,6 +4019,13 @@
             console.log(`🔍 [UNIFIED-NOTIFY] 統合通知対象者:`, targetUsers);
             
             if (targetUsers.length === 0) {
+                // 🔧 メンションが存在するが全て自分の場合は通知を送信しない
+                if (mentionedUsers.length > 0 && selfMentioned) {
+                    console.log('🔕 [UNIFIED-NOTIFY] 自分のみをメンション - 通知送信をスキップ');
+                    return;
+                }
+                
+                // メンションがない場合のみ全体通知を実行
                 console.log('🔔 [UNIFIED-NOTIFY] 通知対象者なし - 全体通知を実行');
                 
                 const generalMessage = `💬 ${author}さんが「${task.title}」にコメントしました\n\n「${commentText}」\n\n担当者: ${assignees.join(', ') || '未設定'}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
