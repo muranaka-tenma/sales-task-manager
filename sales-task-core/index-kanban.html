@@ -4042,33 +4042,85 @@
             const hasMentions = mentionedUsers.length > 0;
             const notificationTitle = hasMentions ? '💬 メンション・コメント通知' : '💬 コメント通知';
             
-            // 🔧 コメント通知は担当者全員に送信し、メンション内容を明確化
+            // 🔧 理想的なコメント通知形式を実装
+            function extractMentionMessages(text) {
+                // @ユーザー名とその後のメッセージを抽出
+                const mentionPairs = [];
+                const mentionPattern = /@([^\s@]+)/g;
+                let lastIndex = 0;
+                let match;
+                
+                const matches = [];
+                while ((match = mentionPattern.exec(text)) !== null) {
+                    matches.push({
+                        user: match[1],
+                        index: match.index,
+                        fullMatch: match[0]
+                    });
+                }
+                
+                for (let i = 0; i < matches.length; i++) {
+                    const currentMatch = matches[i];
+                    const nextMatch = matches[i + 1];
+                    
+                    // メンション後のテキストを抽出（次のメンションまで、または末尾まで）
+                    const startPos = currentMatch.index + currentMatch.fullMatch.length;
+                    const endPos = nextMatch ? nextMatch.index : text.length;
+                    const message = text.substring(startPos, endPos).trim();
+                    
+                    if (message) {
+                        mentionPairs.push({
+                            user: currentMatch.user,
+                            message: message
+                        });
+                    }
+                }
+                
+                return mentionPairs;
+            }
+            
             let notificationMessage;
             
             if (hasMentions) {
-                // メンション付きコメントの場合
-                notificationMessage = `${author}さんが「${task.title}」にメンション付きコメントしました\n\n`;
-                notificationMessage += `📝 **コメント内容:**\n「${commentText}」\n\n`;
-                notificationMessage += `👤 **メンション対象:** ${mentionedUsers.join(', ')}\n`;
-                notificationMessage += `(上記の方々に直接メンションされています)\n\n`;
+                // メンション解析
+                const mentionPairs = extractMentionMessages(commentText);
+                
+                // 担当者全員への概要通知
+                const assigneeMentions = assignees.map(name => {
+                    const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(name) : `@${name}`;
+                    return slackUsername;
+                }).join(' ');
+                
+                notificationMessage = `${assigneeMentions}\n`;
+                notificationMessage += `タスク「${task.title}」に${author}さんからコメントがありました\n\n`;
+                
+                // 個別メンション部分を追加
+                mentionPairs.forEach(pair => {
+                    const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(pair.user) : `@${pair.user}`;
+                    notificationMessage += `${slackUsername}\n${pair.message}\n\n`;
+                });
+                
+                // 余分な改行を削除
+                notificationMessage = notificationMessage.trim();
+                
             } else {
-                // 通常のコメントの場合  
-                notificationMessage = `${author}さんが「${task.title}」にコメントしました\n\n`;
-                notificationMessage += `📝 **コメント内容:**\n「${commentText}」\n\n`;
+                // 通常のコメント（メンションなし）
+                const assigneeMentions = assignees.map(name => {
+                    const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(name) : `@${name}`;
+                    return slackUsername;
+                }).join(' ');
+                
+                notificationMessage = `${assigneeMentions}\n`;
+                notificationMessage += `タスク「${task.title}」に${author}さんからコメントがありました\n\n`;
+                notificationMessage += `${commentText}`;
             }
             
-            notificationMessage += `👥 **担当者:** ${assignees.join(', ') || '未設定'}\n`;
-            notificationMessage += `⏰ **期限:** ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
-            
-            // 🔧 担当者全員に通知（誰に何を送っているかが明確）
+            // 🔧 シンプルな統合通知（余計な情報は削除）
             showNotification(notificationTitle, notificationMessage, {
                 taskId: taskId,
-                targetUser: 'multiple',
-                mentionUsers: assignees, // 担当者全員に通知
-                type: 'unified_comment',
-                hasMentions: hasMentions,
-                mentionedUsers: mentionedUsers,
-                originalTargets: targetUsers // 元のメンション対象を保持
+                targetUser: 'all', // シンプルに全体通知として送信
+                type: 'structured_comment',
+                hasMentions: hasMentions
             });
             
             console.log(`✅ [UNIFIED-NOTIFY] 統合通知送信完了: ${targetUsers.length}人に1つの通知`);
