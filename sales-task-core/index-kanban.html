@@ -4274,26 +4274,30 @@
                 return;
             }
             
-            // 作成者以外の担当者に通知
-            const targetUsers = assignees.filter(assignee => assignee !== currentUser.name);
+            // 重複排除：担当者配列から作成者を除外し、重複も排除
+            const uniqueTargetUsers = Array.from(new Set(
+                assignees.filter(assignee => assignee && assignee !== currentUser.name)
+            ));
             
-            if (targetUsers.length === 0) {
+            console.log('🔔 [TASK-CREATE] 元の担当者:', assignees);
+            console.log('🔔 [TASK-CREATE] 重複排除後の通知対象:', uniqueTargetUsers);
+            
+            if (uniqueTargetUsers.length === 0) {
                 console.log('🔔 [TASK-CREATE] 通知対象者なし（自分のみのタスク）');
                 return;
             }
             
-            console.log('🔔 [TASK-CREATE] 通知対象:', targetUsers);
+            // メッセージ作成（重複メンション排除済み）
+            const message = `新しいタスクが作成されました: 「${task.title}」\n\n作成者: ${currentUser.name}\n担当者: ${assignees.join(', ')}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
             
-            // 複数担当者を1つの通知にまとめて送信
-            const mentionText = targetUsers.map(user => `@${user}`).join(' ');
-            const message = `${mentionText} 新しいタスクが作成されました: 「${task.title}」\n\n作成者: ${currentUser.name}\n担当者: ${assignees.join(', ')}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
-            
-            // 統合通知として1回だけ送信
+            // 統合通知として1回だけ送信（showNotification内でメンションテキストを生成）
             showNotification('📝 タスク作成通知', message, {
                 taskId: task.id,
                 targetUser: 'multiple',
-                mentionUsers: targetUsers
+                mentionUsers: uniqueTargetUsers
             });
+            
+            console.log(`✅ [TASK-CREATE] 統合通知送信完了: ${uniqueTargetUsers.length}人に1つの通知`);
         }
         
         // ファイル添付通知関数
@@ -4361,13 +4365,7 @@
                 console.log(`📎 [FILE-ATTACH] 統合通知送信完了: ${targetUsers.length}人に1つの通知（重複排除済み）`);
             }
             
-            // 全体通知（ファイル添付はプロジェクトに関係なく全体に通知）
-            const generalMessage = `📎 ${currentUser.name}さんが「${task.title}」に${fileCount}個のファイルを添付しました\n\nファイル: ${fileNames}`;
-            
-            showNotification('📎 ファイル添付通知', generalMessage, {
-                taskId: task.id,
-                targetUser: 'all'
-            });
+            // 全体通知は廃止 - 関係者のみの統合通知で十分
             
             console.log('📎 [FILE-ATTACH] ファイル添付通知完了');
         }
@@ -4750,11 +4748,11 @@
                     console.log('✅ [COMMENT] コメントをタスクに追加完了');
                 }
                 
-                // タスク作成通知（新機能）
+                // タスク作成通知（統合通知対応済み）
                 sendTaskCreationNotification(newTask, selectedAssignees);
                 
-                // 共同タスク作成時の通知
-                checkCollaborativeTaskNotifications(newTask, selectedAssignees);
+                // ⚠️ [廃止] checkCollaborativeTaskNotifications は重複通知の原因となるため無効化
+                // sendTaskCreationNotification で統合通知として処理済み
             }
             
             console.log('💾 [EDIT SAVE] About to save tasks and render');
@@ -12769,23 +12767,29 @@
                     return;
                 }
                 
-                // 各対象者に通知を送信
-                notifyUsersList.forEach(user => {
-                    console.log(`🔔 [SLACK-MOVE] ${user}にSlack通知送信中...`);
+                // 統合通知として1回だけ送信（個別送信を廃止）
+                if (notifyUsersList.length > 0) {
+                    console.log(`🔔 [SLACK-MOVE] 統合通知送信開始: ${notifyUsersList.length}人への統合通知`);
+                    
+                    const mentionText = notifyUsersList.map(user => `@${user}`).join(' ');
+                    const integratedMessage = `${mentionText} ${notificationBody}`;
                     
                     showNotification(
                         notificationTitle,
-                        `${user}さんへ\n${notificationBody}`,
+                        integratedMessage,
                         {
                             tag: `move-${task.id}-${Date.now()}`,
                             taskId: task.id,
-                            targetUser: user,
+                            targetUser: 'multiple',
+                            mentionUsers: notifyUsersList,
                             type: 'task_move'
                         }
                     );
-                });
-                
-                console.log(`✅ [SLACK-MOVE] Slack通知送信完了: ${notifyUsersList.join(', ')}`);
+                    
+                    console.log(`✅ [SLACK-MOVE] 統合通知送信完了: ${notifyUsersList.length}人に1つの通知`);
+                } else {
+                    console.log('📝 [SLACK-MOVE] 通知対象者なし、通知送信をスキップ');
+                }
                 
             } catch (error) {
                 console.error('❌ [SLACK-MOVE] Slack通知エラー:', error);
