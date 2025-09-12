@@ -1868,8 +1868,8 @@
                     console.error('🚨 [INIT] 緊急警告: 保存直後に全ユーザーがuserになっています！');
                 }
                 
-                // 担当者リストも初期化
-                const assignees = systemUsers.map(u => u.name);
+                // 担当者リストも初期化（有効ユーザーのみ）
+                const assignees = systemUsers.map(u => u.name); // 初期化時は全ユーザー追加
                 // 担当者リストはFirestoreで管理される
                 
                 // 権限確認ログ
@@ -1881,11 +1881,12 @@
                 });
             } else {
                 
-                // 🔧 担当者リストをsystemUsersから自動更新
-                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                if (systemUsers.length > 0) {
-                    const assignees = systemUsers.map(u => u.name);
+                // 🔧 担当者リストをsystemUsersから自動更新（有効ユーザーのみ）
+                const activeUsers = getActiveUsers();
+                if (activeUsers.length > 0) {
+                    const assignees = activeUsers.map(u => u.name);
                     // 担当者リストはFirestoreで管理される
+                    console.log(`👥 [UPDATE] 有効な担当者: ${assignees.join(', ')}`);
                 }
                 
                 // 権限の完全性チェック（権限リセット防止）
@@ -1896,6 +1897,21 @@
         // 権限チェック実行中フラグ（重複実行防止）
         let permissionCheckInProgress = false;
         let lastPermissionCheckTime = 0;
+        
+        // 🔧 有効なユーザーのみを取得する共通関数（非表示・無効化ユーザーを除外）
+        function getActiveUsers() {
+            const allUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const activeUsers = allUsers.filter(user => 
+                !user.isHidden && !user.isDisabled
+            );
+            console.log(`👥 [ACTIVE-USERS] ${allUsers.length}人中 ${activeUsers.length}人が有効`);
+            return activeUsers;
+        }
+        
+        // 有効なユーザー名のリストを取得（担当者選択等で使用）
+        function getActiveUserNames() {
+            return getActiveUsers().map(u => u.name);
+        }
         
         // 権限の完全性を保証する関数（権限リセット防止）
         function ensureUserPermissionsIntegrity() {
@@ -6668,12 +6684,13 @@
             setTimeout(() => {
                 updateHamburgerMenu();
                 
-                // 担当者リストをsystemUsersから自動更新
-                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                if (systemUsers.length > 0) {
-                    assignees = systemUsers.map(u => u.name);
+                // 担当者リストをsystemUsersから自動更新（有効ユーザーのみ）
+                const activeUsers = getActiveUsers();
+                if (activeUsers.length > 0) {
+                    assignees = activeUsers.map(u => u.name);
                     window.assignees = assignees;
                     // 担当者リストはFirestoreで管理される
+                    console.log(`👥 [RENDER] 有効な担当者更新: ${assignees.join(', ')}`);
                 }
                 
                 // 画面上部のユーザー表示更新
