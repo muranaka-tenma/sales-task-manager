@@ -3973,38 +3973,47 @@
                 currentUser?.name,
                 currentUser?.email,
                 currentUser?.id,
-                author // コメント作成者も除外対象
+                author // コメント作成者
             ].filter(Boolean);
             
+            // 🔧 自分をメンションした場合は通知対象に含める
+            const selfMentioned = mentionedUsers.some(mentionedUser => 
+                currentUserIdentifiers.includes(mentionedUser)
+            );
+            
             console.log(`🔍 [COMMENT-FILTER] 除外対象: ${currentUserIdentifiers.join(', ')}`);
+            console.log(`🔍 [COMMENT-FILTER] 自分メンション: ${selfMentioned}`);
             
-            // 1. 担当者を追加（現在ユーザー以外）
-            assignees.forEach(assignee => {
-                const isNotCurrentUser = !currentUserIdentifiers.includes(assignee);
-                console.log(`🔍 [COMMENT-FILTER] 担当者 ${assignee}: 現在ユーザーでない=${isNotCurrentUser}`);
-                if (isNotCurrentUser) {
-                    allNotifyTargets.add(assignee);
-                }
-            });
-            
-            // 2. 承認者を追加（現在ユーザー以外）  
-            approvers.forEach(approver => {
-                const isNotCurrentUser = !currentUserIdentifiers.includes(approver);
-                console.log(`🔍 [COMMENT-FILTER] 承認者 ${approver}: 現在ユーザーでない=${isNotCurrentUser}`);
-                if (isNotCurrentUser) {
-                    allNotifyTargets.add(approver);
-                }
-            });
-            
-            // 3. メンション対象者を追加（担当者リストに存在し、現在ユーザー以外）
-            mentionedUsers.forEach(mentionedUser => {
-                const isInAssignees = assignees.includes(mentionedUser);
-                const isNotCurrentUser = !currentUserIdentifiers.includes(mentionedUser);
-                console.log(`🔍 [COMMENT-FILTER] メンション ${mentionedUser}: 担当者=${isInAssignees}, 現在ユーザーでない=${isNotCurrentUser}`);
-                if (isInAssignees && isNotCurrentUser) {
-                    allNotifyTargets.add(mentionedUser);
-                }
-            });
+            // 🔧 メンションがある場合は、メンション対象者のみに通知（自分は除外）
+            if (mentionedUsers.length > 0) {
+                console.log(`📧 [COMMENT-FILTER] メンション通知モード: ${mentionedUsers.join(', ')}`);
+                mentionedUsers.forEach(mentionedUser => {
+                    const isCurrentUser = currentUserIdentifiers.includes(mentionedUser);
+                    const shouldInclude = !isCurrentUser; // 自分は常に除外
+                    console.log(`🔍 [COMMENT-FILTER] メンション ${mentionedUser}: 現在ユーザー=${isCurrentUser}, 含める=${shouldInclude}`);
+                    if (shouldInclude) {
+                        allNotifyTargets.add(mentionedUser);
+                    }
+                });
+            } else {
+                // メンションがない場合は、担当者・承認者に通知（自分は除外）
+                console.log(`📧 [COMMENT-FILTER] 通常コメント通知モード`);
+                assignees.forEach(assignee => {
+                    const isNotCurrentUser = !currentUserIdentifiers.includes(assignee);
+                    console.log(`🔍 [COMMENT-FILTER] 担当者 ${assignee}: 現在ユーザーでない=${isNotCurrentUser}, 含める=${isNotCurrentUser}`);
+                    if (isNotCurrentUser) {
+                        allNotifyTargets.add(assignee);
+                    }
+                });
+                
+                approvers.forEach(approver => {
+                    const isNotCurrentUser = !currentUserIdentifiers.includes(approver);
+                    console.log(`🔍 [COMMENT-FILTER] 承認者 ${approver}: 現在ユーザーでない=${isNotCurrentUser}, 含める=${isNotCurrentUser}`);
+                    if (isNotCurrentUser) {
+                        allNotifyTargets.add(approver);
+                    }
+                });
+            }
             
             const targetUsers = Array.from(allNotifyTargets);
             console.log(`🔍 [UNIFIED-NOTIFY] 統合通知対象者:`, targetUsers);
