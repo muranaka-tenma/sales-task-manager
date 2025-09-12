@@ -3921,8 +3921,7 @@
                 render();
                 console.log('📝 [COMMENT] render() completed');
                 
-                // メンション通知と一般コメント通知を統合して実行
-                checkUnifiedCommentNotifications(commentText, currentUser.name, editingTask.id);
+                // メンション通知は編集保存時に実行するため、ここでは実行しない
             }
             
             // 入力欄をクリア
@@ -3933,120 +3932,10 @@
         // addComment関数をグローバルスコープに登録
         window.addComment = addComment;
         
-        // 統合コメント通知システム（メンション+コメント通知の重複を排除）
-        function checkUnifiedCommentNotifications(commentText, author, taskId) {
-            console.log(`🔍 [UNIFIED-NOTIFY] 統合通知チェック開始: "${commentText}" by ${author}`);
+        function checkMentionNotifications(text, author, taskId) {
+            console.log(`🔍 [MENTION] チェック開始: "${text}" by ${author}`);
             
             // タスクを取得
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) {
-                console.log(`❌ [UNIFIED-NOTIFY] タスクが見つかりません: ${taskId}`);
-                return;
-            }
-            
-            // 担当者リストを取得
-            const assignees = task.assignees || [];
-            const approvers = task.approvers || [];
-            
-            // 現在のログインユーザーを取得
-            const currentUser = getCurrentUser();
-            if (!currentUser || !currentUser.isLoggedIn) {
-                console.log('⚠️ [UNIFIED-NOTIFY] ユーザー未ログイン - 統合通知スキップ');
-                return;
-            }
-            
-            console.log(`🔍 [UNIFIED-NOTIFY] 現在のログインユーザー: ${currentUser.name}`);
-            console.log(`🔍 [UNIFIED-NOTIFY] コメント作成者: ${author}`);
-            
-            // @メンションを検出
-            const mentionPattern = /@([^\s@]+)/g;
-            const mentions = commentText.match(mentionPattern);
-            const mentionedUsers = mentions ? mentions.map(m => m.substring(1)) : [];
-            
-            console.log(`🔍 [UNIFIED-NOTIFY] 検出されたメンション:`, mentionedUsers);
-            
-            // 通知対象者を統合して決定
-            const allNotifyTargets = new Set();
-            
-            // 1. 担当者を追加（作成者以外）
-            assignees.forEach(assignee => {
-                if (assignee !== author) {
-                    allNotifyTargets.add(assignee);
-                }
-            });
-            
-            // 2. 承認者を追加（作成者以外）  
-            approvers.forEach(approver => {
-                if (approver !== author) {
-                    allNotifyTargets.add(approver);
-                }
-            });
-            
-            // 3. メンション対象者を追加（担当者リストに存在し、作成者以外）
-            mentionedUsers.forEach(mentionedUser => {
-                if (assignees.includes(mentionedUser) && mentionedUser !== author) {
-                    allNotifyTargets.add(mentionedUser);
-                }
-            });
-            
-            const targetUsers = Array.from(allNotifyTargets);
-            console.log(`🔍 [UNIFIED-NOTIFY] 統合通知対象者:`, targetUsers);
-            
-            if (targetUsers.length === 0) {
-                console.log('🔔 [UNIFIED-NOTIFY] 通知対象者なし - 全体通知を実行');
-                
-                const generalMessage = `💬 ${author}さんが「${task.title}」にコメントしました\n\n「${commentText}」\n\n担当者: ${assignees.join(', ') || '未設定'}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
-                
-                showNotification('💬 コメント追加', generalMessage, {
-                    taskId: taskId,
-                    targetUser: 'all',
-                    type: 'comment'
-                });
-                return;
-            }
-            
-            // メンション有りの場合とメンション無しの場合で通知内容を調整
-            const hasMentions = mentionedUsers.length > 0;
-            const notificationTitle = hasMentions ? '💬 メンション・コメント通知' : '💬 コメント通知';
-            
-            // 統合メッセージを作成
-            let notificationMessage = `${author}さんが「${task.title}」に${hasMentions ? 'メンション付き' : ''}コメントしました\n\n「${commentText}」`;
-            
-            // メンション情報を追加
-            if (hasMentions) {
-                notificationMessage += `\n\nメンション対象: ${mentionedUsers.join(', ')}`;
-            }
-            
-            notificationMessage += `\n\n担当者: ${assignees.join(', ') || '未設定'}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
-            
-            // 統合通知として1回だけ送信
-            showNotification(notificationTitle, notificationMessage, {
-                taskId: taskId,
-                targetUser: 'multiple',
-                mentionUsers: targetUsers,
-                type: 'unified_comment',
-                hasMentions: hasMentions,
-                mentionedUsers: mentionedUsers
-            });
-            
-            console.log(`✅ [UNIFIED-NOTIFY] 統合通知送信完了: ${targetUsers.length}人に1つの通知`);
-        }
-        
-        function checkMentionNotifications(text, author, taskId) {
-            // ⚠️ [廃止] この関数は統合通知システム (checkUnifiedCommentNotifications) に置き換えられました
-            // 重複通知を防ぐため、この関数は無効化されています
-            console.log(`⚠️ [DEPRECATED] checkMentionNotifications は統合通知システムに置き換えられました`);
-            console.log(`🔄 [REDIRECT] 統合通知システムを呼び出します`);
-            
-            // 統合通知システムにリダイレクト
-            checkUnifiedCommentNotifications(text, author, taskId);
-        }
-        
-        // 一般コメント通知関数（統合通知システムに置き換え済み）
-        function sendGeneralCommentNotification(commentText, commentAuthor, taskId) {
-            // ⚠️ [廃止] この関数は統合通知システム (checkUnifiedCommentNotifications) に置き換えられました
-            console.log(`⚠️ [DEPRECATED] sendGeneralCommentNotification は統合通知システムに置き換えられました`);
-            return; // 何もしない
             const task = tasks.find(t => t.id === taskId);
             if (!task) {
                 console.log(`❌ [MENTION] タスクが見つかりません: ${taskId}`);
@@ -4211,10 +4100,10 @@
             console.log(`🔍 [ASSIGN-NOTIFY] 現在のユーザー: ${currentUser.name}`);
             console.log(`🔍 [ASSIGN-NOTIFY] 割り当て対象ユーザー:`, assignedUsers);
             
-            // 複数の担当者が割り当てられた場合、統合通知を送信
+            // 複数の担当者が割り当てられた場合、各担当者に通知
             if (assignedUsers && assignedUsers.length > 0) {
-                // 自分以外の担当者をフィルタリング
-                const notifyUsers = assignedUsers.filter(user => {
+                assignedUsers.forEach(user => {
+                    // 自分以外の担当者に通知（実際のログインユーザーと比較）
                     const isNotCurrentUser = (
                         user !== currentUser.name &&
                         user !== currentUser.email &&
@@ -4222,45 +4111,24 @@
                     );
                     
                     console.log(`🔍 [ASSIGN-NOTIFY] ${user}: 現在ユーザーでない = ${isNotCurrentUser}`);
-                    return isNotCurrentUser;
-                });
-                
-                if (notifyUsers.length === 0) {
-                    console.log(`❌ [ASSIGN-NOTIFY] 通知対象者なし（全て自分への割り当て）`);
-                    return;
-                }
-                
-                console.log(`🔍 [ASSIGN-NOTIFY] 統合通知対象者:`, notifyUsers);
-                
-                if (notifyUsers.length === 1) {
-                    // 1人の場合は個別通知
-                    showNotification(
-                        '👥 タスク割り当て通知',
-                        `${currentUser.name}さんがあなたを「${task.title}」の担当者に設定しました\n\nタスク詳細:\nタイトル: ${task.title}\n期限: ${task.deadline || '未設定'}\n作成者: ${currentUser.name}`,
-                        { 
-                            taskId: task.id,
-                            targetUser: notifyUsers[0],
-                            type: 'task_assignment'
-                        }
-                    );
-                    console.log(`✅ [ASSIGN-NOTIFY] 個別通知送信: ${currentUser.name} → ${notifyUsers[0]}`);
-                } else {
-                    // 複数人の場合は統合通知
-                    const mentionText = notifyUsers.map(user => `@${user}`).join(' ');
-                    const integratedMessage = `${mentionText} さん、新しいタスクの担当者に設定されました\n\nタスク詳細:\nタイトル: ${task.title}\n期限: ${task.deadline || '未設定'}\n作成者: ${currentUser.name}\n\n全担当者: ${assignedUsers.join(', ')}`;
                     
-                    showNotification(
-                        '👥 複数担当者割り当て通知',
-                        integratedMessage,
-                        { 
-                            taskId: task.id,
-                            targetUser: 'multiple',
-                            mentionUsers: notifyUsers,
-                            type: 'task_assignment_multiple'
-                        }
-                    );
-                    console.log(`✅ [ASSIGN-NOTIFY] 統合通知送信: ${notifyUsers.length}人に1つの通知`);
-                }
+                    if (isNotCurrentUser) {
+                        // Slack通知を送信
+                        showNotification(
+                            '👥 タスク割り当て通知',
+                            `${currentUser.name}さんがあなたを「${task.title}」の担当者に設定しました\n\nタスク詳細:\nタイトル: ${task.title}\n期限: ${task.deadline || '未設定'}\n作成者: ${currentUser.name}`,
+                            { 
+                                taskId: task.id,
+                                targetUser: user, // ユーザー名からメールアドレスを取得する
+                                type: 'task_assignment'
+                            }
+                        );
+                        
+                        console.log(`✅ [ASSIGN-NOTIFY] 割り当て通知送信: ${currentUser.name} → ${user}`);
+                    } else {
+                        console.log(`❌ [ASSIGN-NOTIFY] 自分への割り当てのためスキップ: ${user}`);
+                    }
+                });
             }
         }
         
@@ -4309,56 +4177,48 @@
             const fileNames = attachments.map(file => file.name).join(', ');
             const fileCount = attachments.length;
             
-            // 通知対象者を統合して決定（重複排除）
-            const allNotifyTargets = new Set();
-            
-            // プロジェクトタスクの場合はプロジェクトメンバーを追加
+            // プロジェクトタスクの場合はプロジェクトメンバー全員に通知
             if (task.projectId && task.projectName) {
                 const projects = JSON.parse(localStorage.getItem('projects') || '[]');
                 const project = projects.find(p => p.id === task.projectId);
                 
                 if (project && project.members) {
-                    project.members.forEach(member => {
-                        if (member !== currentUser.name) {
-                            allNotifyTargets.add(member);
-                        }
-                    });
-                }
-            }
-            
-            // 担当者も追加（プロジェクトメンバーと重複する場合は自動的に排除される）
-            if (task.assignees && task.assignees.length > 0) {
-                task.assignees.forEach(assignee => {
-                    if (assignee !== currentUser.name) {
-                        allNotifyTargets.add(assignee);
+                    const targetUsers = project.members.filter(member => member !== currentUser.name);
+                    
+                    if (targetUsers.length > 0) {
+                        // 複数メンバーを1つの通知にまとめて送信
+                        const mentionText = targetUsers.map(user => `@${user}`).join(' ');
+                        const message = `${mentionText} 「${task.title}」に${fileCount}個のファイルが添付されました\n\nプロジェクト: ${task.projectName}\n添付者: ${currentUser.name}\nファイル: ${fileNames}`;
+                        
+                        // 統合通知として1回だけ送信
+                        showNotification('📎 ファイル添付通知', message, {
+                            taskId: task.id,
+                            targetUser: 'multiple',
+                            projectId: task.projectId,
+                            mentionUsers: targetUsers
+                        });
+                        
+                        console.log('📎 [FILE-ATTACH] プロジェクトメンバーに統合通知送信:', targetUsers);
                     }
-                });
-            }
-            
-            const targetUsers = Array.from(allNotifyTargets);
-            console.log('📎 [FILE-ATTACH] 重複排除後の通知対象者:', targetUsers);
-            
-            if (targetUsers.length > 0) {
-                // 複数ユーザーを1つの通知にまとめて送信（重複メンション排除済み）
-                const mentionText = targetUsers.map(user => `@${user}`).join(' ');
-                let message = `${mentionText} 「${task.title}」に${fileCount}個のファイルが添付されました\n\n添付者: ${currentUser.name}\nファイル: ${fileNames}`;
-                
-                // プロジェクト情報があれば追加
-                if (task.projectId && task.projectName) {
-                    message += `\nプロジェクト: ${task.projectName}`;
                 }
+            } else if (task.assignees && task.assignees.length > 0) {
+                // 個人タスクの場合は担当者に通知
+                const targetUsers = task.assignees.filter(assignee => assignee !== currentUser.name);
                 
-                message += `\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
-                
-                // 統合通知として1回だけ送信
-                showNotification('📎 ファイル添付通知', message, {
-                    taskId: task.id,
-                    targetUser: 'multiple',
-                    projectId: task.projectId,
-                    mentionUsers: targetUsers
-                });
-                
-                console.log(`📎 [FILE-ATTACH] 統合通知送信完了: ${targetUsers.length}人に1つの通知（重複排除済み）`);
+                if (targetUsers.length > 0) {
+                    // 複数担当者を1つの通知にまとめて送信
+                    const mentionText = targetUsers.map(user => `@${user}`).join(' ');
+                    const message = `${mentionText} 「${task.title}」に${fileCount}個のファイルが添付されました\n\n添付者: ${currentUser.name}\nファイル: ${fileNames}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
+                    
+                    // 統合通知として1回だけ送信
+                    showNotification('📎 ファイル添付通知', message, {
+                        taskId: task.id,
+                        targetUser: 'multiple',
+                        mentionUsers: targetUsers
+                    });
+                    
+                    console.log('📎 [FILE-ATTACH] 担当者に統合通知送信:', targetUsers);
+                }
             }
             
             // 全体通知（ファイル添付はプロジェクトに関係なく全体に通知）
@@ -5936,6 +5796,10 @@
 
         async function showNotification(title, body, options = {}) {
             // デスクトップ通知は無効化（Slackのみ使用）
+            // try {
+            //     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            //     }
+            // } catch (error) {}
             console.log(`🔔 [SLACK-NOTIFICATION] ${title}: ${body}`);
             
             // 【Slack通知】対象ユーザーがいる場合は自動的にSlack通知を送信
@@ -5949,32 +5813,6 @@
                     const senderEmail = currentUser?.email || 'muranaka-tenma@terracom.co.jp';
                     console.log(`🔔 [SLACK-AUTO] 全体通知 - 送信者メールを使用: ${senderEmail}`);
                     await sendSlackNotification(senderEmail, title, body, options);
-                    return;
-                }
-                
-                // 'multiple'の場合は複数ユーザーに統合通知を送信
-                if (options.targetUser === 'multiple' && options.mentionUsers && Array.isArray(options.mentionUsers)) {
-                    console.log(`🔔 [SLACK-AUTO] 複数ユーザー統合通知開始: ${options.mentionUsers.join(', ')}`);
-                    
-                    // 複数メンション形式のメッセージを作成
-                    const mentionText = options.mentionUsers.map(user => `@${user}`).join(' ');
-                    const integratedBody = `${mentionText} ${body}`;
-                    
-                    // 代表して最初のユーザーのメールアドレスを使用してSlack送信
-                    const representativeEmail = getEmailByUserName(options.mentionUsers[0]);
-                    
-                    if (representativeEmail) {
-                        console.log(`🔔 [SLACK-AUTO] 統合通知送信: ${representativeEmail} (代表)`);
-                        await sendSlackNotification(representativeEmail, title, integratedBody, {
-                            ...options,
-                            targetUser: options.mentionUsers[0],
-                            targetEmail: representativeEmail,
-                            isIntegratedNotification: true,
-                            allTargetUsers: options.mentionUsers
-                        });
-                    } else {
-                        console.error(`❌ [SLACK-AUTO] 代表ユーザーのメールアドレスが取得できません: ${options.mentionUsers[0]}`);
-                    }
                     return;
                 }
                 
