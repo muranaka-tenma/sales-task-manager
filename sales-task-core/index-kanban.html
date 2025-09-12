@@ -12771,12 +12771,10 @@
                 if (notifyUsersList.length > 0) {
                     console.log(`🔔 [SLACK-MOVE] 統合通知送信開始: ${notifyUsersList.length}人への統合通知`);
                     
-                    const mentionText = notifyUsersList.map(user => `@${user}`).join(' ');
-                    const integratedMessage = `${mentionText} ${notificationBody}`;
-                    
+                    // メンションはshowNotificationの'multiple'処理に任せる（重複回避のため）
                     showNotification(
                         notificationTitle,
-                        integratedMessage,
+                        notificationBody,
                         {
                             tag: `move-${task.id}-${Date.now()}`,
                             taskId: task.id,
