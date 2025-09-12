@@ -4042,24 +4042,33 @@
             const hasMentions = mentionedUsers.length > 0;
             const notificationTitle = hasMentions ? '💬 メンション・コメント通知' : '💬 コメント通知';
             
-            // 統合メッセージを作成
-            let notificationMessage = `${author}さんが「${task.title}」に${hasMentions ? 'メンション付き' : ''}コメントしました\n\n「${commentText}」`;
+            // 🔧 コメント通知は担当者全員に送信し、メンション内容を明確化
+            let notificationMessage;
             
-            // メンション情報を追加
             if (hasMentions) {
-                notificationMessage += `\n\nメンション対象: ${mentionedUsers.join(', ')}`;
+                // メンション付きコメントの場合
+                notificationMessage = `${author}さんが「${task.title}」にメンション付きコメントしました\n\n`;
+                notificationMessage += `📝 **コメント内容:**\n「${commentText}」\n\n`;
+                notificationMessage += `👤 **メンション対象:** ${mentionedUsers.join(', ')}\n`;
+                notificationMessage += `(上記の方々に直接メンションされています)\n\n`;
+            } else {
+                // 通常のコメントの場合  
+                notificationMessage = `${author}さんが「${task.title}」にコメントしました\n\n`;
+                notificationMessage += `📝 **コメント内容:**\n「${commentText}」\n\n`;
             }
             
-            notificationMessage += `\n\n担当者: ${assignees.join(', ') || '未設定'}\n期限: ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
+            notificationMessage += `👥 **担当者:** ${assignees.join(', ') || '未設定'}\n`;
+            notificationMessage += `⏰ **期限:** ${task.deadline ? new Date(task.deadline).toLocaleString('ja-JP') : '未設定'}`;
             
-            // 統合通知として1回だけ送信
+            // 🔧 担当者全員に通知（誰に何を送っているかが明確）
             showNotification(notificationTitle, notificationMessage, {
                 taskId: taskId,
                 targetUser: 'multiple',
-                mentionUsers: targetUsers,
+                mentionUsers: assignees, // 担当者全員に通知
                 type: 'unified_comment',
                 hasMentions: hasMentions,
-                mentionedUsers: mentionedUsers
+                mentionedUsers: mentionedUsers,
+                originalTargets: targetUsers // 元のメンション対象を保持
             });
             
             console.log(`✅ [UNIFIED-NOTIFY] 統合通知送信完了: ${targetUsers.length}人に1つの通知`);
