@@ -3945,6 +3945,29 @@
         function checkUnifiedCommentNotifications(commentText, author, taskId) {
             console.log(`🔍 [UNIFIED-NOTIFY] 統合通知チェック開始: "${commentText}" by ${author}`);
             
+            // 🔧 重複通知防止: 同じコメントで短時間内に複数回呼ばれることを防ぐ
+            const notificationKey = `${taskId}-${commentText}-${author}`;
+            const now = Date.now();
+            
+            if (!window.lastCommentNotifications) {
+                window.lastCommentNotifications = new Map();
+            }
+            
+            const lastNotification = window.lastCommentNotifications.get(notificationKey);
+            if (lastNotification && (now - lastNotification < 2000)) { // 2秒以内の重複を防ぐ
+                console.log(`🔕 [UNIFIED-NOTIFY] 重複通知をスキップ: ${notificationKey}`);
+                return;
+            }
+            
+            window.lastCommentNotifications.set(notificationKey, now);
+            
+            // 古いエントリをクリーンアップ（5秒より古いものを削除）
+            for (const [key, timestamp] of window.lastCommentNotifications.entries()) {
+                if (now - timestamp > 5000) {
+                    window.lastCommentNotifications.delete(key);
+                }
+            }
+            
             // タスクを取得
             const task = tasks.find(t => t.id === taskId);
             if (!task) {
@@ -3965,6 +3988,12 @@
             
             console.log(`🔍 [UNIFIED-NOTIFY] 現在のログインユーザー: ${currentUser.name}`);
             console.log(`🔍 [UNIFIED-NOTIFY] コメント作成者: ${author}`);
+            
+            // 🔧 作成者がundefinedの場合は現在のユーザーを使用
+            if (!author || author === 'undefined') {
+                author = currentUser.name;
+                console.log(`🔧 [UNIFIED-NOTIFY] 作成者をcurrentUserに修正: ${author}`);
+            }
             
             // @メンションを検出
             const mentionPattern = /@([^\s@]+)/g;
