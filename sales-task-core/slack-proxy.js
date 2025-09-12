@@ -87,7 +87,7 @@ class SlackNotificationService {
         }
         
         const message = {
-            text: `${slackMention ? slackMention + ' ' : ''}${title}`,
+            text: title,  // 🔧 タイトルのみ（メンション重複を防ぐ）
             blocks: [
                 {
                     type: "header",
@@ -114,7 +114,7 @@ class SlackNotificationService {
                     type: "section",
                     text: {
                         type: "mrkdwn",
-                        text: body
+                        text: body  // 🔧 bodyにはすでにメンションが含まれている
                     }
                 }
             ]
