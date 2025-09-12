@@ -6124,7 +6124,7 @@
                     // 先頭と末尾の余分なスペースを削除
                     cleanedBody = cleanedBody.trim().replace(/^\s+/, '');
                     
-                    const integratedBody = `${mentionText} ${cleanedBody}`;
+                    const integratedBody = `${mentionText}\n${cleanedBody}`;
                     
                     console.log(`🔧 [MENTION-FIX] 元のメッセージ: "${body}"`);
                     console.log(`🔧 [MENTION-FIX] クリーン後: "${cleanedBody}"`);
@@ -6208,51 +6208,8 @@
                     );
                     task.overdueNotified = true;
                 }
-                // 5分前通知
-                else if (timeUntilDeadline > 0 && timeUntilDeadline <= 5 * 60 * 1000 && !task.fiveMinNotified) {
-                    console.log(`🔔 [DEADLINE] 5分前通知送信: ${task.title} (担当者: ${task.assignees?.join(', ') || '未設定'})`);
-                    showNotification(
-                        '🚨 緊急期限',
-                        `「${task.title}」の期限まで5分です！`,
-                        { 
-                            tag: `fivemin-${task.id}`, 
-                            taskId: task.id,
-                            targetUser: currentUser.name,
-                            type: 'deadline_5min'
-                        }
-                    );
-                    task.fiveMinNotified = true;
-                }
-                // 3時間前通知
-                else if (timeUntilDeadline > 0 && timeUntilDeadline <= 3 * 60 * 60 * 1000 && !task.threeHourNotified) {
-                    console.log(`🔔 [DEADLINE] 3時間前通知送信: ${task.title} (担当者: ${task.assignees?.join(', ') || '未設定'})`);
-                    showNotification(
-                        '⚠️ 期限間近',
-                        `「${task.title}」の期限まで3時間です`,
-                        { 
-                            tag: `threehour-${task.id}`, 
-                            taskId: task.id,
-                            targetUser: currentUser.name,
-                            type: 'deadline_3hour'
-                        }
-                    );
-                    task.threeHourNotified = true;
-                }
-                // 1日前通知
-                else if (timeUntilDeadline > 0 && timeUntilDeadline <= 24 * 60 * 60 * 1000 && !task.oneDayNotified) {
-                    console.log(`🔔 [DEADLINE] 1日前通知送信: ${task.title} (担当者: ${task.assignees?.join(', ') || '未設定'})`);
-                    showNotification(
-                        '📅 期限予告',
-                        `「${task.title}」の期限まで1日です`,
-                        { 
-                            tag: `oneday-${task.id}`, 
-                            taskId: task.id,
-                            targetUser: currentUser.name,
-                            type: 'deadline_1day'
-                        }
-                    );
-                    task.oneDayNotified = true;
-                }
+                // 🔧 期限間近・期限予告通知は削除（ユーザー要望により）
+                // 期限切れ通知のみ保持
             });
             
             // Firebase統合: 通知フラグはFirestore内で自動保存される
