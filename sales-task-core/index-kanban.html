@@ -5133,6 +5133,17 @@
                         return;
                     }
                     
+                    // 🔧 権限チェック：一般ユーザーは自分のタスクのみ移動可能
+                    const currentUser = getCurrentUser();
+                    if (currentUser.role === 'user') {
+                        const canMove = draggedTask.assignees && draggedTask.assignees.includes(currentUser.name) || 
+                                       draggedTask.assignee === currentUser.name;
+                        if (!canMove) {
+                            alert('他のユーザーのタスクは移動できません。自分が担当者として設定されているタスクのみ移動可能です。');
+                            return;
+                        }
+                    }
+                    
                     console.log(`🟡 [MAIN] Moving "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
                     
                     // PJタスクの証憑チェック（移動のたびに必須）
