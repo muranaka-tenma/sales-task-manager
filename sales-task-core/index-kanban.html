@@ -5029,8 +5029,8 @@
             }
             */
             
-            // タスク作成・編集後に即座に期限チェック
-            setTimeout(() => checkDeadlines(), 100);
+            // 🚫 タスク作成・編集後の期限チェックを無効化（ユーザー要望）
+            // setTimeout(() => checkDeadlines(), 100);
             
             // required 属性を復活 (統一作成モード用)
             if (wasRequired && isColumnSelectionHidden) {
@@ -6247,9 +6247,6 @@
         
         function checkDeadlines() {
             const now = new Date();
-            const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-            const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-            const threeHoursFromNow = new Date(now.getTime() + 3 * 60 * 60 * 1000);
             
             // 現在のユーザー情報を取得
             const currentUser = getCurrentUser();
@@ -6273,25 +6270,40 @@
                 }
                 
                 const deadline = new Date(task.deadline);
-                const timeUntilDeadline = deadline.getTime() - now.getTime();
                 
-                // 期限切れ通知
+                // 🔧 期限切れ通知を実際の期限切れ時のみに限定（ユーザー要望）
+                // 既に期限が切れているタスクの初回通知は無効化
                 if (deadline < now && !task.overdueNotified) {
-                    console.log(`🔔 [DEADLINE] 期限切れ通知送信: ${task.title} (担当者: ${task.assignees?.join(', ') || '未設定'})`);
-                    showNotification(
-                        '🚨 期限切れタスク',
-                        `「${task.title}」の期限が過ぎています！`,
-                        { 
-                            tag: `overdue-${task.id}`, 
-                            taskId: task.id,
-                            targetUser: currentUser.name,
-                            type: 'deadline_overdue'
-                        }
-                    );
+                    // 🚫 初期化時やページ読み込み時に既に期限切れのタスクは通知しない
+                    // タスクが作成された時刻と期限切れ時刻の差をチェック
+                    const taskCreatedAt = task.createdAt ? new Date(task.createdAt) : now;
+                    const wasOverdueAtCreation = deadline < taskCreatedAt;
+                    
+                    if (wasOverdueAtCreation) {
+                        console.log(`🔇 [DEADLINE] タスク「${task.title}」- 作成時点で既に期限切れのため通知スキップ`);
+                        task.overdueNotified = true; // フラグは設定して重複防止
+                        return;
+                    }
+                    
+                    // 🔧 最近1分以内に期限切れになったタスクのみ通知
+                    const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+                    if (deadline > oneMinuteAgo) {
+                        console.log(`🔔 [DEADLINE] 期限切れ通知送信: ${task.title} (担当者: ${task.assignees?.join(', ') || '未設定'})`);
+                        showNotification(
+                            '🚨 期限切れタスク',
+                            `「${task.title}」の期限が過ぎました！`,
+                            { 
+                                tag: `overdue-${task.id}`, 
+                                taskId: task.id,
+                                targetUser: currentUser.name,
+                                type: 'deadline_overdue'
+                            }
+                        );
+                    } else {
+                        console.log(`🔇 [DEADLINE] タスク「${task.title}」- 期限切れから1分以上経過のため通知スキップ`);
+                    }
                     task.overdueNotified = true;
                 }
-                // 🔧 期限間近・期限予告通知は削除（ユーザー要望により）
-                // 期限切れ通知のみ保持
             });
             
             // Firebase統合: 通知フラグはFirestore内で自動保存される
@@ -6744,8 +6756,9 @@
                 }
             }, 200);
             
-            // 定期的に期限チェック（1分間隔）
-            checkDeadlines();
+            // 🚫 初期化時の期限チェックを無効化（ユーザー要望）
+            // checkDeadlines();
+            // 🔄 定期的な期限チェックは維持（実際の期限切れ時のみ通知）
             setInterval(checkDeadlines, 1 * 60 * 1000);
         }
         
@@ -7702,8 +7715,8 @@
                 saveTasks();
                 render();
                 
-                // タスクインポート後に即座に期限チェック
-                setTimeout(() => checkDeadlines(), 100);
+                // 🚫 インポート後の期限チェックを無効化（ユーザー要望）
+                // setTimeout(() => checkDeadlines(), 100);
                 
                 // プレビューをリセットしてタスク画面に切り替え
                 document.getElementById('import-text').value = '';
@@ -9443,7 +9456,8 @@
                 saveTasks();
                 render();
                 
-                setTimeout(() => checkDeadlines(), 100);
+                // 🚫 インポート後の期限チェックを無効化（ユーザー要望）
+                // setTimeout(() => checkDeadlines(), 100);
                 
                 document.getElementById('import-text-modal').value = '';
                 hidePreviewModal();
@@ -12564,8 +12578,8 @@
             closeTaskImportModal();
             render();
             
-            // 期限チェックも実行
-            setTimeout(() => checkDeadlines(), 100);
+            // 🚫 インポート後の期限チェックを無効化（ユーザー要望）
+            // setTimeout(() => checkDeadlines(), 100);
         }
         
         // ============ タスクインポートモーダル関数群 終了 ============
