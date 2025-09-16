@@ -799,6 +799,12 @@
             margin: 0;
         }
         
+        .assignee-checkbox label {
+            cursor: pointer; /* 🔧 追加: ラベルもクリック可能に */
+            flex: 1; /* 🔧 追加: ラベルを最大幅に */
+            margin: 0; /* 🔧 追加: デフォルトマージンを削除 */
+        }
+        
         .assignee-checkbox.checked {
             background: #e3f2fd;
             color: #0079bf;
@@ -7642,10 +7648,12 @@
             previewTasks.forEach((previewTask, index) => {
                 if (previewTask.isSkip || !previewTask.isMainTask) return;
                 
-                // 担当者をリストに追加（存在しない場合）
-                if (previewTask.assignee !== '未設定' && !assignees.includes(previewTask.assignee)) {
-                    assignees.push(previewTask.assignee);
-                    // 担当者リストはFirestoreで管理される
+                // 🔧 担当者をリストに追加（有効ユーザーのみ）
+                if (previewTask.assignee !== '未設定') {
+                    const activeUserNames = getActiveUsers().map(user => user.name);
+                    if (!activeUserNames.includes(previewTask.assignee)) {
+                        console.log(`🚫 [PREVIEW] 非表示ユーザーのため担当者リストに追加しません: ${previewTask.assignee}`);
+                    }
                 }
                 
                 const taskId = Date.now() + index;
@@ -9381,9 +9389,12 @@
             previewTasks.forEach((previewTask, index) => {
                 if (previewTask.isSkip || !previewTask.isMainTask) return;
                 
-                if (previewTask.assignee !== '未設定' && !assignees.includes(previewTask.assignee)) {
-                    assignees.push(previewTask.assignee);
-                    // 担当者リストはFirestoreで管理される
+                // 🔧 担当者をリストに追加（有効ユーザーのみ）
+                if (previewTask.assignee !== '未設定') {
+                    const activeUserNames = getActiveUsers().map(user => user.name);
+                    if (!activeUserNames.includes(previewTask.assignee)) {
+                        console.log(`🚫 [IMPORT] 非表示ユーザーのため担当者リストに追加しません: ${previewTask.assignee}`);
+                    }
                 }
                 
                 const taskId = Date.now() + index;
