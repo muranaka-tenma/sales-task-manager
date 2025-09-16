@@ -5130,6 +5130,12 @@
                     if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId)) {
                         console.log(`❌ [MAIN] Overdue task drag&drop is disabled`);
                         alert('期限切れタスクは直接移動できません。\n編集画面で期限を延長すると移動できます。');
+                        // ドラッグ状態をリセット
+                        const draggingElement = document.querySelector('.dragging');
+                        if (draggingElement) {
+                            draggingElement.classList.remove('dragging');
+                        }
+                        draggedTask = null;
                         return;
                     }
                     
@@ -5140,6 +5146,12 @@
                                        draggedTask.assignee === currentUser.name;
                         if (!canMove) {
                             alert('他のユーザーのタスクは移動できません。自分が担当者として設定されているタスクのみ移動可能です。');
+                            // ドラッグ状態をリセット
+                            const draggingElement = document.querySelector('.dragging');
+                            if (draggingElement) {
+                                draggingElement.classList.remove('dragging');
+                            }
+                            draggedTask = null;
                             return;
                         }
                     }
