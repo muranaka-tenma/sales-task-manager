@@ -4366,20 +4366,15 @@
             
             // 複数の担当者が割り当てられた場合、統合通知を送信
             if (assignedUsers && assignedUsers.length > 0) {
-                // 自分以外の担当者をフィルタリング
+                // 🔧 全ての担当者に通知（自分も含める - Slack通知のため）
                 const notifyUsers = assignedUsers.filter(user => {
-                    const isNotCurrentUser = (
-                        user !== currentUser.name &&
-                        user !== currentUser.email &&
-                        user !== currentUser.id
-                    );
-                    
-                    console.log(`🔍 [ASSIGN-NOTIFY] ${user}: 現在ユーザーでない = ${isNotCurrentUser}`);
-                    return isNotCurrentUser;
+                    const isValidUser = user && user.trim() !== '';
+                    console.log(`🔍 [ASSIGN-NOTIFY] ${user}: 有効なユーザー = ${isValidUser} (自分も通知対象に含める)`);
+                    return isValidUser;
                 });
                 
                 if (notifyUsers.length === 0) {
-                    console.log(`❌ [ASSIGN-NOTIFY] 通知対象者なし（全て自分への割り当て）`);
+                    console.log(`❌ [ASSIGN-NOTIFY] 通知対象者なし`);
                     return;
                 }
                 
@@ -4430,26 +4425,21 @@
                 return;
             }
             
-            // 重複排除：担当者配列の重複を排除し、現在のユーザーを除外（自身への通知を防ぐ）
+            // 🔧 重複排除：担当者配列の重複を排除（自分も含める - Slack通知のため）
             const uniqueTargetUsers = Array.from(new Set(
                 assignees.filter(assignee => {
                     const isValidAssignee = assignee && assignee.trim() !== '';
-                    const isNotCurrentUser = (
-                        assignee !== currentUser.name &&
-                        assignee !== currentUser.email &&
-                        assignee !== currentUser.id
-                    );
-                    console.log(`🔍 [CREATE-FILTER] ${assignee}: 有効=${isValidAssignee}, 現在ユーザーでない=${isNotCurrentUser}`);
-                    return isValidAssignee && isNotCurrentUser;
+                    console.log(`🔍 [CREATE-FILTER] ${assignee}: 有効=${isValidAssignee} (自分も通知対象に含める)`);
+                    return isValidAssignee;
                 })
             ));
             
             console.log('🔔 [TASK-CREATE] 元の担当者:', assignees);
-            console.log('🔔 [TASK-CREATE] フィルター後の通知対象:', uniqueTargetUsers);
-            console.log(`🔔 [TASK-CREATE] 現在のユーザー: ${currentUser.name} (正しく除外)`);
+            console.log('🔔 [TASK-CREATE] 通知対象（自分含む）:', uniqueTargetUsers);
+            console.log(`🔔 [TASK-CREATE] 現在のユーザー: ${currentUser.name} (自分への通知も送信)`);
             
             if (uniqueTargetUsers.length === 0) {
-                console.log('🔔 [TASK-CREATE] 通知対象者なし（自分のみのタスク）');
+                console.log('🔔 [TASK-CREATE] 通知対象者なし');
                 return;
             }
             
@@ -6164,25 +6154,20 @@
                     const isTaskMoveNotification = options.type === 'task_move';
                     const currentUser = getCurrentUser();
                     
-                    const filteredMentionUsers = isTaskMoveNotification 
-                        ? options.mentionUsers  // タスク移動時は全員に通知
-                        : options.mentionUsers.filter(user => {
-                            const isNotCurrentUser = (
-                                user !== currentUser?.name &&
-                                user !== currentUser?.email &&
-                                user !== currentUser?.id
-                            );
-                            console.log(`🔍 [MENTION-FILTER] ${user}: 現在ユーザーでない = ${isNotCurrentUser}`);
-                            return isNotCurrentUser;
-                        });
+                    // 🔧 全ての通知で自分も含める（Slack通知のため）
+                    const filteredMentionUsers = options.mentionUsers.filter(user => {
+                        const isValidUser = user && user.trim() !== '';
+                        console.log(`🔍 [MENTION-FILTER] ${user}: 有効なユーザー = ${isValidUser} (自分も通知対象に含める)`);
+                        return isValidUser;
+                    });
                     
                     if (filteredMentionUsers.length === 0) {
-                        console.log(`❌ [SLACK-AUTO] 通知対象者なし（全て自分への割り当て）- 通知スキップ`);
+                        console.log(`❌ [SLACK-AUTO] 通知対象者なし - 通知スキップ`);
                         return;
                     }
                     
-                    console.log(`🔔 [SLACK-AUTO] フィルター後の通知対象: ${filteredMentionUsers.join(', ')}`);
-                    console.log(`🔔 [SLACK-AUTO] 通知タイプ: ${options.type}, タスク移動通知: ${isTaskMoveNotification}`);
+                    console.log(`🔔 [SLACK-AUTO] 通知対象（自分含む）: ${filteredMentionUsers.join(', ')}`);
+                    console.log(`🔔 [SLACK-AUTO] 通知タイプ: ${options.type}`);
                     
                     // 複数メンション形式のメッセージを作成（正しいSlackメンション使用）
                     const mentionText = filteredMentionUsers.map(user => {
