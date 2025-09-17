@@ -2730,8 +2730,6 @@
         let selectedProjectFilters = [];
         let viewMode = 'personal'; // 'personal' or 'project'
         
-        // 定期タスク管理
-        let recurringTemplates = JSON.parse(localStorage.getItem('recurringTemplates') || '[]');
         
         // Phase 2: プロジェクトタスク関連関数（プロジェクトタスク作成専用）
         function isPJTaskMode() {
@@ -2947,11 +2945,6 @@
             return deadline;
         }
         
-        function formatDateForRecurring(date) {
-            const year = date.getFullYear();
-            const month = date.getMonth() + 1;
-            return `${year}-${String(month).padStart(2, '0')}`;
-        }
         
         function checkAndGenerateRecurringTasks() {
             const now = new Date();
@@ -3153,15 +3146,6 @@
             alert(infoText);
         }
         
-        function getRecurringTypeText(type) {
-            const typeMap = {
-                'daily': '毎日',
-                'weekly': '毎週',
-                'monthly': '毎月',
-                'yearly': '毎年'
-            };
-            return typeMap[type] || type;
-        }
         
         // 日付・時間ユーティリティ
         function getCurrentDateTime() {
@@ -12840,18 +12824,7 @@
         
         window.createTestPJTask = createTestPJTask;
         
-        // 定期タスク管理の基本関数
-        function createRecurringTemplate() {
-            alert('定期タスクテンプレート作成機能は実装中です。\n\n予定機能:\n• 毎月・毎週の繰り返し設定\n• 担当者・期限の自動設定\n• テンプレートからの自動生成');
-        }
         
-        function generatePendingTasks() {
-            // 現在定期タスクが0件なので、デモ用の説明を表示
-            alert('定期タスク生成チェック完了\n\n現在アクティブなテンプレートはありません。\nテンプレートを作成すると、指定された間隔でタスクが自動生成されます。');
-        }
-        
-        window.createRecurringTemplate = createRecurringTemplate;
-        window.generatePendingTasks = generatePendingTasks;
         
         // PJタスク証憑チェック機能（移動のたびに新しい証憑が必要）
         function checkTaskEvidence(task, isMoving = false) {
