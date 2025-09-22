@@ -5321,49 +5321,10 @@
             
             // フィルタ適用後: ${filteredTasks.length}件
             
-            // 期限切れタスクを抽出（フィルタリング後のタスクから）
-            let overdueTasks = filteredTasks.filter(t => 
-                t.columnId !== 'done' && 
-                t.deadline && 
-                isOverdue(t.deadline, t.columnId)
-            );
-            
-            // 期限切れカラムを最初に表示
-            if (overdueTasks.length > 0) {
-                const overdueColumn = document.createElement('div');
-                overdueColumn.className = 'column';
-                overdueColumn.style.borderTop = '3px solid #e53e3e';
-                overdueColumn.innerHTML = `
-                    <div class="column-header" style="background: #e53e3e; color: white;">
-                        <div class="column-title">🚨 期限切れ</div>
-                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                            <div class="column-count">${overdueTasks.length}</div>
-                        </div>
-                    </div>
-                    <div class="column-content" 
-                         style="background: #fee;"
-                         ondragover="handleDragOver(event)"
-                         ondrop="handleOverdueDrop(event)"
-                         ondragenter="handleDragEnter(event)"
-                         ondragleave="handleDragLeave(event)">
-                        ${overdueTasks.map(task => createTaskCard(task, true)).join('')}
-                    </div>
-                `;
-                board.appendChild(overdueColumn);
-            }
             
             // 通常のカラムを表示（プロジェクト専用カラムまたはデフォルトカラム）
             currentColumns.forEach(column => {
                 let columnTasks = filteredTasks.filter(t => {
-                    // 🔧 修正: 期限切れタスクは期限切れカラムに表示するので確実に除外
-                    if (t.columnId !== 'done' && t.deadline) {
-                        const deadline = new Date(t.deadline);
-                        const now = new Date();
-                        if (deadline < now) {
-                            // 期限切れタスクは通常カラムから除外（ログ出力簡素化）
-                            return false; // 期限切れタスクは通常カラムから除外
-                        }
-                    }
                     
                     // プロジェクト専用カラムの場合、カラムインデックスでマッピング
                     if (selectedProjectFilters.length > 0 && column.id.startsWith('pj_')) {
@@ -5388,8 +5349,21 @@
                     return t.columnId === column.id;
                 });
                 
-                // 期限順でソート
-                columnTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+                // 期限切れタスクを先頭に、その後期限順でソート
+                columnTasks.sort((a, b) => {
+                    const aOverdue = a.deadline && isOverdue(a.deadline, a.columnId);
+                    const bOverdue = b.deadline && isOverdue(b.deadline, b.columnId);
+                    
+                    // 期限切れタスクを先頭に
+                    if (aOverdue && !bOverdue) return -1;
+                    if (!aOverdue && bOverdue) return 1;
+                    
+                    // 同じ状態の場合は期限順
+                    if (a.deadline && b.deadline) {
+                        return new Date(a.deadline) - new Date(b.deadline);
+                    }
+                    return 0;
+                });
                 
                 const columnEl = document.createElement('div');
                 columnEl.className = 'column';
@@ -5651,13 +5625,7 @@
             const now = new Date();
             
             columns.forEach(column => {
-                const columnTasks = filteredTasks.filter(t => {
-                    // 期限切れタスクは期限切れエリアに表示されるので除外
-                    if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
-                        return false;
-                    }
-                    return t.columnId === column.id;
-                });
+                const columnTasks = filteredTasks.filter(t => t.columnId === column.id);
                 
                 // 平均滞留時間を計算
                 let avgDays = 0;
@@ -5861,13 +5829,7 @@
             }
             
             // 該当ステータスのタスクを取得
-            const statusTasks = filteredTasks.filter(t => {
-                // 期限切れタスクは期限切れエリアに表示されるので除外
-                if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
-                    return false;
-                }
-                return t.columnId === columnId;
-            });
+            const statusTasks = filteredTasks.filter(t => t.columnId === columnId);
             
             if (statusTasks.length === 0) {
                 alert(`${column.title}ステータスにはタスクがありません。`);
