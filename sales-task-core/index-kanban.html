@@ -2909,8 +2909,16 @@
             const textElement = document.getElementById('assignee-filter-text');
             
             if (selectedProjectFilters.length > 0) {
-                const projectTask = tasks.find(t => t.projectId === selectedProjectFilters[0]);
-                textElement.textContent = projectTask ? `👥 ${projectTask.projectId}` : selectedProjectFilters[0];
+                // プロジェクト名を取得
+                const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                const project = projectSettings[selectedProjectFilters[0]];
+                const projectName = project ? project.name : selectedProjectFilters[0];
+                
+                if (selectedAssigneeFilters.length > 0) {
+                    textElement.textContent = `👥 ${projectName} - 👤 ${selectedAssigneeFilters[0]}`;
+                } else {
+                    textElement.textContent = `👥 ${projectName}`;
+                }
             } else if (selectedAssigneeFilters.length > 0) {
                 textElement.textContent = `👤 ${selectedAssigneeFilters[0]}`;
             } else {
@@ -5282,9 +5290,17 @@
             // プロジェクトデータを取得（統一関数を使用）
             const projects = getAllProjects();
             
-            // 各プロジェクトのタスク数を計算
+            // 各プロジェクトのタスク数を計算（メンバーフィルター考慮）
             const projectTaskCounts = {};
-            tasks.forEach(task => {
+            const filteredByMember = selectedAssigneeFilters.length > 0 ? 
+                tasks.filter(t => {
+                    if (t.assignees && Array.isArray(t.assignees)) {
+                        return t.assignees.includes(selectedAssigneeFilters[0]);
+                    }
+                    return t.assignee === selectedAssigneeFilters[0];
+                }) : tasks;
+                
+            filteredByMember.forEach(task => {
                 if (task.projectId) {
                     projectTaskCounts[task.projectId] = (projectTaskCounts[task.projectId] || 0) + 1;
                 }
@@ -5295,7 +5311,7 @@
             
             // 通常タスク表示ボタン
             const isNormalTasksSelected = selectedProjectFilters.length === 0;
-            const normalTasksCount = tasks.filter(t => !t.projectId).length;
+            const normalTasksCount = filteredByMember.filter(t => !t.projectId).length;
             projectsHTML += `
                 <div class="project-card ${isNormalTasksSelected ? 'active' : ''}" onclick="showNormalTasks()">
                     <div class="project-card-name">📋 通常タスク</div>
@@ -5341,6 +5357,9 @@
             selectedProjectFilters = [projectId];
             console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
             
+            // 表示対象テキストを更新
+            updateAssigneeFilterText();
+            
             // 再描画してフィルタを適用
             render();
         }
@@ -5350,6 +5369,9 @@
             // プロジェクトフィルターをクリア
             selectedProjectFilters = [];
             console.log('📋 [FILTER] 通常タスク表示に切り替え');
+            
+            // 表示対象テキストを更新
+            updateAssigneeFilterText();
             
             // 再描画
             render();
