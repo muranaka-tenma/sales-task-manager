@@ -5309,6 +5309,19 @@
             // プロジェクト一覧のHTML生成
             let projectsHTML = '';
             
+            // 通常タスク表示ボタン
+            const isNormalTasksSelected = selectedProjectFilters.length === 0;
+            const normalTasksCount = tasks.filter(t => !t.projectId).length;
+            projectsHTML += `
+                <div class="project-card ${isNormalTasksSelected ? 'active' : ''}" onclick="showNormalTasks()">
+                    <div class="project-card-name">📋 通常タスク</div>
+                    <div class="project-card-meta">
+                        <span>個人・共通タスク</span>
+                        <span class="project-card-count">${normalTasksCount}</span>
+                    </div>
+                </div>
+            `;
+            
             // 各プロジェクトをカードとして追加
             projects.forEach(project => {
                 const taskCount = projectTaskCounts[project.id] || 0;
@@ -5345,6 +5358,16 @@
             console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
             
             // 再描画してフィルタを適用
+            render();
+        }
+        
+        // 通常タスク表示機能
+        function showNormalTasks() {
+            // プロジェクトフィルターをクリア
+            selectedProjectFilters = [];
+            console.log('📋 [FILTER] 通常タスク表示に切り替え');
+            
+            // 再描画
             render();
         }
 
