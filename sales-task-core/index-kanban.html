@@ -4749,29 +4749,6 @@
                 }
                 console.log(`🔍 [DEADLINE] Task column: ${editingTask.columnId}`);
                 
-                // 期限切れタスクの期限が延長された場合の確認
-                if (wasOverdue && !willBeOverdue) {
-                    // 期限切れタスクの期限延長時の確認ダイアログ表示
-                    const columnTitle = getColumnTitle(editingTask.columnId);
-                    const shouldMoveBack = confirm(
-                        `📅 期限が延長されました\n\n` +
-                        `"${editingTask.title}" の期限が延長され、期限切れではなくなります。\n\n` +
-                        `元の進捗状況「${columnTitle}」に戻しますか？\n\n` +
-                        `• OK: ${columnTitle}に戻す\n` +
-                        `• キャンセル: 期限切れエリアに残す`
-                    );
-                    
-                    if (!shouldMoveBack) {
-                        // ユーザーが期限切れエリアに残すことを選択した場合、
-                        // 期限を元に戻して期限切れのままにする
-                        if (confirm('期限変更をキャンセルして、元の期限のままにしますか？')) {
-                            console.log(`⚠️ User chose to cancel deadline change for task ${editingTask.id}`);
-                            closeModal();
-                            return;
-                        }
-                    }
-                    // 期限延長後の移動処理
-                } else {
                     // 確認不要（期限状態に変化なし）
                 }
                 
@@ -5084,6 +5061,12 @@
                 console.error(`❌ [MAIN] draggedTask not found for taskId: ${taskId}`);
                 return false;
             }
+            
+            // 期限切れタスクの場合はダイアログ表示
+            if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId)) {
+                alert('🚨 期限切れタスクです\n\nこのタスクは期限が過ぎています。移動は可能ですが、期限の見直しをご検討ください。');
+            }
+            
             e.target.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', taskId);
@@ -5122,18 +5105,6 @@
                 }, null, 2));
                 
                 if (draggedTask.columnId !== columnId) {
-                    // 期限切れタスクのdrag&dropは無効（期限延長でのみ移動可能）
-                    if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId)) {
-                        console.log(`❌ [MAIN] Overdue task drag&drop is disabled`);
-                        alert('期限切れタスクは直接移動できません。\n編集画面で期限を延長すると移動できます。');
-                        // ドラッグ状態をリセット
-                        const draggingElement = document.querySelector('.dragging');
-                        if (draggingElement) {
-                            draggingElement.classList.remove('dragging');
-                        }
-                        draggedTask = null;
-                        return;
-                    }
                     
                     // 🔧 権限チェック：一般ユーザーは自分のタスクのみ移動可能
                     const currentUser = getCurrentUser();
@@ -5236,16 +5207,6 @@
             e.currentTarget.classList.remove('drag-over');
         }
         
-        function handleOverdueDrop(e) {
-            console.log(`🔴 [OVERDUE] handleOverdueDrop called - disabled`);
-            e.preventDefault();
-            const dropZone = e.currentTarget;
-            dropZone.classList.remove('drag-over');
-            
-            // 期限切れエリアへのドロップは無効
-            alert('期限切れエリアには直接移動できません。\n編集画面で期限を延長してください。');
-            console.log(`❌ [OVERDUE] Drop to overdue area is disabled`);
-        }
         
         function getColumnTitle(columnId) {
             const column = columns.find(c => c.id === columnId);
@@ -5458,11 +5419,11 @@
             
             return `
                 <div class="${cardClass}" 
-                     draggable="${!isBulkMode && !(isFromOverdueColumn || isOverdueTask)}"
-                     ${(!isBulkMode && !(isFromOverdueColumn || isOverdueTask)) ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
+                     draggable="${!isBulkMode}"
+                     ${!isBulkMode ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
                      onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
-                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : ((isFromOverdueColumn || isOverdueTask) ? 'default' : 'move')}; ${(isFromOverdueColumn || isOverdueTask) ? 'opacity: 0.9;' : ''} ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
-                     title="${(isFromOverdueColumn || isOverdueTask) ? '期限切れタスクです。移動するには編集で期限を延長してください。' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
+                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : 'move'}; ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
+                     title="${isOverdueTask ? '🚨 期限切れタスクです' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
                     ${checkboxHtml}
                     <div class="task-title" style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <span style="flex: 1;">
