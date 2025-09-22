@@ -5059,11 +5059,6 @@
                 return false;
             }
             
-            // 期限切れタスクの場合はダイアログ表示
-            if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId)) {
-                alert('🚨 期限切れタスクです\n\nこのタスクは期限が過ぎています。移動は可能ですが、期限の見直しをご検討ください。');
-            }
-            
             e.target.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', taskId);
