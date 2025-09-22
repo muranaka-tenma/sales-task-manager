@@ -760,12 +760,7 @@
                 comments: [],
                 attachments: [],
                 // プロジェクトタスク専用フィールド
-                isProjectTask: true,
-                finalApprovers: selectedApprovers,
-                approvalStatus: selectedApprovers.reduce((acc, approver) => {
-                    acc[approver] = 'pending';
-                    return acc;
-                }, {})
+                isProjectTask: true
             };
             
             // 既存のタスクを読み込んで追加（正しいキーを使用）
