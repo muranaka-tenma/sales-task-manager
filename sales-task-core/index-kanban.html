@@ -5216,12 +5216,38 @@
             return columns; // デフォルトカラムを使用
         }
 
+        // プロジェクトデータを統一的に取得する関数
+        function getAllProjects() {
+            // projectSettingsから全プロジェクトを取得
+            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+            const projects = [];
+            
+            // オブジェクトを配列に変換
+            Object.keys(projectSettings).forEach(projectId => {
+                const project = projectSettings[projectId];
+                projects.push({
+                    id: projectId,
+                    name: project.name || 'プロジェクト名未設定',
+                    description: project.description || '',
+                    isPublic: project.isPublic !== false, // デフォルトはtrue
+                    createdAt: project.createdAt || new Date().toISOString(),
+                    createdBy: project.createdBy || 'Unknown',
+                    columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                });
+            });
+            
+            // プロジェクトIDでソート（作成順を維持）
+            projects.sort((a, b) => a.id.localeCompare(b.id));
+            
+            return projects;
+        }
+
         // プロジェクト一覧カラムを描画
         function renderProjectListColumn() {
             const board = document.getElementById('kanban-board');
             
-            // プロジェクトデータを取得
-            const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+            // プロジェクトデータを取得（統一関数を使用）
+            const projects = getAllProjects();
             
             // 各プロジェクトのタスク数を計算
             const projectTaskCounts = {};
