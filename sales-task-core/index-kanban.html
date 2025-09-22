@@ -5309,19 +5309,6 @@
             // プロジェクト一覧のHTML生成
             let projectsHTML = '';
             
-            // 全タスク表示オプション
-            const isAllSelected = selectedProjectFilters.length === 0;
-            const allTasksCount = tasks.filter(t => !t.projectId).length;
-            projectsHTML += `
-                <div class="project-card ${isAllSelected ? 'active' : ''}" onclick="clearProjectFilter()">
-                    <div class="project-card-name">📋 全タスク表示</div>
-                    <div class="project-card-meta">
-                        <span>個人・共通タスク</span>
-                        <span class="project-card-count">${allTasksCount}</span>
-                    </div>
-                </div>
-            `;
-            
             // 各プロジェクトをカードとして追加
             projects.forEach(project => {
                 const taskCount = projectTaskCounts[project.id] || 0;
@@ -5358,15 +5345,6 @@
             console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
             
             // 再描画してフィルタを適用
-            render();
-        }
-        
-        // プロジェクトフィルターをクリア
-        function clearProjectFilter() {
-            selectedProjectFilters = [];
-            console.log('📋 [FILTER] 全タスク表示に切り替え');
-            
-            // 再描画
             render();
         }
 
@@ -5413,8 +5391,9 @@
                 });
                 console.log(`👤 [RENDER] Assignee filter: showing ${filteredTasks.length} tasks for ${selectedAssigneeFilters[0]}`);
             } else {
-                // 全タスク表示（通常のKanbanボード）
-                console.log('📋 [RENDER] 通常のKanbanボード表示');
+                // 個人・共通タスクのみ表示（プロジェクトタスクは除外）
+                filteredTasks = tasks.filter(t => !t.projectId);
+                console.log('📋 [RENDER] 個人・共通タスクのみ表示:', filteredTasks.length, '件');
             }
             
             // フィルタ適用後: ${filteredTasks.length}件
