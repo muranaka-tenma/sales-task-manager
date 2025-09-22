@@ -5057,12 +5057,18 @@
                         
                         if (!hasEvidence) {
                             console.log(`🔍 [PJ DEBUG] Before promptForEvidence - Tasks count: ${tasks.length}`);
-                            const evidenceResult = promptForEvidence(draggedTask);
+                            const evidenceResult = await promptForEvidence(draggedTask);
                             console.log(`🔍 [PJ DEBUG] After promptForEvidence - Result: ${evidenceResult}, Tasks count: ${tasks.length}`);
                             
                             if (!evidenceResult) {
                                 console.log(`❌ [PJ] 証憑なしのため移動キャンセル: ${draggedTask.title}`);
                                 console.log(`🔍 [PJ DEBUG] Cancel move - Tasks count: ${tasks.length}`);
+                                // ドラッグ状態をリセット
+                                const draggingElement = document.querySelector('.dragging');
+                                if (draggingElement) {
+                                    draggingElement.classList.remove('dragging');
+                                }
+                                draggedTask = null;
                                 return; // 移動をキャンセル
                             }
                         }
@@ -12743,25 +12749,83 @@
         }
         
         function promptForEvidence(task) {
-            const result = confirm(
-                `⚠️ PJタスクの移動には証憑が必要です\n\n` +
-                `タスク: ${task.title}\n` +
-                `プロジェクト: ${task.projectName}\n\n` +
-                `以下のいずれかを追加してください:\n` +
-                `• コメント（進捗報告・連絡内容等）\n` +
-                `• ファイル添付（資料・スクリーンショット等）\n` +
-                `• 詳細メモ（メール内容・打ち合わせ結果等）\n\n` +
-                `証憑を追加せずに移動しますか？\n` +
-                `※ 承認者が状況を判断できません`
-            );
-            
-            if (!result) {
-                // 証憑追加のためタスク編集画面を開く
-                editTask(task.id);
-                return false;
-            }
-            
-            return true; // 証憑なしで強制移動
+            return new Promise((resolve) => {
+                // カスタムダイアログを作成
+                const dialogHTML = `
+                    <div id="evidenceDialog" style="
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0,0,0,0.5);
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 10000;
+                    ">
+                        <div style="
+                            background: white;
+                            padding: 2rem;
+                            border-radius: 8px;
+                            max-width: 500px;
+                            margin: 1rem;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                        ">
+                            <h3 style="color: #e67e22; margin-bottom: 1rem;">⚠️ PJタスクの移動には証憑が必要です</h3>
+                            <p style="margin-bottom: 1rem;"><strong>タスク:</strong> ${task.title}</p>
+                            <p style="margin-bottom: 1rem;"><strong>プロジェクト:</strong> ${task.projectName}</p>
+                            <p style="margin-bottom: 1rem;">以下のいずれかを追加してください:</p>
+                            <ul style="margin-bottom: 1.5rem; padding-left: 1.5rem;">
+                                <li>コメント（進捗報告・連絡内容等）</li>
+                                <li>ファイル添付（資料・スクリーンショット等）</li>
+                                <li>詳細メモ（メール内容・打ち合わせ結果等）</li>
+                            </ul>
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                                <button id="evidenceCancel" style="
+                                    padding: 0.5rem 1rem;
+                                    border: 1px solid #ddd;
+                                    background: white;
+                                    border-radius: 4px;
+                                    cursor: pointer;
+                                ">証憑を追加する</button>
+                                <button id="evidenceConfirm" style="
+                                    padding: 0.5rem 1rem;
+                                    border: none;
+                                    background: #e74c3c;
+                                    color: white;
+                                    border-radius: 4px;
+                                    cursor: pointer;
+                                ">証憑なしで移動する</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.insertAdjacentHTML('beforeend', dialogHTML);
+                
+                const dialog = document.getElementById('evidenceDialog');
+                const cancelBtn = document.getElementById('evidenceCancel');
+                const confirmBtn = document.getElementById('evidenceConfirm');
+                
+                function cleanup() {
+                    if (dialog && dialog.parentNode) {
+                        dialog.parentNode.removeChild(dialog);
+                    }
+                }
+                
+                cancelBtn.onclick = () => {
+                    cleanup();
+                    // 証憑追加のためタスク編集画面を開く
+                    editTask(task.id);
+                    resolve(false);
+                };
+                
+                confirmBtn.onclick = () => {
+                    cleanup();
+                    resolve(true); // 証憑なしで強制移動
+                };
+            });
         }
         
         // PJタスク移動時の通知機能（Slack対応強化版）
