@@ -3001,31 +3001,6 @@
                 console.log(`🔍 [DEADLINE] New deadline: ${newDeadline.toISOString()}, willBeOverdue: ${willBeOverdue}`);
                 console.log(`🔍 [DEADLINE] Task column: ${editingTask.columnId}`);
                 
-                // 期限切れタスクの期限が延長された場合の確認
-                if (wasOverdue && !willBeOverdue) {
-                    console.log(`📅 [DEADLINE] Overdue task deadline extended, showing confirmation dialog`);
-                    const columnTitle = getColumnTitle(editingTask.columnId);
-                    const shouldMoveBack = confirm(
-                        `📅 期限が延長されました\n\n` +
-                        `"${editingTask.title}" の期限が延長され、期限切れではなくなります。\n\n` +
-                        `元の進捗状況「${columnTitle}」に戻しますか？\n\n` +
-                        `• OK: ${columnTitle}に戻す\n` +
-                        `• キャンセル: 期限切れエリアに残す`
-                    );
-                    
-                    if (!shouldMoveBack) {
-                        // ユーザーが期限切れエリアに残すことを選択した場合、
-                        // 期限を元に戻して期限切れのままにする
-                        if (confirm('期限変更をキャンセルして、元の期限のままにしますか？')) {
-                            console.log(`⚠️ User chose to cancel deadline change for task ${editingTask.id}`);
-                            closeModal();
-                            return;
-                        }
-                    }
-                    console.log(`📅 Deadline extended for overdue task ${editingTask.id}, moving back: ${shouldMoveBack}`);
-                } else {
-                    console.log(`🔍 [DEADLINE] No confirmation needed: wasOverdue=${wasOverdue}, willBeOverdue=${willBeOverdue}`);
-                }
                 
                 // 編集
                 editingTask.title = title;
@@ -3160,6 +3135,12 @@
                 console.error(`❌ [MAIN] draggedTask not found for taskId: ${taskId}`);
                 return false;
             }
+            
+            // 期限切れタスクの場合はダイアログ表示
+            if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId)) {
+                alert('🚨 期限切れタスクです\n\nこのタスクは期限が過ぎています。移動は可能ですが、期限の見直しをご検討ください。');
+            }
+            
             e.target.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', taskId);
@@ -3189,12 +3170,6 @@
                 console.log(`🔵 [MAIN] Current task column: ${draggedTask.columnId}, Target: ${columnId}`);
                 
                 if (draggedTask.columnId !== columnId) {
-                    // 期限切れタスクのdrag&dropは無効（期限延長でのみ移動可能）
-                    if (draggedTask.deadline && isOverdue(draggedTask.deadline, draggedTask.columnId)) {
-                        console.log(`❌ [MAIN] Overdue task drag&drop is disabled`);
-                        alert('期限切れタスクは直接移動できません。\n編集画面で期限を延長すると移動できます。');
-                        return;
-                    }
                     
                     console.log(`🟡 [MAIN] Moving "${draggedTask.title}" from ${draggedTask.columnId} to ${columnId}`);
                     
@@ -3231,16 +3206,6 @@
             e.currentTarget.classList.remove('drag-over');
         }
         
-        function handleOverdueDrop(e) {
-            console.log(`🔴 [OVERDUE] handleOverdueDrop called - disabled`);
-            e.preventDefault();
-            const dropZone = e.currentTarget;
-            dropZone.classList.remove('drag-over');
-            
-            // 期限切れエリアへのドロップは無効
-            alert('期限切れエリアには直接移動できません。\n編集画面で期限を延長してください。');
-            console.log(`❌ [OVERDUE] Drop to overdue area is disabled`);
-        }
         
         function getColumnTitle(columnId) {
             const column = columns.find(c => c.id === columnId);
@@ -3276,49 +3241,26 @@
                 console.log(`👥 [RENDER] Showing all ${filteredTasks.length} tasks`);
             }
             
-            // 期限切れタスクを抽出（フィルタリング後のタスクから）
-            let overdueTasks = filteredTasks.filter(t => 
-                t.columnId !== 'done' && 
-                t.deadline && 
-                isOverdue(t.deadline, t.columnId)
-            );
-            
-            // 期限切れカラムを最初に表示
-            if (overdueTasks.length > 0) {
-                const overdueColumn = document.createElement('div');
-                overdueColumn.className = 'column';
-                overdueColumn.style.borderTop = '3px solid #e53e3e';
-                overdueColumn.innerHTML = `
-                    <div class="column-header" style="background: #e53e3e; color: white;">
-                        <div class="column-title">🚨 期限切れ</div>
-                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                            <div class="column-count">${overdueTasks.length}</div>
-                        </div>
-                    </div>
-                    <div class="column-content" 
-                         style="background: #fee;"
-                         ondragover="handleDragOver(event)"
-                         ondrop="handleOverdueDrop(event)"
-                         ondragenter="handleDragEnter(event)"
-                         ondragleave="handleDragLeave(event)">
-                        ${overdueTasks.map(task => createTaskCard(task, true)).join('')}
-                    </div>
-                `;
-                board.appendChild(overdueColumn);
-            }
             
             // 通常のカラムを表示
             columns.forEach(column => {
-                let columnTasks = filteredTasks.filter(t => {
-                    // 期限切れタスクは期限切れカラムに表示するので除外
-                    if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
-                        return false;
-                    }
-                    return t.columnId === column.id;
-                });
+                let columnTasks = filteredTasks.filter(t => t.columnId === column.id);
                 
-                // 期限順でソート
-                columnTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+                // 期限切れタスクを先頭に、その後期限順でソート
+                columnTasks.sort((a, b) => {
+                    const aOverdue = a.deadline && isOverdue(a.deadline, a.columnId);
+                    const bOverdue = b.deadline && isOverdue(b.deadline, b.columnId);
+                    
+                    // 期限切れタスクを先頭に
+                    if (aOverdue && !bOverdue) return -1;
+                    if (!aOverdue && bOverdue) return 1;
+                    
+                    // 同じ状態の場合は期限順
+                    if (a.deadline && b.deadline) {
+                        return new Date(a.deadline) - new Date(b.deadline);
+                    }
+                    return 0;
+                });
                 
                 const columnEl = document.createElement('div');
                 columnEl.className = 'column';
@@ -3416,11 +3358,11 @@
             
             return `
                 <div class="${cardClass}" 
-                     draggable="${!isBulkMode && !(isFromOverdueColumn || isOverdueTask)}"
-                     ${(!isBulkMode && !(isFromOverdueColumn || isOverdueTask)) ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
+                     draggable="${!isBulkMode}"
+                     ${!isBulkMode ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
                      onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
-                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : ((isFromOverdueColumn || isOverdueTask) ? 'default' : 'move')}; ${(isFromOverdueColumn || isOverdueTask) ? 'opacity: 0.9;' : ''} ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
-                     title="${(isFromOverdueColumn || isOverdueTask) ? '期限切れタスクです。移動するには編集で期限を延長してください。' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
+                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : 'move'}; ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
+                     title="${isOverdueTask ? '🚨 期限切れタスクです' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
                     ${checkboxHtml}
                     <div class="task-title">
                         ${task.isRecurring ? '<span style="color: #2d3748; margin-right: 0.25rem;" title="定期タスク">🔄</span>' : ''}
@@ -3568,13 +3510,7 @@
             const now = new Date();
             
             columns.forEach(column => {
-                const columnTasks = filteredTasks.filter(t => {
-                    // 期限切れタスクは期限切れエリアに表示されるので除外
-                    if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
-                        return false;
-                    }
-                    return t.columnId === column.id;
-                });
+                const columnTasks = filteredTasks.filter(t => t.columnId === column.id);
                 
                 // 平均滞留時間を計算
                 let avgDays = 0;
@@ -3778,13 +3714,7 @@
             }
             
             // 該当ステータスのタスクを取得
-            const statusTasks = filteredTasks.filter(t => {
-                // 期限切れタスクは期限切れエリアに表示されるので除外
-                if (t.columnId !== 'done' && t.deadline && isOverdue(t.deadline, t.columnId)) {
-                    return false;
-                }
-                return t.columnId === columnId;
-            });
+            const statusTasks = filteredTasks.filter(t => t.columnId === columnId);
             
             if (statusTasks.length === 0) {
                 alert(`${column.title}ステータスにはタスクがありません。`);
