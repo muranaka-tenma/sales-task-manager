@@ -2903,6 +2903,12 @@
             updateAssigneeFilterText();
             render();
             updateStats();
+            
+            // ドロップダウンを自動で閉じる
+            const dropdown = document.getElementById('assignee-filter-dropdown');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
         }
         
         function updateAssigneeFilterText() {
@@ -2914,8 +2920,11 @@
                 const project = projectSettings[selectedProjectFilters[0]];
                 const projectName = project ? project.name : 'プロジェクト';
                 
-                // プロジェクト選択時は常に「全員」（メンバーはリセットされるため）
-                textElement.textContent = `👥 ${projectName} - 全員`;
+                if (selectedAssigneeFilters.length > 0) {
+                    textElement.textContent = `👥 ${projectName} - 👤 ${selectedAssigneeFilters[0]}`;
+                } else {
+                    textElement.textContent = `👥 ${projectName} - 全員`;
+                }
             } else if (selectedAssigneeFilters.length > 0) {
                 textElement.textContent = `👤 ${selectedAssigneeFilters[0]}`;
             } else {
@@ -5352,13 +5361,7 @@
         function selectProject(projectId) {
             // プロジェクトIDでフィルタリング
             selectedProjectFilters = [projectId];
-            // プロジェクト切り替え時はメンバーフィルターを「全員」にリセット
-            selectedAssigneeFilters = [];
-            console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId, '(メンバーフィルターをリセット)');
-            
-            // ラジオボタンの選択状態も更新
-            const allRadio = document.querySelector('#assignee-filter-dropdown input[name="filter-type"][value=""]');
-            if (allRadio) allRadio.checked = true;
+            console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
             
             // 表示対象テキストを更新
             updateAssigneeFilterText();
