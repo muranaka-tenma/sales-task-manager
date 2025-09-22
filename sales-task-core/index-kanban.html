@@ -2886,10 +2886,8 @@
         function updateAssigneeFilterSelection() {
             const selectedRadio = document.querySelector('#assignee-filter-dropdown input[name="filter-type"]:checked');
             
-            // リセット
+            // メンバーフィルターのみリセット（プロジェクトフィルターは維持）
             selectedAssigneeFilters = [];
-            selectedProjectFilters = [];
-            viewMode = 'personal';
             
             if (selectedRadio && selectedRadio.value) {
                 const [type, value] = selectedRadio.value.split(':');
