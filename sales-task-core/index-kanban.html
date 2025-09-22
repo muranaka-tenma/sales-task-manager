@@ -302,23 +302,49 @@
         
         /* カンバンボード */
         .board-container {
+            display: flex;
+            gap: 0.75rem;
             padding: 0.25rem;
             height: calc(100vh - 120px);
             overflow-x: auto;
         }
         
-        .project-list-column {
+        .projects-sidebar {
+            min-width: 250px;
+            max-width: 300px;
             background: linear-gradient(135deg, #f8f9fb 0%, #ebecf0 100%);
             border-radius: 8px;
-            min-width: 200px;
-            max-width: 250px;
-            width: 220px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
             display: flex;
             flex-direction: column;
             max-height: 100%;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
         }
+        
+        .projects-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #026aa7;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .projects-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .kanban-area {
+            flex: 1;
+            min-width: 0;
+        }
+        
         
         .project-card {
             background: white;
@@ -334,6 +360,12 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
             border-color: #026aa7;
+        }
+        
+        .project-card.active {
+            background: #e3f2fd;
+            border-color: #026aa7;
+            box-shadow: 0 2px 8px rgba(2,106,167,0.2);
         }
         
         .project-card-name {
@@ -1252,8 +1284,21 @@
     
     <!-- カンバンボード -->
     <div class="board-container">
-        <div class="kanban-board" id="kanban-board">
-            <!-- カラムがここに生成される -->
+        <!-- プロジェクト一覧サイドバー -->
+        <div class="projects-sidebar">
+            <div class="projects-header">
+                📁 プロジェクト一覧
+            </div>
+            <div class="projects-list" id="projects-list">
+                <!-- プロジェクト一覧がここに生成される -->
+            </div>
+        </div>
+        
+        <!-- Kanbanボードエリア -->
+        <div class="kanban-area">
+            <div class="kanban-board" id="kanban-board">
+                <!-- カラムがここに生成される -->
+            </div>
         </div>
     </div>
     
@@ -5242,9 +5287,13 @@
             return projects;
         }
 
-        // プロジェクト一覧カラムを描画
-        function renderProjectListColumn() {
-            const board = document.getElementById('kanban-board');
+        // プロジェクト一覧サイドバーを描画
+        function renderProjectsList() {
+            const projectsList = document.getElementById('projects-list');
+            if (!projectsList) {
+                console.error('❌ [PROJECTS] projects-list element not found!');
+                return;
+            }
             
             // プロジェクトデータを取得（統一関数を使用）
             const projects = getAllProjects();
@@ -5257,44 +5306,39 @@
                 }
             });
             
-            // プロジェクト一覧カラムを作成
-            const projectColumn = document.createElement('div');
-            projectColumn.className = 'column project-list-column';
+            // プロジェクト一覧のHTML生成
+            let projectsHTML = '';
             
-            // カラムヘッダー
-            const columnHeader = document.createElement('div');
-            columnHeader.className = 'column-header';
-            columnHeader.style.background = '#026aa7';
-            columnHeader.innerHTML = `
-                <span class="column-title" style="color: white;">📁 プロジェクト一覧</span>
-                <span class="task-count" style="background: rgba(255,255,255,0.3); color: white;">${projects.length}</span>
+            // 全タスク表示オプション
+            const isAllSelected = selectedProjectFilters.length === 0;
+            const allTasksCount = tasks.filter(t => !t.projectId).length;
+            projectsHTML += `
+                <div class="project-card ${isAllSelected ? 'active' : ''}" onclick="clearProjectFilter()">
+                    <div class="project-card-name">📋 全タスク表示</div>
+                    <div class="project-card-meta">
+                        <span>個人・共通タスク</span>
+                        <span class="project-card-count">${allTasksCount}</span>
+                    </div>
+                </div>
             `;
-            projectColumn.appendChild(columnHeader);
-            
-            // プロジェクトリストコンテナ
-            const dropZone = document.createElement('div');
-            dropZone.className = 'drop-zone';
-            dropZone.style.flex = '1';
-            dropZone.style.overflowY = 'auto';
             
             // 各プロジェクトをカードとして追加
             projects.forEach(project => {
                 const taskCount = projectTaskCounts[project.id] || 0;
-                const projectCard = document.createElement('div');
-                projectCard.className = 'project-card';
-                projectCard.innerHTML = `
-                    <div class="project-card-name">${project.name}</div>
-                    <div class="project-card-meta">
-                        <span>${project.isPublic ? '🌐 公開' : '🔒 非公開'}</span>
-                        <span class="project-card-count">${taskCount}</span>
+                const isSelected = selectedProjectFilters.includes(project.id);
+                projectsHTML += `
+                    <div class="project-card ${isSelected ? 'active' : ''}" onclick="selectProject('${project.id}')">
+                        <div class="project-card-name">${project.name}</div>
+                        <div class="project-card-meta">
+                            <span>${project.isPublic ? '🌐 公開' : '🔒 非公開'}</span>
+                            <span class="project-card-count">${taskCount}</span>
+                        </div>
                     </div>
                 `;
-                projectCard.onclick = () => window.location.href = `pj-detail.html?projectId=${project.id}`;
-                dropZone.appendChild(projectCard);
             });
             
             if (projects.length === 0) {
-                dropZone.innerHTML = `
+                projectsHTML = `
                     <div style="text-align: center; color: #6b778c; padding: 2rem 1rem;">
                         <div style="font-size: 2rem; margin-bottom: 0.5rem;">📁</div>
                         <div>プロジェクトがありません</div>
@@ -5303,9 +5347,27 @@
                 `;
             }
             
-            projectColumn.appendChild(dropZone);
-            board.appendChild(projectColumn);
-            console.log('🎨 [PROJECTS] Project list column rendered with', projects.length, 'projects');
+            projectsList.innerHTML = projectsHTML;
+            console.log('🎨 [PROJECTS] Project list sidebar rendered with', projects.length, 'projects');
+        }
+        
+        // プロジェクト選択機能
+        function selectProject(projectId) {
+            // プロジェクトIDでフィルタリング
+            selectedProjectFilters = [projectId];
+            console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
+            
+            // 再描画してフィルタを適用
+            render();
+        }
+        
+        // プロジェクトフィルターをクリア
+        function clearProjectFilter() {
+            selectedProjectFilters = [];
+            console.log('📋 [FILTER] 全タスク表示に切り替え');
+            
+            // 再描画
+            render();
         }
 
         // レンダリング
@@ -5357,8 +5419,8 @@
             
             // フィルタ適用後: ${filteredTasks.length}件
             
-            // プロジェクト一覧カラムを最初に追加
-            renderProjectListColumn();
+            // プロジェクト一覧サイドバーを描画
+            renderProjectsList();
             
             // 通常のカラムを表示（プロジェクト専用カラムまたはデフォルトカラム）
             currentColumns.forEach(column => {
