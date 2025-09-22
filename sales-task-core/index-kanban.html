@@ -5281,20 +5281,7 @@
             // プロジェクト一覧のHTML生成
             let projectsHTML = '';
             
-            // 全体表示オプション
-            const isAllSelected = selectedProjectFilters.length === 0;
-            const allTasksCount = tasks.filter(t => !t.projectId).length;
-            projectsHTML += `
-                <div class="project-item ${isAllSelected ? 'active' : ''}" onclick="selectProject('all')">
-                    <div class="project-name">📋 全タスク表示</div>
-                    <div class="project-meta">
-                        <span>個人・共通タスク</span>
-                        <span class="project-tasks-count">${allTasksCount}</span>
-                    </div>
-                </div>
-            `;
-            
-            // 各プロジェクト
+            // 各プロジェクト（プロジェクトのみ表示、個人タスクは除外）
             projects.forEach(project => {
                 const taskCount = projectTaskCounts[project.id] || 0;
                 const isSelected = selectedProjectFilters.includes(project.id);
@@ -5325,14 +5312,9 @@
         
         // プロジェクト選択ハンドラー
         function selectProject(projectId) {
-            if (projectId === 'all') {
-                selectedProjectFilters = [];
-                console.log('📋 [FILTER] 全タスク表示に切り替え');
-            } else {
-                // 単一プロジェクト選択（複数選択も後で対応可能）
-                selectedProjectFilters = [projectId];
-                console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
-            }
+            // プロジェクト選択（個人タスクは除外）
+            selectedProjectFilters = [projectId];
+            console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
             
             // 再描画
             render();
@@ -5384,8 +5366,18 @@
                 });
                 console.log(`👤 [RENDER] Assignee filter: showing ${filteredTasks.length} tasks for ${selectedAssigneeFilters[0]}`);
             } else {
-                // 全員: 全タスク表示
-                // 全タスク表示
+                // プロジェクト未選択時: Kanbanボードは表示しない
+                console.log('📋 [RENDER] プロジェクト未選択 - Kanbanボード非表示');
+                board.innerHTML = `
+                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #6b778c; text-align: center;">
+                        <div>
+                            <div style="font-size: 4rem; margin-bottom: 1rem;">📋</div>
+                            <div style="font-size: 1.2rem; margin-bottom: 0.5rem;">プロジェクトを選択してください</div>
+                            <div style="font-size: 0.9rem;">左側のプロジェクト一覧からプロジェクトを選択すると、そのタスクが表示されます</div>
+                        </div>
+                    </div>
+                `;
+                return;
             }
             
             // フィルタ適用後: ${filteredTasks.length}件
