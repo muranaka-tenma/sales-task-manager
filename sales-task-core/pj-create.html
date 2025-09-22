@@ -183,10 +183,6 @@
                 <div id="assignees" class="checkbox-group"></div>
             </div>
             
-            <div class="form-group">
-                <label class="form-label">✅ 承認者（複数選択可）*</label>
-                <div id="approvers" class="checkbox-group"></div>
-            </div>
             
             <div class="form-group">
                 <label class="form-label">📄 メモ</label>
@@ -360,20 +356,14 @@
             console.log('👥 [LOAD ASSIGNEES] 最終担当者リスト:', assignees);
             
             const assigneesDiv = document.getElementById('assignees');
-            const approversDiv = document.getElementById('approvers');
             
             // 既存のチェックボックスをクリア
             assigneesDiv.innerHTML = '';
-            approversDiv.innerHTML = '';
             
             assignees.forEach(assignee => {
                 // 担当者用チェックボックス
                 const assigneeItem = createCheckboxItem(assignee, 'assignee');
                 assigneesDiv.appendChild(assigneeItem);
-                
-                // 承認者用チェックボックス
-                const approverItem = createCheckboxItem(assignee, 'approver');
-                approversDiv.appendChild(approverItem);
             });
             
             console.log('✅ [LOAD ASSIGNEES] 担当者・承認者チェックボックス生成完了');
@@ -748,18 +738,12 @@
             // 選択された担当者と承認者を取得
             const selectedAssignees = Array.from(document.querySelectorAll('input[name="assignee"]:checked'))
                 .map(cb => cb.value);
-            const selectedApprovers = Array.from(document.querySelectorAll('input[name="approver"]:checked'))
-                .map(cb => cb.value);
             
             if (selectedAssignees.length === 0) {
                 alert('担当者を選択してください');
                 return;
             }
             
-            if (selectedApprovers.length === 0) {
-                alert('承認者を選択してください');
-                return;
-            }
             
             // タスクデータを作成
             const task = {
@@ -770,7 +754,6 @@
                 deadline: `${document.getElementById('deadline-date').value}T${document.getElementById('deadline-time').value}`,
                 priority: document.getElementById('priority').value,
                 assignees: selectedAssignees,
-                approvers: selectedApprovers,
                 memo: document.getElementById('memo').value,
                 columnId: 'todo',
                 createdAt: new Date().toISOString(),
