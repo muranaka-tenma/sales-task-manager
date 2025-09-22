@@ -2912,13 +2912,10 @@
                 // プロジェクト名を取得
                 const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
                 const project = projectSettings[selectedProjectFilters[0]];
-                const projectName = project ? project.name : selectedProjectFilters[0];
+                const projectName = project ? project.name : 'プロジェクト';
                 
-                if (selectedAssigneeFilters.length > 0) {
-                    textElement.textContent = `👥 ${projectName} - 👤 ${selectedAssigneeFilters[0]}`;
-                } else {
-                    textElement.textContent = `👥 ${projectName}`;
-                }
+                // プロジェクト選択時は常に「全員」（メンバーはリセットされるため）
+                textElement.textContent = `👥 ${projectName} - 全員`;
             } else if (selectedAssigneeFilters.length > 0) {
                 textElement.textContent = `👤 ${selectedAssigneeFilters[0]}`;
             } else {
@@ -5355,7 +5352,13 @@
         function selectProject(projectId) {
             // プロジェクトIDでフィルタリング
             selectedProjectFilters = [projectId];
-            console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
+            // プロジェクト切り替え時はメンバーフィルターを「全員」にリセット
+            selectedAssigneeFilters = [];
+            console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId, '(メンバーフィルターをリセット)');
+            
+            // ラジオボタンの選択状態も更新
+            const allRadio = document.querySelector('#assignee-filter-dropdown input[name="filter-type"][value=""]');
+            if (allRadio) allRadio.checked = true;
             
             // 表示対象テキストを更新
             updateAssigneeFilterText();
@@ -5402,23 +5405,39 @@
             // フィルタリングデバッグログは削除済み
             
             if (selectedProjectFilters.length > 0) {
-                // PJフィルター: 特定プロジェクトのタスクのみ表示
+                // プロジェクトフィルター: 特定プロジェクトのタスクのみ表示
                 filteredTasks = tasks.filter(t => 
                     t.projectId && selectedProjectFilters.includes(t.projectId)
                 );
                 
+                // メンバーフィルターとの組み合わせ
+                if (selectedAssigneeFilters.length > 0) {
+                    filteredTasks = filteredTasks.filter(t => {
+                        if (t.assignees && Array.isArray(t.assignees)) {
+                            return t.assignees.some(a => selectedAssigneeFilters.includes(a));
+                        }
+                        return selectedAssigneeFilters.includes(t.assignee);
+                    });
+                    console.log(`👥 [RENDER] Project + Assignee filter: showing ${filteredTasks.length} tasks for project ${selectedProjectFilters[0]} and assignee ${selectedAssigneeFilters[0]}`);
+                } else {
+                    console.log(`👥 [RENDER] Project filter: showing ${filteredTasks.length} tasks for project ${selectedProjectFilters[0]}`);
+                }
+                
                 // プロジェクト専用カラムを取得
                 currentColumns = getProjectColumns(selectedProjectFilters[0]);
-                console.log(`👥 [RENDER] Project filter: showing ${filteredTasks.length} tasks for project ${selectedProjectFilters[0]} with ${currentColumns.length} columns`);
             } else if (selectedAssigneeFilters.length > 0) {
-                // 担当者フィルター: 特定担当者のタスクのみ表示
+                // 個人・共通タスクの担当者フィルター（プロジェクトタスクは除外）
                 filteredTasks = tasks.filter(t => {
+                    // プロジェクトタスクは除外
+                    if (t.projectId) return false;
+                    
+                    // メンバーフィルター適用
                     if (t.assignees && Array.isArray(t.assignees)) {
                         return t.assignees.some(a => selectedAssigneeFilters.includes(a));
                     }
                     return selectedAssigneeFilters.includes(t.assignee);
                 });
-                console.log(`👤 [RENDER] Assignee filter: showing ${filteredTasks.length} tasks for ${selectedAssigneeFilters[0]}`);
+                console.log(`👤 [RENDER] Assignee filter (normal tasks only): showing ${filteredTasks.length} tasks for ${selectedAssigneeFilters[0]}`);
             } else {
                 // 個人・共通タスクのみ表示（プロジェクトタスクは除外）
                 filteredTasks = tasks.filter(t => !t.projectId);
