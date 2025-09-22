@@ -302,9 +302,92 @@
         
         /* カンバンボード */
         .board-container {
+            display: flex;
+            gap: 0.75rem;
             padding: 0.25rem;
             height: calc(100vh - 120px);
             overflow-x: auto;
+        }
+        
+        .projects-sidebar {
+            min-width: 250px;
+            max-width: 300px;
+            background: linear-gradient(135deg, #f8f9fb 0%, #ebecf0 100%);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+        }
+        
+        .projects-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #026aa7;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .projects-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .project-item {
+            background: white;
+            border-radius: 6px;
+            padding: 0.75rem;
+            border: 1px solid #e1e4e8;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .project-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-color: #026aa7;
+        }
+        
+        .project-item.active {
+            background: #e3f2fd;
+            border-color: #026aa7;
+            box-shadow: 0 2px 8px rgba(2,106,167,0.2);
+        }
+        
+        .project-name {
+            font-weight: 600;
+            color: #172b4d;
+            margin-bottom: 0.25rem;
+        }
+        
+        .project-meta {
+            font-size: 0.8rem;
+            color: #6b778c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .project-tasks-count {
+            background: #026aa7;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .kanban-area {
+            flex: 1;
+            min-width: 0;
         }
         
         .kanban-board {
@@ -1199,8 +1282,21 @@
     
     <!-- カンバンボード -->
     <div class="board-container">
-        <div class="kanban-board" id="kanban-board">
-            <!-- カラムがここに生成される -->
+        <!-- プロジェクト一覧サイドバー -->
+        <div class="projects-sidebar">
+            <div class="projects-header">
+                📁 プロジェクト一覧
+            </div>
+            <div class="projects-list" id="projects-list">
+                <!-- プロジェクト一覧がここに生成される -->
+            </div>
+        </div>
+        
+        <!-- Kanbanボードエリア -->
+        <div class="kanban-area">
+            <div class="kanban-board" id="kanban-board">
+                <!-- カラムがここに生成される -->
+            </div>
         </div>
     </div>
     
@@ -5163,6 +5259,85 @@
             return columns; // デフォルトカラムを使用
         }
 
+        // プロジェクト一覧を描画
+        function renderProjectsList() {
+            const projectsList = document.getElementById('projects-list');
+            if (!projectsList) {
+                console.error('❌ [PROJECTS] projects-list element not found!');
+                return;
+            }
+            
+            // プロジェクトデータを取得
+            const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+            
+            // 各プロジェクトのタスク数を計算
+            const projectTaskCounts = {};
+            tasks.forEach(task => {
+                if (task.projectId) {
+                    projectTaskCounts[task.projectId] = (projectTaskCounts[task.projectId] || 0) + 1;
+                }
+            });
+            
+            // プロジェクト一覧のHTML生成
+            let projectsHTML = '';
+            
+            // 全体表示オプション
+            const isAllSelected = selectedProjectFilters.length === 0;
+            const allTasksCount = tasks.filter(t => !t.projectId).length;
+            projectsHTML += `
+                <div class="project-item ${isAllSelected ? 'active' : ''}" onclick="selectProject('all')">
+                    <div class="project-name">📋 全タスク表示</div>
+                    <div class="project-meta">
+                        <span>個人・共通タスク</span>
+                        <span class="project-tasks-count">${allTasksCount}</span>
+                    </div>
+                </div>
+            `;
+            
+            // 各プロジェクト
+            projects.forEach(project => {
+                const taskCount = projectTaskCounts[project.id] || 0;
+                const isSelected = selectedProjectFilters.includes(project.id);
+                projectsHTML += `
+                    <div class="project-item ${isSelected ? 'active' : ''}" onclick="selectProject('${project.id}')">
+                        <div class="project-name">${project.name}</div>
+                        <div class="project-meta">
+                            <span>${project.isPublic ? '🌐 公開' : '🔒 非公開'}</span>
+                            <span class="project-tasks-count">${taskCount}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (projects.length === 0) {
+                projectsHTML += `
+                    <div style="text-align: center; color: #6b778c; padding: 2rem 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📁</div>
+                        <div>プロジェクトがありません</div>
+                        <div style="font-size: 0.8rem; margin-top: 0.5rem;">設定からプロジェクトを作成してください</div>
+                    </div>
+                `;
+            }
+            
+            projectsList.innerHTML = projectsHTML;
+            console.log('🎨 [PROJECTS] Project list rendered with', projects.length, 'projects');
+        }
+        
+        // プロジェクト選択ハンドラー
+        function selectProject(projectId) {
+            if (projectId === 'all') {
+                selectedProjectFilters = [];
+                console.log('📋 [FILTER] 全タスク表示に切り替え');
+            } else {
+                // 単一プロジェクト選択（複数選択も後で対応可能）
+                selectedProjectFilters = [projectId];
+                console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
+            }
+            
+            // 再描画
+            render();
+        }
+
         // レンダリング
         function render() {
             // 🔧 修正: タスクが未定義の場合は空配列で初期化
@@ -5173,6 +5348,9 @@
             }
             
             console.log('🎨 [RENDER] Starting render, total tasks:', tasks.length);
+            
+            // プロジェクト一覧を描画
+            renderProjectsList();
             const board = document.getElementById('kanban-board');
             if (!board) {
                 console.error('❌ [RENDER] kanban-board element not found!');
