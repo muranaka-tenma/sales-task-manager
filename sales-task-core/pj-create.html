@@ -296,15 +296,27 @@
                         console.log('🔥 [LOAD ASSIGNEES] Firebase getUsers 関数を使用');
                         const firebaseUsers = await window.FirebaseDB.getUsers();
                         if (firebaseUsers.success && firebaseUsers.users.length > 0) {
+                            // デバッグ：全ユーザーの状態を確認
+                            console.log('🔍 [DEBUG] Firebase全ユーザー:', firebaseUsers.users.map(u => ({
+                                name: u.name || u.displayName,
+                                email: u.email,
+                                isDisabled: u.isDisabled,
+                                isHidden: u.isHidden
+                            })));
+                            
                             // 無効化・非表示ユーザーを除外
                             const activeUsers = firebaseUsers.users.filter(user => !user.isDisabled && !user.isHidden);
                             assignees = activeUsers.map(user => user.name || user.displayName || user.email.split('@')[0]);
+                            
+                            // LocalStorageのsystemUsersも更新（他の画面との整合性のため）
+                            localStorage.setItem('systemUsers', JSON.stringify(firebaseUsers.users));
                             
                             const excludedCount = firebaseUsers.users.length - activeUsers.length;
                             if (excludedCount > 0) {
                                 console.log(`🚫 [LOAD ASSIGNEES] 無効化・非表示ユーザー除外: ${excludedCount}名`);
                             }
                             console.log('🔥 [LOAD ASSIGNEES] Firebase アクティブユーザー取得成功:', assignees.length, '名');
+                            console.log('📝 [DEBUG] 最終的なassignees:', assignees);
                         } else {
                             assignees = ['邨中天真', '加藤純', '朝日圭一', '半澤侑果', '田村渉', '橋本友美', '福島亜未'];
                             console.log('📁 [LOAD ASSIGNEES] Firebase ユーザーなし - デフォルトリスト使用');
