@@ -4091,8 +4091,10 @@
         function checkUnifiedCommentNotifications(commentText, author, taskId) {
             console.log(`🔍 [UNIFIED-NOTIFY] 統合通知チェック開始: "${commentText}" by ${author}`);
             
-            // 非表示タスクの通知抑制チェック
+            // タスクを取得
             const task = tasks.find(t => t.id === taskId);
+            
+            // 非表示タスクの通知抑制チェック
             if (task && task.isHidden) {
                 console.log(`🔒 [UNIFIED-NOTIFY] 非表示タスクのため通知をスキップ: ${task.title}`);
                 return;
@@ -4120,9 +4122,6 @@
                     window.lastCommentNotifications.delete(key);
                 }
             }
-            
-            // タスクを取得
-            const task = tasks.find(t => t.id === taskId);
             if (!task) {
                 console.log(`❌ [UNIFIED-NOTIFY] タスクが見つかりません: ${taskId}`);
                 return;
