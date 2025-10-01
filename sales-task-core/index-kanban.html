@@ -2727,13 +2727,13 @@
         // 「ユーザー」を担当者リストから削除
         assignees = assignees.filter(assignee => assignee !== 'ユーザー');
         if (assignees.length === 0) {
-            // 担当者が空の場合、システムユーザーから取得
-            const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-            if (users.length > 0) {
-                assignees = users.map(user => user.name);
-                console.log('👥 [ASSIGNEE CLEANUP] システムユーザーから担当者を復元:', assignees);
+            // 担当者が空の場合、アクティブユーザーから取得
+            const activeUserNames = getActiveUserNames();
+            if (activeUserNames.length > 0) {
+                assignees = activeUserNames;
+                console.log('👥 [ASSIGNEE CLEANUP] アクティブユーザーから担当者を復元:', assignees);
             } else {
-                // システムユーザーも空の場合、現在のユーザーを追加
+                // アクティブユーザーも空の場合、現在のユーザーを追加
                 const currentUser = getCurrentUser();
                 if (currentUser && currentUser.name && currentUser.name !== 'ゲスト') {
                     assignees = [currentUser.name];
@@ -2856,6 +2856,9 @@
         function populateAssigneeFilterOptions() {
             const dropdown = document.getElementById('assignee-filter-dropdown');
             
+            // アクティブユーザーのみを取得（無効化・非表示ユーザーを除外）
+            const activeUserNames = getActiveUserNames();
+            
             // 全プロジェクトを取得（重複除去）
             const projectMap = new Map();
             tasks.filter(t => t.projectId && t.projectId !== null)
@@ -2873,7 +2876,7 @@
                         <input type="radio" name="filter-type" value="" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.length === 0 && selectedProjectFilters.length === 0 ? 'checked' : ''}>
                         <span>全員</span>
                     </label>
-                    ${assignees.map(assignee => `
+                    ${activeUserNames.map(assignee => `
                         <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
                             <input type="radio" name="filter-type" value="assignee:${assignee}" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.includes(assignee) && selectedProjectFilters.length === 0 ? 'checked' : ''}>
                             <span>${assignee}</span>
@@ -8125,8 +8128,8 @@
                             { id: 'done', title: '✅ Done', color: '#10b981' }
                         ];
                         
-                        // 担当者リストをシステムユーザーから再構築
-                        assignees = ['邨中天真', '加藤純', '田村渉', '半澤侑果', '朝日圭一', '福島亜未', '橋本友美'];
+                        // 担当者リストをアクティブユーザーから再構築（ハードコード削除）
+                        assignees = getActiveUserNames();
                         
                         console.log('🧹 [CLEAR-ALL] システムリセット完了');
                         

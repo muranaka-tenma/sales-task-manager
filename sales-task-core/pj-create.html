@@ -197,6 +197,21 @@
     </div>
     
     <script>
+        // 有効なユーザーのみを取得する関数（無効化・非表示ユーザーを除外）
+        function getActiveUsers() {
+            const allUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const activeUsers = allUsers.filter(user => 
+                !user.isHidden && !user.isDisabled
+            );
+            console.log(`👥 [ACTIVE-USERS] ${allUsers.length}人中 ${activeUsers.length}人が有効`);
+            return activeUsers;
+        }
+        
+        // 有効なユーザー名のリストを取得（担当者選択等で使用）
+        function getActiveUserNames() {
+            return getActiveUsers().map(u => u.name).filter(name => name && name.trim() !== '');
+        }
+        
         // 認証チェック（Firebase統合対応）
         function checkAuthentication() {
             try {
@@ -283,86 +298,36 @@
         });
         
         async function loadAssignees() {
-            console.log('👥 [LOAD ASSIGNEES] 担当者一覧の動的読み込み開始');
+            console.log('👥 [LOAD ASSIGNEES] 担当者一覧の動的読み込み開始（getActiveUsers使用）');
             
             let assignees = [];
             
             // Firebase統合モード: システムユーザーから取得
             if (window.FirebaseDB && window.getCurrentUser()?.isLoggedIn) {
-                console.log('🔥 [LOAD ASSIGNEES] Firebase統合モード - システムユーザーから取得');
+                console.log('🔥 [LOAD ASSIGNEES] Firebase統合モード');
                 try {
-                    // 🔥 Firebase統合：ユーザー管理機能を直接利用
                     if (window.FirebaseDB.getUsers) {
-                        console.log('🔥 [LOAD ASSIGNEES] Firebase getUsers 関数を使用');
                         const firebaseUsers = await window.FirebaseDB.getUsers();
                         if (firebaseUsers.success && firebaseUsers.users.length > 0) {
-                            // デバッグ：全ユーザーの状態を確認
-                            console.log('🔍 [DEBUG] Firebase全ユーザー:', firebaseUsers.users.map(u => ({
-                                name: u.name || u.displayName,
-                                email: u.email,
-                                isDisabled: u.isDisabled,
-                                isHidden: u.isHidden
-                            })));
-                            
-                            // 無効化・非表示ユーザーを除外
-                            const activeUsers = firebaseUsers.users.filter(user => !user.isDisabled && !user.isHidden);
-                            assignees = activeUsers.map(user => user.name || user.displayName || user.email.split('@')[0]);
-                            
-                            // LocalStorageのsystemUsersも更新（他の画面との整合性のため）
+                            // LocalStorageのsystemUsersを更新
                             localStorage.setItem('systemUsers', JSON.stringify(firebaseUsers.users));
-                            
-                            const excludedCount = firebaseUsers.users.length - activeUsers.length;
-                            if (excludedCount > 0) {
-                                console.log(`🚫 [LOAD ASSIGNEES] 無効化・非表示ユーザー除外: ${excludedCount}名`);
-                            }
-                            console.log('🔥 [LOAD ASSIGNEES] Firebase アクティブユーザー取得成功:', assignees.length, '名');
-                            console.log('📝 [DEBUG] 最終的なassignees:', assignees);
-                        } else {
-                            assignees = ['邨中天真', '加藤純', '朝日圭一', '半澤侑果', '田村渉', '橋本友美', '福島亜未'];
-                            console.log('📁 [LOAD ASSIGNEES] Firebase ユーザーなし - デフォルトリスト使用');
+                            console.log('🔄 [LOAD ASSIGNEES] systemUsers更新完了');
                         }
-                    } else {
-                        // フォールバック: 最低限のユーザーリスト
-                        assignees = ['邨中天真', '加藤純', '朝日圭一', '半澤侑果', '田村渉', '橋本友美', '福島亜未'];
-                        console.log('📁 [LOAD ASSIGNEES] Firebase getUsers 未対応 - デフォルトリスト使用');
                     }
                 } catch (error) {
                     console.error('❌ [LOAD ASSIGNEES] Firebase取得エラー:', error);
-                    // エラー時でもLocalStorageとシステムユーザーを確認
-                    assignees = JSON.parse(localStorage.getItem('taskAssignees') || '["邨中天真", "加藤純", "朝日圭一", "半澤侑果", "田村渉", "橋本友美", "福島亜未"]');
-                    const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                    if (systemUsers.length > 0) {
-                        // 無効化・非表示ユーザーを除外
-                        const activeSystemUsers = systemUsers.filter(user => !user.isDisabled && !user.isHidden);
-                        const systemUserNames = activeSystemUsers.map(user => user.name).filter(name => name && name.trim() !== '');
-                        assignees = [...new Set([...assignees, ...systemUserNames])];
-                        
-                        const excludedCount = systemUsers.length - activeSystemUsers.length;
-                        if (excludedCount > 0) {
-                            console.log(`🚫 [LOAD ASSIGNEES] LocalStorageから無効化・非表示ユーザー除外: ${excludedCount}名`);
-                        }
-                        console.log('📁 [LOAD ASSIGNEES] エラー時フォールバック: アクティブシステムユーザー追加');
-                    }
                 }
+            }
+            
+            // getActiveUsers関数を使用して無効化・非表示ユーザーを除外
+            const activeUserNames = getActiveUserNames();
+            
+            if (activeUserNames.length > 0) {
+                assignees = activeUserNames;
+                console.log('✅ [LOAD ASSIGNEES] getActiveUsers から取得:', assignees.length, '名');
             } else {
-                console.log('📁 [LOAD ASSIGNEES] LocalStorageモード');
-                // LocalStorage フォールバック
-                assignees = JSON.parse(localStorage.getItem('taskAssignees') || '["邨中天真", "加藤純", "朝日圭一", "半澤侑果", "田村渉", "橋本友美", "福島亜未"]');
-                
-                // システムユーザーからも取得を試行（無効化・非表示除外）
-                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                if (systemUsers.length > 0) {
-                    // 無効化・非表示ユーザーを除外
-                    const activeSystemUsers = systemUsers.filter(user => !user.isDisabled && !user.isHidden);
-                    const systemUserNames = activeSystemUsers.map(user => user.name).filter(name => name && name.trim() !== '');
-                    assignees = [...new Set([...assignees, ...systemUserNames])]; // 重複除去
-                    
-                    const excludedCount = systemUsers.length - activeSystemUsers.length;
-                    if (excludedCount > 0) {
-                        console.log(`🚫 [LOAD ASSIGNEES] LocalStorageモードで無効化・非表示ユーザー除外: ${excludedCount}名`);
-                    }
-                    console.log('📁 [LOAD ASSIGNEES] アクティブシステムユーザーからも追加:', systemUserNames.length, '名');
-                }
+                console.log('⚠️ [LOAD ASSIGNEES] アクティブユーザーが見つかりません');
+                assignees = [];
             }
             
             console.log('👥 [LOAD ASSIGNEES] 最終担当者リスト:', assignees);
@@ -372,13 +337,17 @@
             // 既存のチェックボックスをクリア
             assigneesDiv.innerHTML = '';
             
-            assignees.forEach(assignee => {
-                // 担当者用チェックボックス
-                const assigneeItem = createCheckboxItem(assignee, 'assignee');
-                assigneesDiv.appendChild(assigneeItem);
-            });
+            if (assignees.length === 0) {
+                assigneesDiv.innerHTML = '<p style="color: #718096;">有効なユーザーがいません。ユーザー管理画面でユーザーを登録してください。</p>';
+            } else {
+                assignees.forEach(assignee => {
+                    // 担当者用チェックボックス
+                    const assigneeItem = createCheckboxItem(assignee, 'assignee');
+                    assigneesDiv.appendChild(assigneeItem);
+                });
+            }
             
-            console.log('✅ [LOAD ASSIGNEES] 担当者・承認者チェックボックス生成完了');
+            console.log('✅ [LOAD ASSIGNEES] 担当者チェックボックス生成完了');
         }
         
         
