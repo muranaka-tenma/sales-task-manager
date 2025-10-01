@@ -3883,9 +3883,9 @@
         function showMentionSuggestions(query, input) {
             const suggestions = document.getElementById('mention-suggestions');
             
-            // systemUsersから全ユーザーを動的に取得（新規ユーザー追加時も自動対応）
-            const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-            const availableUsers = systemUsers.map(user => user.name).filter(name => name);
+            // アクティブユーザーのみを取得（無効化・非表示ユーザーを除外）
+            const activeUsers = getActiveUsers();
+            const availableUsers = activeUsers.map(user => user.name).filter(name => name);
             
             const filteredUsers = availableUsers.filter(user => 
                 user.toLowerCase().includes(query.toLowerCase())
