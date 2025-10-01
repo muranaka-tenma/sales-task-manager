@@ -7,10 +7,10 @@
 
 [[redirects]]
   from = "/"
-  to = "/index-kanban.html"
+  to = "/sales-task-core/index-kanban.html"
   status = 302
   
 [[redirects]]
   from = "/app"
-  to = "/index-kanban.html"
+  to = "/sales-task-core/index-kanban.html"
   status = 302

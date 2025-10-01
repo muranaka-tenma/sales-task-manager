@@ -207,7 +207,12 @@
     <div class="container">
         <div class="header">
             <h1>👥 ユーザー管理</h1>
-            <a href="index-kanban.html" class="back-link">← メインページに戻る</a>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button id="disabled-users-btn" onclick="window.location.href='user-management-disabled.html'" style="display: none; padding: 0.5rem 1rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
+                    🔒 無効化・非表示ユーザー管理
+                </button>
+                <a href="index-kanban.html" class="back-link">← メインページに戻る</a>
+            </div>
         </div>
         
         <div class="content">
@@ -318,6 +323,12 @@
                     return false;
                 } else {
                     console.log('✅ [PERM-CHECK] 権限チェック成功:', session.user.role);
+                    
+                    // 開発者・管理者の場合は無効化・非表示ユーザー管理ボタンを表示
+                    const disabledUsersBtn = document.getElementById('disabled-users-btn');
+                    if (disabledUsersBtn) {
+                        disabledUsersBtn.style.display = 'block';
+                    }
                 }
                 
                 return true;
@@ -752,7 +763,10 @@
                                 uid: user.uid || user.id,
                                 isDisabled: user.isDisabled || false,
                                 disabledAt: user.disabledAt,
-                                disabledBy: user.disabledBy
+                                disabledBy: user.disabledBy,
+                                isHidden: user.isHidden || false,
+                                hiddenAt: user.hiddenAt,
+                                hiddenBy: user.hiddenBy
                             };
                         });
                         console.log('✅ [FIREBASE] ユーザー一覧取得成功:', users.length, '件');
@@ -786,15 +800,12 @@
         // ユーザー表示更新（フィルタリング対応）
         function updateUserDisplay() {
             const tbody = document.getElementById('users-list');
-            const showDisabled = document.getElementById('show-disabled-users')?.checked ?? true;
-            const showHidden = document.getElementById('show-hidden-users')?.checked ?? false;
             
             tbody.innerHTML = '';
             
+            // アクティブユーザーのみ表示（無効化・非表示ユーザーは除外）
             const filteredUsers = users.filter(user => {
-                if (user.isHidden && !showHidden) return false;
-                if (user.isDisabled && !showDisabled) return false;
-                return true;
+                return !user.isHidden && !user.isDisabled;
             });
             
             filteredUsers.forEach(user => {
