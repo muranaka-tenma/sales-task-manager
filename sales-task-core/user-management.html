@@ -851,7 +851,8 @@
                     actionButtons = `
                         <button class="btn btn-secondary" onclick="editUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">編集</button>
                         <button class="btn btn-secondary" onclick="changePassword('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">パスワード</button>
-                        <button class="btn btn-danger" onclick="deleteUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">無効化</button>
+                        <button class="btn btn-warning" onclick="disableUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">無効化</button>
+                        <button class="btn btn-danger" onclick="hideUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">非表示化</button>
                     `;
                 }
                 
@@ -950,8 +951,9 @@
             }
         }
         
-        async function deleteUser(userId) {
-            console.log('🚨 [DEBUG] deleteUser関数が呼ばれました:', userId, typeof userId);
+        // ユーザー無効化関数（新規）
+        async function disableUser(userId) {
+            console.log('🚨 [DEBUG] disableUser関数が呼ばれました:', userId, typeof userId);
             console.log('🚨 [DEBUG] 現在のusers配列:', users);
             console.log('🚨 [DEBUG] 各ユーザーのID形式:');
             users.forEach((u, index) => {
@@ -978,9 +980,9 @@
             console.log('🚨 [DEBUG] 最終的に使用するユーザー:', targetUser);
             
             console.log('🚨 [DEBUG] 確認ダイアログ表示前');
-            if (confirm(`${targetUser.name}を削除しますか？\nこの操作は取り消せません。`)) {
+            if (confirm(`${targetUser.name}を無効化しますか？\n\n⚠️ 無効化すると：\n• システムからログアウトされます\n• 新規ログインが拒否されます\n• データは保持され、復旧可能です`)) {
                 console.log('🚨 [DEBUG] 確認ダイアログでOKがクリックされました');
-                const deletedUserName = targetUser.name;
+                const disabledUserName = targetUser.name;
                 
                 try {
                     // 🔥 完全削除ではなく無効化処理に変更
@@ -988,7 +990,7 @@
                     console.log('🚨 [DEBUG] window.FirebaseDB.saveUser存在チェック:', !!(window.FirebaseDB && window.FirebaseDB.saveUser));
                     
                     if (window.FirebaseDB && window.FirebaseDB.saveUser) {
-                        console.log('🔥 [DISABLE] ユーザーアカウント無効化中:', deletedUserName);
+                        console.log('🔥 [DISABLE] ユーザーアカウント無効化中:', disabledUserName);
                         
                         // Firestoreのユーザー情報を無効化マークに変更
                         console.log('🚨 [DEBUG] window.getCurrentUser()テスト:', window.getCurrentUser());
@@ -1008,15 +1010,15 @@
                         // 無効化されたユーザーとしてFirestoreに保存
                         const firebaseResult = await window.FirebaseDB.saveUser(disabledUser);
                         if (firebaseResult.success) {
-                            console.log('✅ [DISABLE] ユーザー無効化成功:', deletedUserName);
+                            console.log('✅ [DISABLE] ユーザー無効化成功:', disabledUserName);
                             
-                            alert(`ユーザー「${deletedUserName}」を無効化しました。\n\n📋 処理内容:\n• システムからログアウト\n• 新規ログイン拒否\n• データは保持（監査用）\n\n🔧 完全削除が必要な場合は、Firebase Consoleで ${targetUser.email} を削除してください。`);
+                            alert(`ユーザー「${disabledUserName}」を無効化しました。\n\n📋 処理内容:\n• システムからログアウト\n• 新規ログイン拒否\n• データは保持（監査用）\n\n🔧 完全削除が必要な場合は、Firebase Consoleで ${targetUser.email} を削除してください。`);
                         } else {
                             console.error('❌ [DISABLE] ユーザー無効化エラー:', firebaseResult.error);
                         }
                     } else {
                         console.log('🚨 [DEBUG] Firebase条件に該当せず - LocalStorageで無効化処理');
-                        console.log('📁 [DISABLE] LocalStorageでユーザー無効化中:', deletedUserName);
+                        console.log('📁 [DISABLE] LocalStorageでユーザー無効化中:', disabledUserName);
                         
                         // LocalStorageでも無効化処理（削除ではなく）
                         const userIndex = users.findIndex(u => u.id === userId || u.uid === userId);
@@ -1027,26 +1029,26 @@
                                 disabledAt: new Date().toISOString(),
                                 disabledBy: currentUser ? currentUser.name : 'unknown'
                             };
-                            console.log('✅ [DISABLE] LocalStorageでユーザー無効化完了:', deletedUserName);
+                            console.log('✅ [DISABLE] LocalStorageでユーザー無効化完了:', disabledUserName);
                         }
                         
-                        alert(`⚠️ Firebase接続なし: ユーザー「${deletedUserName}」をローカルで無効化しました。\n\n📋 処理内容:\n• ローカルでのみ無効化\n• Firebase接続復旧時に同期推奨\n• データは保持（復旧可能）`);
+                        alert(`⚠️ Firebase接続なし: ユーザー「${disabledUserName}」をローカルで無効化しました。\n\n📋 処理内容:\n• ローカルでのみ無効化\n• Firebase接続復旧時に同期推奨\n• データは保持（復旧可能）`);
                     }
                     
                     // LocalStorageに保存（無効化されたユーザー含む）
                     saveUsers();
                     
                     // 担当者リストからも削除（表示対象同期）
-                    removeFromAssigneesList(deletedUserName);
+                    removeFromAssigneesList(disabledUserName);
                     
                     // 🔄 再読み込みでFirebaseとの同期を確認
                     await loadUsers();
                     showSuccess();
-                    console.log('🗑️ ユーザー削除完了:', deletedUserName, '- 全データソースから削除済み');
+                    console.log('🔒 ユーザー無効化完了:', disabledUserName, '- 無効化済み');
                     
                 } catch (error) {
-                    console.error('❌ [DELETE] ユーザー削除エラー:', error);
-                    alert('ユーザー削除中にエラーが発生しました。\n\n' + error.message);
+                    console.error('❌ [DISABLE] ユーザー無効化エラー:', error);
+                    alert('ユーザー無効化中にエラーが発生しました。\n\n' + error.message);
                 }
             } else {
                 console.log('🚨 [DEBUG] ユーザーが確認ダイアログでキャンセルしました');

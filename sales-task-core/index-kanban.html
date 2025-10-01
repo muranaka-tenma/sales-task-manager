@@ -1379,6 +1379,16 @@
                             </div>
                         </div>
                         
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="task-hidden-input" style="margin: 0;">
+                                🔒 このタスクを非表示にする
+                            </label>
+                            <small style="color: #666; display: block; margin-top: 0.25rem;">
+                                チェックすると他のユーザーからは見えなくなります（通知も送信されません）
+                            </small>
+                        </div>
+                        
                         <div class="form-group">
                             <label class="form-label">メモ・備考</label>
                             <textarea class="form-textarea" id="task-memo-input" rows="3" placeholder="詳細な進捗状況や備考を記録"></textarea>
@@ -2985,6 +2995,9 @@
                 completed: false,
                 createdAt: now.toISOString(),
                 
+                // タスク非表示機能
+                isHidden: false,
+                
                 // PJタスク対応
                 projectId: template.taskTemplate.projectId,
                 projectName: template.taskTemplate.projectName,
@@ -3454,6 +3467,35 @@
                 container.appendChild(checkboxWrapper);
             });
             
+            // 非表示チェックボックスの存在確認とデバッグ
+            setTimeout(() => {
+                const hiddenCheckbox = document.getElementById('task-hidden-input');
+                if (!hiddenCheckbox) {
+                    console.error('❌ [DEBUG] task-hidden-input チェックボックスが見つかりません！');
+                    
+                    // チェックボックスが存在しない場合、動的に追加
+                    const memoGroup = document.querySelector('#task-memo-input').parentElement;
+                    if (memoGroup) {
+                        const hiddenGroup = document.createElement('div');
+                        hiddenGroup.className = 'form-group';
+                        hiddenGroup.style.marginBottom = '1rem';
+                        hiddenGroup.innerHTML = `
+                            <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="task-hidden-input" style="margin: 0;">
+                                🔒 このタスクを非表示にする
+                            </label>
+                            <small style="color: #666; display: block; margin-top: 0.25rem;">
+                                チェックすると他のユーザーからは見えなくなります（通知も送信されません）
+                            </small>
+                        `;
+                        memoGroup.parentElement.insertBefore(hiddenGroup, memoGroup);
+                        console.log('✅ [DEBUG] 非表示チェックボックスを動的に追加しました');
+                    }
+                } else {
+                    console.log('✅ [DEBUG] task-hidden-input チェックボックスが存在します');
+                }
+            }, 100);
+            
             // 新規追加ボタン
             const addButton = document.createElement('div');
             addButton.className = 'assignee-checkbox';
@@ -3618,6 +3660,7 @@
             console.log('🔍 [MODAL DEBUG] Time input now:', document.getElementById('task-time-input').value);
             document.getElementById('task-priority-input').value = editingTask.priority;
             document.getElementById('task-memo-input').value = editingTask.memo || '';
+            document.getElementById('task-hidden-input').checked = editingTask.isHidden || false;
             
             // カラム選択フィールドを非表示（編集時は不要）
             document.getElementById('column-selection-group').style.display = 'none';
@@ -4047,6 +4090,13 @@
         // 統合コメント通知システム（メンション+コメント通知の重複を排除）
         function checkUnifiedCommentNotifications(commentText, author, taskId) {
             console.log(`🔍 [UNIFIED-NOTIFY] 統合通知チェック開始: "${commentText}" by ${author}`);
+            
+            // 非表示タスクの通知抑制チェック
+            const task = tasks.find(t => t.id === taskId);
+            if (task && task.isHidden) {
+                console.log(`🔒 [UNIFIED-NOTIFY] 非表示タスクのため通知をスキップ: ${task.title}`);
+                return;
+            }
             
             // 🔧 重複通知防止: 同じコメントで短時間内に複数回呼ばれることを防ぐ
             const notificationKey = `${taskId}-${commentText}-${author}`;
@@ -4492,6 +4542,12 @@
         function sendTaskCreationNotification(task, assignees) {
             console.log('🔔 [TASK-CREATE] タスク作成通知開始:', task.title);
             
+            // 非表示タスクの通知抑制チェック
+            if (task.isHidden) {
+                console.log(`🔒 [TASK-CREATE] 非表示タスクのため通知をスキップ: ${task.title}`);
+                return;
+            }
+            
             const currentUser = getCurrentUser();
             if (!currentUser || !currentUser.name) {
                 console.log('❌ [TASK-CREATE] ユーザー情報取得失敗');
@@ -4532,6 +4588,12 @@
         // ファイル添付通知関数
         function sendFileAttachmentNotification(task, attachments) {
             console.log('📎 [FILE-ATTACH] ファイル添付通知開始:', task.title);
+            
+            // 非表示タスクの通知抑制チェック
+            if (task.isHidden) {
+                console.log(`🔒 [FILE-ATTACH] 非表示タスクのため通知をスキップ: ${task.title}`);
+                return;
+            }
             
             const currentUser = getCurrentUser();
             if (!currentUser || !currentUser.name) {
@@ -4874,6 +4936,9 @@
                     completed: targetColumn === 'done',
                     createdAt: new Date().toISOString(),
                     
+                    // タスク非表示機能
+                    isHidden: document.getElementById('task-hidden-input').checked,
+                    
                     // Phase 2: PJタスク拡張フィールド
                     projectId: isProjectTask ? projectId : null,
                     projectName: isProjectTask ? projectName : null,
@@ -4917,8 +4982,8 @@
                     }
                     newTask.comments.push(comment);
                     
-                    // メンション処理
-                    processMentions(window.pendingComment, currentUser, newTask);
+                    // メンション通知処理
+                    checkUnifiedCommentNotifications(window.pendingComment, currentUser.name, newTask.id);
                     
                     // 一時保存をクリア
                     window.pendingComment = null;
@@ -6187,6 +6252,21 @@
         // Slack通知システム（CORS対応版）
         async function sendSlackNotification(recipientEmail, subject, body, options = {}) {
             try {
+                // 非表示タスクの通知抑制チェック
+                if (options.taskId && options.isHiddenTask) {
+                    console.log(`🔒 [SLACK] 非表示タスクのため通知をスキップ: ${subject} (タスクID: ${options.taskId})`);
+                    return;
+                }
+                
+                // タスクが存在する場合、isHiddenフィールドをチェック
+                if (options.taskId && window.tasks) {
+                    const task = window.tasks.find(t => t.id === options.taskId);
+                    if (task && task.isHidden) {
+                        console.log(`🔒 [SLACK] 非表示タスクのため通知をスキップ: ${subject} (タスク: ${task.title})`);
+                        return;
+                    }
+                }
+                
                 console.log(`🔔 [SLACK] 通知送信開始: ${subject}`);
                 
                 // SlackNotificationServiceを使用してCORS制限を回避
@@ -6224,6 +6304,21 @@
         // テスト関数は削除済み（Slack通知テストページを使用）
 
         async function showNotification(title, body, options = {}) {
+            // 非表示タスクの通知抑制チェック
+            if (options.taskId && options.isHiddenTask) {
+                console.log(`🔒 [NOTIFICATION] 非表示タスクのため通知をスキップ: ${title} (タスクID: ${options.taskId})`);
+                return;
+            }
+            
+            // タスクが存在する場合、isHiddenフィールドをチェック
+            if (options.taskId && window.tasks) {
+                const task = window.tasks.find(t => t.id === options.taskId);
+                if (task && task.isHidden) {
+                    console.log(`🔒 [NOTIFICATION] 非表示タスクのため通知をスキップ: ${title} (タスク: ${task.title})`);
+                    return;
+                }
+            }
+            
             // デスクトップ通知は無効化（Slackのみ使用）
             console.log(`🔔 [SLACK-NOTIFICATION] ${title}: ${body}`);
             
@@ -13073,6 +13168,12 @@
         // PJタスク移動時の通知機能（Slack対応強化版）
         function sendPJMoveNotification(task, newColumnId) {
             try {
+                // 非表示タスクの通知抑制チェック
+                if (task.isHidden) {
+                    console.log(`🔒 [SLACK-MOVE] 非表示タスクのため通知をスキップ: ${task.title}`);
+                    return;
+                }
+                
                 const currentUser = getCurrentUser();
                 const column = columns.find(c => c.id === newColumnId);
                 const columnTitle = column ? column.title : newColumnId;
@@ -13465,7 +13566,9 @@
                                 completed: false,
                                 createdAt: new Date().toISOString(),
                                 comments: [],
-                                attachments: []
+                                attachments: [],
+                                // タスク非表示機能
+                                isHidden: false
                             };
                             
                             tasks.unshift(newTask);
@@ -13520,7 +13623,9 @@
                                 completed: false,
                                 createdAt: new Date().toISOString(),
                                 comments: [],
-                                attachments: []
+                                attachments: [],
+                                // タスク非表示機能
+                                isHidden: false
                             };
                             
                             tasks.unshift(newTask);
