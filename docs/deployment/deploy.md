@@ -6,7 +6,7 @@
 **リポジトリ**: https://github.com/muranaka-tenma/sales-task-manager.git  
 **本番URL**: https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/index-kanban.html  
 **作成日**: 2025年8月2日  
-**最終更新**: 2025年8月18日
+**最終更新**: 2025年10月6日（デプロイ設定完全文書化）
 
 ## 🎯 主要機能
 
@@ -38,11 +38,26 @@
 - **メインファイル**: sales-task-core/index-kanban.html
 - **自動デプロイ**: GitHubプッシュ時に自動実行
 
-### バックエンド: Firebase (新規追加)
-- **認証**: Firebase Authentication
+### バックエンド: Firebase
+- **プロジェクトID**: sales-task-manager-af356
+- **認証**: Firebase Authentication（メール/パスワード認証）
 - **データベース**: Firebase Firestore
 - **リアルタイム同期**: Firebase Realtime Database
 - **ユーザー管理**: systemUsers (LocalStorage + Firebase)
+- **Firebase Console**: https://console.firebase.google.com/project/sales-task-manager-af356
+
+### Firebase設定情報（sales-task-core/firebase-config.js）
+```javascript
+const firebaseConfig = {
+  apiKey: "AIzaSyAHScwiAkvJ3qwl_VcdDDyzM_Zb37osBMs",
+  authDomain: "sales-task-manager-af356.firebaseapp.com",
+  projectId: "sales-task-manager-af356",
+  storageBucket: "sales-task-manager-af356.firebasestorage.app",
+  messagingSenderId: "953432845897",
+  appId: "1:953432845897:web:bf441cb3590ce1fc455998"
+};
+```
+**⚠️ 注意**: この設定はフロントエンドコードに含まれており、Firebaseセキュリティルールで保護されています。
 
 ### バージョン管理: GitHub
 - **リポジトリ**: https://github.com/muranaka-tenma/sales-task-manager.git
@@ -51,14 +66,27 @@
 
 ## 🔧 環境変数・設定
 
-### 現在の環境変数
-**注意**: 現在このプロジェクトは純粋なフロントエンドアプリケーションのため、バックエンド環境変数は設定されていません。
+### Netlify環境変数
+
+現在Netlifyに設定されている環境変数：
+
+| 変数名 | 値 | 用途 |
+|--------|-----|------|
+| NODE_VERSION | 18 | ビルド環境のNode.jsバージョン |
+| DEPLOY_TIME | 2025-08-03-16-59 | デプロイタイムスタンプ |
+
+### Netlifyアカウント情報
+- **アカウント名**: Tenma Muranaka
+- **メールアドレス**: muranaka-tenma@terracom.co.jp
+- **チーム名**: east erea sales team
+- **サイトID**: 876143f6-3c44-461a-856a-681013c2fc6f
 
 ### フロントエンド設定
-- **言語**: HTML/JavaScript/CSS
+- **言語**: HTML/JavaScript/CSS（バニラJS）
 - **OCRエンジン**: Tesseract.js v4 (CDN)
 - **PWA対応**: manifest.json, sw.js
-- **ローカルストレージ**: タスク・設定データ
+- **データ保存**: Firebase Firestore + LocalStorage（一部機能）
+- **認証**: Firebase Authentication
 
 ## 📝 デプロイ手順
 
@@ -87,31 +115,88 @@ git push origin main
 ```
 
 ### CLI デプロイ方法
+
+#### 初回セットアップ
 ```bash
-# Netlify CLI インストール（初回のみ）
-npm install -g netlify-cli
+# 1. リポジトリをクローン
+git clone https://github.com/muranaka-tenma/sales-task-manager.git
+cd sales-task-manager
 
-# ログイン（初回のみ）
-netlify login
+# 2. Netlify CLIをローカルインストール（権限問題回避）
+npm install netlify-cli --save-dev
 
-# デプロイ実行
-cd /home/muranaka-tenma/顧客管理ツール/frontend/src/services/api/最強タスク管理ツール
-netlify deploy --prod --dir .
+# 3. Netlifyにログイン
+npx netlify login
+# ブラウザが開くので muranaka-tenma@terracom.co.jp でログイン
+
+# 4. サイトにリンク
+npx netlify link --id 876143f6-3c44-461a-856a-681013c2fc6f
+```
+
+#### デプロイ実行
+```bash
+# プレビューデプロイ（テスト用）
+npx netlify deploy
+
+# 本番デプロイ
+npx netlify deploy --prod
+
+# デプロイ状況確認
+npx netlify status
 ```
 
 ## 🔄 CI/CD設定
 
-### 現在の自動デプロイ設定
+### 現在の自動デプロイ設定（Netlify自動デプロイ）
+- **方式**: GitHub連携による自動デプロイ
 - **トリガー**: main ブランチへのプッシュ
-- **ビルド**: 不要（静的ファイル）
-- **デプロイ先**: Netlify
+- **ビルド**: 不要（静的HTMLファイル）
+- **デプロイ先**: Netlify (stellar-biscochitos-e19cb4)
 - **デプロイ時間**: 約1-2分
+- **GitHub Actions**: 未使用（Netlify自動デプロイのみ）
+
+### デプロイフロー
+```
+コード修正
+  ↓
+git commit & push
+  ↓
+GitHub (main branch)
+  ↓
+Netlify自動検知
+  ↓
+自動デプロイ開始
+  ↓
+本番環境更新
+  ↓
+https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/index-kanban.html
+```
 
 ### Git Hooks設定
 プロジェクトには以下のGitフックが設定されています：
 ```bash
 # .git/hooks/prepare-commit-msg
 # コミットメッセージに日時を自動追加
+```
+
+### Netlify設定ファイル（netlify.toml）
+```toml
+[build]
+  publish = "."
+
+[build.environment]
+  NODE_VERSION = "18"
+  DEPLOY_TIME = "2025-08-03-16-59"
+
+[[redirects]]
+  from = "/"
+  to = "/sales-task-core/index-kanban.html"
+  status = 302
+
+[[redirects]]
+  from = "/app"
+  to = "/sales-task-core/index-kanban.html"
+  status = 302
 ```
 
 ## 📊 デプロイ履歴
@@ -261,6 +346,92 @@ cp sales-task-core/index-kanban-backup-*.html sales-task-core/index-kanban.html
 
 ---
 
-**⚠️ 重要**: このドキュメントは機能追加・変更時に必ず更新してください。  
-**📝 最終更新者**: Claude Code Assistant  
-**🤖 Generated with [Claude Code](https://claude.ai/code)**
+## 🔄 新PCでの完全復旧手順
+
+PC交換後に開発環境を復旧する手順：
+
+### 1. 必要ツールのインストール
+```bash
+# Node.js（v18以上推奨）
+# https://nodejs.org/ からダウンロード
+
+# Git
+# https://git-scm.com/ からダウンロード
+```
+
+### 2. リポジトリクローン
+```bash
+git clone https://github.com/muranaka-tenma/sales-task-manager.git
+cd sales-task-manager
+```
+
+### 3. Netlify CLIセットアップ
+```bash
+# Netlify CLIインストール
+npm install netlify-cli --save-dev
+
+# ログイン
+npx netlify login
+# muranaka-tenma@terracom.co.jp でログイン
+
+# サイトにリンク
+npx netlify link --id 876143f6-3c44-461a-856a-681013c2fc6f
+
+# 動作確認
+npx netlify status
+```
+
+### 4. 動作確認
+```bash
+# ローカルサーバー起動（任意）
+npx http-server . -p 8080
+
+# ブラウザで http://localhost:8080/sales-task-core/index-kanban.html にアクセス
+```
+
+---
+
+## 📌 重要URL一覧（PC交換後のクイックアクセス）
+
+### 本番環境
+- **メインアプリ**: https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/index-kanban.html
+- **ログイン**: https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/login.html
+- **ユーザー管理**: https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/user-management.html
+- **プロジェクトタスク作成**: https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/pj-create.html
+
+### 管理画面
+- **Netlify Dashboard**: https://app.netlify.com/sites/stellar-biscochitos-e19cb4
+- **Firebase Console**: https://console.firebase.google.com/project/sales-task-manager-af356
+- **GitHub Repository**: https://github.com/muranaka-tenma/sales-task-manager
+
+---
+
+## 📋 未完了TODO（PC交換前の作業リスト）
+
+### 🔴 高優先度
+27. ⏳ 非表示タスク機能を削除して元に戻す
+28. ⏳ 一般ユーザーの個人タスク表示制限実装
+29. ⏳ 表示対象フィルターの権限制御（一般ユーザーは自分のみ）
+30. ⏳ プロジェクトタスク移動通知機能修正：カラムIDではなくカラム名で通知
+
+### 🟡 中優先度
+31. ⏳ 統計表示削除：看板メニュー画面の統計情報を削除
+32. ⏳ 統計表示削除：メイン画面の統計情報を削除
+33. ⏳ ローカル機能洗い出し：LocalStorage依存機能を特定
+34. ⏳ Firestore移行：特定したローカル機能をFirebaseに移行
+35. ⏳ コード整理：重複コードと不要コードを削除・統合
+
+### ⚪ 低優先度
+36. ⏳ UI改善：タスク作成時の初期カラム配置枠を削除
+37. ⏳ UI改善：ダイアログとメニューのデザイン改善
+38. ⏳ 懸念事項：ハンバーガーメニューの権限制御問題の継続調査
+39. ⏳ 予防策：重複ファイル監視・防止システムの検討
+
+**進捗率**: 26/39 完了（66.7%）
+
+---
+
+**⚠️ 重要**: このドキュメントは機能追加・変更時に必ず更新してください。
+**📝 最終更新者**: Claude Code (デプロイスペシャリスト)
+**📅 最終更新日**: 2025年10月6日
+**🤖 Generated with [Claude Code](https://claude.com/claude-code)**
