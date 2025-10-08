@@ -2011,17 +2011,55 @@
         // 権限チェック実行中フラグ（重複実行防止）
         let permissionCheckInProgress = false;
         let lastPermissionCheckTime = 0;
-        
-        // 🔧 有効なユーザーのみを取得する共通関数（非表示・無効化ユーザーを除外）
-        function getActiveUsers() {
+
+        // 🔥 Firebase統合: アクティブユーザーのキャッシュ
+        let cachedActiveUsers = [];
+        let usersCacheLoaded = false;
+
+        // 🔥 Firebase統合: ユーザーキャッシュをFirebaseから読み込み
+        async function loadActiveUsersFromFirebase() {
+            try {
+                console.log('🔍 [LOAD-USERS] Firebaseからユーザー取得開始...');
+                const result = await window.FirebaseDB.getActiveUsers();
+                if (result.success) {
+                    cachedActiveUsers = result.users;
+                    usersCacheLoaded = true;
+                    console.log(`✅ [LOAD-USERS] Firebase取得成功: ${cachedActiveUsers.length}人`);
+                    return cachedActiveUsers;
+                } else {
+                    console.error('❌ [LOAD-USERS] Firebase取得失敗:', result.error);
+                    // フォールバック: localStorageから読み込み
+                    return loadActiveUsersFromLocalStorage();
+                }
+            } catch (error) {
+                console.error('❌ [LOAD-USERS] エラー:', error);
+                // フォールバック: localStorageから読み込み
+                return loadActiveUsersFromLocalStorage();
+            }
+        }
+
+        // LocalStorageからユーザー読み込み（フォールバック用）
+        function loadActiveUsersFromLocalStorage() {
+            console.log('⚠️ [LOAD-USERS] LocalStorageフォールバック実行');
             const allUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-            const activeUsers = allUsers.filter(user => 
+            const activeUsers = allUsers.filter(user =>
                 !user.isHidden && !user.isDisabled
             );
-            console.log(`👥 [ACTIVE-USERS] ${allUsers.length}人中 ${activeUsers.length}人が有効`);
+            cachedActiveUsers = activeUsers;
+            usersCacheLoaded = true;
+            console.log(`✅ [LOAD-USERS] LocalStorage取得: ${activeUsers.length}人`);
             return activeUsers;
         }
-        
+
+        // 🔧 有効なユーザーのみを取得する共通関数（非表示・無効化ユーザーを除外）
+        function getActiveUsers() {
+            if (!usersCacheLoaded) {
+                console.warn('⚠️ [ACTIVE-USERS] キャッシュ未読み込み - 空配列を返します');
+                return [];
+            }
+            return cachedActiveUsers;
+        }
+
         // 有効なユーザー名のリストを取得（担当者選択等で使用）
         function getActiveUserNames() {
             return getActiveUsers().map(u => u.name);
@@ -7011,10 +7049,18 @@
             try {
                 // 🔍 最優先: LocalStorage監視システム開始（データ変更を全て記録）
                 setupLocalStorageMonitoring();
-                
-                initializeUserDatabase();
-                console.log('✅ [INIT] ユーザーデータベース初期化完了');
-                
+
+                // 🔥 Firebase統合: Firebaseからユーザーを読み込み
+                console.log('🔥 [INIT] Firebaseからユーザー読み込み開始...');
+                await loadActiveUsersFromFirebase();
+                console.log('✅ [INIT] ユーザーデータ読み込み完了');
+
+                // フォールバック: localStorage初期化（Firebaseエラー時のみ実行）
+                if (!usersCacheLoaded) {
+                    console.warn('⚠️ [INIT] Firebase読み込み失敗 - localStorage初期化実行');
+                    initializeUserDatabase();
+                }
+
                 // 既存プロジェクトのFirebase移行チェック
                 setTimeout(() => {
                     migrateProjectsToFirebase();

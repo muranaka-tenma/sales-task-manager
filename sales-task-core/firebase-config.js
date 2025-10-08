@@ -319,6 +319,38 @@ window.FirebaseDB = {
     }
   },
 
+  // 有効なユーザーのみ取得（無効化・非表示ユーザーを除外）
+  getActiveUsers: async () => {
+    try {
+      const result = await window.FirebaseDB.getAllUsers();
+      if (!result.success) {
+        console.error('❌ [ACTIVE-USERS] ユーザー取得失敗:', result.error);
+        return { success: false, users: [], error: result.error };
+      }
+
+      // displayName → name へのマッピングとフィルタリング
+      const activeUsers = result.users
+        .filter(user => !user.isHidden && !user.isDisabled)
+        .map(user => ({
+          uid: user.uid,
+          name: user.displayName || user.email?.split('@')[0] || 'Unknown',
+          email: user.email,
+          role: user.role || 'user',
+          isActive: user.isActive !== false,
+          isHidden: user.isHidden || false,
+          isDisabled: user.isDisabled || false,
+          createdAt: user.createdAt,
+          displayName: user.displayName // 互換性のため残す
+        }));
+
+      console.log(`✅ [ACTIVE-USERS] ${result.users.length}人中 ${activeUsers.length}人が有効`);
+      return { success: true, users: activeUsers };
+    } catch (error) {
+      console.error('❌ [ACTIVE-USERS] エラー:', error.message);
+      return { success: false, users: [], error: error.message };
+    }
+  },
+
   // ユーザー情報更新
   updateUserInfo: async (uid, updates) => {
     try {
