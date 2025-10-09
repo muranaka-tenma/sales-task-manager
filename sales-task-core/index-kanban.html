@@ -13730,15 +13730,34 @@
             }
         }
         
-        // プロジェクト一覧を読み込み
-        function loadProjectsList() {
+        // プロジェクト一覧を読み込み（Firebase対応）
+        async function loadProjectsList() {
             try {
-                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
-                const currentUser = getCurrentUser();
                 const projectsList = document.getElementById('projectsList');
-                
                 if (!projectsList) return;
-                
+
+                // 🔥 Firebase統合: Firebaseからプロジェクトを取得
+                let projects = [];
+                if (window.FirebaseDB && window.FirebaseDB.getProjects) {
+                    console.log('📂 [PROJECTS] Firebaseからプロジェクト取得開始...');
+                    const result = await window.FirebaseDB.getProjects();
+                    if (result.success) {
+                        projects = result.projects || [];
+                        console.log(`✅ [PROJECTS] Firebase取得成功: ${projects.length}件`);
+                    } else {
+                        console.error('❌ [PROJECTS] Firebase取得失敗:', result.error);
+                        // フォールバック: localStorageから読み込み
+                        projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                        console.log(`⚠️ [PROJECTS] LocalStorageフォールバック: ${projects.length}件`);
+                    }
+                } else {
+                    // フォールバック: localStorageから読み込み
+                    projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                    console.log(`⚠️ [PROJECTS] Firebase未対応 - LocalStorage使用: ${projects.length}件`);
+                }
+
+                const currentUser = getCurrentUser();
+
                 if (projects.length === 0) {
                     projectsList.innerHTML = `
                         <div style="text-align: center; color: #6b7280; padding: 2rem; background: #f9fafb; border-radius: 8px; border: 2px dashed #e5e7eb;">
