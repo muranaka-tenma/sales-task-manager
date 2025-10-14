@@ -548,11 +548,11 @@
                 existingProjects.forEach(project => {
                     const option = document.createElement('option');
                     option.value = `${project.id}|${project.name}`;
-                    // プロジェクトIDも表示に含める（4桁のプロジェクト作成時設定ID）
-                    option.textContent = `[${project.id}] ${project.name} (${project.taskCount}件)`;
+                    // プロジェクト名のみ表示（IDは内部管理のみ）
+                    option.textContent = `${project.name} (${project.taskCount}件)`;
                     selectElement.appendChild(option);
-                    
-                    console.log(`🔍 [LOAD PROJECTS] Added option: [${project.id}] ${project.name}`);
+
+                    console.log(`🔍 [LOAD PROJECTS] Added option: ${project.name} (ID: ${project.id})`);
                 });
                 
                 console.log('✅ [LOAD PROJECTS] プロジェクト一覧の読み込み完了');
@@ -648,8 +648,8 @@
                 existingProjects.forEach(project => {
                     const option = document.createElement('option');
                     option.value = `${project.id}|${project.name}`;
-                    // エラー処理でもプロジェクトIDを表示
-                    option.textContent = `[${project.id}] ${project.name} (${project.taskCount}件)`;
+                    // プロジェクト名のみ表示
+                    option.textContent = `${project.name} (${project.taskCount}件)`;
                     selectElement.appendChild(option);
                 });
                 

@@ -13833,31 +13833,49 @@
         }
         
         // 新しいプロジェクトを作成
-        function createNewProject() {
+        async function createNewProject() {
             try {
                 const name = document.getElementById('newProjectName').value.trim();
                 const description = document.getElementById('newProjectDescription').value.trim();
                 const visibility = document.getElementById('newProjectVisibility').value;
                 const currentUser = getCurrentUser();
-                
+
                 if (!name) {
                     alert('プロジェクト名を入力してください');
                     return;
                 }
-                
+
                 if (!currentUser.isLoggedIn) {
                     alert('プロジェクト作成にはログインが必要です');
                     return;
                 }
-                
-                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
-                
-                // プロジェクト名の重複チェック
-                if (projects.some(p => p.name === name)) {
-                    alert('同じ名前のプロジェクトが既に存在します');
+
+                // 🔥 重複チェック強化: Firebaseから既存プロジェクトを取得
+                console.log('🔍 [PROJECT CREATE] プロジェクト名重複チェック開始:', name);
+                let existingProjects = [];
+
+                if (window.FirebaseDB?.getProjects) {
+                    const result = await window.FirebaseDB.getProjects();
+                    if (result.success) {
+                        existingProjects = result.projects;
+                        console.log(`🔍 [PROJECT CREATE] Firebase: ${existingProjects.length}件のプロジェクトを確認`);
+                    }
+                }
+
+                // フォールバック: LocalStorageも確認
+                const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+                existingProjects = [...existingProjects, ...localProjects];
+
+                // プロジェクト名の重複チェック（大文字小文字区別なし）
+                const duplicateProject = existingProjects.find(p => p.name.toLowerCase() === name.toLowerCase());
+                if (duplicateProject) {
+                    console.warn('⚠️ [PROJECT CREATE] 重複プロジェクト検出:', duplicateProject.name, `(ID: ${duplicateProject.id})`);
+                    alert(`❌ 同じ名前のプロジェクトが既に存在します\n\nプロジェクト名: ${duplicateProject.name}\n\n別の名前を使用してください。`);
                     return;
                 }
-                
+
+                console.log('✅ [PROJECT CREATE] 重複チェック完了: 問題なし');
+
                 const newProject = {
                     id: 'project_' + Date.now(),
                     name: name,
@@ -13868,35 +13886,39 @@
                     createdAt: new Date().toISOString(),
                     status: 'active'
                 };
-                
-                projects.push(newProject);
-                localStorage.setItem('projects', JSON.stringify(projects));
-                
-                // Firebaseにも保存（接続している場合）
+
+                // Firebaseに保存（プライマリ）
                 if (window.FirebaseDB?.saveProject && window.getCurrentUser()?.isLoggedIn) {
                     console.log('🔥 [PROJECT SAVE] Firebaseに新規プロジェクトを保存中...');
-                    window.FirebaseDB.saveProject(newProject).then(result => {
-                        if (result.success) {
-                            console.log('✅ [PROJECT SAVE] Firebase保存成功:', result.id);
-                        } else {
-                            console.error('❌ [PROJECT SAVE] Firebase保存エラー:', result.error);
-                        }
-                    });
+                    const saveResult = await window.FirebaseDB.saveProject(newProject);
+                    if (saveResult.success) {
+                        console.log('✅ [PROJECT SAVE] Firebase保存成功:', saveResult.id);
+                    } else {
+                        console.error('❌ [PROJECT SAVE] Firebase保存エラー:', saveResult.error);
+                        alert('プロジェクトの保存に失敗しました: ' + saveResult.error);
+                        return;
+                    }
+                } else {
+                    // フォールバック: LocalStorageに保存
+                    const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                    projects.push(newProject);
+                    localStorage.setItem('projects', JSON.stringify(projects));
+                    console.log('💾 [PROJECT SAVE] LocalStorageに保存（フォールバック）');
                 }
-                
-                console.log('✅ 新しいプロジェクトを作成:', newProject.name);
-                
+
+                console.log('✅ 新しいプロジェクトを作成:', newProject.name, `(ID: ${newProject.id})`);
+
                 // フォームをクリアして一覧を再読み込み
                 document.getElementById('newProjectName').value = '';
                 document.getElementById('newProjectDescription').value = '';
                 document.getElementById('newProjectVisibility').value = 'public';
-                
-                loadProjectsList();
-                
+
+                await loadProjectsList();
+
                 alert(`✅ プロジェクト「${name}」を作成しました！`);
-                
+
             } catch (error) {
-                console.error('プロジェクト作成エラー:', error);
+                console.error('❌ プロジェクト作成エラー:', error);
                 alert('プロジェクトの作成に失敗しました: ' + error.message);
             }
         }
