@@ -320,6 +320,44 @@ window.FirebaseDB = {
         }
     },
 
+    // 🔥 既存プロジェクトのcreatedBy修正（名前→メールアドレス）
+    async fixProjectCreatedBy() {
+        try {
+            const user = window.getCurrentUser();
+            if (!user) {
+                return { success: false, error: '認証が必要です' };
+            }
+
+            console.log('🔧 [FIREBASE] プロジェクトcreatedBy修正開始...');
+            const projectsRef = collection(db, 'projects');
+            const snapshot = await getDocs(projectsRef);
+
+            let fixedCount = 0;
+            for (const docSnap of snapshot.docs) {
+                const data = docSnap.data();
+
+                // createdByがメールアドレスでない場合（@を含まない）→メールアドレスに変換
+                if (data.createdBy && !data.createdBy.includes('@')) {
+                    const updates = {
+                        createdBy: user.email,
+                        visibility: data.visibility || 'public',
+                        members: data.members || [user.email],
+                        updatedAt: new Date().toISOString()
+                    };
+                    await updateDoc(doc(db, 'projects', docSnap.id), updates);
+                    console.log(`✅ [FIREBASE] 修正完了: ${data.name} (${data.createdBy} → ${user.email})`);
+                    fixedCount++;
+                }
+            }
+
+            console.log(`🎉 [FIREBASE] プロジェクト修正完了: ${fixedCount}件`);
+            return { success: true, fixedCount };
+        } catch (error) {
+            console.error('❌ [FIREBASE] プロジェクト修正エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
     async saveProject(project) {
         try {
             const user = window.getCurrentUser();
@@ -350,7 +388,9 @@ window.FirebaseDB = {
                     const projectData = {
                         ...project,
                         userId: user.id,
-                        createdBy: user.name,
+                        createdBy: user.email,  // 🔥 メールアドレスで統一
+                        visibility: project.visibility || 'public',  // 🔥 デフォルト値
+                        members: project.members || [user.email],    // 🔥 デフォルト値
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString()
                     };
@@ -364,7 +404,9 @@ window.FirebaseDB = {
                 const projectData = {
                     ...project,
                     userId: user.id,
-                    createdBy: user.name,
+                    createdBy: user.email,  // 🔥 メールアドレスで統一
+                    visibility: project.visibility || 'public',  // 🔥 デフォルト値
+                    members: project.members || [user.email],    // 🔥 デフォルト値
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
