@@ -13771,7 +13771,9 @@
                 // プロジェクト一覧を表示
                 projectsList.innerHTML = projects.map(project => {
                     const isOwner = project.createdBy === currentUser.email;
-                    const isMember = project.members.includes(currentUser.email);
+                    // 🔥 membersが文字列の場合は配列に変換
+                    const membersArray = Array.isArray(project.members) ? project.members : [project.members];
+                    const isMember = membersArray.includes(currentUser.email);
                     const canView = project.visibility === 'public' || isMember || isOwner;
                     
                     if (!canView) return '';
@@ -13790,7 +13792,7 @@
                                     </h5>
                                     <p style="margin: 0 0 0.5rem 0; color: #6b7280; font-size: 0.9rem;">${project.description || 'プロジェクトの説明はありません'}</p>
                                     <div style="font-size: 0.8rem; color: #9ca3af;">
-                                        メンバー: ${project.members.length}名 | 作成: ${new Date(project.createdAt).toLocaleDateString('ja-JP')}
+                                        メンバー: ${membersArray.length}名 | 作成: ${new Date(project.createdAt).toLocaleDateString('ja-JP')}
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-left: 1rem;">
@@ -13810,7 +13812,7 @@
                             <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
                                 <div style="font-size: 0.8rem; color: #6b7280; margin-bottom: 0.5rem;">プロジェクトメンバー:</div>
                                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                    ${project.members.map(email => {
+                                    ${membersArray.map(email => {
                                         const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                                         const user = systemUsers.find(u => u.email === email);
                                         const userName = user ? user.name : email;
@@ -13924,10 +13926,10 @@
         }
         
         // プロジェクトのタスクを表示
-        function viewProjectTasks(projectId) {
+        async function viewProjectTasks(projectId) {
             try {
                 closeProjectManagementModal();
-                
+
                 // プロジェクトフィルターを適用
                 const filterDropdown = document.getElementById('project-filter');
                 if (filterDropdown) {
@@ -13935,12 +13937,12 @@
                     applyProjectFilter();
                 } else {
                     // フィルターが存在しない場合は、プロジェクトのタスクのみを表示
-                    filterTasksByProject(projectId);
+                    await filterTasksByProject(projectId);
                 }
-                
+
                 // プロジェクト情報を表示
-                showProjectInfo(projectId);
-                
+                await showProjectInfo(projectId);
+
             } catch (error) {
                 console.error('プロジェクトタスク表示エラー:', error);
                 alert('プロジェクトタスクの表示に失敗しました: ' + error.message);
@@ -13955,13 +13957,14 @@
                     console.warn('⚠️ [FILTER] Firebase未接続 - フィルタリングスキップ');
                     return;
                 }
-                
+
                 const result = await window.FirebaseDB.getTasks();
                 const allTasks = result.success ? result.tasks : [];
                 const projectTasks = allTasks.filter(task => task.projectId === projectId);
-                
-                // 現在の表示をプロジェクトタスクのみに更新
+
+                // 🔥 現在の表示をプロジェクトタスクのみに更新（localStorageにも保存）
                 window.currentProjectFilter = projectId;
+                localStorage.setItem('currentProject', projectId);
                 loadTasks();
             } catch (error) {
                 console.error('❌ [FILTER] プロジェクトフィルタリングエラー:', error);
@@ -13969,17 +13972,28 @@
         }
         
         // プロジェクト情報を表示
-        function showProjectInfo(projectId) {
-            const projects = JSON.parse(localStorage.getItem('projects') || '[]');
-            const project = projects.find(p => p.id === projectId);
-            
+        async function showProjectInfo(projectId) {
+            // 🔥 Firebaseからプロジェクトを取得
+            if (!window.FirebaseDB) {
+                console.warn('⚠️ Firebase未接続');
+                return;
+            }
+
+            const result = await window.FirebaseDB.getProjects();
+            if (!result.success) {
+                console.error('❌ プロジェクト取得失敗:', result.error);
+                return;
+            }
+
+            const project = result.projects.find(p => p.id === projectId);
+
             if (project) {
                 // ヘッダーにプロジェクト情報を表示
                 const header = document.querySelector('.header h1');
                 if (header) {
                     header.innerHTML = `📂 ${project.name} - タスク管理`;
                 }
-                
+
                 console.log(`📂 プロジェクト「${project.name}」のタスクを表示中`);
             }
         }
@@ -13987,26 +14001,37 @@
         // プロジェクト編集
         async function editProject(projectId) {
             try {
-                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
-                const project = projects.find(p => p.id === projectId);
-                
+                // 🔥 Firebaseからプロジェクトを取得
+                if (!window.FirebaseDB) {
+                    alert('Firebase未接続');
+                    return;
+                }
+
+                const result = await window.FirebaseDB.getProjects();
+                if (!result.success) {
+                    alert('プロジェクト取得に失敗しました');
+                    return;
+                }
+
+                const project = result.projects.find(p => p.id === projectId);
+
                 if (!project) {
                     alert('プロジェクトが見つかりません');
                     return;
                 }
-                
+
                 const currentUser = getCurrentUser();
                 const isOwner = project.createdBy === currentUser.email;
                 const isDeveloper = currentUser.role === 'developer';
-                
+
                 if (!isOwner && !isDeveloper) {
                     alert('このプロジェクトを編集する権限がありません');
                     return;
                 }
-                
+
                 // プロジェクト編集モーダルを表示
                 showProjectEditModal(project);
-                
+
             } catch (error) {
                 console.error('プロジェクト編集エラー:', error);
                 alert('プロジェクトの編集に失敗しました: ' + error.message);
