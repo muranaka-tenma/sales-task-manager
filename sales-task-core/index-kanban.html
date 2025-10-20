@@ -2304,15 +2304,10 @@
                     // 0005のタスクを0003に移動
                     const task0005 = tasksResult.tasks.find(t => t.projectId === '0005');
                     if (task0005) {
-                        console.log(`🔍 [MIGRATION] Task found:`, task0005.title, `ID type:`, typeof task0005.id, `ID value:`, task0005.id);
                         task0005.projectId = '0003';
                         task0005.projectName = '表示対象テスト';
-                        const updateResult = await window.FirebaseDB.updateTask(task0005.id, task0005);
-                        if (updateResult.success) {
-                            console.log(`✅ タスク移動: "${task0005.title}" (0005 → 0003)`);
-                        } else {
-                            console.error(`❌ タスク移動失敗: ${updateResult.error}`);
-                        }
+                        await window.FirebaseDB.updateTask(task0005.id, task0005);
+                        console.log(`✅ タスク移動: "${task0005.title}" (0005 → 0003)`);
                     }
                 }
 
