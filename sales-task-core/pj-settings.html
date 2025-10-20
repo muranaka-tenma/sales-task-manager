@@ -322,8 +322,14 @@
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
             <form id="project-form">
-                <!-- プロジェクトIDは自動生成（タイムスタンプ）されるため入力不要 -->
-
+                <div class="form-group">
+                    <label class="form-label">プロジェクトID *</label>
+                    <input type="text" id="project-id" class="form-input" required placeholder="例: 0001, 0025" pattern="[0-9]{4}" maxlength="4">
+                    <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
+                        4桁の数字（例: 0001, 0025）
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label class="form-label">プロジェクト名 *</label>
                     <input type="text" id="project-name" class="form-input" required placeholder="例: 新規システム導入PJ">
@@ -374,10 +380,10 @@
             localStorage.setItem('projectSettings', JSON.stringify(settings));
         }
         
-        // プロジェクトIDの検証（削除：自動生成のため不要）
+        // プロジェクトIDの検証
         function validateProjectId(projectId) {
-            // タイムスタンプベースのID（project_数字）を許可
-            const pattern = /^(project_\d+|[0-9]{4})$/;
+            // 4桁の数字のみ許可（0001-9999）
+            const pattern = /^[0-9]{4}$/;
             return pattern.test(projectId);
         }
         
@@ -487,6 +493,8 @@
             console.log('🔍 [CREATE MODAL] Opening create modal');
             currentEditingProjectId = null;
             document.getElementById('modal-title').textContent = '新規PJ作成';
+            document.getElementById('project-id').value = '';
+            document.getElementById('project-id').readOnly = false;
             document.getElementById('project-name').value = '';
             document.getElementById('project-description').value = '';
             loadDefaultColumns();
@@ -500,9 +508,11 @@
             const project = settings[projectId];
             
             if (!project) return;
-
+            
             currentEditingProjectId = projectId;
             document.getElementById('modal-title').textContent = 'PJ編集';
+            document.getElementById('project-id').value = projectId;
+            document.getElementById('project-id').readOnly = true; // 編集時はID変更不可
             document.getElementById('project-name').value = project.name;
             document.getElementById('project-description').value = project.description || '';
             loadColumns(project.columns);
@@ -569,36 +579,53 @@
         function saveProject(event) {
             console.log('🔍 [PJ SAVE] Function called');
             event.preventDefault();
-
+            
+            const projectId = document.getElementById('project-id').value.trim();
             const name = document.getElementById('project-name').value.trim();
             const description = document.getElementById('project-description').value.trim();
             const columns = getCurrentColumns();
-
-            // プロジェクトIDは自動生成（新規作成時）または既存ID使用（編集時）
-            const projectId = currentEditingProjectId || ('project_' + Date.now());
-
-            console.log('🔍 [PJ SAVE] Form values:', { projectId, name, description, columns, isEdit: !!currentEditingProjectId });
-
+            
+            console.log('🔍 [PJ SAVE] Form values:', { projectId, name, description, columns });
+            
+            if (!projectId) {
+                console.error('❌ [PJ SAVE] Project ID is empty');
+                alert('プロジェクトIDを入力してください');
+                return;
+            }
+            
+            if (!validateProjectId(projectId)) {
+                console.error('❌ [PJ SAVE] Project ID validation failed:', projectId);
+                alert('プロジェクトIDは4桁の数字で入力してください（例: 0001, 0025）');
+                return;
+            }
+            
             if (!name) {
                 console.error('❌ [PJ SAVE] Project name is empty');
                 alert('プロジェクト名を入力してください');
                 return;
             }
-
+            
             if (columns.length === 0) {
                 console.error('❌ [PJ SAVE] No columns provided');
                 alert('最低1つのカラムを設定してください');
                 return;
             }
-
+            
             console.log('✅ [PJ SAVE] All validations passed');
-
+            
             const settings = getProjectSettings();
             const currentUser = getCurrentUser();
-
+            
             console.log('🔍 [PJ SAVE] Current user:', currentUser);
             console.log('🔍 [PJ SAVE] Existing settings:', settings);
             console.log('🔍 [PJ SAVE] Current editing ID:', currentEditingProjectId);
+            
+            // 新規作成時のID重複チェック
+            if (!currentEditingProjectId && settings[projectId]) {
+                console.error('❌ [PJ SAVE] Duplicate project ID:', projectId);
+                alert(`プロジェクトID「${projectId}」は既に使用されています。別のIDを指定してください。`);
+                return;
+            }
             
             const projectData = {
                 name: name,
