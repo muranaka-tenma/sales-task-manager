@@ -248,13 +248,16 @@ window.FirebaseDB = {
             if (!user) {
                 return { success: false, error: '認証が必要です' };
             }
-            
-            await updateDoc(doc(db, 'tasks', taskId), {
+
+            // taskIdを文字列に変換（数値型の場合があるため）
+            const taskIdStr = String(taskId);
+
+            await updateDoc(doc(db, 'tasks', taskIdStr), {
                 ...taskData,
                 updatedAt: new Date().toISOString()
             });
-            
-            console.log('✅ [FIREBASE] タスク更新完了:', taskId);
+
+            console.log('✅ [FIREBASE] タスク更新完了:', taskIdStr);
             return { success: true };
         } catch (error) {
             console.error('❌ [FIREBASE] タスク更新エラー:', error);
