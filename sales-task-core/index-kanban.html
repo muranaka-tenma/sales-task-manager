@@ -2278,126 +2278,24 @@
             }
         }
         
-        // 🔧 プロジェクトID統一移行（4桁ID → タイムスタンプID）
-        async function migrateProjectIdsToTimestamp() {
-            try {
-                // 移行済みフラグチェック
-                const migrationFlag = localStorage.getItem('projectIdMigrationCompleted');
-                if (migrationFlag === 'true') {
-                    console.log('✅ [PROJECT ID MIGRATION] 移行済みスキップ');
-                    return;
-                }
-
-                const user = window.getCurrentUser();
-                if (!user?.isLoggedIn || user.role !== 'developer') {
-                    console.log('⏭️ [PROJECT ID MIGRATION] 開発者以外はスキップ');
-                    return;
-                }
-
-                console.log('🔧 [PROJECT ID MIGRATION] プロジェクトID統一処理開始...');
-
-                // Step 1: 重複プロジェクトのクリーンアップ
-                console.log('🧹 [STEP 1] 重複プロジェクトのクリーンアップ...');
-
-                const tasksResult = await window.FirebaseDB.getTasks();
-                if (tasksResult.success) {
-                    // 0005のタスクを0003に移動
-                    const task0005 = tasksResult.tasks.find(t => t.projectId === '0005');
-                    if (task0005) {
-                        task0005.projectId = '0003';
-                        task0005.projectName = '表示対象テスト';
-                        await window.FirebaseDB.updateTask(task0005.id, task0005);
-                        console.log(`✅ タスク移動: "${task0005.title}" (0005 → 0003)`);
-                    }
-                }
-
-                // 不要プロジェクト削除
-                const deleteIds = ['0004', '0005', 'project_1755654561007', 'project_1755652533047', 'project_1755600405102'];
-                for (const id of deleteIds) {
-                    await window.FirebaseDB.deleteProject(id);
-                    console.log(`🗑️ 削除: ${id}`);
-                }
-
-                // Step 2: 4桁IDプロジェクトを新ID形式に移行
-                console.log('🔄 [STEP 2] 4桁IDプロジェクトを新ID形式に移行中...');
-
-                const migrations = [
-                    { oldId: '0001', name: 'テストPJ' },
-                    { oldId: '0002', name: 'やっほー' },
-                    { oldId: '0003', name: '表示対象テスト' }
-                ];
-
-                for (const migration of migrations) {
-                    const projectsResult = await window.FirebaseDB.getProjects();
-                    const oldProject = projectsResult.projects.find(p => p.id === migration.oldId);
-
-                    if (!oldProject) {
-                        console.log(`⏭️ スキップ: ${migration.oldId} 見つからず`);
-                        continue;
-                    }
-
-                    // 新IDで再作成
-                    const newId = 'project_' + Date.now();
-                    const newProject = { ...oldProject, id: newId };
-
-                    await new Promise(resolve => setTimeout(resolve, 10)); // ID重複回避
-
-                    const saveResult = await window.FirebaseDB.saveProject(newProject);
-                    if (!saveResult.success) {
-                        console.error(`❌ プロジェクト作成失敗: ${migration.name}`);
-                        continue;
-                    }
-
-                    console.log(`✅ 新プロジェクト作成: ${migration.name} (${migration.oldId} → ${newId})`);
-
-                    // タスクのprojectIdを更新
-                    const tasks2 = await window.FirebaseDB.getTasks();
-                    if (tasks2.success) {
-                        const projectTasks = tasks2.tasks.filter(t => t.projectId === migration.oldId);
-                        for (const task of projectTasks) {
-                            task.projectId = newId;
-                            await window.FirebaseDB.updateTask(task.id, task);
-                            console.log(`  ✅ タスク更新: "${task.title}"`);
-                        }
-                    }
-
-                    // 旧プロジェクト削除
-                    await window.FirebaseDB.deleteProject(migration.oldId);
-                    console.log(`🗑️ 旧プロジェクト削除: ${migration.oldId}`);
-                }
-
-                // Step 3: LocalStorage クリーンアップ
-                console.log('🧹 [STEP 3] LocalStorage クリーンアップ...');
-                localStorage.removeItem('projectSettings');
-                localStorage.removeItem('projects');
-
-                // 移行完了フラグ
-                localStorage.setItem('projectIdMigrationCompleted', 'true');
-                console.log('✅ [PROJECT ID MIGRATION] プロジェクトID統一処理完了！');
-
-            } catch (error) {
-                console.error('❌ [PROJECT ID MIGRATION] エラー:', error);
-            }
-        }
-
         // デバッグ用: LocalStorageプロジェクト確認
         function checkLocalStorageProjects() {
             console.log('🔍 [DEBUG] LocalStorageプロジェクトデータ確認:');
-
+            
             const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
             const projects = JSON.parse(localStorage.getItem('projects') || '[]');
-
+            
             console.log('📂 projectSettings:', Object.keys(projectSettings).length, '件');
             Object.keys(projectSettings).forEach(projectId => {
                 const project = projectSettings[projectId];
                 console.log(`  - ${projectId}: ${project.name}`);
             });
-
+            
             console.log('📂 projects:', projects.length, '件');
             projects.forEach(project => {
                 console.log(`  - ${project.id}: ${project.name}`);
             });
-
+            
             console.log('🔄 移行フラグ:', localStorage.getItem('projectsMigratedToFirebase'));
         }
         
@@ -7167,11 +7065,6 @@
                 setTimeout(() => {
                     migrateProjectsToFirebase();
                 }, 3000); // Firebase認証完了後に実行
-
-                // プロジェクトID統一移行（4桁ID → タイムスタンプID）
-                setTimeout(() => {
-                    migrateProjectIdsToTimestamp();
-                }, 5000); // プロジェクト移行後に実行
                 
                 // 🔐 【重要】権限整合性チェック・修正を実行
                 const permissionFixed = ensureUserPermissionsIntegrity();
