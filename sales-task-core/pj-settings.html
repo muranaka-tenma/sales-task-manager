@@ -322,14 +322,8 @@
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
             <form id="project-form">
-                <div class="form-group">
-                    <label class="form-label">プロジェクトID *</label>
-                    <input type="text" id="project-id" class="form-input" required placeholder="例: 0001, 0025" pattern="[0-9]{4}" maxlength="4">
-                    <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
-                        4桁の数字（例: 0001, 0025）
-                    </div>
-                </div>
-                
+                <!-- プロジェクトIDは自動生成（project_TIMESTAMP）のため入力不要 -->
+
                 <div class="form-group">
                     <label class="form-label">プロジェクト名 *</label>
                     <input type="text" id="project-name" class="form-input" required placeholder="例: 新規システム導入PJ">
@@ -379,14 +373,9 @@
         function saveProjectSettings(settings) {
             localStorage.setItem('projectSettings', JSON.stringify(settings));
         }
-        
-        // プロジェクトIDの検証
-        function validateProjectId(projectId) {
-            // 4桁の数字のみ許可（0001-9999）
-            const pattern = /^[0-9]{4}$/;
-            return pattern.test(projectId);
-        }
-        
+
+        // 🔥 validateProjectId()関数は削除（タイムスタンプIDは検証不要）
+
         // 現在のユーザー情報を取得
         function getCurrentUser() {
             try {
@@ -493,8 +482,7 @@
             console.log('🔍 [CREATE MODAL] Opening create modal');
             currentEditingProjectId = null;
             document.getElementById('modal-title').textContent = '新規PJ作成';
-            document.getElementById('project-id').value = '';
-            document.getElementById('project-id').readOnly = false;
+            // 🔥 project-idフィールドは削除済み
             document.getElementById('project-name').value = '';
             document.getElementById('project-description').value = '';
             loadDefaultColumns();
@@ -506,13 +494,12 @@
         function editProject(projectId) {
             const settings = getProjectSettings();
             const project = settings[projectId];
-            
+
             if (!project) return;
-            
+
             currentEditingProjectId = projectId;
             document.getElementById('modal-title').textContent = 'PJ編集';
-            document.getElementById('project-id').value = projectId;
-            document.getElementById('project-id').readOnly = true; // 編集時はID変更不可
+            // 🔥 project-idフィールドは削除済み（IDは自動生成のため表示・編集不要）
             document.getElementById('project-name').value = project.name;
             document.getElementById('project-description').value = project.description || '';
             loadColumns(project.columns);
@@ -579,25 +566,14 @@
         function saveProject(event) {
             console.log('🔍 [PJ SAVE] Function called');
             event.preventDefault();
-            
-            const projectId = document.getElementById('project-id').value.trim();
+
+            // 🔥 プロジェクトIDは自動生成（編集時は既存ID、新規時はタイムスタンプ）
+            const projectId = currentEditingProjectId || `project_${Date.now()}`;
             const name = document.getElementById('project-name').value.trim();
             const description = document.getElementById('project-description').value.trim();
             const columns = getCurrentColumns();
-            
+
             console.log('🔍 [PJ SAVE] Form values:', { projectId, name, description, columns });
-            
-            if (!projectId) {
-                console.error('❌ [PJ SAVE] Project ID is empty');
-                alert('プロジェクトIDを入力してください');
-                return;
-            }
-            
-            if (!validateProjectId(projectId)) {
-                console.error('❌ [PJ SAVE] Project ID validation failed:', projectId);
-                alert('プロジェクトIDは4桁の数字で入力してください（例: 0001, 0025）');
-                return;
-            }
             
             if (!name) {
                 console.error('❌ [PJ SAVE] Project name is empty');
@@ -619,13 +595,8 @@
             console.log('🔍 [PJ SAVE] Current user:', currentUser);
             console.log('🔍 [PJ SAVE] Existing settings:', settings);
             console.log('🔍 [PJ SAVE] Current editing ID:', currentEditingProjectId);
-            
-            // 新規作成時のID重複チェック
-            if (!currentEditingProjectId && settings[projectId]) {
-                console.error('❌ [PJ SAVE] Duplicate project ID:', projectId);
-                alert(`プロジェクトID「${projectId}」は既に使用されています。別のIDを指定してください。`);
-                return;
-            }
+
+            // 🔥 ID重複チェック不要（タイムスタンプIDは一意）
             
             const projectData = {
                 name: name,
@@ -638,13 +609,9 @@
             };
             
             console.log('🔍 [PJ SAVE] Project data to save:', projectData);
-            
-            // 編集時にIDが変更されている場合は古いIDを削除
-            if (currentEditingProjectId && currentEditingProjectId !== projectId) {
-                console.log('🔍 [PJ SAVE] Deleting old project ID:', currentEditingProjectId);
-                delete settings[currentEditingProjectId];
-            }
-            
+
+            // 🔥 編集時もIDは変更しない（タイムスタンプIDは不変）
+
             settings[projectId] = projectData;
             console.log('🔍 [PJ SAVE] About to save settings:', settings);
             
