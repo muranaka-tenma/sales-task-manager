@@ -13958,14 +13958,14 @@
                     return;
                 }
 
-                const result = await window.FirebaseDB.getTasks();
-                const allTasks = result.success ? result.tasks : [];
-                const projectTasks = allTasks.filter(task => task.projectId === projectId);
-
-                // 🔥 現在の表示をプロジェクトタスクのみに更新（localStorageにも保存）
-                window.currentProjectFilter = projectId;
+                // 🔥 selectedProjectFilters配列を更新（render()が参照）
+                selectedProjectFilters = [projectId];
                 localStorage.setItem('currentProject', projectId);
-                loadTasks();
+                console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
+
+                // タスクを読み込んで再描画
+                await loadTasks();
+                render();
             } catch (error) {
                 console.error('❌ [FILTER] プロジェクトフィルタリングエラー:', error);
             }
