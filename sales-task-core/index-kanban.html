@@ -5365,41 +5365,41 @@
         }
 
         // プロジェクトデータを統一的に取得する関数
-        function getAllProjects() {
-            // projectSettingsから全プロジェクトを取得
-            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-            const projects = [];
-            
-            // オブジェクトを配列に変換
-            Object.keys(projectSettings).forEach(projectId => {
-                const project = projectSettings[projectId];
-                projects.push({
-                    id: projectId,
-                    name: project.name || 'プロジェクト名未設定',
-                    description: project.description || '',
-                    isPublic: project.isPublic !== false, // デフォルトはtrue
-                    createdAt: project.createdAt || new Date().toISOString(),
-                    createdBy: project.createdBy || 'Unknown',
-                    columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
-                });
-            });
-            
-            // プロジェクトIDでソート（作成順を維持）
-            projects.sort((a, b) => a.id.localeCompare(b.id));
-            
-            return projects;
+        async function getAllProjects() {
+            // 🔥 Firebaseから全プロジェクトを取得（LocalStorage不使用）
+            if (window.FirebaseDB && window.FirebaseDB.getProjects) {
+                try {
+                    const result = await window.FirebaseDB.getProjects();
+                    if (result.success && result.projects) {
+                        return result.projects.map(project => ({
+                            id: project.id,
+                            name: project.name || 'プロジェクト名未設定',
+                            description: project.description || '',
+                            isPublic: project.visibility === 'public',
+                            createdAt: project.createdAt || new Date().toISOString(),
+                            createdBy: project.createdBy || 'Unknown',
+                            columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                        }));
+                    }
+                } catch (error) {
+                    console.error('❌ [GET-PROJECTS] Firebase取得エラー:', error);
+                }
+            }
+
+            console.warn('⚠️ [GET-PROJECTS] Firebase未接続');
+            return [];
         }
 
         // プロジェクト一覧サイドバーを描画
-        function renderProjectsList() {
+        async function renderProjectsList() {
             const projectsList = document.getElementById('projects-list');
             if (!projectsList) {
                 console.error('❌ [PROJECTS] projects-list element not found!');
                 return;
             }
-            
+
             // プロジェクトデータを取得（統一関数を使用）
-            const projects = getAllProjects();
+            const projects = await getAllProjects();
             
             // 各プロジェクトのタスク数を計算（メンバーフィルター考慮）
             const projectTaskCounts = {};
@@ -5553,9 +5553,9 @@
             }
             
             // フィルタ適用後: ${filteredTasks.length}件
-            
-            // プロジェクト一覧サイドバーを描画
-            renderProjectsList();
+
+            // プロジェクト一覧サイドバーを描画（非同期）
+            renderProjectsList().catch(err => console.error('❌ [RENDER] プロジェクト一覧描画エラー:', err));
             
             // 通常のカラムを表示（プロジェクト専用カラムまたはデフォルトカラム）
             currentColumns.forEach(column => {
