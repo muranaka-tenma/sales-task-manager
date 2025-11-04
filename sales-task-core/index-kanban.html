@@ -2580,7 +2580,58 @@
                 return [];
             }
         }
-        
+
+        // 🔧 プロジェクトタスクのcolumnID移行関数
+        async function migrateProjectTaskColumnIds() {
+            try {
+                console.log('🔄 [MIGRATE-COLUMN] プロジェクトタスクのcolumnID移行開始...');
+
+                if (!window.FirebaseDB || !window.firebaseAuth?.currentUser) {
+                    console.log('⏭️ [MIGRATE-COLUMN] Firebase未接続のためスキップ');
+                    return;
+                }
+
+                let migratedCount = 0;
+                const tasksToUpdate = [];
+
+                for (const task of tasks) {
+                    // プロジェクトタスクで、columnIdがプロジェクト固有形式でない場合
+                    if (task.projectId && task.columnId && !task.columnId.startsWith(`pj_${task.projectId}_`)) {
+                        console.log(`🔄 [MIGRATE-COLUMN] 移行対象: "${task.title}" (${task.columnId} → pj_${task.projectId}_0)`);
+
+                        // 最初のカラムIDに変更
+                        task.columnId = `pj_${task.projectId}_0`;
+                        tasksToUpdate.push(task);
+                        migratedCount++;
+                    }
+                }
+
+                if (migratedCount === 0) {
+                    console.log('✅ [MIGRATE-COLUMN] 移行不要 - すべてのタスクが正しいcolumnIDです');
+                    return;
+                }
+
+                // Firebaseに更新を保存
+                console.log(`🔥 [MIGRATE-COLUMN] ${migratedCount}件のタスクをFirebaseに保存中...`);
+                for (const task of tasksToUpdate) {
+                    if (task.firebaseId) {
+                        const result = await window.FirebaseDB.updateTask(task.firebaseId, {
+                            columnId: task.columnId,
+                            updatedAt: new Date().toISOString()
+                        });
+
+                        if (!result.success) {
+                            console.error(`❌ [MIGRATE-COLUMN] タスク更新エラー: ${task.title}`, result.error);
+                        }
+                    }
+                }
+
+                console.log(`✅ [MIGRATE-COLUMN] ${migratedCount}件のcolumnIDを移行完了`);
+            } catch (error) {
+                console.error('❌ [MIGRATE-COLUMN] 移行エラー:', error);
+            }
+        }
+
         // Firebase統合テンプレートデータ読み込み関数
         async function loadTemplates() {
             try {
@@ -6886,7 +6937,10 @@
                     // ログイン状態に関わらずタスク読み込みを実行
                     console.log('📋 [INIT] タスク読み込み開始...');
                     await loadTasks();
-                    
+
+                    // 🔧 プロジェクトタスクのcolumnID移行処理
+                    await migrateProjectTaskColumnIds();
+
                     // 🔧 修正: 読み込み後に確実に描画実行
                     console.log('📋 [INIT] タスク読み込み完了:', tasks.length, '件');
                     console.log('🎨 [INIT] 即座に描画実行...');
@@ -14620,6 +14674,10 @@
                 return;
             }
 
+            // 🔥 プロジェクト固有のカラムIDを取得（最初のカラム）
+            const projectColumnId = `pj_${projectId}_0`;
+            console.log('📍 [PJ-MODAL] 使用するカラムID:', projectColumnId);
+
             // タスクデータを作成
             const task = {
                 id: Date.now(),
@@ -14630,7 +14688,7 @@
                 priority: document.getElementById('pj-priority').value,
                 assignees: selectedAssignees,
                 memo: document.getElementById('pj-memo').value,
-                columnId: 'todo',
+                columnId: projectColumnId,  // プロジェクト固有のカラムIDを使用
                 createdAt: new Date().toISOString(),
                 comments: [],
                 attachments: [],
