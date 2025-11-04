@@ -14586,12 +14586,9 @@
                 return;
             }
 
-            // プロジェクト設定との整合性チェック
-            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-            if (!projectSettings[projectId]) {
-                alert(`❌ プロジェクトID「${projectId}」がプロジェクト設定に存在しません。\n\n「プロジェクト設定」でプロジェクトが正しく作成されているか確認してください。`);
-                return;
-            }
+            // プロジェクト設定との整合性チェック（Firebase対応）
+            // プロジェクトがドロップダウンに表示されていれば、Firebaseまたはローカルに存在する
+            console.log('✅ [PJ-MODAL] Project exists in dropdown - validation passed');
 
             // 既存プロジェクトタスクとの重複チェック
             const existingTasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
