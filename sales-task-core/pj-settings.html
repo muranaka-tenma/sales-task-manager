@@ -355,7 +355,10 @@
             </form>
         </div>
     </div>
-    
+
+    <!-- 🔥 Firebase設定ファイル読み込み -->
+    <script type="module" src="./firebase-config-auth-fix-20250819-132508.js"></script>
+
     <script>
         // 現在編集中のプロジェクトID
         let currentEditingProjectId = null;
@@ -756,11 +759,30 @@
             });
         }
 
-        // 初期化
+        // 初期化（Firebase初期化を待つ）
         document.addEventListener('DOMContentLoaded', function() {
             clearCorruptedData();
             if (!checkPermissions()) return;
-            loadProjects();
+
+            // Firebase初期化を待ってからloadProjects()を実行
+            const waitForFirebase = setInterval(() => {
+                if (window.FirebaseDB && window.FirebaseDB.getProjects) {
+                    clearInterval(waitForFirebase);
+                    console.log('✅ [INIT] Firebase初期化完了 - プロジェクト読み込み開始');
+                    loadProjects();
+                } else {
+                    console.log('⏳ [INIT] Firebase初期化待機中...');
+                }
+            }, 100);
+
+            // タイムアウト設定（10秒）
+            setTimeout(() => {
+                if (!window.FirebaseDB) {
+                    clearInterval(waitForFirebase);
+                    console.error('❌ [INIT] Firebase初期化タイムアウト');
+                    alert('Firebase接続に失敗しました。ページを再読み込みしてください。');
+                }
+            }, 10000);
         });
     </script>
 </body>
