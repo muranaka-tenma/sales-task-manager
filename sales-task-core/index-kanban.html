@@ -2226,69 +2226,10 @@
         
         // LocalStorageプロジェクトのFirebase移行
         async function migrateProjectsToFirebase() {
-            try {
-                // Firebase接続とユーザー認証確認
-                if (!window.FirebaseDB?.saveProject || !window.getCurrentUser()?.isLoggedIn) {
-                    console.log('📁 [PROJECT MIGRATE] Firebase未準備 - 移行スキップ');
-                    return;
-                }
-                
-                // 移行フラグチェックを削除し、常に同期実行
-                
-                // LocalStorageからプロジェクト設定とprojectsを取得
-                const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
-                
-                const projectsToMigrate = [];
-                
-                // projectSettingsからプロジェクトを収集
-                Object.keys(projectSettings).forEach(projectId => {
-                    const project = projectSettings[projectId];
-                    projectsToMigrate.push({
-                        id: projectId,
-                        name: project.name,
-                        description: project.description || '',
-                        createdAt: project.createdAt,
-                        createdBy: project.createdBy,
-                        columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
-                    });
-                });
-                
-                // projectsからもプロジェクトを収集（重複除去）
-                projects.forEach(project => {
-                    if (!projectsToMigrate.find(p => p.id === project.id)) {
-                        projectsToMigrate.push(project);
-                    }
-                });
-                
-                if (projectsToMigrate.length === 0) {
-                    console.log('📁 [PROJECT MIGRATE] 移行対象のプロジェクトなし');
-                    return;
-                }
-                
-                console.log(`🔥 [PROJECT MIGRATE] ${projectsToMigrate.length}件のプロジェクトをFirebaseに移行中...`);
-                
-                // 各プロジェクトをFirebaseに保存
-                let migratedCount = 0;
-                for (const project of projectsToMigrate) {
-                    try {
-                        const result = await window.FirebaseDB.saveProject(project);
-                        if (result.success) {
-                            migratedCount++;
-                            console.log(`✅ [PROJECT MIGRATE] 移行成功: ${project.name} (${project.id})`);
-                        } else {
-                            console.error(`❌ [PROJECT MIGRATE] 移行失敗: ${project.name}`, result.error);
-                        }
-                    } catch (error) {
-                        console.error(`❌ [PROJECT MIGRATE] 移行エラー: ${project.name}`, error);
-                    }
-                }
-                
-                console.log(`✅ [PROJECT SYNC] 同期完了: ${migratedCount}/${projectsToMigrate.length}件`);
-                
-            } catch (error) {
-                console.error('❌ [PROJECT MIGRATE] プロジェクト移行エラー:', error);
-            }
+            // 🔥 LocalStorage→Firebase移行は完了済み
+            // この関数は無効化（LocalStorageからの復活を防止）
+            console.log('📁 [PROJECT MIGRATE] 移行機能は無効化されています（Firebase完全移行済み）');
+            return;
         }
         
         // デバッグ用: LocalStorageプロジェクト確認
@@ -7137,6 +7078,15 @@
         // Firebase完全移行: データはFirestoreから読み込まれる
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // 🔥 LocalStorageプロジェクトデータをクリア（Firebase完全移行のため）
+            if (!localStorage.getItem('projectsMigratedToFirebase')) {
+                console.log('🧹 [INIT] LocalStorageプロジェクトデータをクリア中...');
+                localStorage.removeItem('projects');
+                localStorage.removeItem('projectSettings');
+                localStorage.setItem('projectsMigratedToFirebase', 'true');
+                console.log('✅ [INIT] LocalStorageプロジェクトデータをクリア完了');
+            }
+
             // 🔧 【最優先】ユーザーデータベース初期化
             try {
                 // 🔍 最優先: LocalStorage監視システム開始（データ変更を全て記録）
@@ -13630,16 +13580,8 @@
             }
         }
         
-        // 機能改善書を開く（開発者専用）
-        function openDevelopmentLog() {
-            const currentUser = getCurrentUser();
-            if (currentUser.role !== 'developer') {
-                alert('この機能は開発者のみ利用可能です');
-                return;
-            }
-            window.location.href = 'my-profile.html#development-log';
-        }
-        
+        // 🔥 機能改善書は削除済み
+
         // ファイルインポート処理
         function handleFileImport(event) {
             const files = event.target.files;
@@ -14840,13 +14782,7 @@
             </a>
         </div>
         
-        <div class="menu-section" id="developer-menu-section" style="display: none;">
-            <div class="menu-section-title">開発機能</div>
-            <a href="#" class="menu-item" onclick="openDevelopmentLog(); toggleHamburgerMenu(); return false;">
-                <span>📝</span>
-                <span>機能改善書</span>
-            </a>
-        </div>
+        <!-- 機能改善書は削除済み -->
         
         <!-- プロジェクト設定は全ユーザーアクセス可能 -->
         <div class="menu-section">
