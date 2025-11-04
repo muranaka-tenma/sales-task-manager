@@ -677,6 +677,17 @@
 
             if (!confirm(confirmMessage)) return;
 
+            // 🔥 LocalStorageからも削除（復活防止）
+            const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+            const updatedProjects = localProjects.filter(p => p.id !== projectId);
+            localStorage.setItem('projects', JSON.stringify(updatedProjects));
+
+            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+            delete projectSettings[projectId];
+            localStorage.setItem('projectSettings', JSON.stringify(projectSettings));
+
+            console.log('🗑️ [DELETE] LocalStorageからも削除:', projectId);
+
             // プロジェクトを削除
             const deleteResult = await window.FirebaseDB.deleteProject(projectId);
             if (!deleteResult.success) {
@@ -684,17 +695,21 @@
                 return;
             }
 
+            console.log('🗑️ [DELETE] Firebase削除成功:', projectId);
+
             // 紐づくタスクのプロジェクト情報をクリア
             if (projectTasks.length > 0) {
                 for (const task of projectTasks) {
-                    const updatedTask = {
-                        ...task,
-                        projectId: null,
-                        isPJTask: false
-                    };
+                    const taskId = task.firebaseId || task.id;
                     // タスクのプロジェクト情報をクリア
-                    await window.FirebaseDB.updateTask(task.id, updatedTask);
+                    await window.FirebaseDB.updateTask(taskId, {
+                        projectId: null,
+                        isPJTask: false,
+                        columnId: 'todo', // 個人タスクのデフォルトカラム
+                        updatedAt: new Date().toISOString()
+                    });
                 }
+                console.log(`🔄 [DELETE] ${projectTasks.length}件のタスクのプロジェクト情報をクリア`);
             }
 
             alert(`プロジェクト「${project.name}」を削除しました`);
