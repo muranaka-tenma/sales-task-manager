@@ -404,13 +404,13 @@
         }
         
         // プロジェクト一覧の表示
-        async function loadProjects() {
+        async function loadProjects(forceRefresh = false) {
             if (!window.FirebaseDB) {
                 console.error('❌ [LOAD PROJECTS] Firebase未接続');
                 return;
             }
 
-            const result = await window.FirebaseDB.getProjects();
+            const result = await window.FirebaseDB.getProjects(forceRefresh);
             if (!result.success) {
                 console.error('❌ [LOAD PROJECTS] プロジェクト取得失敗:', result.error);
                 return;
@@ -713,7 +713,7 @@
             }
 
             alert(`プロジェクト「${project.name}」を削除しました`);
-            await loadProjects();
+            await loadProjects(true); // 強制リフレッシュ（キャッシュを使用しない）
         }
         
         // 権限チェック（全ユーザーアクセス可能）

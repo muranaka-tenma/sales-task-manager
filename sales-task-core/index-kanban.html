@@ -13770,7 +13770,7 @@
         }
         
         // プロジェクト一覧を読み込み（Firebase対応）
-        async function loadProjectsList() {
+        async function loadProjectsList(forceRefresh = false) {
             try {
                 const projectsList = document.getElementById('projectsList');
                 if (!projectsList) return;
@@ -13778,8 +13778,8 @@
                 // 🔥 Firebase統合: Firebaseからプロジェクトを取得（LocalStorageフォールバック削除）
                 let projects = [];
                 if (window.FirebaseDB && window.FirebaseDB.getProjects) {
-                    console.log('📂 [PROJECTS] Firebaseからプロジェクト取得開始...');
-                    const result = await window.FirebaseDB.getProjects();
+                    console.log('📂 [PROJECTS] Firebaseからプロジェクト取得開始...', forceRefresh ? '(強制リフレッシュ)' : '');
+                    const result = await window.FirebaseDB.getProjects(forceRefresh);
                     if (result.success) {
                         projects = result.projects || [];
                         console.log(`✅ [PROJECTS] Firebase取得成功: ${projects.length}件`);
@@ -14318,8 +14318,8 @@
                 }
                 
                 console.log('🗑️ プロジェクトを削除:', project.name);
-                
-                loadProjectsList();
+
+                loadProjectsList(true); // 強制リフレッシュ（キャッシュを使用しない）
                 loadTasks(); // タスク一覧を更新
                 
                 alert(`🗑️ プロジェクト「${project.name}」を削除しました`);

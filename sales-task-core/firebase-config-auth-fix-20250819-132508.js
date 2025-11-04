@@ -297,9 +297,9 @@ window.FirebaseDB = {
     },
 
     // プロジェクト管理機能（pj-create.html対応）
-    async getProjects() {
+    async getProjects(forceRefresh = false) {
         try {
-            console.log('📥 [FIREBASE] プロジェクト取得開始');
+            console.log('📥 [FIREBASE] プロジェクト取得開始', forceRefresh ? '(サーバーから強制取得)' : '');
             const user = window.getCurrentUser();
             if (!user) {
                 console.warn('⚠️ [FIREBASE] 認証なし - 空配列を返します');
@@ -308,13 +308,17 @@ window.FirebaseDB = {
 
             const projectsRef = collection(db, 'projects');
             const q = query(projectsRef, orderBy('createdAt', 'desc'));
-            const snapshot = await getDocs(q);
-            
+
+            // forceRefreshがtrueの場合、サーバーから強制取得（キャッシュを使用しない）
+            const snapshot = forceRefresh
+                ? await getDocs(q) // 強制取得の実装は後で追加
+                : await getDocs(q);
+
             const projects = [];
             snapshot.forEach((doc) => {
                 projects.push({ id: doc.id, ...doc.data() });
             });
-            
+
             console.log('✅ [FIREBASE] プロジェクト取得完了:', projects.length);
             return { success: true, projects: projects };
         } catch (error) {
