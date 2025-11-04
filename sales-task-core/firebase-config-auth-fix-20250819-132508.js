@@ -21,6 +21,9 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// グローバルにauthオブジェクトを公開（認証状態監視用）
+window.firebaseAuth = auth;
+
 // FCM削除: const messaging = getMessaging(app);
 // FCM削除: console.log('📨 [FCM] Firebase Cloud Messaging初期化完了');
 

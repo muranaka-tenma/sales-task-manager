@@ -2541,46 +2541,43 @@
         async function loadTasks() {
             try {
                 console.log('📥 [LOAD-TASKS] Firebase専用モード - タスク読み込み開始');
-                
-                // まずLocalStorageからタスクを読み込み（即座に表示）
-                let localTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-                console.log('📂 [LOAD-TASKS] LocalStorage読み込み:', localTasks.length, '件');
-                
-                // Firebase認証確認
-                if (!window.FirebaseAuth?.currentUser) {
-                    console.warn('⚠️ [LOAD-TASKS] Firebase未認証 - LocalStorageのタスクを返す');
-                    tasks = localTasks;
+
+                // 🔥 Firebase認証確認
+                const currentUser = window.firebaseAuth?.currentUser || window.FirebaseAuth?.getCurrentUser();
+                if (!currentUser) {
+                    console.warn('⚠️ [LOAD-TASKS] Firebase未認証 - 空配列を返す');
+                    tasks = [];
                     window.tasks = tasks;
-                    return localTasks;
+                    return [];
                 }
-                
-                // Firebaseからタスク取得を試行
-                try {
-                    const result = await window.FirebaseDB.getTasks();
-                    if (result.success && result.tasks) {
-                        tasks = result.tasks;
-                        window.tasks = tasks;
-                        
-                        // Firebaseから取得したタスクをLocalStorageにも保存（フォールバック用）
-                        localStorage.setItem('tasks', JSON.stringify(tasks));
-                        console.log('✅ [LOAD-TASKS] Firebase読み込み完了:', tasks.length, '件');
-                        return tasks;
-                    }
-                } catch (firebaseError) {
-                    console.warn('⚠️ [LOAD-TASKS] Firebaseエラー:', firebaseError.message);
+
+                console.log('✅ [LOAD-TASKS] Firebase認証済み:', currentUser.email);
+
+                // Firebaseからタスク取得
+                if (!window.FirebaseDB?.getTasks) {
+                    console.error('❌ [LOAD-TASKS] FirebaseDB.getTasks未定義');
+                    tasks = [];
+                    window.tasks = tasks;
+                    return [];
                 }
-                
-                console.warn('⚠️ [LOAD-TASKS] Firebase読み込み失敗、LocalStorageのタスクを使用');
-                tasks = localTasks;
-                window.tasks = tasks;
-                return localTasks;
+
+                const result = await window.FirebaseDB.getTasks();
+                if (result.success && result.tasks) {
+                    tasks = result.tasks;
+                    window.tasks = tasks;
+                    console.log('✅ [LOAD-TASKS] Firebase読み込み完了:', tasks.length, '件');
+                    return tasks;
+                } else {
+                    console.warn('⚠️ [LOAD-TASKS] Firebase読み込み失敗:', result.error || '不明なエラー');
+                    tasks = [];
+                    window.tasks = tasks;
+                    return [];
+                }
             } catch (error) {
                 console.error('❌ [LOAD-TASKS] 予期せぬエラー:', error);
-                // エラー時もLocalStorageから読み込みを試行
-                const fallbackTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-                tasks = fallbackTasks;
+                tasks = [];
                 window.tasks = tasks;
-                return fallbackTasks;
+                return [];
             }
         }
         
@@ -6203,43 +6200,31 @@
         async function saveTasks() {
             try {
                 console.log('💾 [SAVE-TASKS] Firebase専用モード - タスク保存開始:', tasks.length, '件');
-                
-                // まずLocalStorageに確実に保存（即座に保存、データ消失防止）
-                localStorage.setItem('tasks', JSON.stringify(tasks));
-                console.log('💾 [SAVE-TASKS] LocalStorage保存完了:', tasks.length, '件');
-                
-                // Firebase認証確認
-                if (!window.FirebaseAuth?.currentUser) {
-                    console.warn('⚠️ [SAVE-TASKS] Firebase未認証 - LocalStorage保存のみ');
-                    return true; // LocalStorageに保存できたので成功とする
+
+                // 🔥 Firebase認証確認
+                const currentUser = window.firebaseAuth?.currentUser || window.FirebaseAuth?.getCurrentUser();
+                if (!currentUser) {
+                    console.error('❌ [SAVE-TASKS] Firebase未認証 - 保存できません');
+                    return false;
                 }
-                
-                // Firebase一括保存を試行
-                try {
-                    const result = await window.FirebaseDB.saveTasks(tasks);
-                    if (result.success) {
-                        console.log('✅ [SAVE-TASKS] Firebase保存完了');
-                        return true;
-                    } else {
-                        console.warn('⚠️ [SAVE-TASKS] Firebase保存エラー、LocalStorageは保存済み:', result.error);
-                        return true; // LocalStorageに保存できているので成功とする
-                    }
-                } catch (firebaseError) {
-                    console.warn('⚠️ [SAVE-TASKS] Firebase例外エラー、LocalStorageは保存済み:', firebaseError.message);
-                    return true; // LocalStorageに保存できているので成功とする
+
+                // Firebaseへ保存
+                if (!window.FirebaseDB?.saveTasks) {
+                    console.error('❌ [SAVE-TASKS] FirebaseDB.saveTasks未定義');
+                    return false;
+                }
+
+                const result = await window.FirebaseDB.saveTasks(tasks);
+                if (result.success) {
+                    console.log('✅ [SAVE-TASKS] Firebase保存完了');
+                    return true;
+                } else {
+                    console.error('❌ [SAVE-TASKS] Firebase保存エラー:', result.error);
+                    return false;
                 }
             } catch (error) {
                 console.error('❌ [SAVE-TASKS] 予期せぬエラー:', error);
-                
-                // 最後の手段でLocalStorage保存を試行
-                try {
-                    localStorage.setItem('tasks', JSON.stringify(tasks));
-                    console.log('💾 [SAVE-TASKS] 緊急LocalStorage保存完了');
-                    return true;
-                } catch (storageError) {
-                    console.error('❌ [SAVE-TASKS] LocalStorage保存も失敗:', storageError);
-                    return false;
-                }
+                return false;
             }
         }
         
