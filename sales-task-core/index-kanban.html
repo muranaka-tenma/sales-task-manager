@@ -14596,11 +14596,11 @@
             // プロジェクトがドロップダウンに表示されていれば、Firebaseまたはローカルに存在する
             console.log('✅ [PJ-MODAL] Project exists in dropdown - validation passed');
 
-            // 既存プロジェクトタスクとの重複チェック
-            const existingTasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
-            const duplicateTask = existingTasks.find(task =>
+            // 🔥 Firebase対応: グローバルのtasks配列から重複チェック
+            const taskTitle = document.getElementById('pj-task-title').value.trim();
+            const duplicateTask = tasks.find(task =>
                 task.projectId === projectId &&
-                task.title === document.getElementById('pj-task-title').value.trim()
+                task.title === taskTitle
             );
 
             if (duplicateTask) {
@@ -14623,7 +14623,7 @@
             // タスクデータを作成
             const task = {
                 id: Date.now(),
-                title: document.getElementById('pj-task-title').value,
+                title: document.getElementById('pj-task-title').value.trim(),
                 projectId: projectId,
                 projectName: projectName,
                 deadline: `${document.getElementById('pj-deadline-date').value}T${document.getElementById('pj-deadline-time').value}`,
@@ -14637,31 +14637,38 @@
                 isProjectTask: true
             };
 
-            // 既存のタスクを読み込んで追加
-            const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
             console.log('👥 [PJ-MODAL] 既存タスク数:', tasks.length);
-            tasks.push(task);
-            localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
-            console.log('👥 [PJ-MODAL] 保存後タスク数:', tasks.length);
 
-            // Firebase同期
-            if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
-                try {
-                    console.log('🔥 [PJ-MODAL] プロジェクトタスクをFirebaseに同期中...', task.title);
-                    const result = await window.FirebaseDB.createTask(task);
-                    if (result.success) {
-                        console.log('✅ [PJ-MODAL] プロジェクトタスク作成成功:', result.id);
-                        task.firebaseId = result.id;
-                        tasks[tasks.length - 1] = task;
-                        localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
-                    } else {
-                        console.error('❌ [PJ-MODAL] プロジェクトタスク作成エラー:', result.error);
-                    }
-                } catch (error) {
-                    console.error('❌ [PJ-MODAL] プロジェクトタスク同期エラー:', error);
+            // 🔥 Firebase保存
+            if (!window.FirebaseDB || !window.firebaseAuth?.currentUser) {
+                alert('❌ Firebase未接続またはログアウト状態です');
+                return;
+            }
+
+            try {
+                console.log('🔥 [PJ-MODAL] プロジェクトタスクをFirebaseに保存中...', task.title);
+                const result = await window.FirebaseDB.createTask(task);
+                if (result.success) {
+                    console.log('✅ [PJ-MODAL] プロジェクトタスク作成成功:', result.id);
+                    task.firebaseId = result.id;
+
+                    // グローバルのtasks配列に追加
+                    tasks.push(task);
+                    window.tasks = tasks;
+                    console.log('👥 [PJ-MODAL] 保存後タスク数:', tasks.length);
+
+                    // 画面を更新
+                    render();
+                    updateStats();
+                } else {
+                    console.error('❌ [PJ-MODAL] プロジェクトタスク作成エラー:', result.error);
+                    alert('❌ タスク作成エラー: ' + result.error);
+                    return;
                 }
-            } else {
-                console.log('💾 [PJ-MODAL] Firebase未対応またはログアウト状態 - LocalStorageのみ');
+            } catch (error) {
+                console.error('❌ [PJ-MODAL] プロジェクトタスク保存エラー:', error);
+                alert('❌ タスク保存エラー: ' + error.message);
+                return;
             }
 
             // 成功メッセージを表示
@@ -14671,11 +14678,6 @@
             document.getElementById('pj-task-form').reset();
             setPJDefaultDeadline();
             loadPJExistingProjects();
-
-            // タスクボードを更新
-            if (typeof loadTasks === 'function') {
-                loadTasks();
-            }
 
             // 2秒後にモーダルを閉じる
             setTimeout(() => {
