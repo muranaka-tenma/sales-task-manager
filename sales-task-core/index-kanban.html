@@ -5359,34 +5359,47 @@
         }
         
         
-        // プロジェクト専用カラム取得（Firebase対応）
-        async function getProjectColumns(projectId) {
+        // プロジェクトデータのキャッシュ
+        let cachedProjectsData = null;
+        let cacheTimestamp = 0;
+        const CACHE_DURATION = 60000; // 60秒
+
+        // プロジェクト専用カラム取得（同期関数、キャッシュ使用）
+        function getProjectColumns(projectId) {
             if (!projectId) return columns;
 
-            // 🔥 Firebaseからプロジェクトデータを取得
-            if (!window.FirebaseDB) {
-                console.warn('⚠️ [GET PROJECT COLUMNS] Firebase未接続 - デフォルトカラムを使用');
-                return columns;
-            }
-
-            const result = await window.FirebaseDB.getProjects();
-            if (!result.success) {
-                console.warn('⚠️ [GET PROJECT COLUMNS] プロジェクト取得失敗 - デフォルトカラムを使用');
-                return columns;
-            }
-
-            const project = result.projects.find(p => p.id === projectId);
-
-            if (project && project.columns && project.columns.length > 0) {
-                // プロジェクト専用カラムを通常のカラム形式に変換
-                return project.columns.map((columnTitle, index) => ({
-                    id: `pj_${projectId}_${index}`,
-                    title: columnTitle,
-                    color: ['#667eea', '#f59e0b', '#8b5cf6', '#10b981', '#6c757d'][index % 5] // 色をローテーション
-                }));
+            // キャッシュからプロジェクトデータを取得
+            if (cachedProjectsData && (Date.now() - cacheTimestamp < CACHE_DURATION)) {
+                const project = cachedProjectsData[projectId];
+                if (project && project.columns && project.columns.length > 0) {
+                    return project.columns.map((columnTitle, index) => ({
+                        id: `pj_${projectId}_${index}`,
+                        title: columnTitle,
+                        color: ['#667eea', '#f59e0b', '#8b5cf6', '#10b981', '#6c757d'][index % 5]
+                    }));
+                }
             }
 
             return columns; // デフォルトカラムを使用
+        }
+
+        // プロジェクトデータをキャッシュに保存
+        async function updateProjectsCache() {
+            if (!window.FirebaseDB) return;
+
+            const result = await window.FirebaseDB.getProjects();
+            if (result.success && result.projects) {
+                cachedProjectsData = {};
+                result.projects.forEach(project => {
+                    cachedProjectsData[project.id] = {
+                        name: project.name,
+                        description: project.description || '',
+                        columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                    };
+                });
+                cacheTimestamp = Date.now();
+                console.log('✅ [CACHE] プロジェクトキャッシュ更新:', Object.keys(cachedProjectsData).length, '件');
+            }
         }
 
         // プロジェクトデータを統一的に取得する関数
@@ -7099,6 +7112,11 @@
                 setTimeout(() => {
                     checkUserPermission();
                     console.log('✅ [INIT] 権限チェック完了');
+
+                    // プロジェクトキャッシュの初期化
+                    updateProjectsCache().then(() => {
+                        console.log('✅ [INIT] プロジェクトキャッシュ初期化完了');
+                    });
                 }, 500); // 0.5秒後に実行
                 
                 // 定期権限チェック開始
@@ -13769,6 +13787,9 @@
                     if (result.success) {
                         projects = result.projects || [];
                         console.log(`✅ [PROJECTS] Firebase取得成功: ${projects.length}件`);
+
+                        // プロジェクトキャッシュを更新
+                        updateProjectsCache();
                     } else {
                         console.error('❌ [PROJECTS] Firebase取得失敗:', result.error);
                         // 🔥 LocalStorageフォールバック削除 - エラー表示のみ
