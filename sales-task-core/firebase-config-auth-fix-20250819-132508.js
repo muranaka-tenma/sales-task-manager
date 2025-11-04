@@ -420,6 +420,24 @@ window.FirebaseDB = {
         }
     },
 
+    async deleteProject(projectId) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user) {
+                return { success: false, error: '認証が必要です' };
+            }
+
+            console.log('🗑️ [FIREBASE] プロジェクト削除実行:', projectId);
+            await deleteDoc(doc(db, 'projects', projectId));
+
+            console.log('✅ [FIREBASE] プロジェクト削除完了:', projectId);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ [FIREBASE] プロジェクト削除エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
     // ユーザー管理機能
     async getUsers() {
         try {

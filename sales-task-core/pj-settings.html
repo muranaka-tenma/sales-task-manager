@@ -363,17 +363,7 @@
         // デフォルトカラム設定
         const DEFAULT_COLUMNS = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
         
-        // プロジェクト設定データの取得
-        function getProjectSettings() {
-            const settings = localStorage.getItem('projectSettings');
-            return settings ? JSON.parse(settings) : {};
-        }
-        
-        // プロジェクト設定データの保存
-        function saveProjectSettings(settings) {
-            localStorage.setItem('projectSettings', JSON.stringify(settings));
-        }
-
+        // 🔥 getProjectSettings()とsaveProjectSettings()は削除（Firebase化により不要）
         // 🔥 validateProjectId()関数は削除（タイムスタンプIDは検証不要）
 
         // 現在のユーザー情報を取得
@@ -411,45 +401,55 @@
         }
         
         // プロジェクト一覧の表示
-        function loadProjects() {
-            const settings = getProjectSettings();
+        async function loadProjects() {
+            if (!window.FirebaseDB) {
+                console.error('❌ [LOAD PROJECTS] Firebase未接続');
+                return;
+            }
+
+            const result = await window.FirebaseDB.getProjects();
+            if (!result.success) {
+                console.error('❌ [LOAD PROJECTS] プロジェクト取得失敗:', result.error);
+                return;
+            }
+
+            const projects = result.projects;
             const projectList = document.getElementById('project-list');
             const emptyState = document.getElementById('empty-state');
             const projectCount = document.getElementById('project-count');
-            
-            const projectIds = Object.keys(settings);
-            projectCount.textContent = `${projectIds.length} プロジェクト`;
-            
-            if (projectIds.length === 0) {
+
+            projectCount.textContent = `${projects.length} プロジェクト`;
+
+            if (projects.length === 0) {
                 projectList.style.display = 'none';
                 emptyState.style.display = 'block';
                 return;
             }
-            
+
             projectList.style.display = 'block';
             emptyState.style.display = 'none';
-            
-            // ★★★ パフォーマンス改善：一度だけ取得 ★★★
-            const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+
+            // タスク数を取得（Firebase対応）
+            const tasksResult = await window.FirebaseDB.getTasks();
+            const tasks = tasksResult.success ? tasksResult.tasks : [];
             const currentUser = getCurrentUser();
             const canDelete = currentUser.role !== 'user';
-            
+
             console.log('🔍 [DELETE BUTTONS] Global check - User:', currentUser.name, 'Role:', currentUser.role, 'CanDelete:', canDelete);
-            console.log('🔍 [DELETE BUTTONS] Projects to process:', projectIds.length);
-            
-            projectList.innerHTML = projectIds.map(projectId => {
-                const project = settings[projectId];
+            console.log('🔍 [DELETE BUTTONS] Projects to process:', projects.length);
+
+            projectList.innerHTML = projects.map(project => {
                 const createdDate = new Date(project.createdAt).toLocaleDateString('ja-JP', {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric'
                 });
-                
+
                 // そのプロジェクトのタスク数を取得
-                const projectTasks = tasks.filter(task => task.projectId === projectId);
-                
-                console.log(`🔍 [DELETE BUTTON] Project ${projectId}: canDelete=${canDelete}`);
-                
+                const projectTasks = tasks.filter(task => task.projectId === project.id);
+
+                console.log(`🔍 [DELETE BUTTON] Project ${project.id}: canDelete=${canDelete}`);
+
                 const projectHTML = `
                     <div class="project-item">
                         <div class="project-info">
@@ -460,19 +460,19 @@
                             </div>
                         </div>
                         <div class="project-actions">
-                            <button class="btn btn-secondary" onclick="editProject('${projectId}')">
+                            <button class="btn btn-secondary" onclick="editProject('${project.id}')">
                                 ✏️ 編集
                             </button>
                             ${canDelete ? `
-                                <button class="btn btn-danger" onclick="deleteProject('${projectId}')">
+                                <button class="btn btn-danger" onclick="deleteProject('${project.id}')">
                                     🗑️ 削除
                                 </button>
                             ` : '<!-- 削除権限なし -->'}
                         </div>
                     </div>
                 `;
-                
-                console.log(`🔍 [HTML] Project ${projectId} HTML contains delete button:`, projectHTML.includes('🗑️ 削除'));
+
+                console.log(`🔍 [HTML] Project ${project.id} HTML contains delete button:`, projectHTML.includes('🗑️ 削除'));
                 return projectHTML;
             }).join('');
         }
@@ -490,12 +490,24 @@
             console.log('🔍 [CREATE MODAL] Modal should be visible now');
         }
         
-        // PJ編集モーダルを開く
-        function editProject(projectId) {
-            const settings = getProjectSettings();
-            const project = settings[projectId];
+        // PJ編集モーダルを開く（Firebase対応）
+        async function editProject(projectId) {
+            if (!window.FirebaseDB) {
+                console.error('❌ [EDIT PROJECT] Firebase未接続');
+                return;
+            }
 
-            if (!project) return;
+            const result = await window.FirebaseDB.getProjects();
+            if (!result.success) {
+                console.error('❌ [EDIT PROJECT] プロジェクト取得失敗:', result.error);
+                return;
+            }
+
+            const project = result.projects.find(p => p.id === projectId);
+            if (!project) {
+                console.error('❌ [EDIT PROJECT] プロジェクトが見つかりません:', projectId);
+                return;
+            }
 
             currentEditingProjectId = projectId;
             document.getElementById('modal-title').textContent = 'PJ編集';
@@ -562,8 +574,8 @@
             return Array.from(inputs).map(input => input.value.trim()).filter(val => val);
         }
         
-        // プロジェクト保存
-        function saveProject(event) {
+        // プロジェクト保存（Firebase対応）
+        async function saveProject(event) {
             console.log('🔍 [PJ SAVE] Function called');
             event.preventDefault();
 
@@ -574,72 +586,55 @@
             const columns = getCurrentColumns();
 
             console.log('🔍 [PJ SAVE] Form values:', { projectId, name, description, columns });
-            
+
             if (!name) {
                 console.error('❌ [PJ SAVE] Project name is empty');
                 alert('プロジェクト名を入力してください');
                 return;
             }
-            
+
             if (columns.length === 0) {
                 console.error('❌ [PJ SAVE] No columns provided');
                 alert('最低1つのカラムを設定してください');
                 return;
             }
-            
+
             console.log('✅ [PJ SAVE] All validations passed');
-            
-            const settings = getProjectSettings();
+
             const currentUser = getCurrentUser();
-            
             console.log('🔍 [PJ SAVE] Current user:', currentUser);
-            console.log('🔍 [PJ SAVE] Existing settings:', settings);
             console.log('🔍 [PJ SAVE] Current editing ID:', currentEditingProjectId);
 
-            // 🔥 ID重複チェック不要（タイムスタンプIDは一意）
-            
-            const projectData = {
+            // 🔥 Firebase保存に変更
+            const result = await window.FirebaseDB.saveProject({
+                id: projectId,
                 name: name,
                 description: description,
-                columns: columns,
-                createdAt: currentEditingProjectId ? settings[currentEditingProjectId].createdAt : new Date().toISOString(),
-                createdBy: currentEditingProjectId ? settings[currentEditingProjectId].createdBy : currentUser.name,
-                updatedAt: new Date().toISOString(),
-                updatedBy: currentUser.name
-            };
-            
-            console.log('🔍 [PJ SAVE] Project data to save:', projectData);
+                visibility: document.getElementById('project-visibility')?.value || 'public',
+                members: [currentUser.email],
+                columns: columns
+            });
 
-            // 🔥 編集時もIDは変更しない（タイムスタンプIDは不変）
-
-            settings[projectId] = projectData;
-            console.log('🔍 [PJ SAVE] About to save settings:', settings);
-            
-            try {
-                saveProjectSettings(settings);
-                console.log('✅ [PJ SAVE] Settings saved successfully');
-            } catch (error) {
-                console.error('❌ [PJ SAVE] Error saving settings:', error);
-                alert('保存中にエラーが発生しました: ' + error.message);
-                return;
+            if (result.success) {
+                console.log('✅ [PJ SAVE] Firebase保存完了');
+                closeModal();
+                await loadProjects(); // Firebase再読み込み
+                const action = currentEditingProjectId ? '更新' : '作成';
+                alert(`プロジェクト「${name}」を${action}しました`);
+            } else {
+                console.error('❌ [PJ SAVE] Firebase保存失敗:', result.error);
+                alert('保存に失敗しました: ' + result.error);
             }
-            
-            console.log('🔍 [PJ SAVE] Closing modal and reloading projects');
-            closeModal();
-            loadProjects();
-            
-            const action = currentEditingProjectId ? '更新' : '作成';
-            alert(`プロジェクト「${name}」を${action}しました`);
         }
         
-        // プロジェクト削除
-        function deleteProject(projectId) {
+        // プロジェクト削除（Firebase対応）
+        async function deleteProject(projectId) {
             const currentUser = getCurrentUser();
-            
+
             console.log('🔍 [DELETE] Current user in deleteProject():', currentUser);
             console.log('🔍 [DELETE] User role:', currentUser.role);
             console.log('🔍 [DELETE] Is user role === "user"?', currentUser.role === 'user');
-            
+
             // ★★★ 緊急対策：邨中天真は常に削除権限を付与 ★★★
             if (currentUser.name === '邨中天真') {
                 console.log('✅ [DELETE] 邨中天真による削除 - 権限を強制付与');
@@ -648,41 +643,59 @@
                 alert('プロジェクトの削除権限がありません。管理者にお問い合わせください。');
                 return;
             }
-            
-            const settings = getProjectSettings();
-            const project = settings[projectId];
-            
-            if (!project) return;
-            
+
+            if (!window.FirebaseDB) {
+                console.error('❌ [DELETE PROJECT] Firebase未接続');
+                return;
+            }
+
+            // プロジェクト情報を取得
+            const projectsResult = await window.FirebaseDB.getProjects();
+            if (!projectsResult.success) {
+                console.error('❌ [DELETE PROJECT] プロジェクト取得失敗:', projectsResult.error);
+                return;
+            }
+
+            const project = projectsResult.projects.find(p => p.id === projectId);
+            if (!project) {
+                console.error('❌ [DELETE PROJECT] プロジェクトが見つかりません:', projectId);
+                return;
+            }
+
             // そのプロジェクトに紐づくタスクがあるかチェック
-            const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+            const tasksResult = await window.FirebaseDB.getTasks();
+            const tasks = tasksResult.success ? tasksResult.tasks : [];
             const projectTasks = tasks.filter(task => task.projectId === projectId);
-            
+
             let confirmMessage = `プロジェクト「${project.name}」を削除しますか？`;
             if (projectTasks.length > 0) {
                 confirmMessage += `\n\n⚠️ このプロジェクトには${projectTasks.length}件のタスクが紐づいています。削除すると、これらのタスクのプロジェクト情報もクリアされます。`;
             }
-            
+
             if (!confirm(confirmMessage)) return;
-            
-            // プロジェクト設定から削除
-            delete settings[projectId];
-            saveProjectSettings(settings);
-            
+
+            // プロジェクトを削除
+            const deleteResult = await window.FirebaseDB.deleteProject(projectId);
+            if (!deleteResult.success) {
+                alert('削除に失敗しました: ' + deleteResult.error);
+                return;
+            }
+
             // 紐づくタスクのプロジェクト情報をクリア
             if (projectTasks.length > 0) {
-                const updatedTasks = tasks.map(task => {
-                    if (task.projectId === projectId) {
-                        delete task.projectId;
-                        task.isPJTask = false;
-                    }
-                    return task;
-                });
-                localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+                for (const task of projectTasks) {
+                    const updatedTask = {
+                        ...task,
+                        projectId: null,
+                        isPJTask: false
+                    };
+                    // タスクのプロジェクト情報をクリア
+                    await window.FirebaseDB.updateTask(task.id, updatedTask);
+                }
             }
-            
-            loadProjects();
+
             alert(`プロジェクト「${project.name}」を削除しました`);
+            await loadProjects();
         }
         
         // 権限チェック（全ユーザーアクセス可能）

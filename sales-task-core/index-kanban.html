@@ -1969,18 +1969,10 @@
                     }
                 ];
                 
-                // 🔧 重要: 初期データをLocalStorageに保存（権限リセット防止）
-                console.log('💾 [INIT] 初期ユーザーデータ保存前の権限確認:', systemUsers.map(u => ({name: u.name, role: u.role})));
-                localStorage.setItem('systemUsers', JSON.stringify(systemUsers));
-                console.log('💾 [INIT] 初期ユーザーデータをLocalStorageに保存完了');
-                
-                // 保存直後に読み込んで検証
-                const savedData = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                console.log('🔍 [INIT] 保存検証 - 読み込み結果:', savedData.map(u => ({name: u.name, role: u.role})));
-                
-                if (savedData.every(u => u.role === 'user')) {
-                    console.error('🚨 [INIT] 緊急警告: 保存直後に全ユーザーがuserになっています！');
-                }
+                // 🔥 LocalStorage保存は削除（Firebase移行により不要）
+                console.log('💾 [INIT] 初期ユーザーデータ（Firebase管理）:', systemUsers.map(u => ({name: u.name, role: u.role})));
+                // localStorage.setItem('systemUsers', JSON.stringify(systemUsers)); // 🔥 削除
+                console.log('✅ [INIT] ユーザーデータはFirebaseで管理されます');
                 
                 // 担当者リストも初期化（有効ユーザーのみ）
                 const assignees = systemUsers.map(u => u.name); // 初期化時は全ユーザー追加
@@ -2723,8 +2715,9 @@
                 });
                 
                 if (needsMigration) {
-                    localStorage.setItem('projectSettings', JSON.stringify(projectSettings));
-                    console.log('🔄 [MIGRATION] プロジェクト設定データを移行しました');
+                    // 🔥 LocalStorage保存は削除（Firebase移行により不要）
+                    // localStorage.setItem('projectSettings', JSON.stringify(projectSettings)); // 🔥 削除
+                    console.log('🔄 [MIGRATION] プロジェクト設定データ移行はスキップ（Firebase管理）');
                 }
             } catch (error) {
                 console.error('❌ [MIGRATION] プロジェクト設定データ移行エラー:', error);
@@ -5345,13 +5338,24 @@
         }
         
         
-        // プロジェクト専用カラム取得
-        function getProjectColumns(projectId) {
+        // プロジェクト専用カラム取得（Firebase対応）
+        async function getProjectColumns(projectId) {
             if (!projectId) return columns;
-            
-            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-            const project = projectSettings[projectId];
-            
+
+            // 🔥 Firebaseからプロジェクトデータを取得
+            if (!window.FirebaseDB) {
+                console.warn('⚠️ [GET PROJECT COLUMNS] Firebase未接続 - デフォルトカラムを使用');
+                return columns;
+            }
+
+            const result = await window.FirebaseDB.getProjects();
+            if (!result.success) {
+                console.warn('⚠️ [GET PROJECT COLUMNS] プロジェクト取得失敗 - デフォルトカラムを使用');
+                return columns;
+            }
+
+            const project = result.projects.find(p => p.id === projectId);
+
             if (project && project.columns && project.columns.length > 0) {
                 // プロジェクト専用カラムを通常のカラム形式に変換
                 return project.columns.map((columnTitle, index) => ({
@@ -5360,7 +5364,7 @@
                     color: ['#667eea', '#f59e0b', '#8b5cf6', '#10b981', '#6c757d'][index % 5] // 色をローテーション
                 }));
             }
-            
+
             return columns; // デフォルトカラムを使用
         }
 
@@ -13736,7 +13740,7 @@
                 const projectsList = document.getElementById('projectsList');
                 if (!projectsList) return;
 
-                // 🔥 Firebase統合: Firebaseからプロジェクトを取得
+                // 🔥 Firebase統合: Firebaseからプロジェクトを取得（LocalStorageフォールバック削除）
                 let projects = [];
                 if (window.FirebaseDB && window.FirebaseDB.getProjects) {
                     console.log('📂 [PROJECTS] Firebaseからプロジェクト取得開始...');
@@ -13746,14 +13750,14 @@
                         console.log(`✅ [PROJECTS] Firebase取得成功: ${projects.length}件`);
                     } else {
                         console.error('❌ [PROJECTS] Firebase取得失敗:', result.error);
-                        // フォールバック: localStorageから読み込み
-                        projects = JSON.parse(localStorage.getItem('projects') || '[]');
-                        console.log(`⚠️ [PROJECTS] LocalStorageフォールバック: ${projects.length}件`);
+                        // 🔥 LocalStorageフォールバック削除 - エラー表示のみ
+                        projects = [];
+                        console.warn('⚠️ [PROJECTS] Firebase未接続のため、プロジェクトを読み込めません');
                     }
                 } else {
-                    // フォールバック: localStorageから読み込み
-                    projects = JSON.parse(localStorage.getItem('projects') || '[]');
-                    console.log(`⚠️ [PROJECTS] Firebase未対応 - LocalStorage使用: ${projects.length}件`);
+                    // 🔥 LocalStorageフォールバック削除 - エラー表示のみ
+                    projects = [];
+                    console.error('❌ [PROJECTS] Firebase未接続のため、プロジェクトを読み込めません');
                 }
 
                 const currentUser = getCurrentUser();
@@ -13901,11 +13905,10 @@
                         return;
                     }
                 } else {
-                    // フォールバック: LocalStorageに保存
-                    const projects = JSON.parse(localStorage.getItem('projects') || '[]');
-                    projects.push(newProject);
-                    localStorage.setItem('projects', JSON.stringify(projects));
-                    console.log('💾 [PROJECT SAVE] LocalStorageに保存（フォールバック）');
+                    // 🔥 LocalStorageフォールバックは削除（Firebaseのみ使用）
+                    console.error('❌ [PROJECT SAVE] Firebase未接続のため保存できません');
+                    alert('Firebase未接続のため、プロジェクトを保存できません。');
+                    return;
                 }
 
                 console.log('✅ 新しいプロジェクトを作成:', newProject.name, `(ID: ${newProject.id})`);
@@ -14157,10 +14160,11 @@
                     members: members,
                     updatedAt: new Date().toISOString()
                 };
-                
-                localStorage.setItem('projects', JSON.stringify(projects));
-                
-                // Firebaseにも保存（接続している場合）
+
+                // 🔥 LocalStorage保存は削除（Firebaseのみ使用）
+                // localStorage.setItem('projects', JSON.stringify(projects)); // 🔥 削除
+
+                // Firebaseに保存（接続している場合）
                 if (window.FirebaseDB?.saveProject && window.getCurrentUser()?.isLoggedIn) {
                     console.log('🔥 [PROJECT UPDATE] Firebaseプロジェクト更新中...');
                     window.FirebaseDB.saveProject(projects[projectIndex]).then(result => {
@@ -14236,9 +14240,10 @@
                 
                 // プロジェクトを削除
                 const updatedProjects = projects.filter(p => p.id !== projectId);
-                localStorage.setItem('projects', JSON.stringify(updatedProjects));
-                
-                // Firebaseからも削除（接続している場合）
+                // 🔥 LocalStorage保存は削除（Firebaseのみ使用）
+                // localStorage.setItem('projects', JSON.stringify(updatedProjects)); // 🔥 削除
+
+                // Firebaseから削除（接続している場合）
                 if (window.FirebaseAuth?.getCurrentUser() && window.firebaseConfig?.deleteProject) {
                     window.firebaseConfig.deleteProject(projectId);
                 }
