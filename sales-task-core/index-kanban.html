@@ -1149,6 +1149,27 @@
                 grid-template-columns: 1fr !important;
             }
         }
+
+        /* プロジェクトタスク作成モーダル用スタイル */
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: #f0f2f5;
+            border-radius: 4px;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -1206,7 +1227,7 @@
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
             <!-- プロジェクトタスク作成ボタン -->
-            <button onclick="window.location.href='pj-create.html'" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいプロジェクトタスクを作成">
+            <button onclick="openProjectTaskCreateModal()" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいプロジェクトタスクを作成">
                 👥 プロジェクトタスク作成
             </button>
             <!-- ユーザー管理ボタンをマイページに移植のため非表示 -->
@@ -14260,8 +14281,406 @@
                 alert('プロジェクトの削除に失敗しました: ' + error.message);
             }
         }
-        
-        
+
+        // ========================================
+        // プロジェクトタスク作成モーダル関連機能
+        // ========================================
+
+        // モーダルを開く
+        function openProjectTaskCreateModal() {
+            console.log('👥 [PJ-MODAL] プロジェクトタスク作成モーダルを開く');
+            const modal = document.getElementById('project-task-create-modal');
+            modal.style.display = 'flex';
+
+            // フォームをリセット
+            document.getElementById('pj-task-form').reset();
+            setPJDefaultDeadline();
+
+            // プロジェクト一覧と担当者を読み込み
+            loadPJExistingProjects();
+            loadPJAssignees();
+        }
+
+        // モーダルを閉じる
+        function closeProjectTaskCreateModal() {
+            console.log('👥 [PJ-MODAL] プロジェクトタスク作成モーダルを閉じる');
+            const modal = document.getElementById('project-task-create-modal');
+            modal.style.display = 'none';
+
+            // 成功メッセージを非表示
+            document.getElementById('pj-task-success-message').style.display = 'none';
+        }
+
+        // デフォルトの期限を設定
+        function setPJDefaultDeadline() {
+            const now = new Date();
+
+            // 日付：ローカル日付基準で今日を設定
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            document.getElementById('pj-deadline-date').value = `${year}-${month}-${day}`;
+
+            // 時刻：現在時刻+3時間を設定
+            let hours = now.getHours() + 3;
+            let minutes = now.getMinutes();
+
+            // 24時間を超える場合は23:59に制限
+            if (hours >= 24) {
+                hours = 23;
+                minutes = 59;
+            }
+
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            document.getElementById('pj-deadline-time').value = timeString;
+        }
+
+        // 担当者一覧を読み込み
+        async function loadPJAssignees() {
+            console.log('👥 [PJ-MODAL] 担当者一覧の動的読み込み開始');
+
+            let assignees = [];
+
+            // Firebase統合モード: システムユーザーから取得
+            if (window.FirebaseDB && window.getCurrentUser()?.isLoggedIn) {
+                console.log('🔥 [PJ-MODAL] Firebase統合モード');
+                try {
+                    if (window.FirebaseDB.getUsers) {
+                        const firebaseUsers = await window.FirebaseDB.getUsers();
+                        if (firebaseUsers.success && firebaseUsers.users.length > 0) {
+                            // LocalStorageのsystemUsersを更新
+                            localStorage.setItem('systemUsers', JSON.stringify(firebaseUsers.users));
+                            console.log('🔄 [PJ-MODAL] systemUsers更新完了');
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ [PJ-MODAL] Firebase取得エラー:', error);
+                }
+            }
+
+            // getActiveUsers関数を使用して無効化・非表示ユーザーを除外
+            const activeUserNames = getActiveUserNames();
+
+            if (activeUserNames.length > 0) {
+                assignees = activeUserNames;
+                console.log('✅ [PJ-MODAL] getActiveUsers から取得:', assignees.length, '名');
+            } else {
+                console.log('⚠️ [PJ-MODAL] アクティブユーザーが見つかりません');
+                assignees = [];
+            }
+
+            console.log('👥 [PJ-MODAL] 最終担当者リスト:', assignees);
+
+            const assigneesDiv = document.getElementById('pj-assignees');
+
+            // 既存のチェックボックスをクリア
+            assigneesDiv.innerHTML = '';
+
+            if (assignees.length === 0) {
+                assigneesDiv.innerHTML = '<p style="color: #718096;">有効なユーザーがいません。ユーザー管理画面でユーザーを登録してください。</p>';
+            } else {
+                assignees.forEach(assignee => {
+                    const assigneeItem = createPJCheckboxItem(assignee, 'pj-assignee');
+                    assigneesDiv.appendChild(assigneeItem);
+                });
+            }
+
+            console.log('✅ [PJ-MODAL] 担当者チェックボックス生成完了');
+        }
+
+        // チェックボックス要素を作成
+        function createPJCheckboxItem(name, type) {
+            const div = document.createElement('div');
+            div.className = 'checkbox-item';
+            div.style.cssText = 'display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; background: #f0f2f5; border-radius: 4px;';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = `${type}-${name}`;
+            input.name = type;
+            input.value = name;
+
+            const label = document.createElement('label');
+            label.htmlFor = `${type}-${name}`;
+            label.textContent = name;
+            label.style.cursor = 'pointer';
+
+            div.appendChild(input);
+            div.appendChild(label);
+
+            return div;
+        }
+
+        // 既存プロジェクト一覧を読み込み
+        async function loadPJExistingProjects() {
+            console.log('🔍 [PJ-MODAL] プロジェクト一覧読み込み開始');
+
+            try {
+                const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
+                console.log('🔍 [PJ-MODAL] Current user:', currentUser);
+
+                let projectSettings = {};
+                let tasks = [];
+
+                // Firebase統合モード: Firebaseからプロジェクトデータを取得
+                if (window.FirebaseDB) {
+                    console.log('🔥 [PJ-MODAL] Firebase統合モード - Firestoreからデータ取得');
+
+                    // Firebaseからタスクデータを取得
+                    const firebaseTasks = await window.FirebaseDB.getTasks();
+                    if (firebaseTasks.success) {
+                        tasks = firebaseTasks.tasks;
+                        console.log('🔥 [PJ-MODAL] Firebase tasks loaded:', tasks.length);
+                    }
+
+                    // 認証状態をチェックしてからFirebaseアクセス
+                    if (currentUser && currentUser.isLoggedIn && window.FirebaseDB.getProjects) {
+                        console.log('🔥 [PJ-MODAL] 認証済み - Firebaseからプロジェクト取得中...');
+                        try {
+                            const firebaseProjects = await window.FirebaseDB.getProjects();
+                            if (firebaseProjects.success && firebaseProjects.projects.length > 0) {
+                                projectSettings = {};
+                                firebaseProjects.projects.forEach(project => {
+                                    projectSettings[project.id] = {
+                                        name: project.name,
+                                        description: project.description || '',
+                                        createdAt: project.createdAt,
+                                        createdBy: project.createdBy || (currentUser ? currentUser.name : 'Unknown'),
+                                        columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                                    };
+                                });
+                                console.log('🔥 [PJ-MODAL] Firebase projects converted:', Object.keys(projectSettings).length);
+                            } else {
+                                console.log('📁 [PJ-MODAL] Firebaseにプロジェクトなし');
+                            }
+                        } catch (firebaseError) {
+                            console.error('❌ [PJ-MODAL] Firebase取得エラー:', firebaseError);
+                        }
+                    }
+
+                    // LocalStorageもチェック
+                    console.log('📁 [PJ-MODAL] LocalStorageプロジェクト確認中...');
+                    const localProjectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                    const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+                    console.log('📁 [PJ-MODAL] LocalStorage projectSettings:', Object.keys(localProjectSettings).length, '件');
+
+                    // projects配列からもプロジェクトを取得
+                    localProjects.forEach(project => {
+                        if (project.id && project.name) {
+                            localProjectSettings[project.id] = {
+                                name: project.name,
+                                description: project.description || '',
+                                createdAt: project.createdAt || new Date().toISOString(),
+                                createdBy: project.createdBy || 'Unknown',
+                                columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                            };
+                        }
+                    });
+
+                    // FirebaseとLocalStorageの両方をマージ
+                    if (Object.keys(localProjectSettings).length > 0) {
+                        projectSettings = { ...projectSettings, ...localProjectSettings };
+                        console.log('🔄 [PJ-MODAL] LocalStorageとマージ完了:', Object.keys(projectSettings).length, '件');
+                    }
+                } else {
+                    console.log('📁 [PJ-MODAL] LocalStorageモード - 従来の方式');
+                    projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+                    const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
+                    tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+
+                    localProjects.forEach(project => {
+                        if (project.id && project.name) {
+                            projectSettings[project.id] = {
+                                name: project.name,
+                                description: project.description || '',
+                                createdAt: project.createdAt || new Date().toISOString(),
+                                createdBy: project.createdBy || 'Unknown',
+                                columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                            };
+                        }
+                    });
+                }
+
+                // プロジェクト一覧を構築
+                const existingProjects = Object.keys(projectSettings)
+                    .filter(projectId => {
+                        const project = projectSettings[projectId];
+                        if (!project || !project.name || project.name.trim() === '') {
+                            console.warn(`⚠️ [PJ-MODAL] 無効なプロジェクトデータをスキップ: ${projectId}`);
+                            return false;
+                        }
+                        return true;
+                    })
+                    .map(projectId => {
+                        const project = projectSettings[projectId];
+                        const projectTasks = tasks.filter(task => task.projectId === projectId);
+                        const taskCount = projectTasks.length;
+
+                        return {
+                            id: projectId,
+                            name: project.name.trim(),
+                            description: project.description || '',
+                            taskCount: taskCount,
+                            createdAt: project.createdAt || new Date().toISOString(),
+                            createdBy: project.createdBy || 'Unknown'
+                        };
+                    })
+                    .filter(project => project.name && project.name !== 'undefined' && project.name !== 'null')
+                    .sort((a, b) => a.name.localeCompare(b.name));
+
+                const selectElement = document.getElementById('pj-existing-project-select');
+                selectElement.innerHTML = '<option value="">-- プロジェクトを選択してください --</option>';
+
+                existingProjects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = `${project.id}|${project.name}`;
+                    option.textContent = `${project.name} (${project.taskCount}件)`;
+                    selectElement.appendChild(option);
+                });
+
+                console.log('✅ [PJ-MODAL] プロジェクト一覧の読み込み完了:', existingProjects.length, '件');
+
+                // プロジェクトが見つからない場合の警告
+                if (existingProjects.length === 0) {
+                    console.warn('⚠️ [PJ-MODAL] プロジェクトが見つかりません');
+                }
+
+            } catch (error) {
+                console.error('❌ [PJ-MODAL] プロジェクト読み込みエラー:', error);
+            }
+        }
+
+        // 既存プロジェクトを選択
+        function selectExistingProjectInModal() {
+            const selectElement = document.getElementById('pj-existing-project-select');
+            const selectedValue = selectElement.value;
+
+            if (selectedValue) {
+                const [projectId, projectName] = selectedValue.split('|');
+                document.getElementById('pj-project-id').value = projectId;
+                document.getElementById('pj-project-name').value = projectName;
+                console.log(`📂 [PJ-MODAL] 既存プロジェクト選択: ${projectId} - ${projectName}`);
+            } else {
+                document.getElementById('pj-project-id').value = '';
+                document.getElementById('pj-project-name').value = '';
+            }
+        }
+
+        // プロジェクトタスクを作成
+        async function createPJTask(event) {
+            event.preventDefault();
+            console.log('👥 [PJ-MODAL] プロジェクトタスク作成開始...');
+
+            // プロジェクト選択の必須チェック
+            const projectId = document.getElementById('pj-project-id').value.trim();
+            const projectName = document.getElementById('pj-project-name').value.trim();
+            const selectedProject = document.getElementById('pj-existing-project-select').value;
+
+            console.log('🔍 [PJ-MODAL] Project validation:');
+            console.log('🔍 [PJ-MODAL] Selected project:', selectedProject);
+            console.log('🔍 [PJ-MODAL] Project ID:', projectId);
+            console.log('🔍 [PJ-MODAL] Project name:', projectName);
+
+            if (!selectedProject || !projectId || !projectName) {
+                alert('❌ プロジェクトの選択は必須です。\n\n「プロジェクト設定」で事前にプロジェクトを作成してから、ここでプロジェクトを選択してください。');
+                return;
+            }
+
+            // プロジェクト設定との整合性チェック
+            const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
+            if (!projectSettings[projectId]) {
+                alert(`❌ プロジェクトID「${projectId}」がプロジェクト設定に存在しません。\n\n「プロジェクト設定」でプロジェクトが正しく作成されているか確認してください。`);
+                return;
+            }
+
+            // 既存プロジェクトタスクとの重複チェック
+            const existingTasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+            const duplicateTask = existingTasks.find(task =>
+                task.projectId === projectId &&
+                task.title === document.getElementById('pj-task-title').value.trim()
+            );
+
+            if (duplicateTask) {
+                if (!confirm(`⚠️ 同じプロジェクトに同名のタスクが既に存在します：\n\n「${duplicateTask.title}」\n\nそれでも作成しますか？`)) {
+                    return;
+                }
+            }
+
+            console.log('✅ [PJ-MODAL] All validations passed');
+
+            // 選択された担当者を取得
+            const selectedAssignees = Array.from(document.querySelectorAll('input[name="pj-assignee"]:checked'))
+                .map(cb => cb.value);
+
+            if (selectedAssignees.length === 0) {
+                alert('担当者を選択してください');
+                return;
+            }
+
+            // タスクデータを作成
+            const task = {
+                id: Date.now(),
+                title: document.getElementById('pj-task-title').value,
+                projectId: projectId,
+                projectName: projectName,
+                deadline: `${document.getElementById('pj-deadline-date').value}T${document.getElementById('pj-deadline-time').value}`,
+                priority: document.getElementById('pj-priority').value,
+                assignees: selectedAssignees,
+                memo: document.getElementById('pj-memo').value,
+                columnId: 'todo',
+                createdAt: new Date().toISOString(),
+                comments: [],
+                attachments: [],
+                isProjectTask: true
+            };
+
+            // 既存のタスクを読み込んで追加
+            const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+            console.log('👥 [PJ-MODAL] 既存タスク数:', tasks.length);
+            tasks.push(task);
+            localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+            console.log('👥 [PJ-MODAL] 保存後タスク数:', tasks.length);
+
+            // Firebase同期
+            if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
+                try {
+                    console.log('🔥 [PJ-MODAL] プロジェクトタスクをFirebaseに同期中...', task.title);
+                    const result = await window.FirebaseDB.createTask(task);
+                    if (result.success) {
+                        console.log('✅ [PJ-MODAL] プロジェクトタスク作成成功:', result.id);
+                        task.firebaseId = result.id;
+                        tasks[tasks.length - 1] = task;
+                        localStorage.setItem('salesTasksKanban', JSON.stringify(tasks));
+                    } else {
+                        console.error('❌ [PJ-MODAL] プロジェクトタスク作成エラー:', result.error);
+                    }
+                } catch (error) {
+                    console.error('❌ [PJ-MODAL] プロジェクトタスク同期エラー:', error);
+                }
+            } else {
+                console.log('💾 [PJ-MODAL] Firebase未対応またはログアウト状態 - LocalStorageのみ');
+            }
+
+            // 成功メッセージを表示
+            document.getElementById('pj-task-success-message').style.display = 'block';
+
+            // フォームをリセット
+            document.getElementById('pj-task-form').reset();
+            setPJDefaultDeadline();
+            loadPJExistingProjects();
+
+            // タスクボードを更新
+            if (typeof loadTasks === 'function') {
+                loadTasks();
+            }
+
+            // 2秒後にモーダルを閉じる
+            setTimeout(() => {
+                closeProjectTaskCreateModal();
+            }, 2000);
+        }
+
+
         window.deleteTask = deleteTask;
         window.toggleHamburgerMenu = toggleHamburgerMenu;
         window.updateHamburgerMenu = updateHamburgerMenu;
@@ -14270,6 +14689,10 @@
         window.processImportText = processImportText;
         window.toggleTaskSkipModal = toggleTaskSkipModal;
         window.executeImportFromModal = executeImportFromModal;
+        window.openProjectTaskCreateModal = openProjectTaskCreateModal;
+        window.closeProjectTaskCreateModal = closeProjectTaskCreateModal;
+        window.createPJTask = createPJTask;
+        window.selectExistingProjectInModal = selectExistingProjectInModal;
     </script>
     
     <!-- ハンバーガーメニュー -->
@@ -14351,6 +14774,90 @@
     
     <!-- 隠しファイル入力 -->
     <input type="file" id="file-import" accept=".csv,.xlsx,.xls,.txt,.png,.jpg,.jpeg" multiple style="display: none;" onchange="handleFileImport(event)">
+
+    <!-- プロジェクトタスク作成モーダル -->
+    <div class="modal" id="project-task-create-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">👥 新規プロジェクトタスク作成</h3>
+                <button class="close-btn" onclick="closeProjectTaskCreateModal()">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="modal-left" style="width: 100%;">
+                    <div id="pj-task-success-message" style="background: #d4edda; color: #155724; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; display: none;">
+                        ✅ プロジェクトタスクが正常に作成されました！
+                    </div>
+
+                    <form id="pj-task-form" onsubmit="createPJTask(event)">
+                        <div class="form-group">
+                            <label class="form-label">📝 タスクタイトル *</label>
+                            <input type="text" class="form-input" id="pj-task-title" required>
+                        </div>
+
+                        <!-- プロジェクト選択 -->
+                        <div class="form-group">
+                            <label class="form-label">📂 プロジェクト選択 *</label>
+                            <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #2196f3;">
+                                <div style="font-size: 0.9rem; color: #1565c0;">
+                                    💡 <strong>新規プロジェクト作成について</strong><br>
+                                    新しいプロジェクトを作成する場合は、先に「<strong>プロジェクト設定</strong>」ページでプロジェクトを作成してください。<br>
+                                    作成後、このページでそのプロジェクトを選択してタスクを追加できます。
+                                </div>
+                            </div>
+
+                            <!-- 既存プロジェクト選択 -->
+                            <div id="pj-existing-project-section" style="display: block;">
+                                <label class="form-label">既存プロジェクトを選択:</label>
+                                <select class="form-select" id="pj-existing-project-select" onchange="selectExistingProjectInModal()">
+                                    <option value="">-- プロジェクトを選択してください --</option>
+                                </select>
+                            </div>
+
+                            <!-- 隠しフィールド（選択されたプロジェクト情報） -->
+                            <input type="hidden" id="pj-project-id">
+                            <input type="hidden" id="pj-project-name">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">📅 期限日 *</label>
+                                <input type="date" class="form-input" id="pj-deadline-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">⏰ 期限時刻</label>
+                                <input type="time" class="form-input" id="pj-deadline-time" value="17:00">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">🎯 優先度</label>
+                            <select class="form-select" id="pj-priority">
+                                <option value="low">低</option>
+                                <option value="medium" selected>中</option>
+                                <option value="high">高</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">👥 担当者（複数選択可）*</label>
+                            <div id="pj-assignees" class="checkbox-group" style="display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">📄 メモ</label>
+                            <textarea class="form-input" id="pj-memo" rows="3"></textarea>
+                        </div>
+
+                        <div class="modal-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeProjectTaskCreateModal()">キャンセル</button>
+                            <button type="submit" class="btn btn-primary">プロジェクトタスクを作成</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html><!-- Cache bust: 20250820-debug-buttons-removed -->
 <!-- UI Update: 20250820-debug-buttons-removed -->
