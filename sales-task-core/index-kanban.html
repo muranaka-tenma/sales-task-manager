@@ -5431,19 +5431,44 @@
                     // Doneカラムに移動する場合、completedAtを記録
                     if (columnId === 'done' && !draggedTask.completedAt) {
                         draggedTask.completedAt = new Date().toISOString();
+                        // 🔧 tasks配列内も更新
+                        const taskIndex = tasks.findIndex(t => t.id === draggedTask.id);
+                        if (taskIndex !== -1) {
+                            tasks[taskIndex].completedAt = draggedTask.completedAt;
+                        }
                     }
                     // Doneカラムから他に移動する場合、completedAtをクリア
                     else if (draggedTask.columnId === 'done' && columnId !== 'done') {
                         draggedTask.completedAt = null;
+                        // 🔧 tasks配列内も更新
+                        const taskIndex = tasks.findIndex(t => t.id === draggedTask.id);
+                        if (taskIndex !== -1) {
+                            tasks[taskIndex].completedAt = null;
+                        }
                     }
                     
                     console.log(`🔍 [DROP DEBUG] Before column change - Tasks count: ${tasks.length}`);
                     draggedTask.columnId = columnId;
                     draggedTask.completed = (columnId === 'done');
+
+                    // 🔧 tasks配列内の元のタスクも確実に更新（参照が切れている場合に備えて）
+                    const taskIndex = tasks.findIndex(t => t.id === draggedTask.id);
+                    if (taskIndex !== -1) {
+                        tasks[taskIndex].columnId = columnId;
+                        tasks[taskIndex].completed = (columnId === 'done');
+                        console.log(`🔧 [FIX] tasks配列内のタスクも更新: index=${taskIndex}, columnId=${columnId}`);
+                    } else {
+                        console.error(`❌ [FIX] tasks配列内にタスクが見つかりません: id=${draggedTask.id}`);
+                    }
+
                     console.log(`🔍 [DROP DEBUG] After column change - Tasks count: ${tasks.length}`);
                     
                     // タスク移動時刻を記録し、通知を送信（全タスク対象）
                     draggedTask.lastMovedAt = new Date().toISOString();
+                    // 🔧 tasks配列内も更新
+                    if (taskIndex !== -1) {
+                        tasks[taskIndex].lastMovedAt = draggedTask.lastMovedAt;
+                    }
                     console.log(`📅 [TASK MOVE] Recorded move time: ${draggedTask.lastMovedAt}`);
                     
                     // タスク移動時に期限通知フラグをリセット（期限切れタスクも再編集可能に）
@@ -5453,6 +5478,13 @@
                         draggedTask.oneDayNotified = false;
                         draggedTask.threeHourNotified = false;
                         draggedTask.fiveMinNotified = false;
+                        // 🔧 tasks配列内も更新
+                        if (taskIndex !== -1) {
+                            tasks[taskIndex].overdueNotified = false;
+                            tasks[taskIndex].oneDayNotified = false;
+                            tasks[taskIndex].threeHourNotified = false;
+                            tasks[taskIndex].fiveMinNotified = false;
+                        }
                     }
                     
                     // 担当者への移動通知（プロジェクトタスク・通常タスク両方対応）
