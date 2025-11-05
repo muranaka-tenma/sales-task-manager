@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "public": "sales-task-core",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

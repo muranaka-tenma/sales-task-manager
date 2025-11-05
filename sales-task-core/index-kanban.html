@@ -42,11 +42,11 @@
         });
     } catch (e) {}
     
-    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 20250903-0500-SLACK-TEST');
+    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 20251104-2145-PROJECT-CACHE-FIX');
     </script>
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
     <!-- Firebase統合システム - マルチユーザー対応 -->
-    <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20250902-1845-emergency"></script>
+    <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20251104-2145-project-cache-fix"></script>
     <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化（セッション保護） -->
     <!-- キャッシュ問題解決のため完全無効化 -->
     <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
@@ -1742,21 +1742,35 @@
                     <h4 style="color: #374151; margin: 0 0 1rem 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
                         ➕ 新しいプロジェクト作成
                     </h4>
-                    <div style="display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 200px;">
-                            <input type="text" id="newProjectName" placeholder="プロジェクト名" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
-                            <textarea id="newProjectDescription" placeholder="プロジェクトの説明" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; height: 80px; resize: vertical;"></textarea>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <input type="text" id="newProjectName" placeholder="プロジェクト名" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
+                                <textarea id="newProjectDescription" placeholder="プロジェクトの説明" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; height: 80px; resize: vertical;"></textarea>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <label style="font-size: 0.9rem; color: #6b7280;">公開設定:</label>
+                                <select id="newProjectVisibility" style="padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
+                                    <option value="public">🌐 全員に公開</option>
+                                    <option value="private">🔒 メンバーのみ</option>
+                                </select>
+                            </div>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                            <label style="font-size: 0.9rem; color: #6b7280;">公開設定:</label>
-                            <select id="newProjectVisibility" style="padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
-                                <option value="public">🌐 全員に公開</option>
-                                <option value="private">🔒 メンバーのみ</option>
-                            </select>
-                            <button onclick="createNewProject()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">
-                                作成
+
+                        <!-- カラム設定 -->
+                        <div>
+                            <label style="font-size: 0.9rem; color: #6b7280; display: block; margin-bottom: 0.5rem;">カラム設定:</label>
+                            <div id="newProjectColumnsContainer" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <!-- カラムがここに動的に挿入される -->
+                            </div>
+                            <button type="button" onclick="addNewProjectColumn()" style="background: #e5e7eb; color: #374151; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500;">
+                                ➕ カラム追加
                             </button>
                         </div>
+
+                        <button onclick="createNewProject()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600; align-self: flex-start;">
+                            作成
+                        </button>
                     </div>
                 </div>
                 
@@ -4360,14 +4374,15 @@
                 notificationMessage += `${commentText}`;
             }
             
-            // 🔧 シンプルな統合通知（余計な情報は削除）
+            // 🔧 複数ユーザーへの統合通知（メンション先または担当者に送信）
             showNotification(notificationTitle, notificationMessage, {
                 taskId: taskId,
-                targetUser: 'all', // シンプルに全体通知として送信
+                targetUser: 'multiple', // 複数ユーザーに送信
+                mentionUsers: targetUsers, // 通知対象者リスト
                 type: 'structured_comment',
                 hasMentions: hasMentions
             });
-            
+
             console.log(`✅ [UNIFIED-NOTIFY] 統合通知送信完了: ${targetUsers.length}人に1つの通知`);
         }
         
@@ -5372,16 +5387,26 @@
         function getProjectColumns(projectId) {
             if (!projectId) return columns;
 
-            // キャッシュからプロジェクトデータを取得
-            if (cachedProjectsData && (Date.now() - cacheTimestamp < CACHE_DURATION)) {
+            // キャッシュからプロジェクトデータを取得（期限切れでもキャッシュがあれば使用）
+            if (cachedProjectsData) {
                 const project = cachedProjectsData[projectId];
                 if (project && project.columns && project.columns.length > 0) {
+                    console.log(`✅ [PROJECT-COLUMNS] プロジェクトカラム取得: ${projectId}, カラム数: ${project.columns.length}`);
                     return project.columns.map((columnTitle, index) => ({
                         id: `pj_${projectId}_${index}`,
                         title: columnTitle,
                         color: ['#667eea', '#f59e0b', '#8b5cf6', '#10b981', '#6c757d'][index % 5]
                     }));
                 }
+                console.warn(`⚠️ [PROJECT-COLUMNS] プロジェクトカラムが見つかりません: ${projectId}`);
+            } else {
+                console.warn(`⚠️ [PROJECT-COLUMNS] キャッシュが初期化されていません`);
+            }
+
+            // キャッシュが期限切れの場合は再取得を試行（バックグラウンド）
+            if (Date.now() - cacheTimestamp >= CACHE_DURATION) {
+                console.log('🔄 [PROJECT-COLUMNS] キャッシュ期限切れ - バックグラウンド更新開始');
+                updateProjectsCache().catch(err => console.error('❌ [PROJECT-COLUMNS] キャッシュ更新エラー:', err));
             }
 
             return columns; // デフォルトカラムを使用
@@ -5407,11 +5432,11 @@
         }
 
         // プロジェクトデータを統一的に取得する関数
-        async function getAllProjects() {
+        async function getAllProjects(forceRefresh = false) {
             // 🔥 Firebaseから全プロジェクトを取得（LocalStorage不使用）
             if (window.FirebaseDB && window.FirebaseDB.getProjects) {
                 try {
-                    const result = await window.FirebaseDB.getProjects();
+                    const result = await window.FirebaseDB.getProjects(forceRefresh);
                     if (result.success && result.projects) {
                         return result.projects.map(project => ({
                             id: project.id,
@@ -5433,7 +5458,7 @@
         }
 
         // プロジェクト一覧サイドバーを描画
-        async function renderProjectsList() {
+        async function renderProjectsList(forceRefresh = false) {
             const projectsList = document.getElementById('projects-list');
             if (!projectsList) {
                 console.error('❌ [PROJECTS] projects-list element not found!');
@@ -5441,7 +5466,7 @@
             }
 
             // プロジェクトデータを取得（統一関数を使用）
-            const projects = await getAllProjects();
+            const projects = await getAllProjects(forceRefresh);
             
             // 各プロジェクトのタスク数を計算（メンバーフィルター考慮）
             const projectTaskCounts = {};
@@ -5489,9 +5514,9 @@
                     </div>
                 `;
             });
-            
+
             if (projects.length === 0) {
-                projectsHTML = `
+                projectsHTML += `
                     <div style="text-align: center; color: #6b778c; padding: 2rem 1rem;">
                         <div style="font-size: 2rem; margin-bottom: 0.5rem;">📁</div>
                         <div>プロジェクトがありません</div>
@@ -5723,21 +5748,24 @@
                 low: '🟢 通常'
             }[task.priority];
             
+            // タスクIDを適切にエスケープ（文字列の場合はクオートで囲む）
+            const taskIdStr = typeof task.id === 'string' ? `'${task.id}'` : task.id;
+
             const checkboxHtml = isBulkMode ? `
                 <div style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 10;">
-                    <input type="checkbox" 
-                           onchange="toggleTaskSelection(${task.id})" 
+                    <input type="checkbox"
+                           onchange="toggleTaskSelection(${taskIdStr})"
                            onclick="event.stopPropagation()"
                            ${selectedTasks.has(task.id) ? 'checked' : ''}
                            style="width: 16px; height: 16px; cursor: pointer;">
                 </div>
             ` : '';
-            
+
             return `
-                <div class="${cardClass}" 
+                <div class="${cardClass}"
                      draggable="${!isBulkMode}"
-                     ${!isBulkMode ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
-                     onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
+                     ${!isBulkMode ? `ondragstart="handleDragStart(event, ${taskIdStr})" ondragend="handleDragEnd(event)"` : ''}
+                     onclick="${isBulkMode ? `toggleTaskSelection(${taskIdStr})` : `editTask(${taskIdStr})`}"
                      style="position: relative; cursor: ${isBulkMode ? 'pointer' : 'move'}; ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
                      title="${isOverdueTask ? '🚨 期限切れタスクです' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
                     ${checkboxHtml}
@@ -5747,7 +5775,7 @@
                             ${task.projectId ? '<span style="color: #2b6cb0; margin-right: 0.25rem;" title="PJタスク">👥</span>' : ''}
                             ${task.title}
                         </span>
-                        <button onclick="deleteTask(${task.id}); event.stopPropagation();" 
+                        <button onclick="deleteTask(${taskIdStr}); event.stopPropagation();"
                                 style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 0.9rem; padding: 2px; opacity: 0.7; margin-left: 8px;"
                                 title="ゴミ箱に移動"
                                 onmouseover="this.style.opacity='1'"
@@ -6359,9 +6387,31 @@
         // ユーザー名からメールアドレスを取得（Slack通知用）
         function getEmailByUserName(userName) {
             try {
+                console.log('🔍 [EMAIL-LOOKUP] ユーザー名でメール検索:', userName);
                 const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                const user = systemUsers.find(u => u.name === userName);
-                return user ? user.email : null;
+                console.log('🔍 [EMAIL-LOOKUP] systemUsers全体:', systemUsers.map(u => ({ name: u.name, email: u.email, displayName: u.displayName })));
+
+                // name または displayName で検索
+                let user = systemUsers.find(u => u.name === userName);
+
+                if (!user) {
+                    console.log('🔍 [EMAIL-LOOKUP] nameで見つからず、displayNameで再検索');
+                    user = systemUsers.find(u => u.displayName === userName);
+                }
+
+                if (!user) {
+                    console.log('🔍 [EMAIL-LOOKUP] emailで直接検索を試行');
+                    // 最後の手段：currentSessionからメールアドレスを取得
+                    const currentSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                    if (currentSession && currentSession.user && currentSession.user.name === userName) {
+                        console.log('✅ [EMAIL-LOOKUP] currentSessionから取得:', currentSession.user.email);
+                        return currentSession.user.email;
+                    }
+                }
+
+                const result = user ? user.email : null;
+                console.log('🔍 [EMAIL-LOOKUP] 検索結果:', { userName, foundUser: user, email: result });
+                return result;
             } catch (error) {
                 console.error('❌ [EMAIL-LOOKUP] ユーザー情報取得エラー:', error);
                 return null;
@@ -13138,43 +13188,40 @@
         // PJタスク証憑チェック機能（移動のたびに新しい証憑が必要）
         function checkTaskEvidence(task, isMoving = false) {
             // 証憑の存在確認
-            const hasComments = task.comments && task.comments.length > 0;
+            // メンション付きコメントのみを証憑として認める
+            const hasMentionComments = task.comments && task.comments.some(comment =>
+                comment.text && comment.text.includes('@')
+            );
             const hasAttachments = task.attachments && task.attachments.length > 0;
-            const hasDetailedMemo = task.memo && task.memo.trim().length > 10; // 10文字以上の詳細メモ
-            
+
             // 移動時は、前回移動後に新しい証憑が追加されているかチェック
             if (isMoving && task.lastMovedAt) {
                 const lastMoveTime = new Date(task.lastMovedAt).getTime();
-                
-                // 前回移動後のコメント確認
-                const recentComments = task.comments ? task.comments.filter(comment => 
-                    new Date(comment.timestamp).getTime() > lastMoveTime
+
+                // 前回移動後のメンション付きコメント確認
+                const recentMentionComments = task.comments ? task.comments.filter(comment =>
+                    new Date(comment.timestamp).getTime() > lastMoveTime &&
+                    comment.text && comment.text.includes('@')
                 ).length > 0 : false;
-                
+
                 // 前回移動後の添付ファイル確認
                 const recentAttachments = task.attachments ? task.attachments.filter(file =>
                     new Date(file.uploadedAt || file.timestamp || 0).getTime() > lastMoveTime
                 ).length > 0 : false;
-                
-                // メモの更新確認（updatedAtがlastMovedAtより新しい）
-                const recentMemoUpdate = task.updatedAt && 
-                    new Date(task.updatedAt).getTime() > lastMoveTime &&
-                    task.memo && task.memo.trim().length > 10;
-                
-                const hasRecentEvidence = recentComments || recentAttachments || recentMemoUpdate;
-                
+
+                const hasRecentEvidence = recentMentionComments || recentAttachments;
+
                 console.log(`🔍 [EVIDENCE CHECK] Task: ${task.title}`);
                 console.log(`🔍 [EVIDENCE CHECK] Last moved: ${task.lastMovedAt}`);
-                console.log(`🔍 [EVIDENCE CHECK] Recent comments: ${recentComments}`);
+                console.log(`🔍 [EVIDENCE CHECK] Recent mention comments: ${recentMentionComments}`);
                 console.log(`🔍 [EVIDENCE CHECK] Recent attachments: ${recentAttachments}`);
-                console.log(`🔍 [EVIDENCE CHECK] Recent memo update: ${recentMemoUpdate}`);
                 console.log(`🔍 [EVIDENCE CHECK] Has recent evidence: ${hasRecentEvidence}`);
-                
+
                 return hasRecentEvidence;
             }
-            
+
             // 初回移動時は既存の証憑をチェック
-            return hasComments || hasAttachments || hasDetailedMemo;
+            return hasMentionComments || hasAttachments;
         }
         
         function promptForEvidence(task) {
@@ -13206,9 +13253,8 @@
                             <p style="margin-bottom: 1rem;"><strong>プロジェクト:</strong> ${task.projectName}</p>
                             <p style="margin-bottom: 1rem;">以下のいずれかを追加してください:</p>
                             <ul style="margin-bottom: 1.5rem; padding-left: 1.5rem;">
-                                <li>コメント（進捗報告・連絡内容等）</li>
-                                <li>ファイル添付（資料・スクリーンショット等）</li>
-                                <li>詳細メモ（メール内容・打ち合わせ結果等）</li>
+                                <li><strong>メンション付きコメント</strong>（@ユーザー名で指定）</li>
+                                <li><strong>ファイル添付</strong>（資料・スクリーンショット等）</li>
                             </ul>
                             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
                                 <button id="evidenceCancel" style="
@@ -13265,10 +13311,43 @@
                     console.log(`🔒 [SLACK-MOVE] 非表示タスクのため通知をスキップ: ${task.title}`);
                     return;
                 }
-                
+
                 const currentUser = getCurrentUser();
-                const column = columns.find(c => c.id === newColumnId);
-                const columnTitle = column ? column.title : newColumnId;
+
+                // カラムタイトルを取得（プロジェクト専用カラムにも対応）
+                let columnTitle = newColumnId;
+
+                if (newColumnId.startsWith('pj_')) {
+                    // プロジェクト専用カラムの場合
+                    console.log(`🔍 [COLUMN-LOOKUP] プロジェクト専用カラムID: ${newColumnId}`);
+
+                    // カラムIDからプロジェクトIDを抽出
+                    // 例: "pj_project_1762256806577_1" から "project_1762256806577" を抽出
+                    const parts = newColumnId.split('_');
+                    if (parts.length >= 4) {
+                        const projectId = parts[1] + '_' + parts[2]; // "project_1762256806577"
+                        const columnIndex = parseInt(parts[3]); // カラムのインデックス
+
+                        console.log(`🔍 [COLUMN-LOOKUP] 抽出されたプロジェクトID: ${projectId}, カラムインデックス: ${columnIndex}`);
+
+                        // プロジェクトをキャッシュから取得
+                        const project = cachedProjectsData ? cachedProjectsData[projectId] : null;
+
+                        console.log(`🔍 [COLUMN-LOOKUP] プロジェクト検索結果:`, project ? { hasColumns: !!project.columns, columnsLength: project.columns?.length } : 'プロジェクトが見つかりません');
+
+                        if (project && project.columns && project.columns[columnIndex]) {
+                            columnTitle = project.columns[columnIndex];
+                            console.log(`✅ [COLUMN-LOOKUP] プロジェクトカラム名取得: ${columnTitle}`);
+                        } else {
+                            console.log(`⚠️ [COLUMN-LOOKUP] カラムが見つかりません (columnsプロパティ: ${project?.columns ? 'あり' : 'なし'}, インデックス: ${columnIndex})`);
+                        }
+                    }
+                } else {
+                    // グローバルカラムの場合
+                    const column = columns.find(c => c.id === newColumnId);
+                    columnTitle = column ? column.title : newColumnId;
+                    console.log(`✅ [COLUMN-LOOKUP] グローバルカラム名取得: ${columnTitle}`);
+                }
                 
                 console.log(`🔔 [SLACK-MOVE] タスク移動通知開始: ${task.title} → ${columnTitle}`);
                 console.log(`🔔 [SLACK-MOVE] タスク情報:`, {
@@ -13753,6 +13832,7 @@
             const modal = document.getElementById('projectManagementModal');
             if (modal) {
                 modal.style.display = 'flex';
+                loadNewProjectColumns(); // デフォルトカラムをロード
                 loadProjectsList();
             }
         }
@@ -13882,10 +13962,16 @@
                 const name = document.getElementById('newProjectName').value.trim();
                 const description = document.getElementById('newProjectDescription').value.trim();
                 const visibility = document.getElementById('newProjectVisibility').value;
+                const columns = getNewProjectColumns();
                 const currentUser = getCurrentUser();
 
                 if (!name) {
                     alert('プロジェクト名を入力してください');
+                    return;
+                }
+
+                if (columns.length === 0) {
+                    alert('最低1つのカラムを設定してください');
                     return;
                 }
 
@@ -13899,16 +13985,13 @@
                 let existingProjects = [];
 
                 if (window.FirebaseDB?.getProjects) {
-                    const result = await window.FirebaseDB.getProjects();
+                    // 🔥 強制リフレッシュでキャッシュを使用しない
+                    const result = await window.FirebaseDB.getProjects(true);
                     if (result.success) {
                         existingProjects = result.projects;
                         console.log(`🔍 [PROJECT CREATE] Firebase: ${existingProjects.length}件のプロジェクトを確認`);
                     }
                 }
-
-                // フォールバック: LocalStorageも確認
-                const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
-                existingProjects = [...existingProjects, ...localProjects];
 
                 // プロジェクト名の重複チェック（大文字小文字区別なし）
                 const duplicateProject = existingProjects.find(p => p.name.toLowerCase() === name.toLowerCase());
@@ -13925,6 +14008,7 @@
                     name: name,
                     description: description,
                     visibility: visibility,
+                    columns: columns,
                     members: [currentUser.email], // 作成者は自動的にメンバーになる
                     createdBy: currentUser.email,
                     createdAt: new Date().toISOString(),
@@ -13955,6 +14039,7 @@
                 document.getElementById('newProjectName').value = '';
                 document.getElementById('newProjectDescription').value = '';
                 document.getElementById('newProjectVisibility').value = 'public';
+                loadNewProjectColumns(); // デフォルトカラムをリロード
 
                 await loadProjectsList();
 
@@ -13966,6 +14051,104 @@
             }
         }
         
+        // 🔧 新規プロジェクトのカラム管理関数
+        const DEFAULT_PROJECT_COLUMNS = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+
+        function loadNewProjectColumns(columns = DEFAULT_PROJECT_COLUMNS) {
+            const container = document.getElementById('newProjectColumnsContainer');
+            if (!container) return;
+
+            container.innerHTML = columns.map((column, index) => `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span style="cursor: move; color: #9ca3af; font-size: 1.2rem;" title="ドラッグして並び替え">⋮⋮</span>
+                    <input type="text" value="${column}"
+                           onchange="updateNewProjectColumn(${index}, this.value)"
+                           style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;">
+                    <button type="button" onclick="removeNewProjectColumn(${index})"
+                            style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
+                            ${columns.length <= 1 ? 'disabled' : ''}>
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function addNewProjectColumn() {
+            const currentColumns = getNewProjectColumns();
+            currentColumns.push('新しいカラム');
+            loadNewProjectColumns(currentColumns);
+        }
+
+        function removeNewProjectColumn(index) {
+            const currentColumns = getNewProjectColumns();
+            if (currentColumns.length <= 1) {
+                alert('最低1つのカラムが必要です');
+                return;
+            }
+            currentColumns.splice(index, 1);
+            loadNewProjectColumns(currentColumns);
+        }
+
+        function updateNewProjectColumn(index, value) {
+            // リアルタイム更新（特別な処理不要）
+        }
+
+        function getNewProjectColumns() {
+            const container = document.getElementById('newProjectColumnsContainer');
+            if (!container) return DEFAULT_PROJECT_COLUMNS;
+
+            const inputs = container.querySelectorAll('input[type="text"]');
+            return Array.from(inputs).map(input => input.value.trim()).filter(val => val);
+        }
+
+        // 🔧 編集モーダル用のカラム管理関数
+        function loadEditProjectColumns(columns = DEFAULT_PROJECT_COLUMNS) {
+            const container = document.getElementById('editProjectColumnsContainer');
+            if (!container) return;
+
+            container.innerHTML = columns.map((column, index) => `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span style="cursor: move; color: #9ca3af; font-size: 1.2rem;" title="ドラッグして並び替え">⋮⋮</span>
+                    <input type="text" value="${column}"
+                           onchange="updateEditProjectColumn(${index}, this.value)"
+                           style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;">
+                    <button type="button" onclick="removeEditProjectColumn(${index})"
+                            style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
+                            ${columns.length <= 1 ? 'disabled' : ''}>
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function addEditProjectColumn() {
+            const currentColumns = getEditProjectColumns();
+            currentColumns.push('新しいカラム');
+            loadEditProjectColumns(currentColumns);
+        }
+
+        function removeEditProjectColumn(index) {
+            const currentColumns = getEditProjectColumns();
+            if (currentColumns.length <= 1) {
+                alert('最低1つのカラムが必要です');
+                return;
+            }
+            currentColumns.splice(index, 1);
+            loadEditProjectColumns(currentColumns);
+        }
+
+        function updateEditProjectColumn(index, value) {
+            // 値の更新は入力フィールド自体が管理するので、特に処理不要
+        }
+
+        function getEditProjectColumns() {
+            const container = document.getElementById('editProjectColumnsContainer');
+            if (!container) return DEFAULT_PROJECT_COLUMNS;
+
+            const inputs = container.querySelectorAll('input[type="text"]');
+            return Array.from(inputs).map(input => input.value.trim()).filter(val => val);
+        }
+
         // プロジェクトのタスクを表示
         async function viewProjectTasks(projectId) {
             try {
@@ -14042,13 +14225,13 @@
         // プロジェクト編集
         async function editProject(projectId) {
             try {
-                // 🔥 Firebaseからプロジェクトを取得
+                // 🔥 Firebaseからプロジェクトを取得（強制リフレッシュ）
                 if (!window.FirebaseDB) {
                     alert('Firebase未接続');
                     return;
                 }
 
-                const result = await window.FirebaseDB.getProjects();
+                const result = await window.FirebaseDB.getProjects(true);
                 if (!result.success) {
                     alert('プロジェクト取得に失敗しました');
                     return;
@@ -14140,7 +14323,17 @@
                                 ${memberOptions}
                             </div>
                         </div>
-                        
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">カラム設定</label>
+                            <div id="editProjectColumnsContainer" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <!-- カラムがここに動的に挿入される -->
+                            </div>
+                            <button type="button" onclick="addEditProjectColumn()" style="background: #e5e7eb; color: #374151; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500;">
+                                ➕ カラム追加
+                            </button>
+                        </div>
+
                         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
                             <button onclick="this.closest('div').remove()" style="background: #6b7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer;">
                                 キャンセル
@@ -14152,75 +14345,78 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(modal);
+
+            // カラムを読み込む
+            const projectColumns = project.columns || DEFAULT_PROJECT_COLUMNS;
+            loadEditProjectColumns(projectColumns);
         }
         
         // プロジェクトの変更を保存
-        function saveProjectChanges(projectId, modalElement) {
+        async function saveProjectChanges(projectId, modalElement) {
             try {
                 const name = document.getElementById('editProjectName').value.trim();
                 const description = document.getElementById('editProjectDescription').value.trim();
                 const visibility = document.getElementById('editProjectVisibility').value;
                 const status = document.getElementById('editProjectStatus').value;
-                
+                const columns = getEditProjectColumns();
+
                 // メンバーリストを取得
                 const memberCheckboxes = modalElement.querySelectorAll('#membersList input[type="checkbox"]');
                 const members = Array.from(memberCheckboxes)
                     .filter(cb => cb.checked)
                     .map(cb => cb.value);
-                
+
                 if (!name) {
                     alert('プロジェクト名を入力してください');
                     return;
                 }
-                
+
+                if (columns.length === 0) {
+                    alert('最低1つのカラムを設定してください');
+                    return;
+                }
+
                 if (members.length === 0) {
                     alert('少なくとも1人のメンバーを選択してください');
                     return;
                 }
-                
-                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
-                const projectIndex = projects.findIndex(p => p.id === projectId);
-                
-                if (projectIndex === -1) {
-                    alert('プロジェクトが見つかりません');
+
+                // 🔥 Firebase専用: Firebaseからプロジェクトを取得して更新
+                if (!window.FirebaseDB?.updateProject || !window.getCurrentUser()?.isLoggedIn) {
+                    alert('Firebase未接続のため、プロジェクトを更新できません');
                     return;
                 }
-                
-                // プロジェクト情報を更新
-                projects[projectIndex] = {
-                    ...projects[projectIndex],
+
+                console.log('🔥 [PROJECT UPDATE] Firebaseプロジェクト更新中...');
+
+                const updateData = {
                     name: name,
                     description: description,
                     visibility: visibility,
                     status: status,
+                    columns: columns,
                     members: members,
                     updatedAt: new Date().toISOString()
                 };
 
-                // 🔥 LocalStorage保存は削除（Firebaseのみ使用）
-                // localStorage.setItem('projects', JSON.stringify(projects)); // 🔥 削除
+                const result = await window.FirebaseDB.updateProject(projectId, updateData);
 
-                // Firebaseに保存（接続している場合）
-                if (window.FirebaseDB?.saveProject && window.getCurrentUser()?.isLoggedIn) {
-                    console.log('🔥 [PROJECT UPDATE] Firebaseプロジェクト更新中...');
-                    window.FirebaseDB.saveProject(projects[projectIndex]).then(result => {
-                        if (result.success) {
-                            console.log('✅ [PROJECT UPDATE] Firebase更新成功:', result.id);
-                        } else {
-                            console.error('❌ [PROJECT UPDATE] Firebase更新エラー:', result.error);
-                        }
-                    });
+                if (!result.success) {
+                    console.error('❌ [PROJECT UPDATE] Firebase更新エラー:', result.error);
+                    alert('プロジェクトの更新に失敗しました: ' + result.error);
+                    return;
                 }
-                
-                console.log('✅ プロジェクトを更新:', projects[projectIndex].name);
-                
+
+                console.log('✅ [PROJECT UPDATE] Firebase更新成功:', projectId);
+
                 modalElement.remove();
-                loadProjectsList();
-                
+                loadProjectsList(true); // 強制リフレッシュ
+                renderProjectsList(true); // サイドバーも更新
+
                 alert(`✅ プロジェクト「${name}」を更新しました！`);
-                
+
             } catch (error) {
                 console.error('プロジェクト更新エラー:', error);
                 alert('プロジェクトの更新に失敗しました: ' + error.message);
@@ -14264,33 +14460,61 @@
                 // プロジェクトに関連するタスクをチェック
                 const tasksResult = await window.FirebaseDB.getTasks();
                 const allTasks = tasksResult.success ? tasksResult.tasks : [];
+                console.log('🔍 [DELETE] 全タスク数:', allTasks.length);
+                console.log('🔍 [DELETE] 削除対象プロジェクトID:', projectId);
                 const projectTasks = allTasks.filter(task => task.projectId === projectId);
+                console.log('🔍 [DELETE] プロジェクトに紐づくタスク数:', projectTasks.length);
+                console.log('🔍 [DELETE] プロジェクトタスク一覧:', projectTasks.map(t => ({ id: t.id, title: t.title, projectId: t.projectId })));
 
                 if (projectTasks.length > 0) {
                     const action = confirm(`このプロジェクトには${projectTasks.length}個のタスクが関連付けられています。\n\n「OK」: タスクも一緒に削除\n「キャンセル」: プロジェクトのみ削除（タスクは個人タスクに変更）`);
 
                     if (action) {
                         // タスクも一緒に削除
+                        let deletedCount = 0;
                         for (const task of projectTasks) {
-                            const taskId = task.firebaseId || task.id;
-                            await window.FirebaseDB.deleteTask(taskId);
+                            try {
+                                console.log('🗑️ [DELETE] タスク削除実行:', task.id, task.title);
+                                const result = await window.FirebaseDB.deleteTask(task.id);
+                                if (result.success) {
+                                    deletedCount++;
+                                    console.log('✅ [DELETE] タスク削除成功:', task.id);
+                                } else {
+                                    console.error(`❌ タスク削除失敗: ${task.title}`, result.error);
+                                }
+                            } catch (error) {
+                                console.error(`❌ タスク削除エラー: ${task.title}`, error);
+                            }
                         }
-                        console.log(`🗑️ プロジェクトタスク${projectTasks.length}個を削除`);
+                        console.log(`🗑️ プロジェクトタスク ${deletedCount}/${projectTasks.length}個を削除`);
+                        if (deletedCount < projectTasks.length) {
+                            alert(`⚠️ ${projectTasks.length - deletedCount}個のタスク削除に失敗しました`);
+                        }
                     } else {
                         // タスクを個人タスクに変更
+                        let convertedCount = 0;
                         for (const task of projectTasks) {
-                            const taskId = task.firebaseId || task.id;
-                            delete task.projectId;
-                            task.visibility = 'personal';
-                            task.columnId = 'todo'; // 個人タスクのデフォルトカラム
-                            await window.FirebaseDB.updateTask(taskId, {
-                                projectId: null,
-                                visibility: 'personal',
-                                columnId: 'todo',
-                                updatedAt: new Date().toISOString()
-                            });
+                            try {
+                                const result = await window.FirebaseDB.updateTask(task.id, {
+                                    projectId: null,
+                                    projectName: null,
+                                    columnId: 'todo',
+                                    isProjectTask: false,
+                                    updatedAt: new Date().toISOString()
+                                });
+                                if (result.success) {
+                                    convertedCount++;
+                                } else {
+                                    console.error(`❌ タスク変換失敗: ${task.title}`, result.error);
+                                }
+                            } catch (error) {
+                                console.error(`❌ タスク変換エラー: ${task.title}`, error);
+                            }
                         }
-                        console.log(`🔄 プロジェクトタスク${projectTasks.length}個を個人タスクに変更`);
+                        console.log(`🔄 プロジェクトタスク ${convertedCount}/${projectTasks.length}個を個人タスクに変更`);
+                        if (convertedCount < projectTasks.length) {
+                            alert(`⚠️ ${projectTasks.length - convertedCount}個のタスク変換に失敗しました`);
+                        }
                     }
                 }
                 
@@ -14319,9 +14543,13 @@
                 
                 console.log('🗑️ プロジェクトを削除:', project.name);
 
-                loadProjectsList(true); // 強制リフレッシュ（キャッシュを使用しない）
-                loadTasks(); // タスク一覧を更新
-                
+                // 画面を更新（正しい順序で実行）
+                await loadTasks(); // 1. タスク一覧を最初に更新
+                await loadProjectsList(true); // 2. プロジェクト管理画面を強制リフレッシュ
+                render(); // 3. カンバンボードを再描画（tasksが更新された状態で）
+                await renderProjectsList(true); // 4. サイドバーを強制リフレッシュ（tasksが更新された状態で）
+                updateStats(); // 5. 統計を更新
+
                 alert(`🗑️ プロジェクト「${project.name}」を削除しました`);
                 
             } catch (error) {
@@ -14470,83 +14698,49 @@
                 let projectSettings = {};
                 let tasks = [];
 
-                // Firebase統合モード: Firebaseからプロジェクトデータを取得
-                if (window.FirebaseDB) {
-                    console.log('🔥 [PJ-MODAL] Firebase統合モード - Firestoreからデータ取得');
+                // 🔥 Firebase専用モード: Firebaseからプロジェクトデータを取得（LocalStorage読み込み削除）
+                if (!window.FirebaseDB) {
+                    console.error('❌ [PJ-MODAL] Firebase未接続');
+                    return;
+                }
 
-                    // Firebaseからタスクデータを取得
-                    const firebaseTasks = await window.FirebaseDB.getTasks();
-                    if (firebaseTasks.success) {
-                        tasks = firebaseTasks.tasks;
-                        console.log('🔥 [PJ-MODAL] Firebase tasks loaded:', tasks.length);
-                    }
+                console.log('🔥 [PJ-MODAL] Firebase専用モード - Firestoreからデータ取得');
 
-                    // 認証状態をチェックしてからFirebaseアクセス
-                    if (currentUser && currentUser.isLoggedIn && window.FirebaseDB.getProjects) {
-                        console.log('🔥 [PJ-MODAL] 認証済み - Firebaseからプロジェクト取得中...');
-                        try {
-                            const firebaseProjects = await window.FirebaseDB.getProjects();
-                            if (firebaseProjects.success && firebaseProjects.projects.length > 0) {
-                                projectSettings = {};
-                                firebaseProjects.projects.forEach(project => {
-                                    projectSettings[project.id] = {
-                                        name: project.name,
-                                        description: project.description || '',
-                                        createdAt: project.createdAt,
-                                        createdBy: project.createdBy || (currentUser ? currentUser.name : 'Unknown'),
-                                        columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
-                                    };
-                                });
-                                console.log('🔥 [PJ-MODAL] Firebase projects converted:', Object.keys(projectSettings).length);
-                            } else {
-                                console.log('📁 [PJ-MODAL] Firebaseにプロジェクトなし');
-                            }
-                        } catch (firebaseError) {
-                            console.error('❌ [PJ-MODAL] Firebase取得エラー:', firebaseError);
-                        }
-                    }
+                // Firebaseからタスクデータを取得
+                const firebaseTasks = await window.FirebaseDB.getTasks();
+                if (firebaseTasks.success) {
+                    tasks = firebaseTasks.tasks;
+                    console.log('🔥 [PJ-MODAL] Firebase tasks loaded:', tasks.length);
+                }
 
-                    // LocalStorageもチェック
-                    console.log('📁 [PJ-MODAL] LocalStorageプロジェクト確認中...');
-                    const localProjectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-                    const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
-                    console.log('📁 [PJ-MODAL] LocalStorage projectSettings:', Object.keys(localProjectSettings).length, '件');
+                // 認証状態をチェックしてからFirebaseアクセス
+                if (!currentUser || !currentUser.isLoggedIn || !window.FirebaseDB.getProjects) {
+                    console.warn('⚠️ [PJ-MODAL] 未認証またはFirebase未接続');
+                    return;
+                }
 
-                    // projects配列からもプロジェクトを取得
-                    localProjects.forEach(project => {
-                        if (project.id && project.name) {
-                            localProjectSettings[project.id] = {
-                                name: project.name,
-                                description: project.description || '',
-                                createdAt: project.createdAt || new Date().toISOString(),
-                                createdBy: project.createdBy || 'Unknown',
-                                columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
-                            };
-                        }
-                    });
-
-                    // FirebaseとLocalStorageの両方をマージ
-                    if (Object.keys(localProjectSettings).length > 0) {
-                        projectSettings = { ...projectSettings, ...localProjectSettings };
-                        console.log('🔄 [PJ-MODAL] LocalStorageとマージ完了:', Object.keys(projectSettings).length, '件');
-                    }
-                } else {
-                    console.log('📁 [PJ-MODAL] LocalStorageモード - 従来の方式');
-                    projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-                    const localProjects = JSON.parse(localStorage.getItem('projects') || '[]');
-                    tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
-
-                    localProjects.forEach(project => {
-                        if (project.id && project.name) {
+                console.log('🔥 [PJ-MODAL] 認証済み - Firebaseからプロジェクト取得中（強制リフレッシュ）...');
+                try {
+                    // 🔥 強制リフレッシュでキャッシュを使用しない
+                    const firebaseProjects = await window.FirebaseDB.getProjects(true);
+                    if (firebaseProjects.success && firebaseProjects.projects.length > 0) {
+                        projectSettings = {};
+                        firebaseProjects.projects.forEach(project => {
                             projectSettings[project.id] = {
                                 name: project.name,
                                 description: project.description || '',
-                                createdAt: project.createdAt || new Date().toISOString(),
-                                createdBy: project.createdBy || 'Unknown',
+                                createdAt: project.createdAt,
+                                createdBy: project.createdBy || (currentUser ? currentUser.name : 'Unknown'),
                                 columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
                             };
-                        }
-                    });
+                        });
+                        console.log('🔥 [PJ-MODAL] Firebase projects loaded:', Object.keys(projectSettings).length);
+                    } else {
+                        console.log('📁 [PJ-MODAL] Firebaseにプロジェクトなし');
+                    }
+                } catch (firebaseError) {
+                    console.error('❌ [PJ-MODAL] Firebase取得エラー:', firebaseError);
+                    return;
                 }
 
                 // プロジェクト一覧を構築
@@ -14617,6 +14811,18 @@
         // プロジェクトタスクを作成
         async function createPJTask(event) {
             event.preventDefault();
+
+            // 🔒 重複送信防止: ボタンを無効化
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            if (submitButton) {
+                if (submitButton.disabled) {
+                    console.warn('⚠️ [PJ-MODAL] 送信処理中です - 重複送信を防止');
+                    return;
+                }
+                submitButton.disabled = true;
+                submitButton.textContent = '作成中...';
+            }
+
             console.log('👥 [PJ-MODAL] プロジェクトタスク作成開始...');
 
             // プロジェクト選択の必須チェック
@@ -14631,6 +14837,11 @@
 
             if (!selectedProject || !projectId || !projectName) {
                 alert('❌ プロジェクトの選択は必須です。\n\n「プロジェクト設定」で事前にプロジェクトを作成してから、ここでプロジェクトを選択してください。');
+                // ボタンを復活
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = '作成';
+                }
                 return;
             }
 
@@ -14659,6 +14870,11 @@
 
             if (selectedAssignees.length === 0) {
                 alert('担当者を選択してください');
+                // ボタンを復活
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = '作成';
+                }
                 return;
             }
 
@@ -14688,6 +14904,11 @@
             // 🔥 Firebase保存
             if (!window.FirebaseDB || !window.firebaseAuth?.currentUser) {
                 alert('❌ Firebase未接続またはログアウト状態です');
+                // ボタンを復活
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = '作成';
+                }
                 return;
             }
 
@@ -14696,12 +14917,49 @@
                 const result = await window.FirebaseDB.createTask(task);
                 if (result.success) {
                     console.log('✅ [PJ-MODAL] プロジェクトタスク作成成功:', result.id);
-                    task.firebaseId = result.id;
 
-                    // グローバルのtasks配列に追加
-                    tasks.push(task);
-                    window.tasks = tasks;
-                    console.log('👥 [PJ-MODAL] 保存後タスク数:', tasks.length);
+                    // 🔥 Firebaseから全タスクを再取得（重複防止）
+                    await loadTasks();
+                    console.log('👥 [PJ-MODAL] 再取得後タスク数:', tasks.length);
+
+                    // 🔔 タスク作成通知（Slack通知）
+                    // 作成したタスクをFirebaseから取得
+                    console.log('🔍 [PJ-MODAL-NOTIFICATION] 作成されたタスクIDを検索:', result.id);
+                    console.log('🔍 [PJ-MODAL-NOTIFICATION] result.id type:', typeof result.id);
+                    console.log('🔍 [PJ-MODAL-NOTIFICATION] 現在のタスク数:', tasks.length);
+                    console.log('🔍 [PJ-MODAL-NOTIFICATION] 全タスクID:', tasks.map(t => ({ id: t.id, type: typeof t.id, title: t.title })));
+
+                    const createdTask = tasks.find(t => t.id === result.id);
+
+                    if (createdTask) {
+                        console.log('✅ [PJ-MODAL-NOTIFICATION] 作成タスク見つかった:', createdTask.title);
+                        console.log('🔔 [PJ-MODAL-NOTIFICATION] selectedAssignees:', selectedAssignees);
+                        console.log('🔔 [PJ-MODAL-NOTIFICATION] 通知送信開始...');
+                        sendTaskCreationNotification(createdTask, selectedAssignees);
+                        console.log('🔔 [PJ-MODAL-NOTIFICATION] 通知送信完了');
+                    } else {
+                        console.error('❌ [PJ-MODAL-NOTIFICATION] 作成タスクが見つかりません！');
+                        console.error('❌ [PJ-MODAL-NOTIFICATION] 検索ID:', result.id, '(type:', typeof result.id, ')');
+                        console.error('❌ [PJ-MODAL-NOTIFICATION] タスクリストに存在するID:');
+                        tasks.forEach((t, index) => {
+                            console.error(`  [${index}] id: ${t.id} (type: ${typeof t.id}), projectId: ${t.projectId}, title: ${t.title}`);
+                        });
+
+                        // フォールバック：最新のプロジェクトタスクを探して通知送信
+                        console.log('🔧 [PJ-MODAL-NOTIFICATION] フォールバック：最新タスクで通知送信を試みます');
+                        const taskTitle = document.getElementById('pj-task-title').value.trim();
+                        const latestProjectTask = tasks.find(t =>
+                            t.projectId === projectId &&
+                            t.title === taskTitle
+                        );
+
+                        if (latestProjectTask) {
+                            console.log('✅ [PJ-MODAL-NOTIFICATION] フォールバック成功：最新タスク発見:', latestProjectTask.title);
+                            sendTaskCreationNotification(latestProjectTask, selectedAssignees);
+                        } else {
+                            console.error('❌ [PJ-MODAL-NOTIFICATION] フォールバックも失敗：通知送信できません');
+                        }
+                    }
 
                     // 画面を更新
                     render();
@@ -14709,11 +14967,21 @@
                 } else {
                     console.error('❌ [PJ-MODAL] プロジェクトタスク作成エラー:', result.error);
                     alert('❌ タスク作成エラー: ' + result.error);
+                    // ボタンを復活
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.textContent = '作成';
+                    }
                     return;
                 }
             } catch (error) {
                 console.error('❌ [PJ-MODAL] プロジェクトタスク保存エラー:', error);
                 alert('❌ タスク保存エラー: ' + error.message);
+                // ボタンを復活
+                if (submitButton) {
+                    submitButton.disabled = false;
+                    submitButton.textContent = '作成';
+                }
                 return;
             }
 
@@ -14787,7 +15055,7 @@
         <!-- プロジェクト設定は全ユーザーアクセス可能 -->
         <div class="menu-section">
             <div class="menu-section-title">プロジェクト</div>
-            <a href="pj-settings.html" class="menu-item" onclick="toggleHamburgerMenu();">
+            <a href="javascript:void(0);" class="menu-item" onclick="toggleHamburgerMenu(); openProjectManagementModal();">
                 <span>🏗️</span>
                 <span>プロジェクト設定・管理</span>
                 <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">プロジェクト作成・カラム設定・メンバー管理</div>
