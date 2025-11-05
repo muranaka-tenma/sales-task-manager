@@ -1781,7 +1781,111 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- 管理者ダッシュボードモーダル -->
+    <div id="adminDashboardModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 1200px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0;">
+                <h3 class="modal-title" style="color: white; font-size: 1.5rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    📊 管理者ダッシュボード
+                </h3>
+                <button class="close-btn" onclick="closeAdminDashboardModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem; margin-left: auto;">&times;</button>
+            </div>
+
+            <div style="padding: 1.5rem 2rem; overflow-y: auto; flex: 1;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+                    <!-- 緊急対応アラート -->
+                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #026aa7;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                            <span>🚨</span>
+                            <h3 style="font-size: 1.2rem; font-weight: 600; color: #172b4d; margin: 0;">緊急対応が必要な項目</h3>
+                        </div>
+                        <div>
+                            <div style="background: #fee; border: 1px solid #fcc; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem;">
+                                <strong>期限切れタスク:</strong> <span id="dashboard-overdue-count">0</span>件
+                            </div>
+                            <div style="background: #fee; border: 1px solid #fcc; border-radius: 8px; padding: 1rem; margin-bottom: 0.5rem;">
+                                <strong>停滞タスク:</strong> <span id="dashboard-stale-count">0</span>件
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- チーム生産性 -->
+                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #026aa7;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                            <span>📈</span>
+                            <h3 style="font-size: 1.2rem; font-weight: 600; color: #172b4d; margin: 0;">チーム生産性推移</h3>
+                        </div>
+                        <div style="height: 200px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #666;">
+                            📊 グラフ機能（開発中）
+                        </div>
+                    </div>
+
+                    <!-- メンバー別パフォーマンス -->
+                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #026aa7;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                            <span>👥</span>
+                            <h3 style="font-size: 1.2rem; font-weight: 600; color: #172b4d; margin: 0;">メンバー別パフォーマンス</h3>
+                        </div>
+                        <div id="dashboard-performance-content">
+                            <!-- 動的に生成 -->
+                        </div>
+                    </div>
+
+                    <!-- システム状況監視 -->
+                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #026aa7;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                            <span>🖥️</span>
+                            <h3 style="font-size: 1.2rem; font-weight: 600; color: #172b4d; margin: 0;">システム状況監視</h3>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0;">
+                            <span>Firebase接続状態:</span>
+                            <span style="font-weight: 600; font-size: 1.1rem; color: #026aa7;" id="dashboard-firebase-status">確認中...</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0;">
+                            <span>総タスク数:</span>
+                            <span style="font-weight: 600; font-size: 1.1rem; color: #026aa7;" id="dashboard-total-tasks">0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0;">
+                            <span>アクティブユーザー:</span>
+                            <span style="font-weight: 600; font-size: 1.1rem; color: #026aa7;" id="dashboard-active-users">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ユーザー管理モーダル -->
+    <div id="userManagementModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 1400px; height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="modal-title" style="color: white; font-size: 1.5rem; font-weight: 700; margin: 0;">
+                    👥 ユーザー管理
+                </h3>
+                <button class="close-btn" onclick="closeUserManagementModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
+            </div>
+            <div style="flex: 1; overflow: hidden;">
+                <iframe id="userManagementFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- マイページモーダル -->
+    <div id="myProfileModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 1400px; height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="modal-title" style="color: white; font-size: 1.5rem; font-weight: 700; margin: 0;">
+                    👤 マイページ
+                </h3>
+                <button class="close-btn" onclick="closeMyProfileModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
+            </div>
+            <div style="flex: 1; overflow: hidden;">
+                <iframe id="myProfileFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+        </div>
+    </div>
+
     <!-- テンプレート管理モーダル（統合版） -->
     <div id="templateManagementModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
@@ -13778,7 +13882,143 @@
                 document.getElementById('newProjectVisibility').value = 'public';
             }
         }
-        
+
+        // ===== 管理者ダッシュボード機能 =====
+
+        // 管理者ダッシュボードモーダルを開く
+        function openAdminDashboardModal() {
+            const modal = document.getElementById('adminDashboardModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                loadDashboardData();
+            }
+        }
+
+        // 管理者ダッシュボードモーダルを閉じる
+        function closeAdminDashboardModal() {
+            const modal = document.getElementById('adminDashboardModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // ダッシュボードデータを読み込み
+        async function loadDashboardData() {
+            try {
+                // タスクを取得
+                let tasks = [];
+                if (window.FirebaseDB?.getTasks) {
+                    const result = await window.FirebaseDB.getTasks();
+                    if (result.success) {
+                        tasks = result.tasks;
+                    }
+                }
+
+                // ユーザーを取得
+                const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+
+                // 期限切れタスク
+                const now = new Date();
+                const overdueTasks = tasks.filter(task =>
+                    task.deadline && new Date(task.deadline) < now && task.columnId !== 'done'
+                );
+
+                // 停滞タスク（3日以上同じステータス）
+                const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+                const staleTasks = tasks.filter(task =>
+                    task.lastMovedAt && new Date(task.lastMovedAt) < threeDaysAgo && task.columnId !== 'done'
+                );
+
+                // UI更新
+                document.getElementById('dashboard-overdue-count').textContent = overdueTasks.length;
+                document.getElementById('dashboard-stale-count').textContent = staleTasks.length;
+                document.getElementById('dashboard-total-tasks').textContent = tasks.length;
+                document.getElementById('dashboard-active-users').textContent = users.length;
+
+                // Firebase状態確認
+                const firebaseStatus = window.firebaseAuth?.currentUser ? '🟢 接続中' : '🔴 未接続';
+                document.getElementById('dashboard-firebase-status').textContent = firebaseStatus;
+
+                // メンバー別パフォーマンス
+                const performanceContent = document.getElementById('dashboard-performance-content');
+                const userStats = {};
+
+                tasks.forEach(task => {
+                    if (task.assignee && task.assignee !== '未設定') {
+                        if (!userStats[task.assignee]) {
+                            userStats[task.assignee] = { total: 0, completed: 0 };
+                        }
+                        userStats[task.assignee].total++;
+                        if (task.columnId === 'done') {
+                            userStats[task.assignee].completed++;
+                        }
+                    }
+                });
+
+                performanceContent.innerHTML = Object.entries(userStats)
+                    .map(([user, stats]) => {
+                        const completion = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+                        return `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0;">
+                                <span>${user}:</span>
+                                <span style="font-weight: 600; font-size: 1.1rem; color: #026aa7;">${completion}% (${stats.completed}/${stats.total})</span>
+                            </div>
+                        `;
+                    }).join('');
+
+            } catch (error) {
+                console.error('ダッシュボードデータ読み込みエラー:', error);
+            }
+        }
+
+        // ===== ユーザー管理機能 =====
+
+        // ユーザー管理モーダルを開く
+        function openUserManagementModal() {
+            const modal = document.getElementById('userManagementModal');
+            const iframe = document.getElementById('userManagementFrame');
+            if (modal && iframe) {
+                iframe.src = 'user-management.html';
+                modal.style.display = 'flex';
+            }
+        }
+
+        // ユーザー管理モーダルを閉じる
+        function closeUserManagementModal() {
+            const modal = document.getElementById('userManagementModal');
+            const iframe = document.getElementById('userManagementFrame');
+            if (modal) {
+                modal.style.display = 'none';
+                if (iframe) {
+                    iframe.src = ''; // iframeをクリア
+                }
+            }
+        }
+
+        // ===== マイページ機能 =====
+
+        // マイページモーダルを開く
+        function openMyProfileModal() {
+            const modal = document.getElementById('myProfileModal');
+            const iframe = document.getElementById('myProfileFrame');
+            if (modal && iframe) {
+                iframe.src = 'my-profile.html';
+                modal.style.display = 'flex';
+            }
+        }
+
+        // マイページモーダルを閉じる
+        function closeMyProfileModal() {
+            const modal = document.getElementById('myProfileModal');
+            const iframe = document.getElementById('myProfileFrame');
+            if (modal) {
+                modal.style.display = 'none';
+                if (iframe) {
+                    iframe.src = ''; // iframeをクリア
+                }
+            }
+        }
+
         // プロジェクト一覧を読み込み（Firebase対応）
         async function loadProjectsList(forceRefresh = false) {
             try {
@@ -14885,7 +15125,7 @@
         
         <div class="menu-section">
             <div class="menu-section-title">個人設定</div>
-            <a href="my-profile.html" class="menu-item" onclick="toggleHamburgerMenu();">
+            <a href="javascript:void(0);" class="menu-item" onclick="toggleHamburgerMenu(); openMyProfileModal();">
                 <span>👤</span>
                 <span>マイページ</span>
             </a>
@@ -14924,11 +15164,11 @@
 
         <div class="menu-section" id="admin-menu-section" style="display: none;">
             <div class="menu-section-title">管理機能</div>
-            <a href="user-management.html" class="menu-item" onclick="toggleHamburgerMenu();">
+            <a href="javascript:void(0);" class="menu-item" onclick="toggleHamburgerMenu(); openUserManagementModal();">
                 <span>👥</span>
                 <span>ユーザー管理</span>
             </a>
-            <a href="admin-dashboard.html" class="menu-item" onclick="toggleHamburgerMenu();">
+            <a href="javascript:void(0);" class="menu-item" onclick="toggleHamburgerMenu(); openAdminDashboardModal();">
                 <span>📊</span>
                 <span>管理者ダッシュボード</span>
             </a>
