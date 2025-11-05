@@ -1747,12 +1747,21 @@
                             <input type="text" id="newProjectName" placeholder="プロジェクト名" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; margin-bottom: 0.5rem;">
                             <textarea id="newProjectDescription" placeholder="プロジェクトの説明" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; height: 80px; resize: vertical;"></textarea>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: 200px;">
                             <label style="font-size: 0.9rem; color: #6b7280;">公開設定:</label>
                             <select id="newProjectVisibility" style="padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
                                 <option value="public">🌐 全員に公開</option>
                                 <option value="private">🔒 メンバーのみ</option>
                             </select>
+
+                            <label style="font-size: 0.9rem; color: #6b7280; margin-top: 0.5rem;">カラム設定:</label>
+                            <div id="newProjectColumnsContainer" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <!-- カラムがここに動的に挿入される -->
+                            </div>
+                            <button type="button" onclick="addNewProjectColumn()" style="background: #e5e7eb; color: #374151; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500; margin-bottom: 0.5rem;">
+                                ➕ カラム追加
+                            </button>
+
                             <button onclick="createNewProject()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">
                                 作成
                             </button>
@@ -13753,6 +13762,7 @@
             const modal = document.getElementById('projectManagementModal');
             if (modal) {
                 modal.style.display = 'flex';
+                loadNewProjectColumns(); // デフォルトカラムをロード
                 loadProjectsList();
             }
         }
@@ -13875,17 +13885,112 @@
                 `;
             }
         }
-        
+
+        // 🔧 デフォルトプロジェクトカラム
+        const DEFAULT_PROJECT_COLUMNS = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+
+        // 🔧 新規プロジェクトのカラム管理関数
+        function loadNewProjectColumns(columns = DEFAULT_PROJECT_COLUMNS) {
+            const container = document.getElementById('newProjectColumnsContainer');
+            if (!container) return;
+
+            container.innerHTML = columns.map((column, index) => `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span style="cursor: move; color: #9ca3af; font-size: 1.2rem;" title="ドラッグして並び替え">⋮⋮</span>
+                    <input type="text" value="${column}"
+                           style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;">
+                    <button type="button" onclick="removeNewProjectColumn(${index})"
+                            style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
+                            ${columns.length <= 1 ? 'disabled' : ''}>
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function addNewProjectColumn() {
+            const currentColumns = getNewProjectColumns();
+            currentColumns.push('新しいカラム');
+            loadNewProjectColumns(currentColumns);
+        }
+
+        function removeNewProjectColumn(index) {
+            const currentColumns = getNewProjectColumns();
+            if (currentColumns.length <= 1) {
+                alert('最低1つのカラムが必要です');
+                return;
+            }
+            currentColumns.splice(index, 1);
+            loadNewProjectColumns(currentColumns);
+        }
+
+        function getNewProjectColumns() {
+            const container = document.getElementById('newProjectColumnsContainer');
+            if (!container) return DEFAULT_PROJECT_COLUMNS;
+
+            const inputs = container.querySelectorAll('input[type="text"]');
+            return Array.from(inputs).map(input => input.value.trim()).filter(val => val);
+        }
+
+        // 🔧 編集モーダル用のカラム管理関数
+        function loadEditProjectColumns(columns = DEFAULT_PROJECT_COLUMNS) {
+            const container = document.getElementById('editProjectColumnsContainer');
+            if (!container) return;
+
+            container.innerHTML = columns.map((column, index) => `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span style="cursor: move; color: #9ca3af; font-size: 1.2rem;" title="ドラッグして並び替え">⋮⋮</span>
+                    <input type="text" value="${column}"
+                           style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;">
+                    <button type="button" onclick="removeEditProjectColumn(${index})"
+                            style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
+                            ${columns.length <= 1 ? 'disabled' : ''}>
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function addEditProjectColumn() {
+            const currentColumns = getEditProjectColumns();
+            currentColumns.push('新しいカラム');
+            loadEditProjectColumns(currentColumns);
+        }
+
+        function removeEditProjectColumn(index) {
+            const currentColumns = getEditProjectColumns();
+            if (currentColumns.length <= 1) {
+                alert('最低1つのカラムが必要です');
+                return;
+            }
+            currentColumns.splice(index, 1);
+            loadEditProjectColumns(currentColumns);
+        }
+
+        function getEditProjectColumns() {
+            const container = document.getElementById('editProjectColumnsContainer');
+            if (!container) return DEFAULT_PROJECT_COLUMNS;
+
+            const inputs = container.querySelectorAll('input[type="text"]');
+            return Array.from(inputs).map(input => input.value.trim()).filter(val => val);
+        }
+
         // 新しいプロジェクトを作成
         async function createNewProject() {
             try {
                 const name = document.getElementById('newProjectName').value.trim();
                 const description = document.getElementById('newProjectDescription').value.trim();
                 const visibility = document.getElementById('newProjectVisibility').value;
+                const columns = getNewProjectColumns();
                 const currentUser = getCurrentUser();
 
                 if (!name) {
                     alert('プロジェクト名を入力してください');
+                    return;
+                }
+
+                if (columns.length === 0) {
+                    alert('最低1つのカラムを設定してください');
                     return;
                 }
 
@@ -13925,6 +14030,7 @@
                     name: name,
                     description: description,
                     visibility: visibility,
+                    columns: columns,
                     members: [currentUser.email], // 作成者は自動的にメンバーになる
                     createdBy: currentUser.email,
                     createdAt: new Date().toISOString(),
@@ -13955,6 +14061,7 @@
                 document.getElementById('newProjectName').value = '';
                 document.getElementById('newProjectDescription').value = '';
                 document.getElementById('newProjectVisibility').value = 'public';
+                loadNewProjectColumns(); // カラムをデフォルトにリセット
 
                 await loadProjectsList();
 
@@ -14140,7 +14247,17 @@
                                 ${memberOptions}
                             </div>
                         </div>
-                        
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">カラム設定</label>
+                            <div id="editProjectColumnsContainer" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <!-- カラムがここに動的に挿入される -->
+                            </div>
+                            <button type="button" onclick="addEditProjectColumn()" style="background: #e5e7eb; color: #374151; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500;">
+                                ➕ カラム追加
+                            </button>
+                        </div>
+
                         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
                             <button onclick="this.closest('div').remove()" style="background: #6b7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer;">
                                 キャンセル
@@ -14152,10 +14269,14 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(modal);
+
+            // カラムを読み込む
+            const projectColumns = project.columns || DEFAULT_PROJECT_COLUMNS;
+            loadEditProjectColumns(projectColumns);
         }
-        
+
         // プロジェクトの変更を保存
         function saveProjectChanges(projectId, modalElement) {
             try {
@@ -14163,18 +14284,24 @@
                 const description = document.getElementById('editProjectDescription').value.trim();
                 const visibility = document.getElementById('editProjectVisibility').value;
                 const status = document.getElementById('editProjectStatus').value;
-                
+                const columns = getEditProjectColumns();
+
                 // メンバーリストを取得
                 const memberCheckboxes = modalElement.querySelectorAll('#membersList input[type="checkbox"]');
                 const members = Array.from(memberCheckboxes)
                     .filter(cb => cb.checked)
                     .map(cb => cb.value);
-                
+
                 if (!name) {
                     alert('プロジェクト名を入力してください');
                     return;
                 }
-                
+
+                if (columns.length === 0) {
+                    alert('最低1つのカラムを設定してください');
+                    return;
+                }
+
                 if (members.length === 0) {
                     alert('少なくとも1人のメンバーを選択してください');
                     return;
@@ -14195,6 +14322,7 @@
                     description: description,
                     visibility: visibility,
                     status: status,
+                    columns: columns,
                     members: members,
                     updatedAt: new Date().toISOString()
                 };
@@ -14787,7 +14915,7 @@
         <!-- プロジェクト設定は全ユーザーアクセス可能 -->
         <div class="menu-section">
             <div class="menu-section-title">プロジェクト</div>
-            <a href="pj-settings.html" class="menu-item" onclick="toggleHamburgerMenu();">
+            <a href="javascript:void(0);" class="menu-item" onclick="toggleHamburgerMenu(); openProjectManagementModal();">
                 <span>🏗️</span>
                 <span>プロジェクト設定・管理</span>
                 <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">プロジェクト作成・カラム設定・メンバー管理</div>
