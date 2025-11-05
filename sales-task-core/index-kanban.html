@@ -5348,10 +5348,16 @@
             const dropZone = e.currentTarget;
             dropZone.classList.remove('drag-over');
 
-            // 🔧 draggedTaskのバックアップ（promptForEvidenceでhandleDragEndが呼ばれてnullになる問題に対処）
-            const draggedTaskBackup = draggedTask;
+            // 🔧 draggedTaskのIDを保存（promptForEvidenceでhandleDragEndが呼ばれてnullになる問題に対処）
+            const draggedTaskId = draggedTask ? draggedTask.id : null;
+            console.log(`🔧 [FIX] draggedTaskId保存: ${draggedTaskId}`);
 
-            if (draggedTask) {
+            if (draggedTask || draggedTaskId) {
+                // draggedTaskがnullの場合、IDから再取得
+                if (!draggedTask && draggedTaskId) {
+                    draggedTask = tasks.find(t => t.id === draggedTaskId);
+                    console.log(`🔧 [FIX] draggedTaskをIDから再取得:`, draggedTask);
+                }
                 console.log(`🔵 [MAIN] Current task column: ${draggedTask.columnId}, Target: ${columnId}`);
                 console.log(`🔍 [DROP DEBUG] Tasks count BEFORE move: ${tasks.length}`);
                 console.log(`🔍 [DROP DEBUG] DraggedTask details:`, JSON.stringify({
@@ -5409,17 +5415,17 @@
                         }
                         console.log(`🔍 [PJ DEBUG] After all evidence checks - Tasks count: ${tasks.length}`);
 
-                        // 🔧 promptForEvidence後にdraggedTaskがnullになっている場合、バックアップから復元
-                        if (!draggedTask && draggedTaskBackup) {
-                            console.log(`🔧 [FIX] draggedTaskがnullになったのでバックアップから復元`);
-                            draggedTask = draggedTaskBackup;
+                        // 🔧 promptForEvidence後にdraggedTaskがnullになっている場合、IDから再取得
+                        if (!draggedTask && draggedTaskId) {
+                            draggedTask = tasks.find(t => t.id === draggedTaskId);
+                            console.log(`🔧 [FIX] 証憑チェック後にdraggedTaskをIDから再取得:`, draggedTask);
                         }
                     }
 
-                    // 🔧 証憑チェック外でもdraggedTaskがnullになっている場合、バックアップから復元
-                    if (!draggedTask && draggedTaskBackup) {
-                        console.log(`🔧 [FIX] draggedTaskがnullになったのでバックアップから復元（証憑チェック外）`);
-                        draggedTask = draggedTaskBackup;
+                    // 🔧 証憑チェック外でもdraggedTaskがnullになっている場合、IDから再取得
+                    if (!draggedTask && draggedTaskId) {
+                        draggedTask = tasks.find(t => t.id === draggedTaskId);
+                        console.log(`🔧 [FIX] 証憑チェック外でdraggedTaskをIDから再取得:`, draggedTask);
                     }
 
                     // Doneカラムに移動する場合、completedAtを記録
