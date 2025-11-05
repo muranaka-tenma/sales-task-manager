@@ -1253,12 +1253,6 @@
             </div>
         </div>
     </div>
-        
-        <!-- カラム追加機能 -->
-        <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
-            <input type="text" id="quick-column-name" placeholder="新ステータス名" style="padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; width: 120px;">
-            <button id="quick-add-column-btn" onclick="quickAddColumn()" style="padding: 0.4rem 0.8rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">＋ステータス</button>
-        </div>
     </div>
     
     <!-- 分析サマリーバー -->
@@ -5833,14 +5827,8 @@
                 columnEl.setAttribute('data-column-id', column.id); // ゴミ箱スタイル用
                 columnEl.innerHTML = `
                     <div class="column-header" style="background: ${column.color}; color: white;">
-                        <div class="column-title" ondblclick="editColumnNameInline('${column.id}', this)">${column.title}</div>
-                        <div style="display: flex; align-items: center; gap: 0.25rem;">
-                            <div class="column-count">${columnTasks.length}</div>
-                            <div style="display: flex; gap: 0.25rem;">
-                                <button onclick="editColumnNameInline('${column.id}')" style="background: rgba(255,255,255,0.2); border: none; cursor: pointer; color: white; font-size: 0.8rem; padding: 0.2rem; border-radius: 3px;" title="編集">✏️</button>
-                                ${columns.length > 2 ? `<button onclick="deleteColumnInline('${column.id}')" style="background: rgba(255,255,255,0.2); border: none; cursor: pointer; color: white; font-size: 0.8rem; padding: 0.2rem; border-radius: 3px;" title="削除">🗑️</button>` : ''}
-                            </div>
-                        </div>
+                        <div class="column-title">${column.title}</div>
+                        <div class="column-count">${columnTasks.length}</div>
                     </div>
                     <div class="column-content" 
                          ondragover="handleDragOver(event)"
@@ -5927,19 +5915,12 @@
                      style="position: relative; cursor: ${isBulkMode ? 'pointer' : 'move'}; ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
                      title="${isOverdueTask ? '🚨 期限切れタスクです' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
                     ${checkboxHtml}
-                    <div class="task-title" style="display: flex; justify-content: space-between; align-items: flex-start;">
-                        <span style="flex: 1;">
+                    <div class="task-title">
+                        <span>
                             ${task.isRecurring ? '<span style="color: #2d3748; margin-right: 0.25rem;" title="定期タスク">🔄</span>' : ''}
                             ${task.projectId ? '<span style="color: #2b6cb0; margin-right: 0.25rem;" title="PJタスク">👥</span>' : ''}
                             ${task.title}
                         </span>
-                        <button onclick="event.stopPropagation(); deleteTask(${task.id});"
-                                style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 0.9rem; padding: 2px; opacity: 0.7; margin-left: 8px;"
-                                title="ゴミ箱に移動"
-                                onmouseover="this.style.opacity='1'"
-                                onmouseout="this.style.opacity='0.7'">
-                            🗑️
-                        </button>
                     </div>
                     <div class="task-meta">
                         <div style="margin-bottom: 0.25rem;">
@@ -6782,6 +6763,23 @@
         
         // カラム管理機能
         function loadColumnManager() {
+            // 🔒 権限チェック：developer権限がない場合は非表示
+            const currentUser = getCurrentUser();
+            const columnManagerSection = document.querySelector('.setting-section:has(#column-manager)');
+
+            if (currentUser.role !== 'developer') {
+                if (columnManagerSection) {
+                    columnManagerSection.style.display = 'none';
+                }
+                console.log('🔒 [PERMISSION] カラム管理はdeveloper権限のみアクセス可能');
+                return;
+            }
+
+            // developer権限がある場合は表示
+            if (columnManagerSection) {
+                columnManagerSection.style.display = 'block';
+            }
+
             const columnList = document.getElementById('column-list');
             columnList.innerHTML = columns.map((column, index) => `
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
@@ -6800,11 +6798,18 @@
                 return;
             }
 
-            // 🔒 プロジェクト選択時の権限チェック
+            // 🔒 権限チェック（個人用カラムもdeveloper権限必要）
+            const currentUser = getCurrentUser();
             if (selectedProjectFilters.length > 0) {
-                const currentUser = getCurrentUser();
+                // プロジェクトカラムの場合：admin権限必要
                 if (currentUser.role !== 'admin') {
                     alert('⚠️ プロジェクトのカラム編集は管理者のみ可能です');
+                    return;
+                }
+            } else {
+                // 個人用カラムの場合：developer権限必要
+                if (currentUser.role !== 'developer') {
+                    alert('⚠️ 個人用カラムの編集はdeveloper権限が必要です');
                     return;
                 }
             }
@@ -6823,6 +6828,13 @@
         }
         
         function editColumnName(index) {
+            // 🔒 権限チェック（developer権限必要）
+            const currentUser = getCurrentUser();
+            if (currentUser.role !== 'developer') {
+                alert('⚠️ 個人用カラムの編集はdeveloper権限が必要です');
+                return;
+            }
+
             const newName = prompt('新しいカラム名を入力してください:', columns[index].title);
             if (newName && newName.trim()) {
                 columns[index].title = newName.trim();
@@ -6833,6 +6845,13 @@
         }
         
         function updateColumnColor(index, color) {
+            // 🔒 権限チェック（developer権限必要）
+            const currentUser = getCurrentUser();
+            if (currentUser.role !== 'developer') {
+                alert('⚠️ 個人用カラムの編集はdeveloper権限が必要です');
+                return;
+            }
+
             columns[index].color = color;
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
             render(); // 即座に反映
@@ -6844,11 +6863,18 @@
                 return;
             }
 
-            // 🔒 プロジェクト選択時の権限チェック
+            // 🔒 権限チェック（個人用カラムもdeveloper権限必要）
+            const currentUser = getCurrentUser();
             if (selectedProjectFilters.length > 0) {
-                const currentUser = getCurrentUser();
+                // プロジェクトカラムの場合：admin権限必要
                 if (currentUser.role !== 'admin') {
                     alert('⚠️ プロジェクトのカラム削除は管理者のみ可能です');
+                    return;
+                }
+            } else {
+                // 個人用カラムの場合：developer権限必要
+                if (currentUser.role !== 'developer') {
+                    alert('⚠️ 個人用カラムの削除はdeveloper権限が必要です');
                     return;
                 }
             }
