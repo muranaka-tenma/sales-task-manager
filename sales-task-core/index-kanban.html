@@ -1257,7 +1257,7 @@
         <!-- カラム追加機能 -->
         <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
             <input type="text" id="quick-column-name" placeholder="新ステータス名" style="padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; width: 120px;">
-            <button onclick="quickAddColumn()" style="padding: 0.4rem 0.8rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">＋ステータス</button>
+            <button id="quick-add-column-btn" onclick="quickAddColumn()" style="padding: 0.4rem 0.8rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">＋ステータス</button>
         </div>
     </div>
     
@@ -5641,6 +5641,9 @@
 
             // 再描画してフィルタを適用
             render();
+
+            // 🔒 カラム追加ボタンの状態を更新
+            updateColumnAddButtonState();
         }
         
         // 通常タスク表示機能
@@ -5648,12 +5651,15 @@
             // プロジェクトフィルターをクリア
             selectedProjectFilters = [];
             console.log('📋 [FILTER] 通常タスク表示に切り替え');
-            
+
             // 表示対象テキストを更新
             updateAssigneeFilterText();
-            
+
             // 再描画
             render();
+
+            // 🔒 カラム追加ボタンの状態を更新
+            updateColumnAddButtonState();
         }
 
         // レンダリング
@@ -5874,7 +5880,7 @@
                             ${task.projectId ? '<span style="color: #2b6cb0; margin-right: 0.25rem;" title="PJタスク">👥</span>' : ''}
                             ${task.title}
                         </span>
-                        <button onclick="deleteTask(${task.id}); event.stopPropagation();" 
+                        <button onclick="event.stopPropagation(); deleteTask(${task.id});"
                                 style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 0.9rem; padding: 2px; opacity: 0.7; margin-left: 8px;"
                                 title="ゴミ箱に移動"
                                 onmouseover="this.style.opacity='1'"
@@ -6740,13 +6746,22 @@
                 alert('カラム名を入力してください');
                 return;
             }
-            
+
+            // 🔒 プロジェクト選択時の権限チェック
+            if (selectedProjectFilters.length > 0) {
+                const currentUser = getCurrentUser();
+                if (currentUser.role !== 'admin') {
+                    alert('⚠️ プロジェクトのカラム編集は管理者のみ可能です');
+                    return;
+                }
+            }
+
             const newColumn = {
                 id: 'custom_' + Date.now(),
                 title: newColumnName,
                 color: '#026aa7'
             };
-            
+
             columns.push(newColumn);
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
             document.getElementById('new-column-name').value = '';
@@ -6775,7 +6790,16 @@
                 alert('最低2つのカラムが必要です');
                 return;
             }
-            
+
+            // 🔒 プロジェクト選択時の権限チェック
+            if (selectedProjectFilters.length > 0) {
+                const currentUser = getCurrentUser();
+                if (currentUser.role !== 'admin') {
+                    alert('⚠️ プロジェクトのカラム削除は管理者のみ可能です');
+                    return;
+                }
+            }
+
             const columnToDelete = columns[index];
             const tasksInColumn = tasks.filter(task => task.columnId === columnToDelete.id);
             
@@ -6795,7 +6819,36 @@
             loadColumnManager();
             render();
         }
-        
+
+        // 🔒 カラム追加ボタンの状態を更新
+        function updateColumnAddButtonState() {
+            const btn = document.getElementById('quick-add-column-btn');
+            if (!btn) return;
+
+            const currentUser = getCurrentUser();
+
+            if (selectedProjectFilters.length > 0) {
+                // プロジェクト選択時
+                if (currentUser.role === 'admin') {
+                    btn.disabled = false;
+                    btn.title = '管理者権限でカラムを追加';
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                } else {
+                    btn.disabled = false; // クリックは可能（警告を表示するため）
+                    btn.title = '⚠️ プロジェクトのカラム追加は管理者のみ可能です';
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                }
+            } else {
+                // 個人タスクビュー
+                btn.disabled = false;
+                btn.title = '個人用カラムを追加';
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        }
+
         // インライン カラム管理機能
         async function quickAddColumn() {
             const newColumnName = document.getElementById('quick-column-name').value.trim();
@@ -6806,6 +6859,12 @@
 
             // プロジェクト表示中かチェック
             if (selectedProjectFilters.length > 0) {
+                // 🔒 プロジェクト選択時の権限チェック
+                const currentUser = getCurrentUser();
+                if (currentUser.role !== 'admin') {
+                    alert('⚠️ プロジェクトのカラム追加は管理者のみ可能です\n\n個人タスクビュー（プロジェクト未選択）では自由にカラムを追加できます。');
+                    return;
+                }
                 // プロジェクトカラムに追加
                 const projectId = selectedProjectFilters[0];
 
@@ -6865,6 +6924,13 @@
         async function editColumnNameInline(columnId) {
             // プロジェクト表示中かチェック
             if (selectedProjectFilters.length > 0) {
+                // 🔒 プロジェクト選択時の権限チェック
+                const currentUser = getCurrentUser();
+                if (currentUser.role !== 'admin') {
+                    alert('⚠️ プロジェクトのカラム編集は管理者のみ可能です');
+                    return;
+                }
+
                 // プロジェクトカラムの編集
                 const projectId = selectedProjectFilters[0];
 
@@ -13592,8 +13658,21 @@
                 }
                 
                 const currentUser = getCurrentUser();
-                const column = columns.find(c => c.id === newColumnId);
-                const columnTitle = column ? column.title : newColumnId;
+
+                // カラムIDからカラム名を取得（プロジェクト専用カラム対応）
+                let columnTitle = newColumnId; // フォールバック
+                if (task.projectId) {
+                    // プロジェクトタスクの場合、プロジェクト専用カラムから検索
+                    const projectColumns = getProjectColumns(task.projectId);
+                    const column = projectColumns.find(c => c.id === newColumnId);
+                    columnTitle = column ? column.title : newColumnId;
+                    console.log(`🔍 [SLACK-MOVE] プロジェクトカラム検索: ${newColumnId} → ${columnTitle}`);
+                } else {
+                    // 個人タスクの場合、デフォルトカラムから検索
+                    const column = columns.find(c => c.id === newColumnId);
+                    columnTitle = column ? column.title : newColumnId;
+                    console.log(`🔍 [SLACK-MOVE] 個人カラム検索: ${newColumnId} → ${columnTitle}`);
+                }
                 
                 console.log(`🔔 [SLACK-MOVE] タスク移動通知開始: ${task.title} → ${columnTitle}`);
                 console.log(`🔔 [SLACK-MOVE] タスク情報:`, {
@@ -13735,7 +13814,7 @@
                 `🗑️ タスクをゴミ箱に移動しますか？\n\n` +
                 `タスク: ${task.title}\n\n` +
                 `※ ゴミ箱からドラッグ&ドロップで復元可能です\n` +
-                `※ ゴミ箱で30日経過後に自動完全削除されます`
+                `※ ゴミ箱で180日経過後に自動完全削除されます`
             );
             
             if (result) {
@@ -13766,26 +13845,26 @@
         // ゴミ箱の自動クリーンアップ機能
         function cleanupTrash() {
             const now = new Date();
-            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            
+            const oneEightyDaysAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+
             const trashTasks = tasks.filter(t => t.columnId === 'trash');
             const expiredTasks = trashTasks.filter(t => {
                 if (!t.deletedAt) return false;
-                return new Date(t.deletedAt) < thirtyDaysAgo;
+                return new Date(t.deletedAt) < oneEightyDaysAgo;
             });
-            
+
             if (expiredTasks.length > 0) {
-                // 30日経過したタスクを完全削除
+                // 180日経過したタスクを完全削除
                 tasks = tasks.filter(t => !expiredTasks.includes(t));
                 saveTasks();
-                
+
                 console.log(`🧹 ゴミ箱から${expiredTasks.length}件のタスクを自動削除しました`);
-                
+
                 // 削除通知
                 if (expiredTasks.length > 0) {
                     showNotification(
                         '🧹 自動クリーンアップ',
-                        `ゴミ箱から${expiredTasks.length}件のタスクを自動削除しました（30日経過）`,
+                        `ゴミ箱から${expiredTasks.length}件のタスクを自動削除しました（180日経過）`,
                         { tag: `cleanup-${Date.now()}` }
                     );
                 }
