@@ -5618,14 +5618,17 @@
         }
         
         // プロジェクト選択機能
-        function selectProject(projectId) {
+        async function selectProject(projectId) {
             // プロジェクトIDでフィルタリング
             selectedProjectFilters = [projectId];
             console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
-            
+
+            // プロジェクトキャッシュを更新してから再描画
+            await updateProjectsCache();
+
             // 表示対象テキストを更新
             updateAssigneeFilterText();
-            
+
             // 再描画してフィルタを適用
             render();
         }
@@ -6783,70 +6786,268 @@
         }
         
         // インライン カラム管理機能
-        function quickAddColumn() {
+        async function quickAddColumn() {
             const newColumnName = document.getElementById('quick-column-name').value.trim();
             if (!newColumnName) {
                 alert('カラム名を入力してください');
                 return;
             }
-            
-            const newColumn = {
-                id: 'custom_' + Date.now(),
-                title: newColumnName,
-                color: '#026aa7'
-            };
-            
-            columns.push(newColumn);
-            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
-            document.getElementById('quick-column-name').value = '';
-            render();
-        }
-        
-        function editColumnNameInline(columnId) {
-            const column = columns.find(c => c.id === columnId);
-            if (!column) return;
-            
-            const newName = prompt('新しいカラム名を入力してください:', column.title);
-            if (newName && newName.trim()) {
-                column.title = newName.trim();
-                localStorage.setItem('kanbanColumns', JSON.stringify(columns));
-                render();
-            }
-        }
-        
-        function deleteColumnInline(columnId) {
-            if (columns.length <= 2) {
-                alert('最低2つのカラムが必要です');
-                return;
-            }
-            
-            const columnIndex = columns.findIndex(c => c.id === columnId);
-            const columnToDelete = columns[columnIndex];
-            const tasksInColumn = tasks.filter(task => task.columnId === columnId);
-            
-            if (tasksInColumn.length > 0) {
-                const availableColumns = columns.filter(c => c.id !== columnId);
-                const moveToColumn = prompt(`このカラムには${tasksInColumn.length}個のタスクがあります。\n移動先のカラムを選択してください:\n\n${availableColumns.map((c, i) => `${i+1}. ${c.title} (${c.id})`).join('\n')}\n\n移動先の番号を入力してください:`);
-                
-                if (!moveToColumn) return;
-                
-                const selectedIndex = parseInt(moveToColumn) - 1;
-                if (selectedIndex >= 0 && selectedIndex < availableColumns.length) {
-                    // タスクを移動
-                    tasksInColumn.forEach(task => {
-                        task.columnId = availableColumns[selectedIndex].id;
-                    });
-                } else {
-                    alert('無効な選択です');
+
+            // プロジェクト表示中かチェック
+            if (selectedProjectFilters.length > 0) {
+                // プロジェクトカラムに追加
+                const projectId = selectedProjectFilters[0];
+
+                // キャッシュからプロジェクトデータを取得
+                if (!cachedProjectsData || !cachedProjectsData[projectId]) {
+                    console.error('❌ [COLUMN-ADD] プロジェクトデータが見つかりません:', projectId);
+                    alert('プロジェクトデータの取得に失敗しました');
                     return;
                 }
-            }
-            
-            if (confirm(`カラム「${columnToDelete.title}」を削除しますか？`)) {
-                columns.splice(columnIndex, 1);
+
+                const project = cachedProjectsData[projectId];
+                const projectColumns = project.columns || [];
+
+                // 新しいカラムを追加
+                projectColumns.push(newColumnName);
+
+                // Firebaseに保存
+                if (window.FirebaseDB && window.FirebaseDB.saveProject) {
+                    const result = await window.FirebaseDB.getProjects();
+                    if (result.success && result.projects) {
+                        const fullProject = result.projects.find(p => p.id === projectId);
+                        if (fullProject) {
+                            fullProject.columns = projectColumns;
+                            const saveResult = await window.FirebaseDB.saveProject(fullProject);
+
+                            if (saveResult.success) {
+                                console.log('✅ [COLUMN-ADD] プロジェクトカラム追加成功:', projectId);
+                                // キャッシュを更新
+                                await updateProjectsCache();
+                                document.getElementById('quick-column-name').value = '';
+                                render();
+                            } else {
+                                console.error('❌ [COLUMN-ADD] プロジェクト保存失敗:', saveResult.error);
+                                alert('カラムの追加に失敗しました: ' + saveResult.error);
+                            }
+                        }
+                    }
+                } else {
+                    console.error('❌ [COLUMN-ADD] Firebase未接続');
+                    alert('Firebase未接続のため、カラムを追加できません');
+                }
+            } else {
+                // デフォルトカラムに追加
+                const newColumn = {
+                    id: 'custom_' + Date.now(),
+                    title: newColumnName,
+                    color: '#026aa7'
+                };
+
+                columns.push(newColumn);
                 localStorage.setItem('kanbanColumns', JSON.stringify(columns));
-                saveTasks();
+                document.getElementById('quick-column-name').value = '';
                 render();
+            }
+        }
+        
+        async function editColumnNameInline(columnId) {
+            // プロジェクト表示中かチェック
+            if (selectedProjectFilters.length > 0) {
+                // プロジェクトカラムの編集
+                const projectId = selectedProjectFilters[0];
+
+                // キャッシュからプロジェクトデータを取得
+                if (!cachedProjectsData || !cachedProjectsData[projectId]) {
+                    console.error('❌ [COLUMN-EDIT] プロジェクトデータが見つかりません:', projectId);
+                    alert('プロジェクトデータの取得に失敗しました');
+                    return;
+                }
+
+                const project = cachedProjectsData[projectId];
+                const projectColumns = project.columns || [];
+
+                // カラムIDからインデックスを抽出 (pj_ProjectName_0 → 0)
+                const columnIndex = parseInt(columnId.split('_')[2]);
+
+                if (columnIndex >= 0 && columnIndex < projectColumns.length) {
+                    const currentName = projectColumns[columnIndex];
+                    const newName = prompt('新しいカラム名を入力してください:', currentName);
+
+                    if (newName && newName.trim()) {
+                        // カラム名を更新
+                        projectColumns[columnIndex] = newName.trim();
+
+                        // Firebaseに保存
+                        if (window.FirebaseDB && window.FirebaseDB.saveProject) {
+                            const result = await window.FirebaseDB.getProjects();
+                            if (result.success && result.projects) {
+                                const fullProject = result.projects.find(p => p.id === projectId);
+                                if (fullProject) {
+                                    fullProject.columns = projectColumns;
+                                    const saveResult = await window.FirebaseDB.saveProject(fullProject);
+
+                                    if (saveResult.success) {
+                                        console.log('✅ [COLUMN-EDIT] プロジェクトカラム更新成功:', projectId);
+                                        // キャッシュを更新
+                                        await updateProjectsCache();
+                                        render();
+                                    } else {
+                                        console.error('❌ [COLUMN-EDIT] プロジェクト保存失敗:', saveResult.error);
+                                        alert('カラムの保存に失敗しました: ' + saveResult.error);
+                                    }
+                                }
+                            }
+                        } else {
+                            console.error('❌ [COLUMN-EDIT] Firebase未接続');
+                            alert('Firebase未接続のため、カラムを保存できません');
+                        }
+                    }
+                } else {
+                    console.error('❌ [COLUMN-EDIT] 無効なカラムインデックス:', columnIndex);
+                }
+            } else {
+                // デフォルトカラムの編集
+                const column = columns.find(c => c.id === columnId);
+                if (!column) return;
+
+                const newName = prompt('新しいカラム名を入力してください:', column.title);
+                if (newName && newName.trim()) {
+                    column.title = newName.trim();
+                    localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+                    render();
+                }
+            }
+        }
+        
+        async function deleteColumnInline(columnId) {
+            // プロジェクト表示中かチェック
+            if (selectedProjectFilters.length > 0) {
+                // プロジェクトカラムの削除
+                const projectId = selectedProjectFilters[0];
+
+                // キャッシュからプロジェクトデータを取得
+                if (!cachedProjectsData || !cachedProjectsData[projectId]) {
+                    console.error('❌ [COLUMN-DELETE] プロジェクトデータが見つかりません:', projectId);
+                    alert('プロジェクトデータの取得に失敗しました');
+                    return;
+                }
+
+                const project = cachedProjectsData[projectId];
+                const projectColumns = project.columns || [];
+
+                if (projectColumns.length <= 2) {
+                    alert('最低2つのカラムが必要です');
+                    return;
+                }
+
+                // カラムIDからインデックスを抽出
+                const columnIndex = parseInt(columnId.split('_')[2]);
+
+                if (columnIndex >= 0 && columnIndex < projectColumns.length) {
+                    const columnName = projectColumns[columnIndex];
+
+                    // このカラムにあるタスクを確認
+                    const tasksInColumn = tasks.filter(task =>
+                        task.projectId === projectId && task.columnId === columnId
+                    );
+
+                    // タスクがある場合は移動先を選択
+                    if (tasksInColumn.length > 0) {
+                        const availableColumns = projectColumns
+                            .map((name, idx) => ({ idx, name, id: `pj_${projectId}_${idx}` }))
+                            .filter((c) => c.idx !== columnIndex);
+
+                        const moveToColumn = prompt(
+                            `このカラムには${tasksInColumn.length}個のタスクがあります。\n移動先のカラムを選択してください:\n\n${availableColumns.map((c, i) => `${i+1}. ${c.name}`).join('\n')}\n\n移動先の番号を入力してください:`
+                        );
+
+                        if (!moveToColumn) return;
+
+                        const selectedIndex = parseInt(moveToColumn) - 1;
+                        if (selectedIndex >= 0 && selectedIndex < availableColumns.length) {
+                            const targetColumnId = availableColumns[selectedIndex].id;
+
+                            // タスクを移動（Firebaseに保存）
+                            for (const task of tasksInColumn) {
+                                task.columnId = targetColumnId;
+                                if (window.FirebaseDB && task.id) {
+                                    await window.FirebaseDB.updateTask(task.id, { columnId: targetColumnId });
+                                }
+                            }
+                        } else {
+                            alert('無効な選択です');
+                            return;
+                        }
+                    }
+
+                    if (confirm(`カラム「${columnName}」を削除しますか？`)) {
+                        // カラムを削除
+                        projectColumns.splice(columnIndex, 1);
+
+                        // Firebaseに保存
+                        if (window.FirebaseDB && window.FirebaseDB.saveProject) {
+                            const result = await window.FirebaseDB.getProjects();
+                            if (result.success && result.projects) {
+                                const fullProject = result.projects.find(p => p.id === projectId);
+                                if (fullProject) {
+                                    fullProject.columns = projectColumns;
+                                    const saveResult = await window.FirebaseDB.saveProject(fullProject);
+
+                                    if (saveResult.success) {
+                                        console.log('✅ [COLUMN-DELETE] プロジェクトカラム削除成功:', projectId);
+                                        // キャッシュを更新
+                                        await updateProjectsCache();
+                                        render();
+                                    } else {
+                                        console.error('❌ [COLUMN-DELETE] プロジェクト保存失敗:', saveResult.error);
+                                        alert('カラムの削除に失敗しました: ' + saveResult.error);
+                                    }
+                                }
+                            }
+                        } else {
+                            console.error('❌ [COLUMN-DELETE] Firebase未接続');
+                            alert('Firebase未接続のため、カラムを削除できません');
+                        }
+                    }
+                } else {
+                    console.error('❌ [COLUMN-DELETE] 無効なカラムインデックス:', columnIndex);
+                }
+            } else {
+                // デフォルトカラムの削除
+                if (columns.length <= 2) {
+                    alert('最低2つのカラムが必要です');
+                    return;
+                }
+
+                const columnIndex = columns.findIndex(c => c.id === columnId);
+                const columnToDelete = columns[columnIndex];
+                const tasksInColumn = tasks.filter(task => task.columnId === columnId);
+
+                if (tasksInColumn.length > 0) {
+                    const availableColumns = columns.filter(c => c.id !== columnId);
+                    const moveToColumn = prompt(`このカラムには${tasksInColumn.length}個のタスクがあります。\n移動先のカラムを選択してください:\n\n${availableColumns.map((c, i) => `${i+1}. ${c.title} (${c.id})`).join('\n')}\n\n移動先の番号を入力してください:`);
+
+                    if (!moveToColumn) return;
+
+                    const selectedIndex = parseInt(moveToColumn) - 1;
+                    if (selectedIndex >= 0 && selectedIndex < availableColumns.length) {
+                        // タスクを移動
+                        tasksInColumn.forEach(task => {
+                            task.columnId = availableColumns[selectedIndex].id;
+                        });
+                    } else {
+                        alert('無効な選択です');
+                        return;
+                    }
+                }
+
+                if (confirm(`カラム「${columnToDelete.title}」を削除しますか？`)) {
+                    columns.splice(columnIndex, 1);
+                    localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+                    saveTasks();
+                    render();
+                }
             }
         }
         

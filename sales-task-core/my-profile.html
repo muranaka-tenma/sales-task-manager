@@ -205,7 +205,6 @@
 <body>
     <div class="header">
         <h1 class="header-title">👤 マイページ</h1>
-        <button onclick="window.location.href='index-kanban.html'" class="back-btn">← メインに戻る</button>
     </div>
     
     <div class="container">
@@ -228,12 +227,6 @@
                 <div class="action-icon">🔐</div>
                 <div class="action-title">パスワード変更</div>
                 <div class="action-desc">現在のパスワードを変更します</div>
-            </div>
-            
-            <div class="action-card" onclick="window.location.href='index-kanban.html'">
-                <div class="action-icon">🏠</div>
-                <div class="action-title">メイン画面に戻る</div>
-                <div class="action-desc">設定やテンプレートはハンバーガーメニューから</div>
             </div>
         </div>
         
@@ -280,12 +273,6 @@
         <div class="admin-section" id="developer-section" style="display: none;">
             <div class="section-title">⚙️ 開発者機能</div>
             <div class="action-grid">
-                <div class="action-card" onclick="showDevelopmentLog()">
-                    <div class="action-icon">📝</div>
-                    <div class="action-title">機能改善書</div>
-                    <div class="action-desc">要件・改善ログ・開発メモの管理</div>
-                </div>
-                
                 <div class="action-card" onclick="showSystemInfo()">
                     <div class="action-icon">🔧</div>
                     <div class="action-title">システム情報</div>
@@ -306,12 +293,9 @@
                     • メンバー別のパフォーマンス分析<br>
                     • システム状況の監視（サーバー応答時間等）
                 </p>
-                <p style="color: #999; font-size: 0.9rem; margin-bottom: 1.5rem;">
+                <p style="color: #999; font-size: 0.9rem;">
                     ユーザー管理や詳細な統計情報は<br>左上のハンバーガーメニューからアクセスできます
                 </p>
-                <button onclick="window.location.href='index-kanban.html'" style="padding: 0.75rem 2rem; background: var(--theme-color, #026aa7); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem;">
-                    メイン画面に戻る
-                </button>
             </div>
         </div>
     </div>
