@@ -5347,7 +5347,10 @@
             e.preventDefault();
             const dropZone = e.currentTarget;
             dropZone.classList.remove('drag-over');
-            
+
+            // 🔧 draggedTaskのバックアップ（promptForEvidenceでhandleDragEndが呼ばれてnullになる問題に対処）
+            const draggedTaskBackup = draggedTask;
+
             if (draggedTask) {
                 console.log(`🔵 [MAIN] Current task column: ${draggedTask.columnId}, Target: ${columnId}`);
                 console.log(`🔍 [DROP DEBUG] Tasks count BEFORE move: ${tasks.length}`);
@@ -5405,8 +5408,20 @@
                             }
                         }
                         console.log(`🔍 [PJ DEBUG] After all evidence checks - Tasks count: ${tasks.length}`);
+
+                        // 🔧 promptForEvidence後にdraggedTaskがnullになっている場合、バックアップから復元
+                        if (!draggedTask && draggedTaskBackup) {
+                            console.log(`🔧 [FIX] draggedTaskがnullになったのでバックアップから復元`);
+                            draggedTask = draggedTaskBackup;
+                        }
                     }
-                    
+
+                    // 🔧 証憑チェック外でもdraggedTaskがnullになっている場合、バックアップから復元
+                    if (!draggedTask && draggedTaskBackup) {
+                        console.log(`🔧 [FIX] draggedTaskがnullになったのでバックアップから復元（証憑チェック外）`);
+                        draggedTask = draggedTaskBackup;
+                    }
+
                     // Doneカラムに移動する場合、completedAtを記録
                     if (columnId === 'done' && !draggedTask.completedAt) {
                         draggedTask.completedAt = new Date().toISOString();
