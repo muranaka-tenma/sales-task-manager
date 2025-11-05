@@ -5489,14 +5489,24 @@
             if (cachedProjectsData && (Date.now() - cacheTimestamp < CACHE_DURATION)) {
                 const project = cachedProjectsData[projectId];
                 if (project && project.columns && project.columns.length > 0) {
+                    console.log('✅ [GET-COLUMNS] キャッシュからプロジェクトカラム取得:', projectId, '→', project.columns);
                     return project.columns.map((columnTitle, index) => ({
                         id: `pj_${projectId}_${index}`,
                         title: columnTitle,
                         color: ['#667eea', '#f59e0b', '#8b5cf6', '#10b981', '#6c757d'][index % 5]
                     }));
+                } else {
+                    console.warn('⚠️ [GET-COLUMNS] プロジェクトデータが不完全:', projectId, project);
                 }
+            } else {
+                console.warn('⚠️ [GET-COLUMNS] キャッシュ無効または期限切れ:', {
+                    hasCachedData: !!cachedProjectsData,
+                    cacheAge: Date.now() - cacheTimestamp,
+                    cacheDuration: CACHE_DURATION
+                });
             }
 
+            console.log('⚠️ [GET-COLUMNS] デフォルトカラムを返す:', projectId);
             return columns; // デフォルトカラムを使用
         }
 
@@ -5691,6 +5701,7 @@
                 
                 // プロジェクト専用カラムを取得
                 currentColumns = getProjectColumns(selectedProjectFilters[0]);
+                console.log('🎨 [RENDER] プロジェクトカラム取得:', selectedProjectFilters[0], '→', currentColumns.length, '個');
             } else if (selectedAssigneeFilters.length > 0) {
                 // 個人・共通タスクの担当者フィルター（プロジェクトタスクは除外）
                 filteredTasks = tasks.filter(t => {
@@ -5722,9 +5733,9 @@
                     // プロジェクト専用カラムの場合、カラムインデックスでマッピング
                     if (selectedProjectFilters.length > 0 && column.id.startsWith('pj_')) {
                         const columnIndex = parseInt(column.id.split('_')[2]);
-                        const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-                        const project = projectSettings[selectedProjectFilters[0]];
-                        
+                        // 🔥 修正: LocalStorageではなくcachedProjectsDataを使用（Firebaseの最新データ）
+                        const project = cachedProjectsData[selectedProjectFilters[0]];
+
                         if (project && project.columns) {
                             // タスクのcolumnIdが標準カラムの場合は、プロジェクトカラムにマッピング
                             const defaultColumns = ['todo', 'inprogress', 'waiting', 'done', 'trash'];
@@ -7789,14 +7800,14 @@
                     `border: 2px solid ${borderColor}; border-radius: 8px; background: ${bgColor}; transition: all 0.2s; cursor: move; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); height: fit-content; width: 100%; min-width: 320px;`;
                 
                 content += `
-                    <div style="${cardStyle}" 
-                         draggable="true" 
-                         ondragstart="handlePreviewDragStart(event, ${index})" 
-                         ondragend="handleDragEnd(event)"
-                         ondragover="handleDragOver(event)" 
+                    <div style="${cardStyle}"
+                         draggable="true"
+                         ondragstart="handlePreviewDragStart(event, ${index})"
+                         ondragend="handlePreviewDragEnd(event)"
+                         ondragover="handlePreviewDragOver(event)"
                          ondrop="handlePreviewDrop(event, ${index})"
-                         ondragenter="handleDragEnter(event)"
-                         ondragleave="handleDragLeave(event)"
+                         ondragenter="handlePreviewDragEnter(event)"
+                         ondragleave="handlePreviewDragLeave(event)"
                          id="preview-item-${index}">
                         
                         <!-- ドラッグハンドル -->
@@ -8010,24 +8021,24 @@
             event.target.style.opacity = '0.6';
         }
         
-        function handleDragEnd(event) {
+        function handlePreviewDragEnd(event) {
             event.target.style.opacity = '1';
             draggedIndex = -1;
         }
-        
-        function handleDragOver(event) {
+
+        function handlePreviewDragOver(event) {
             event.preventDefault();
             event.dataTransfer.dropEffect = 'move';
         }
-        
-        function handleDragEnter(event) {
+
+        function handlePreviewDragEnter(event) {
             event.preventDefault();
             if (event.target.closest('[id^="preview-item-"]')) {
                 event.target.closest('[id^="preview-item-"]').style.backgroundColor = '#e3f2fd';
             }
         }
-        
-        function handleDragLeave(event) {
+
+        function handlePreviewDragLeave(event) {
             if (event.target.closest('[id^="preview-item-"]')) {
                 const item = event.target.closest('[id^="preview-item-"]');
                 const itemIndex = parseInt(item.id.split('-')[2]);
