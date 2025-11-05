@@ -5364,7 +5364,24 @@
                 }, null, 2));
                 
                 if (draggedTask.columnId !== columnId) {
-                    
+
+                    // 🚫 期限切れチェック：期限切れタスクは移動不可
+                    if (draggedTask.deadline) {
+                        const now = new Date();
+                        const deadline = new Date(draggedTask.deadline);
+                        if (deadline < now) {
+                            alert('⚠️ タスクの期限が切れています。再開する場合は編集から期限を再設定してください。');
+                            console.log(`❌ [DEADLINE] 期限切れタスクの移動をブロック: ${draggedTask.title}, 期限: ${draggedTask.deadline}`);
+                            // ドラッグ状態をリセット
+                            const draggingElement = document.querySelector('.dragging');
+                            if (draggingElement) {
+                                draggingElement.classList.remove('dragging');
+                            }
+                            draggedTask = null;
+                            return;
+                        }
+                    }
+
                     // 🔧 権限チェック：一般ユーザーは自分のタスクのみ移動可能
                     const currentUser = getCurrentUser();
                     if (currentUser.role === 'user') {
