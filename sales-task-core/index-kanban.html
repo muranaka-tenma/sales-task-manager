@@ -2411,12 +2411,54 @@
             return roleNames[role] || role;
         }
         
-        // 🔥 getCurrentUser()はFirebase設定ファイル（firebase-config-auth-fix-20250819-132508.js）で定義されています
-        // window.getCurrentUser() - Firestoreからroleを取得（同期版）
-        // window.getCurrentUserAsync() - Firestoreから最新roleを取得（非同期版）
-        //
-        // ⚠️ index-kanban.htmlでの独自実装は削除しました（循環参照回避）
-        // すべての権限チェックはFirebaseで一元管理されます
+        // Phase 1: 権限取得機能のみ（表示制御なし）
+        function getCurrentUser() {
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (session && session.user) {
+                    // Firebase認証のムラナカ・テンマを邨中天真にマッピング
+                    let displayName = session.user.name;
+                    if (session.user.email === 'muranaka-tenma@terracom.co.jp') {
+                        displayName = '邨中天真';  // 日本名に統一
+                    }
+                    
+                    return {
+                        name: displayName,
+                        email: session.user.email,
+                        role: session.user.role,
+                        isLoggedIn: true
+                    };
+                }
+            } catch (error) {
+                console.error('❌ [GET-USER] セッション取得エラー:', error);
+                localStorage.removeItem('currentSession');
+            }
+            
+            // フォールバック処理
+            try {
+                const user = localStorage.getItem('currentUser');
+                if (user) {
+                    const userName = typeof user === 'string' ? user : JSON.parse(user).name;
+                    if (userName && (userName.includes('邨中天真') || userName.includes('muranaka'))) {
+                        return {
+                            name: '邨中天真',
+                            email: 'muranaka-tenma@terracom.co.jp',
+                            role: 'developer',
+                            isLoggedIn: true
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('ユーザーデータエラー:', error);
+            }
+            
+            return {
+                name: null,
+                email: null,
+                role: null,
+                isLoggedIn: false
+            };
+        }
         
         // 権限チェック関数（共通）
         function hasPermission(requiredRoles) {
@@ -7198,10 +7240,10 @@
             localStorage.setItem('alertSettings', JSON.stringify(settings));
         }
         
-        // 管理者権限チェック（管理者・開発者のみブラックテーマ利用可能）
+        // 管理者権限チェック（管理者のみブラックテーマ利用可能）
         function isAdmin() {
-            const currentUser = window.getCurrentUser();
-            return currentUser.role === 'admin' || currentUser.role === 'developer';
+            // 実際の実装では認証システムと連携
+            return localStorage.getItem('userRole') === 'admin';
         }
         
         function setTheme(themeName, color, secondaryColor, darkColor, lightColor) {
