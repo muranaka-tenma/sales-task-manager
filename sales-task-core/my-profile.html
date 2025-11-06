@@ -299,10 +299,24 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- 🔥 Firebase設定ファイル読み込み（権限管理をFirestoreから取得） -->
+    <script type="module" src="./firebase-config-auth-fix-20250819-132508.js"></script>
+
     <script>
-        // 現在のユーザー情報を取得（メイン画面と同じ関数）
+        // 🔥 getCurrentUser()はFirebase設定ファイルで定義されています
+        // window.getCurrentUser() - Firestoreからroleを取得（同期版）
+        // window.getCurrentUserAsync() - Firestoreから最新roleを取得（非同期版）
+
+        // 互換性のため、ローカル関数として定義（Firebase設定のグローバル関数を呼び出し）
         function getCurrentUser() {
+            // Firebase設定ファイルで定義されたwindow.getCurrentUser()を使用
+            if (typeof window.getCurrentUser === 'function') {
+                return window.getCurrentUser();
+            }
+
+            // フォールバック（Firebase未ロードの場合）
+            console.warn('⚠️ [GET-USER] Firebase設定ファイルが未ロード、フォールバック使用');
             try {
                 const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
                 if (session && session.user) {
