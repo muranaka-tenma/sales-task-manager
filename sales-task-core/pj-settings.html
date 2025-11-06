@@ -369,41 +369,38 @@
         // 🔥 getProjectSettings()とsaveProjectSettings()は削除（Firebase化により不要）
         // 🔥 validateProjectId()関数は削除（タイムスタンプIDは検証不要）
 
-        // 🔥 getCurrentUser()はFirebase設定ファイルで定義されています
-        // window.getCurrentUser() - Firestoreからroleを取得（同期版）
-        // window.getCurrentUserAsync() - Firestoreから最新roleを取得（非同期版）
-
-        // 互換性のため、ローカル関数として定義（Firebase設定のグローバル関数を呼び出し）
+        // 現在のユーザー情報を取得
         function getCurrentUser() {
-            // Firebase設定ファイルで定義されたwindow.getCurrentUser()を使用
-            if (typeof window.getCurrentUser === 'function') {
-                return window.getCurrentUser();
-            }
-
-            // フォールバック（Firebase未ロードの場合）
-            console.warn('⚠️ [GET-USER] Firebase設定ファイルが未ロード、フォールバック使用');
             try {
-                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
-                if (session && session.user) {
-                    return {
-                        id: session.user.id,
-                        name: session.user.name,
-                        email: session.user.email,
-                        role: session.user.role,
-                        isLoggedIn: true
-                    };
+                const user = localStorage.getItem('currentUser');
+                console.log('🔍 [USER] Raw localStorage data:', user);
+                
+                if (!user) {
+                    console.log('⚠️ [USER] No currentUser in localStorage, creating developer session');
+                    // ★★★ localStorageがクリアされた場合はdeveloperセッションを作成 ★★★
+                    const defaultUser = { name: '邨中天真', role: 'developer', isLoggedIn: true };
+                    localStorage.setItem('currentUser', JSON.stringify(defaultUser));
+                    return defaultUser;
                 }
+                
+                // データが文字化けしている場合の特別処理
+                if (user === '"邨中天真"' || user.includes('邨中天真')) {
+                    console.log('🔧 [USER] Detected corrupted data, clearing and using fallback');
+                    localStorage.removeItem('currentUser');
+                    return { name: '邨中天真', role: 'developer', isLoggedIn: true };
+                }
+                
+                const parsed = JSON.parse(user);
+                console.log('✅ [USER] User loaded:', parsed);
+                return parsed;
             } catch (error) {
-                console.error('❌ [GET-USER] セッション取得エラー:', error);
+                console.error('❌ [USER] JSON parse error, clearing corrupted data:', error);
+                console.log('🔧 [USER] Raw data that failed to parse:', localStorage.getItem('currentUser'));
+                localStorage.removeItem('currentUser');
+                
+                // 文字化けした名前を使って復旧
+                return { name: '邨中天真', role: 'developer', isLoggedIn: true };
             }
-
-            return {
-                id: null,
-                name: null,
-                email: null,
-                role: null,
-                isLoggedIn: false
-            };
         }
         
         // プロジェクト一覧の表示

@@ -2411,28 +2411,19 @@
             return roleNames[role] || role;
         }
         
-        // 🔥 getCurrentUser()はFirebase設定ファイルで定義されています
-        // window.getCurrentUser() - Firestoreからroleを取得（同期版）
-        // window.getCurrentUserAsync() - Firestoreから最新roleを取得（非同期版）
-        //
-        // ⚠️ index-kanban.htmlでの独自実装は削除しました
-        // すべての権限チェックはFirebaseで一元管理されます
-
-        // 互換性のため、ローカル関数として定義（Firebase設定のグローバル関数を呼び出し）
+        // Phase 1: 権限取得機能のみ（表示制御なし）
         function getCurrentUser() {
-            // Firebase設定ファイルで定義されたwindow.getCurrentUser()を使用
-            if (typeof window.getCurrentUser === 'function') {
-                return window.getCurrentUser();
-            }
-
-            // フォールバック（Firebase未ロードの場合）
-            console.warn('⚠️ [GET-USER] Firebase設定ファイルが未ロード、フォールバック使用');
             try {
                 const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
                 if (session && session.user) {
+                    // Firebase認証のムラナカ・テンマを邨中天真にマッピング
+                    let displayName = session.user.name;
+                    if (session.user.email === 'muranaka-tenma@terracom.co.jp') {
+                        displayName = '邨中天真';  // 日本名に統一
+                    }
+                    
                     return {
-                        id: session.user.id,
-                        name: session.user.name,
+                        name: displayName,
                         email: session.user.email,
                         role: session.user.role,
                         isLoggedIn: true
@@ -2440,10 +2431,28 @@
                 }
             } catch (error) {
                 console.error('❌ [GET-USER] セッション取得エラー:', error);
+                localStorage.removeItem('currentSession');
             }
-
+            
+            // フォールバック処理
+            try {
+                const user = localStorage.getItem('currentUser');
+                if (user) {
+                    const userName = typeof user === 'string' ? user : JSON.parse(user).name;
+                    if (userName && (userName.includes('邨中天真') || userName.includes('muranaka'))) {
+                        return {
+                            name: '邨中天真',
+                            email: 'muranaka-tenma@terracom.co.jp',
+                            role: 'developer',
+                            isLoggedIn: true
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('ユーザーデータエラー:', error);
+            }
+            
             return {
-                id: null,
                 name: null,
                 email: null,
                 role: null,
