@@ -35,48 +35,96 @@ console.log('🔧 [FIREBASE CONFIG] Firestore設定: リアルタイムリスナ
 console.log('🔥 Firebase完全統合モード - LocalStorage依存削除');
 
 // Firebase認証状態監視
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         console.log('🔐 Firebase認証成功:', user.email);
         window.currentFirebaseUser = user;
-        
-        // セッション情報をローカルストレージに保存（日本名マッピング込み）
-        const displayName = user.email === 'muranaka-tenma@terracom.co.jp' ? '邨中天真' : 
-                           user.displayName || user.email.split('@')[0];
-        
-        const roleMap = {
-            'muranaka-tenma@terracom.co.jp': 'developer',
-            'kato-jun@terracom.co.jp': 'admin',
-            'asahi-keiichi@terracom.co.jp': 'admin',
-            'hanzawa-yuka@terracom.co.jp': 'user',
-            'tamura-wataru@terracom.co.jp': 'user',
-            'hashimoto-yumi@terracom.co.jp': 'user',
-            'fukushima-ami@terracom.co.jp': 'user'
-        };
-        
+
+        // 🔥 Firestoreからユーザーのroleを取得
+        let userRole = 'user';
+        let displayName = user.email === 'muranaka-tenma@terracom.co.jp' ? '邨中天真' :
+                         user.displayName || user.email.split('@')[0];
+
+        try {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                userRole = userData.role || 'user';
+                displayName = user.email === 'muranaka-tenma@terracom.co.jp' ? '邨中天真' :
+                             userData.displayName || userData.name || user.email.split('@')[0];
+
+                console.log('✅ [AUTH] Firestoreからrole取得:', userRole);
+            } else {
+                // Firestoreにユーザー情報がない場合は自動作成
+                console.warn('⚠️ [AUTH] Firestoreにユーザー情報なし。新規作成します:', user.email);
+
+                const roleMap = {
+                    'muranaka-tenma@terracom.co.jp': 'developer',
+                    'kato-jun@terracom.co.jp': 'admin',
+                    'asahi-keiichi@terracom.co.jp': 'admin',
+                    'hanzawa-yuka@terracom.co.jp': 'user',
+                    'tamura-wataru@terracom.co.jp': 'user',
+                    'hashimoto-yumi@terracom.co.jp': 'user',
+                    'fukushima-ami@terracom.co.jp': 'user'
+                };
+
+                userRole = roleMap[user.email] || 'user';
+
+                // Firestoreに新規登録
+                await setDoc(userDocRef, {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: displayName,
+                    role: userRole,
+                    createdAt: new Date().toISOString(),
+                    isActive: true,
+                    isDisabled: false,
+                    isHidden: false
+                });
+
+                console.log('✅ [AUTH] Firestoreにユーザー情報を作成:', user.email, 'role:', userRole);
+            }
+        } catch (error) {
+            console.error('❌ [AUTH] Firestore取得エラー、フォールバック使用:', error);
+
+            // エラー時はハードコードマップを使用
+            const roleMap = {
+                'muranaka-tenma@terracom.co.jp': 'developer',
+                'kato-jun@terracom.co.jp': 'admin',
+                'asahi-keiichi@terracom.co.jp': 'admin',
+                'hanzawa-yuka@terracom.co.jp': 'user',
+                'tamura-wataru@terracom.co.jp': 'user',
+                'hashimoto-yumi@terracom.co.jp': 'user',
+                'fukushima-ami@terracom.co.jp': 'user'
+            };
+
+            userRole = roleMap[user.email] || 'user';
+        }
+
+        // セッション情報をローカルストレージに保存（Firestoreから取得したrole）
         const sessionData = {
             user: {
                 id: user.uid,
                 name: displayName,
                 email: user.email,
-                role: roleMap[user.email] || 'user'
+                role: userRole
             },
             loginTime: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24時間後
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         };
-        
+
         localStorage.setItem('currentSession', JSON.stringify(sessionData));
-        
-        // 接続状態確認
-        console.log('🔍 [FIREBASE DEBUG] 認証後の接続状態:', {
-            uid: user.uid,
+        localStorage.setItem('userRole', userRole); // 🔥 互換性のため（段階的削除予定）
+
+        console.log('✅ [AUTH] セッション情報保存完了:', {
             email: user.email,
-            displayName: displayName,
-            projectId: db.app.options.projectId,
-            timestamp: new Date().toISOString()
+            role: userRole,
+            displayName: displayName
         });
-        
-        // ハンバーガーメニューを更新（診断ボタンも含む）
+
+        // ハンバーガーメニューを更新
         setTimeout(() => {
             if (window.updateHamburgerMenu) {
                 window.updateHamburgerMenu();
@@ -87,8 +135,9 @@ onAuthStateChanged(auth, (user) => {
         console.log('⚠️ Firebase未認証');
         window.currentFirebaseUser = null;
         localStorage.removeItem('currentSession');
-        
-        // ログアウト時もハンバーガーメニューを更新（診断ボタンも含む）
+        localStorage.removeItem('userRole');
+
+        // ログアウト時もハンバーガーメニューを更新
         setTimeout(() => {
             if (window.updateHamburgerMenu) {
                 window.updateHamburgerMenu();
@@ -98,10 +147,27 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// セッション管理 - Firebase専用
+// セッション管理 - Firebase専用（同期版）
 window.getCurrentUser = function() {
+    try {
+        // 🔥 LocalStorageのcurrentSessionから取得（Firestoreが設定）
+        const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+        if (session && session.user) {
+            return {
+                id: session.user.id,
+                name: session.user.name,
+                email: session.user.email,
+                role: session.user.role, // ⚠️ これはFirestoreから取得したroleである必要がある
+                isLoggedIn: true
+            };
+        }
+    } catch (error) {
+        console.error('❌ [GET-USER] セッション取得エラー:', error);
+    }
+
+    // フォールバック：Firebase Auth直接参照
     if (window.currentFirebaseUser) {
-        // 正しい権限マッピング
+        // ⚠️ 旧実装：ハードコードされたroleMap（Firestore移行までの一時的なフォールバック）
         const roleMap = {
             'muranaka-tenma@terracom.co.jp': 'developer',
             'kato-jun@terracom.co.jp': 'admin',
@@ -111,13 +177,13 @@ window.getCurrentUser = function() {
             'hashimoto-yumi@terracom.co.jp': 'user',
             'fukushima-ami@terracom.co.jp': 'user'
         };
-        
+
         const userRole = roleMap[window.currentFirebaseUser.email] || 'user';
-        
+
         // 日本名マッピング
-        const displayName = window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ? 
+        const displayName = window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ?
                            '邨中天真' : window.currentFirebaseUser.email.split('@')[0];
-        
+
         return {
             id: window.currentFirebaseUser.uid,
             name: displayName,
@@ -133,6 +199,91 @@ window.getCurrentUser = function() {
         role: 'guest',
         isLoggedIn: false
     };
+};
+
+// 🔥 NEW: Firestoreからroleを取得する非同期版getCurrentUser
+window.getCurrentUserAsync = async function() {
+    if (!window.currentFirebaseUser) {
+        return {
+            id: null,
+            name: 'ゲスト',
+            email: null,
+            role: 'guest',
+            isLoggedIn: false
+        };
+    }
+
+    try {
+        // Firestoreからユーザー情報を取得
+        const userDoc = await getDoc(doc(db, 'users', window.currentFirebaseUser.uid));
+
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+
+            // 日本名マッピング
+            const displayName = window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ?
+                               '邨中天真' :
+                               userData.displayName ||
+                               userData.name ||
+                               window.currentFirebaseUser.email.split('@')[0];
+
+            const userInfo = {
+                id: window.currentFirebaseUser.uid,
+                name: displayName,
+                email: window.currentFirebaseUser.email,
+                role: userData.role || 'user', // 🔥 FirestoreからRoleを取得
+                isLoggedIn: true,
+                isDisabled: userData.isDisabled || false,
+                isHidden: userData.isHidden || false
+            };
+
+            // 🔥 LocalStorageのcurrentSessionを更新（Firestoreのroleで上書き）
+            const sessionData = {
+                user: {
+                    id: userInfo.id,
+                    name: userInfo.name,
+                    email: userInfo.email,
+                    role: userInfo.role // 🔥 Firestoreから取得したrole
+                },
+                loginTime: new Date().toISOString(),
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+            };
+            localStorage.setItem('currentSession', JSON.stringify(sessionData));
+
+            console.log('✅ [GET-USER-ASYNC] Firestoreからrole取得完了:', userInfo.role);
+            return userInfo;
+        } else {
+            console.warn('⚠️ [GET-USER-ASYNC] Firestoreにユーザー情報が存在しません:', window.currentFirebaseUser.uid);
+
+            // フォールバック：ハードコードされたroleMap
+            const roleMap = {
+                'muranaka-tenma@terracom.co.jp': 'developer',
+                'kato-jun@terracom.co.jp': 'admin',
+                'asahi-keiichi@terracom.co.jp': 'admin',
+                'hanzawa-yuka@terracom.co.jp': 'user',
+                'tamura-wataru@terracom.co.jp': 'user',
+                'hashimoto-yumi@terracom.co.jp': 'user',
+                'fukushima-ami@terracom.co.jp': 'user'
+            };
+
+            const userRole = roleMap[window.currentFirebaseUser.email] || 'user';
+            const displayName = window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ?
+                               '邨中天真' : window.currentFirebaseUser.email.split('@')[0];
+
+            return {
+                id: window.currentFirebaseUser.uid,
+                name: displayName,
+                email: window.currentFirebaseUser.email,
+                role: userRole,
+                isLoggedIn: true
+            };
+        }
+    } catch (error) {
+        console.error('❌ [GET-USER-ASYNC] Firestore取得エラー:', error);
+
+        // エラー時はフォールバック
+        return window.getCurrentUser();
+    }
 };
 
 // 無効化チェック専用関数（別途定義）
