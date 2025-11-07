@@ -1609,13 +1609,13 @@
             <div style="flex: 1; overflow-y: auto; padding: 2rem;">
                 <!-- 設定画面の完璧な「📝 柔軟テキストインポート」機能をここに移植 -->
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <textarea id="import-text" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @田中部長 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @佐藤課長&#10;　資料準備済み（全角スペース）&#10;		会議室予約（タブ）&#10;C社フォローアップ" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
+                    <textarea id="import-text-modal" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @田中部長 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @佐藤課長&#10;　資料準備済み（全角スペース）&#10;		会議室予約（タブ）&#10;C社フォローアップ" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
                     
                     <div style="display: flex; gap: 0.5rem;">
-                        <button onclick="previewImport()" style="flex: 1; padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">👁️ プレビュー</button>
-                        <button onclick="clearImportText()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ クリア</button>
+                        <button onclick="processImportText(true)" style="flex: 1; padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">👁️ プレビュー</button>
+                        <button onclick="document.getElementById('import-text-modal').value = ''; hidePreviewModal();" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ クリア</button>
                         <label for="ocr-file-input" style="padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; display: inline-block;" title="GoogleTODOスクリーンショット対応！領域選択でタスク名・期限を自動ペア化">📸 OCR+タグ機能</label>
-                        <input type="file" id="ocr-file-input" accept="image/*" style="display: none;" onchange="handleOCRFile(this)">
+                        <input type="file" id="ocr-file-input" accept="image/*" style="display: none;" onchange="handleOCRFileModal(this)">
                     </div>
                     
                     <!-- OCR処理状況 -->
@@ -1700,8 +1700,8 @@
                         </div>
                         <div id="preview-content" style="padding: 1rem; max-height: 500px; overflow-y: auto; overflow-x: auto;"></div>
                         <div style="padding: 1rem; border-top: 1px solid #ddd; display: flex; gap: 0.5rem;">
-                            <button onclick="executeImport()" style="flex: 1; padding: 0.75rem; background: #38a169; color: white; border: none; border-radius: 4px; cursor: pointer;">✅ インポート実行</button>
-                            <button onclick="hidePreview()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">キャンセル</button>
+                            <button onclick="executeImportFromModal()" style="flex: 1; padding: 0.75rem; background: #38a169; color: white; border: none; border-radius: 4px; cursor: pointer;">✅ インポート実行</button>
+                            <button onclick="hidePreviewModal()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">キャンセル</button>
                         </div>
                     </div>
                     
@@ -10064,7 +10064,8 @@
             hidePreviewModal();
             // テキストエリアをクリア
             document.getElementById('import-text-modal').value = '';
-            document.getElementById('ocr-file-input-modal').value = '';
+            const ocrInput = document.getElementById('ocr-file-input');
+            if (ocrInput) ocrInput.value = '';
         }
         
         function closeTaskImportModal() {
@@ -10072,7 +10073,15 @@
             hidePreviewModal();
             previewTasksModal = [];
         }
-        
+
+        function hidePreviewModal() {
+            const previewDiv = document.getElementById('import-preview');
+            const contentDiv = document.getElementById('preview-content');
+            if (previewDiv) previewDiv.style.display = 'none';
+            if (contentDiv) contentDiv.innerHTML = '';
+            previewTasksModal = [];
+        }
+
         function processImportText(showPreview) {
             const importText = document.getElementById('import-text-modal').value.trim();
             if (!importText) {
@@ -10432,8 +10441,8 @@
         // 【元の完全な機能を復元】ドラッグ&ドロップ・3列表示・期限編集
         
         function displayLineByLinePreviewModal() {
-            const previewDiv = document.getElementById('import-preview-modal');
-            const contentDiv = document.getElementById('preview-content-modal');
+            const previewDiv = document.getElementById('import-preview');
+            const contentDiv = document.getElementById('preview-content');
             
             if (previewTasksModal.length === 0) {
                 alert('有効なタスクが見つかりませんでした。テキストを確認してください。');
