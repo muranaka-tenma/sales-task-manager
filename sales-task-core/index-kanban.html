@@ -4657,7 +4657,7 @@
         }
         
         // ファイル添付通知関数
-        function sendFileAttachmentNotification(task, attachments) {
+        async function sendFileAttachmentNotification(task, attachments) {
             console.log('📎 [FILE-ATTACH] ファイル添付通知開始:', task.title);
             
             // 非表示タスクの通知抑制チェック
