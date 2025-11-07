@@ -11165,7 +11165,7 @@
         }
         
         // PJタスク移動時の通知機能（Slack対応強化版）
-        function sendPJMoveNotification(task, newColumnId) {
+        async function sendPJMoveNotification(task, newColumnId) {
             try {
                 // 非表示タスクの通知抑制チェック
                 if (task.isHidden) {
