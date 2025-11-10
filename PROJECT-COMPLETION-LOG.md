@@ -30,8 +30,7 @@
 - **コミット**: 239ac07
 
 ### Netlifyサイト
-- **安定版**: https://stellar-biscochitos-e19cb4.netlify.app/ (保護)
-- **テスト版**: https://boisterous-conkies-74a421.netlify.app/ (実験用)
+- **本番URL**: https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/index-kanban.html
 
 ## 🚨 デプロイ設定（絶対に間違えない）
 
@@ -45,7 +44,7 @@
 ### デプロイフロー（時間を無駄にしない）
 1. **ファイル更新**: `sales-task-core/index-kanban.html` に変更を加える
 2. **Git操作**: `git add . && git commit -m "メッセージ" && git push origin main`
-3. **Netlify確認**: 約1-2分でhttps://stellar-biscochitos-e19cb4.netlify.app/index-kanban.html に反映
+3. **Netlify確認**: 約1-2分でhttps://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/index-kanban.html に反映
 
 ### 過去の失敗パターン（二度と繰り返さない）
 - ❌ **ルートディレクトリ**: `index-kanban.html` に変更 → Netlifyに反映されない
@@ -56,7 +55,7 @@
 - **GitHub**: `muranaka-tenma/sales-task-manager` リポジトリ
 - **Netlify**: `stellar-biscochitos-e19cb4` サイト
 - **監視パス**: `sales-task-core/index-kanban.html`
-- **本番URL**: https://stellar-biscochitos-e19cb4.netlify.app/index-kanban.html
+- **本番URL**: https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/index-kanban.html
 
 ### デプロイ確認方法
 1. GitHubにプッシュ後、Netlifyバッジで成功確認
