@@ -1,19 +1,19 @@
 [build]
-  publish = "sales-task-core"
+  publish = "."
 
 [build.environment]
   NODE_VERSION = "18"
 
-# HTMLリダイレクト（ルートアクセス時）
+# ルートアクセス時のリダイレクト
 [[redirects]]
   from = "/"
-  to = "/index-kanban.html"
+  to = "/sales-task-core/index-kanban.html"
   status = 302
 
 # アプリケーションルート
 [[redirects]]
   from = "/app"
-  to = "/index-kanban.html"
+  to = "/sales-task-core/index-kanban.html"
   status = 302
 
 # キャッシュ制御（HTML: キャッシュなし）
