@@ -1,3 +1,0 @@
-# Netlify redirects
-/app /index-kanban.html 200
-/* /index-kanban.html 200
