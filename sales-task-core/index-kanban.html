@@ -6525,9 +6525,29 @@
         // ユーザー名からメールアドレスを取得（Slack通知用）
         function getEmailByUserName(userName) {
             try {
+                console.log(`🔍 [EMAIL-LOOKUP] ユーザー名からメール検索: ${userName}`);
+
+                // 1. グローバル変数activeUsersから検索（最優先）
+                if (window.activeUsers && Array.isArray(window.activeUsers)) {
+                    const user = window.activeUsers.find(u => u.name === userName);
+                    if (user && user.email) {
+                        console.log(`✅ [EMAIL-LOOKUP] activeUsersから取得: ${user.email}`);
+                        return user.email;
+                    }
+                }
+
+                // 2. LocalStorageから検索（フォールバック）
                 const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                 const user = systemUsers.find(u => u.name === userName);
-                return user ? user.email : null;
+                if (user && user.email) {
+                    console.log(`✅ [EMAIL-LOOKUP] LocalStorageから取得: ${user.email}`);
+                    return user.email;
+                }
+
+                console.error(`❌ [EMAIL-LOOKUP] メールアドレスが見つかりません: ${userName}`);
+                console.log(`🔍 [EMAIL-LOOKUP] activeUsers:`, window.activeUsers);
+                console.log(`🔍 [EMAIL-LOOKUP] systemUsers:`, systemUsers);
+                return null;
             } catch (error) {
                 console.error('❌ [EMAIL-LOOKUP] ユーザー情報取得エラー:', error);
                 return null;
