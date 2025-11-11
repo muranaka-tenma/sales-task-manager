@@ -3681,19 +3681,6 @@
                     return;
                 }
 
-                // 🔍 デバッグ: 全プロジェクトの詳細を出力
-                console.log('🔍 [DEBUG] 取得した全プロジェクト:', projects.map(p => ({
-                    id: p.id,
-                    name: p.name,
-                    status: p.status,
-                    visibility: p.visibility,
-                    members: p.members,
-                    createdBy: p.createdBy,
-                    createdAt: p.createdAt
-                })));
-                console.log('🔍 [DEBUG] 生データ（テストPJ）:', projects.find(p => p.name === 'テストPJ'));
-                console.log('🔍 [DEBUG] 現在のユーザー:', currentUser.email);
-
                 // ユーザーがアクセス可能なプロジェクトをフィルタリング
                 const accessibleProjects = projects.filter(project => {
                     // 🔧 下位互換性: statusフィールドが無い古いプロジェクトはactiveとみなす
@@ -3702,9 +3689,6 @@
                     const isMember = project.members && project.members.includes(currentUser.email);
                     const isCreator = project.createdBy === currentUser.email;
                     const accessible = isActive && (isPublic || isMember || isCreator);
-
-                    // 🔍 デバッグ: 各プロジェクトのフィルタリング結果
-                    console.log(`🔍 [DEBUG] ${project.name}: status=${project.status}(active=${isActive}), public=${isPublic}, member=${isMember}, creator=${isCreator} → ${accessible ? '✅表示' : '❌非表示'}`);
 
                     return accessible;
                 });
@@ -5176,7 +5160,13 @@
             console.log('🎨 [EDIT SAVE] About to call render()');
             render();
             console.log('🎨 [EDIT SAVE] render() completed');
-            
+
+            // 🔄 プロジェクトタスク作成時はプロジェクトビューに自動切り替え
+            if (!editingTask && isProjectTask && projectId) {
+                console.log('🔄 [AUTO-SWITCH] プロジェクトビューに自動切り替え:', projectId, projectName);
+                await selectProject(projectId);
+            }
+
             // 編集保存時の通知処理（ファイル添付は既に通知済みなので、コメント通知のみ）
             // 🚫 [無効化] 統合通知システムが既にaddComment内で実行されているため、重複通知を防ぐために無効化
             console.log(`🚫 [SAVE] コメント通知はaddComment()内で実行済み - 重複防止のためスキップ`);
