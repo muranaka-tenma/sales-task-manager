@@ -6828,6 +6828,13 @@
             }
 
             const columnToDelete = columns[index];
+
+            // 🔒 完了カラム（done）は削除不可
+            if (columnToDelete.id === 'done') {
+                alert('⚠️ 完了カラムはシステムで使用されているため削除できません');
+                return;
+            }
+
             const tasksInColumn = tasks.filter(task => task.columnId === columnToDelete.id);
             
             if (tasksInColumn.length > 0) {
