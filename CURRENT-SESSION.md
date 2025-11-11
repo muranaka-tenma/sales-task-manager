@@ -365,7 +365,365 @@ git push origin main
 
 ---
 
-**最終更新**: 2025-11-11 11:30 JST
-**次回セッション**: 2025-11-11（継続中）
+---
+
+# 📅 2025-11-11 セッション進捗
+
+## ✅ 本日完了した作業（優先度順）
+
+### 1. ✅ Firebase ID型不一致バグ修正（commit: ab38d9c）
+**問題**: タスク移動ができない（draggedTaskがundefined）
+**原因**: Firebase IDをクォート化したことで、taskIdが文字列になり数値IDとマッチングに失敗
+**解決策**:
+```javascript
+// 修正前: 厳密比較で型が合わない
+draggedTask = tasks.find(t => t.id === taskId);
+
+// 修正後: 柔軟な比較で文字列/数値両対応
+draggedTask = tasks.find(t => t.id == taskId || t.id === String(taskId) || t.id === Number(taskId));
+```
+**場所**: `index-kanban.html:5247-5248` (handleDragStart), `index-kanban.html:3781-3782` (editTask)
+**結果**: タスクのドラッグ&ドロップが正常に動作
+
+---
+
+### 2. ✅ window.activeUsersのグローバル設定（commit: 3fc793b）
+**問題**: Slack通知でメールアドレスが取得できない（activeUsers: undefined）
+**原因**: `getEmailByUserName()`が`window.activeUsers`をチェックするが、グローバル変数として設定されていなかった
+**解決策**:
+- 初期化時に`window.activeUsers = cachedActiveUsers`を設定
+- Firebase読み込み完了後とフォールバック後の両方で設定
+**場所**: `index-kanban.html:7603-7613`
+**コンソールログ**:
+```
+✅ [INIT] window.activeUsers設定完了: 7人
+✅ [EMAIL-LOOKUP] activeUsersから取得: muranaka-tenma@terracom.co.jp
+```
+**結果**: メールアドレス検索が正常に動作
+
+---
+
+### 3. ✅ Netlify Function経由でSlack通知送信（commit: 3502b4e）
+**問題**: ブラウザからSlack Webhook URLへの直接アクセスがCORSでブロック
+**エラー**:
+```
+Access to fetch at 'https://hooks.slack.com/services/...' has been blocked by CORS policy
+```
+**解決策**:
+- **サーバーサイドプロキシ実装**: `netlify/functions/slack-proxy.js`
+  - POSTリクエストを受け取る
+  - サーバーサイドでSlack APIを呼び出す
+  - CORS制限を完全回避
+- **フロントエンド修正**: `sales-task-core/slack-proxy.js`
+  - Netlify Function (`/.netlify/functions/slack-proxy`) 経由で送信
+  - フォールバックとして no-cors モードも残す
+**netlify.toml**:
+```toml
+[build]
+  publish = "."
+  functions = "netlify/functions"
+```
+**結果**: Slack通知が正常に送信される（#テラチャンネルに投稿確認済み）
+
+---
+
+### 4. ✅ デスクトップ通知の有効化（commit: 1696489）
+**問題**: `showNotification()`でデスクトップ通知が無効化されていた（コメント: "デスクトップ通知は無効化（Slackのみ使用）"）
+**解決策**: ブラウザのNotification APIを使用してデスクトップ通知を再実装
+**場所**: `index-kanban.html:6582-6626`
+**機能**:
+- `Notification.permission === 'granted'` の場合に通知を表示
+- 5秒後に自動で閉じる
+- タスクIDが指定されている場合はクリックでタスク編集モーダルを開く
+- 許可が未設定の場合は自動でリクエスト
+**結果**: デスクトップ通知が送信される（ただしバックグラウンド時のみポップアップ）
+
+---
+
+### 5. ✅ デスクトップ通知テスト関数追加（commit: c4a840d）
+**問題**: 通知が表示されない原因を特定するデバッグ手段が必要
+**解決策**: `testDesktopNotification()`関数をグローバルスコープに公開
+**場所**: `index-kanban.html:6469-6522`
+**使い方**:
+```javascript
+testDesktopNotification()  // コンソールで実行
+```
+**デバッグ情報**:
+- Notification API対応状況
+- 通知許可状態 (granted/denied/default)
+- 通知送信の成功/失敗
+**結果**: 通知APIは正常に動作していることを確認
+
+---
+
+### 6. ✅ トースト通知の実装（commit: 4a135e6）
+**問題**: フォアグラウンドではデスクトップ通知のポップアップが表示されない（ブラウザの仕様）
+**調査結果**:
+- JavaScript側では正常に通知を送信している（`✅ [DESKTOP-NOTIFICATION] デスクトップ通知送信成功`）
+- 通知センターには保存されている
+- しかしポップアップは表示されない（Chrome/Edgeの仕様）
+**解決策**: ページ内トースト通知を実装
+
+**実装内容**:
+- **CSS**: `index-kanban.html:1174-1278`
+  - 画面右上に固定配置
+  - スライドイン/アウトアニメーション
+  - ホバーで左にスライド＆影強調
+- **HTML**: `index-kanban.html:1283`
+  - `<div id="toast-container"></div>`
+- **JavaScript**: `index-kanban.html:6747-6801`
+  - `showToastNotification(title, body, options)`関数
+  - 通知タイプごとにアイコン自動判定（移動:📦、作成:📝、完了:✅、削除:🗑️、コメント:💬）
+  - タスクIDが指定されている場合はクリックでタスク編集
+  - 5秒後に自動で閉じる
+
+**機能**:
+- ✅ 画面右上にスライドイン
+- ✅ 5秒後に自動で消える
+- ✅ ×ボタンで手動で閉じる
+- ✅ クリックでタスク編集モーダルを開く
+- ✅ ホバーで左にスライド＆影が強調
+- ✅ アニメーション付き（スライドイン/アウト）
+- ✅ 通知タイプごとにアイコン自動判定
+
+**ユーザーフィードバック**: "右上いいね！"
+**結果**: フォアグラウンドでも確実に通知が表示される
+
+---
+
+## 🎯 完成した通知システム
+
+### 3種類の通知が並行動作
+1. **Slack通知** → #テラチャンネルに投稿 ✅
+2. **デスクトップ通知** → バックグラウンド時にポップアップ ✅
+3. **トースト通知** → 画面右上に常に表示 ✅
+
+### 通知フロー
+```
+タスク移動/作成
+  ↓
+showNotification(title, body, options)
+  ↓
+  ├─→ showToastNotification() → ページ内トースト表示（常に表示）
+  ├─→ new Notification() → デスクトップ通知（バックグラウンド時のみポップアップ）
+  └─→ sendSlackNotification() → Slack投稿（Netlify Function経由）
+```
+
+---
+
+## ⚠️ 未解決の問題（次回セッション向け）
+
+### 1. 🔴 HIGH: タスクが消える問題
+
+**症状**:
+```
+⚠️ [DUPLICATE-CHECK] 1種類の重複タスクを検出
+✅ [DUPLICATE-CHECK] 2個の重複タスクを自動削除
+🗑️ [DUPLICATE-CHECK] 自動削除: "通知テスト"
+```
+- タスク移動時に正常なタスクが削除される
+- 重複検出システムが誤検知している可能性
+- 「通知テスト」という名前のタスクが2回削除されている
+
+**ユーザーからの報告**:
+- "完了に移すかのアラートは出た。けどいくつかのタスクごと消えた。"
+- 移動後に別タスクを作成したら正常に動作した
+
+**調査ポイント**:
+- `index-kanban.html:2732` - `定期重複チェック`関数
+- どのような条件で重複と判定しているか
+- Firebase IDの同一性チェックが正しく動作しているか
+- なぜ同じタスクが2回削除されるのか
+
+**次のステップ**:
+1. 重複検出ロジックを確認（2732行目付近）
+2. 削除条件を厳格化（Firebase IDで厳密に判定）
+3. 削除前に詳細ログを出力（どのフィールドで重複判定したか）
+4. テストケースを作成して再現
+
+---
+
+### 2. 🟡 MEDIUM: パフォーマンス問題
+
+**症状**:
+```
+[Violation] 'drop' handler took 2574ms
+[Violation] 'drop' handler took 1871ms
+```
+- タスク移動に2.5秒かかる
+- UIがブロックされて重い
+- ユーザー体験が悪化
+
+**ユーザーからの報告**:
+- "移動の動きが非常に重い"
+
+**原因の可能性**:
+- Firebase保存が同期的に実行されている
+- `saveTasks()`が完了するまでUIがブロック
+- `handleDrop()`内で複数のFirebase操作が直列実行
+- 不要な`render()`が複数回実行されている
+
+**調査ポイント**:
+- `index-kanban.html:5273` - `handleDrop()`関数
+- `index-kanban.html:6380` - `saveTasks()`関数
+- Firebase操作の非同期処理
+- `render()`の呼び出し回数
+
+**次のステップ**:
+1. Firebase保存を非同期化（`await saveTasks()`を削除）
+2. UI更新を先に実行、保存は後で実行
+3. 楽観的UI更新（Optimistic UI）を実装
+4. `render()`の呼び出しを最小化
+
+---
+
+### 3. 🟢 LOW: systemUsersのname未定義問題
+
+**症状**:
+```
+🧑‍💼 undefined (tamura-wataru@terracom.co.jp) - user
+🧑‍💼 undefined (hanzawa-yuka@terracom.co.jp) - user
+🧑‍💼 undefined (asahi-keiichi@terracom.co.jp) - user
+🧑‍💼 undefined (kato-jun@terracom.co.jp) - user
+👨‍💻 undefined (muranaka-tenma@terracom.co.jp) - developer
+```
+- LocalStorageのsystemUsersで一部ユーザーのnameがundefined
+- 通知のフォールバック機能に影響（メールアドレスは取得できるが名前が表示されない）
+
+**調査ポイント**:
+- ユーザーデータの初期化処理
+- Firebaseとの同期処理
+- なぜ一部ユーザーだけnameがundefinedなのか
+
+**次のステップ**:
+1. Firebaseからユーザーデータを再同期
+2. undefined nameを持つユーザーを修正
+3. 初期化処理でnameが必須になるようバリデーション追加
+
+---
+
+## 📊 コミット履歴（2025-11-11）
+
+| コミット | 内容 | ファイル | 時刻 |
+|---------|------|----------|------|
+| ab38d9c | fix: Firebase ID型柔軟性向上（タスク移動修正） | index-kanban.html | 午後 |
+| 3fc793b | fix: window.activeUsersをグローバル設定（Slack通知修正） | index-kanban.html | 午後 |
+| 3502b4e | feat: Netlify Function経由でSlack通知（CORS回避） | netlify/functions/slack-proxy.js, slack-proxy.js, netlify.toml | 午後 |
+| 1696489 | feat: デスクトップ通知を有効化 | index-kanban.html | 午後 |
+| c4a840d | feat: デスクトップ通知テスト関数追加 | index-kanban.html | 午後 |
+| 4a135e6 | feat: ページ内トースト通知実装（フォアグラウンド対応） | index-kanban.html | 午後 |
+
+---
+
+## 🔧 デバッグ用コマンド（追加）
+
+### トースト通知テスト
+```javascript
+showToastNotification('🔔 テスト通知', 'これはテストです', {});
+```
+
+### デスクトップ通知テスト
+```javascript
+testDesktopNotification()
+```
+
+### Slack通知テスト
+```javascript
+testSlackNotification()
+```
+
+### 通知許可状態確認
+```javascript
+console.log('Notification permission:', Notification.permission);
+console.log('Notification support:', 'Notification' in window);
+console.log('window.activeUsers:', window.activeUsers);
+```
+
+### 重複チェックのログ確認
+```javascript
+// コンソールで自動的に出力される
+// 🔍 [DUPLICATE-CHECK] で検索
+```
+
+---
+
+## 💡 技術メモ（追加）
+
+### ブラウザ通知の仕様（詳細）
+- **フォアグラウンド（アクティブなタブ）**:
+  - `new Notification()` は成功する
+  - 通知センターには保存される
+  - しかしポップアップは表示されない（Chrome/Edgeの仕様）
+  - 理由: ユーザーが既にページを見ているので邪魔なポップアップは不要
+- **バックグラウンド（非アクティブなタブ）**:
+  - 通知センター＋ポップアップが表示される
+  - これが本来のデスクトップ通知の動作
+- **解決策**: ページ内トースト通知で補完
+
+### CORS問題とNetlify Functions
+- Slack Webhook URLはブラウザから直接呼び出せない（CORSヘッダーなし）
+- Netlify Functionsでサーバーサイドプロキシを実装して解決
+- フォールバックとして no-cors モードも残す（成功/失敗は判定不可）
+- `/.netlify/functions/slack-proxy` エンドポイントで受け取る
+
+### Firebase ID型の問題（詳細）
+- HTMLの`ondragstart`属性で渡すとすべて文字列になる
+- 例: `ondragstart="handleDragStart(event, '${task.id}')"`
+- task.idが数値1762851477705でも、taskIdは文字列'1762851477705'になる
+- 厳密比較 `===` では型が合わないため失敗
+- 解決策: 柔軟な比較 `==` または型変換で対応
+
+---
+
+## 🎯 明日の作業予定（優先度順）
+
+### Priority 1: タスク消失問題の修正（1時間）
+1. 重複検出ロジックの調査（2732行目付近を読む）
+2. 削除条件を厳格化（Firebase IDで厳密に判定）
+3. 削除前に詳細ログを追加
+4. テストケースを作成して再現・修正確認
+
+### Priority 2: パフォーマンス改善（1時間）
+1. `handleDrop()`のプロファイリング
+2. Firebase保存の非同期化
+3. 楽観的UI更新の実装
+4. `render()`呼び出しの最適化
+
+### Priority 3: データ整合性（30分）
+1. systemUsersのname未定義問題の修正
+2. Firebase同期処理の確認
+
+### Priority 4: 前セッションからの継続タスク
+- toggleTaskSkipModal削除（5分） - index-kanban.html:12865
+- タスク作成モーダルの「個人タスク」削除（10分）
+- その他18項目のタスク（上記セクション参照）
+
+---
+
+## 📁 追加された重要ファイル
+
+### Netlify Functions
+- `netlify/functions/slack-proxy.js` - Slack通知プロキシ（サーバーサイド） **NEW**
+
+### 設定ファイル
+- `netlify.toml` - Netlify Functions設定追加 **UPDATED**
+
+---
+
+## 🚨 次回セッション開始時の手順（更新）
+
+1. **このファイルを読む** ← 絶対に最初
+2. **「2025-11-11 セッション進捗」セクションを確認**
+3. **「⚠️ 未解決の問題」を確認**
+4. **ユーザーに確認**：
+   - タスク消失問題から着手するか
+   - パフォーマンス改善を優先するか
+   - 他のタスクを先にやるか
+5. **作業開始**
+
+---
+
+**最終更新**: 2025-11-11 20:45 JST
+**次回セッション**: 2025-11-12
 **作成者**: Claude Code
 **更新者**: Claude Code（適応型委任オーケストレーター with BlueLamp統合認証システム）
