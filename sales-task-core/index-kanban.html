@@ -7600,10 +7600,17 @@
                 await loadActiveUsersFromFirebase();
                 console.log('✅ [INIT] ユーザーデータ読み込み完了');
 
+                // 🔧 グローバル変数にactiveUsersを設定（Slack通知のメールアドレス検索用）
+                window.activeUsers = cachedActiveUsers;
+                console.log(`✅ [INIT] window.activeUsers設定完了: ${window.activeUsers.length}人`);
+
                 // フォールバック: localStorage初期化（Firebaseエラー時のみ実行）
                 if (!usersCacheLoaded) {
                     console.warn('⚠️ [INIT] Firebase読み込み失敗 - localStorage初期化実行');
                     initializeUserDatabase();
+                    // 🔧 フォールバック時もグローバル変数を設定
+                    window.activeUsers = cachedActiveUsers;
+                    console.log(`✅ [INIT] window.activeUsers設定完了（fallback）: ${window.activeUsers.length}人`);
                 }
 
                 // 既存プロジェクトのFirebase移行チェック
