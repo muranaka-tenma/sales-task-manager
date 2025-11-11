@@ -299,7 +299,10 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- Firebase SDK読み込み -->
+    <script type="module" src="firebase-config.js"></script>
+
     <script>
         // 現在のユーザー情報を取得（メイン画面と同じ関数）
         function getCurrentUser() {
@@ -519,39 +522,75 @@
         }
         
         // パスワード変更
-        function changePassword() {
+        async function changePassword() {
             const currentUser = checkAuthentication();
             if (!currentUser) return;
-            
+
             const currentPassword = prompt('現在のパスワードを入力してください:');
             if (!currentPassword) return;
-            
-            // 現在のパスワード確認
-            const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-            const user = users.find(u => u.email === currentUser.email);
-            
-            if (!user || user.password !== currentPassword) {
-                alert('現在のパスワードが正しくありません');
-                return;
-            }
-            
+
             const newPassword = prompt('新しいパスワードを入力してください:');
             if (!newPassword || newPassword.length < 4) {
                 alert('パスワードは4文字以上で入力してください');
                 return;
             }
-            
+
             const confirmPassword = prompt('新しいパスワードを再度入力してください:');
             if (newPassword !== confirmPassword) {
                 alert('パスワードが一致しません');
                 return;
             }
-            
-            // パスワード更新
-            user.password = newPassword;
-            localStorage.setItem('systemUsers', JSON.stringify(users));
-            
-            alert('パスワードが正常に変更されました');
+
+            // Firebase認証のパスワード更新を試行
+            try {
+                if (window.FirebaseAuth && window.FirebaseAuth.updatePassword) {
+                    console.log('🔐 Firebase パスワード更新を開始...');
+                    const result = await window.FirebaseAuth.updatePassword(currentPassword, newPassword);
+
+                    if (result.success) {
+                        // Firebaseパスワード更新成功 → LocalStorageも同期
+                        console.log('✅ Firebase パスワード更新成功');
+
+                        // LocalStorageのsystemUsersも同期更新
+                        const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                        const user = users.find(u => u.email === currentUser.email);
+                        if (user) {
+                            user.password = newPassword;
+                            localStorage.setItem('systemUsers', JSON.stringify(users));
+                            console.log('✅ LocalStorage パスワードも同期更新');
+                        }
+
+                        alert('✅ パスワードが正常に変更されました');
+                    } else {
+                        // Firebase更新失敗 → エラー表示
+                        console.error('❌ Firebase パスワード更新失敗:', result.error);
+
+                        if (result.error.includes('wrong-password') || result.error.includes('invalid-credential')) {
+                            alert('❌ 現在のパスワードが正しくありません');
+                        } else {
+                            alert('❌ パスワード変更に失敗しました: ' + result.error);
+                        }
+                    }
+                } else {
+                    // Firebaseが利用できない場合はLocalStorageのみ更新（フォールバック）
+                    console.warn('⚠️ Firebase未初期化、LocalStorageのみ更新します');
+
+                    const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                    const user = users.find(u => u.email === currentUser.email);
+
+                    if (!user || user.password !== currentPassword) {
+                        alert('現在のパスワードが正しくありません');
+                        return;
+                    }
+
+                    user.password = newPassword;
+                    localStorage.setItem('systemUsers', JSON.stringify(users));
+                    alert('⚠️ パスワードが変更されました（LocalStorageのみ）\n次回ログイン時はFirebaseパスワードをご使用ください');
+                }
+            } catch (error) {
+                console.error('❌ パスワード変更エラー:', error);
+                alert('❌ パスワード変更中にエラーが発生しました');
+            }
         }
         
         // 機能改善書表示（開発者専用）

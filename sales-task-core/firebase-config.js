@@ -5,7 +5,7 @@
 
 // Firebase SDKのインポート（CDN版）
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, orderBy, getDocs } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 // Firebase設定
@@ -111,6 +111,30 @@ window.FirebaseAuth = {
   // 現在のユーザー取得
   getCurrentUser: () => {
     return auth.currentUser;
+  },
+
+  // パスワード変更
+  updatePassword: async (currentPassword, newPassword) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('ログインしていません');
+      }
+
+      // 再認証（セキュリティのため現在のパスワード確認）
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      console.log('✅ 再認証成功');
+
+      // パスワード更新
+      await updatePassword(user, newPassword);
+      console.log('✅ Firebase パスワード更新成功:', user.email);
+
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Firebase パスワード更新エラー:', error.message);
+      return { success: false, error: error.message };
+    }
   }
 };
 
