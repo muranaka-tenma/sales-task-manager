@@ -3,3 +3,9 @@ node_modules
 # Local Netlify folder
 .netlify
 .netlify/
+
+# E2E Test
+.env
+playwright-report/
+test-results/
+playwright/.cache/

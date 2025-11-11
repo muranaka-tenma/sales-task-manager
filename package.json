@@ -1,5 +1,15 @@
 {
+  "name": "sales-task-manager-e2e",
+  "version": "1.0.0",
+  "description": "E2E tests for Sales Task Manager",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:headed": "playwright test --headed"
+  },
   "devDependencies": {
-    "netlify-cli": "^23.9.1"
+    "netlify-cli": "^23.9.1",
+    "@playwright/test": "^1.40.0"
   }
 }
