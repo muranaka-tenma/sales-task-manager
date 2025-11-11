@@ -5856,11 +5856,11 @@
             ` : '';
             
             return `
-                <div class="${cardClass}" 
+                <div class="${cardClass}"
                      draggable="${!isBulkMode}"
                      ${!isBulkMode ? `ondragstart="handleDragStart(event, ${task.id})" ondragend="handleDragEnd(event)"` : ''}
                      onclick="${isBulkMode ? `toggleTaskSelection(${task.id})` : `editTask(${task.id})`}"
-                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : 'move'}; ${isStale ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
+                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : 'move'}; ${isOverdueTask ? 'border-left: 4px solid #dc2626 !important; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3) !important;' : ''}${isStale && !isOverdueTask ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
                      title="${isOverdueTask ? '🚨 期限切れタスクです' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
                     ${checkboxHtml}
                     <div class="task-title">
