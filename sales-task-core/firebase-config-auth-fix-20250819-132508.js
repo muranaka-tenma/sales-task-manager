@@ -365,6 +365,42 @@ window.FirebaseDB = {
         }
     },
 
+    // 🔧 既存プロジェクトにstatusフィールドを追加（下位互換性対応）
+    async fixProjectStatus() {
+        try {
+            const user = window.getCurrentUser();
+            if (!user) {
+                return { success: false, error: '認証が必要です' };
+            }
+
+            console.log('🔧 [FIREBASE] プロジェクトstatus移行開始...');
+            const projectsRef = collection(db, 'projects');
+            const snapshot = await getDocs(projectsRef);
+
+            let fixedCount = 0;
+            for (const docSnap of snapshot.docs) {
+                const data = docSnap.data();
+
+                // statusフィールドが存在しない場合、activeを追加
+                if (!data.status) {
+                    const updates = {
+                        status: 'active',
+                        updatedAt: new Date().toISOString()
+                    };
+                    await updateDoc(doc(db, 'projects', docSnap.id), updates);
+                    console.log(`✅ [FIREBASE] status追加: ${data.name} → active`);
+                    fixedCount++;
+                }
+            }
+
+            console.log(`🎉 [FIREBASE] プロジェクトstatus移行完了: ${fixedCount}件`);
+            return { success: true, fixedCount };
+        } catch (error) {
+            console.error('❌ [FIREBASE] プロジェクトstatus移行エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
     async saveProject(project) {
         try {
             const user = window.getCurrentUser();
