@@ -6445,7 +6445,21 @@
         
         // Slack通知機能初期化
         function initializeSlackNotification() {
-            // 初期化時の自動テスト通知は無効化
+            // 🔔 デスクトップ通知許可をリクエスト
+            if ('Notification' in window && Notification.permission === 'default') {
+                console.log('🔔 [INIT] デスクトップ通知許可をリクエスト中...');
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log('✅ [INIT] デスクトップ通知許可が承認されました');
+                    } else {
+                        console.log('❌ [INIT] デスクトップ通知許可が拒否されました');
+                    }
+                });
+            } else if ('Notification' in window && Notification.permission === 'granted') {
+                console.log('✅ [INIT] デスクトップ通知は既に許可されています');
+            } else if (!('Notification' in window)) {
+                console.log('❌ [INIT] ブラウザが通知APIに対応していません');
+            }
         }
         
         // FCM削除: Firebase Cloud Messaging機能を完全削除
@@ -6576,10 +6590,55 @@
                     return;
                 }
             }
-            
-            // デスクトップ通知は無効化（Slackのみ使用）
-            console.log(`🔔 [SLACK-NOTIFICATION] ${title}: ${body}`);
-            
+
+            console.log(`🔔 [NOTIFICATION] ${title}: ${body}`);
+
+            // 🔧 デスクトップ通知を送信（ブラウザのNotification API）
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    const notification = new Notification(title, {
+                        body: body,
+                        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50">🔔</text></svg>',
+                        requireInteraction: false,
+                        tag: options.tag || `notification-${Date.now()}`,
+                        ...options
+                    });
+
+                    // 5秒後に自動で通知を閉じる
+                    setTimeout(() => {
+                        notification.close();
+                    }, 5000);
+
+                    // タスクIDが指定されている場合はクリックでそのタスクを開く
+                    if (options.taskId) {
+                        notification.onclick = function() {
+                            window.focus();
+                            editTask(options.taskId);
+                            notification.close();
+                        };
+                    }
+
+                    console.log(`✅ [DESKTOP-NOTIFICATION] デスクトップ通知送信成功: ${title}`);
+                } catch (error) {
+                    console.error('❌ [DESKTOP-NOTIFICATION] デスクトップ通知送信失敗:', error);
+                }
+            } else if ('Notification' in window && Notification.permission === 'default') {
+                console.log(`⚠️ [DESKTOP-NOTIFICATION] 通知許可が未設定 - 許可を要求します`);
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log(`✅ [DESKTOP-NOTIFICATION] 通知許可が承認されました`);
+                        // 再帰的に通知を表示
+                        showNotification(title, body, options);
+                    } else {
+                        console.log(`❌ [DESKTOP-NOTIFICATION] 通知許可が拒否されました`);
+                    }
+                });
+            } else if (!('Notification' in window)) {
+                console.log(`❌ [DESKTOP-NOTIFICATION] ブラウザが通知APIに対応していません`);
+            } else {
+                console.log(`❌ [DESKTOP-NOTIFICATION] 通知許可が拒否されています (permission: ${Notification.permission})`);
+            }
+
             // 【Slack通知】対象ユーザーがいる場合は自動的にSlack通知を送信
             if (options.targetUser || options.targetEmail) {
                 console.log(`🔔 [SLACK-AUTO] Slack通知自動実行: ${title}`);
