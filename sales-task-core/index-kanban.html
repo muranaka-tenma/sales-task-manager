@@ -1170,9 +1170,118 @@
             cursor: pointer;
             user-select: none;
         }
+
+        /* トースト通知スタイル */
+        #toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            min-width: 300px;
+            max-width: 400px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+            padding: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+            pointer-events: auto;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .toast:hover {
+            transform: translateX(-4px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05);
+        }
+
+        .toast.toast-hiding {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+
+        .toast-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        .toast-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #172b4d;
+            margin-bottom: 4px;
+        }
+
+        .toast-body {
+            font-size: 13px;
+            color: #5e6c84;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: #5e6c84;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: color 0.2s;
+        }
+
+        .toast-close:hover {
+            color: #172b4d;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- トースト通知コンテナ -->
+    <div id="toast-container"></div>
+
     <div class="header">
         <div style="display: flex; align-items: center; gap: 1rem;">
             <!-- ハンバーガーメニューボタン -->
@@ -6634,6 +6743,63 @@
 
         // テスト関数は削除済み（Slack通知テストページを使用）
 
+        // 🔔 トースト通知を表示する関数（ページ内通知）
+        function showToastNotification(title, body, options = {}) {
+            const container = document.getElementById('toast-container');
+            if (!container) {
+                console.error('❌ [TOAST] トーストコンテナが見つかりません');
+                return;
+            }
+
+            // トースト要素を作成
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+
+            // アイコンを決定
+            let icon = '🔔';
+            if (title.includes('📦') || title.includes('移動')) icon = '📦';
+            else if (title.includes('📝') || title.includes('作成')) icon = '📝';
+            else if (title.includes('✅') || title.includes('完了')) icon = '✅';
+            else if (title.includes('🗑️') || title.includes('削除')) icon = '🗑️';
+            else if (title.includes('💬') || title.includes('コメント')) icon = '💬';
+
+            // タイトルからアイコンを除去
+            const cleanTitle = title.replace(/[📦📝✅🗑️💬🔔]/g, '').trim();
+
+            toast.innerHTML = `
+                <div class="toast-icon">${icon}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${cleanTitle}</div>
+                    <div class="toast-body">${body}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+
+            // タスクIDが指定されている場合はクリックでタスクを開く
+            if (options.taskId) {
+                toast.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('toast-close')) return;
+                    editTask(options.taskId);
+                    toast.remove();
+                });
+            }
+
+            // コンテナに追加
+            container.appendChild(toast);
+
+            // 5秒後に自動で削除
+            setTimeout(() => {
+                toast.classList.add('toast-hiding');
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.remove();
+                    }
+                }, 300); // アニメーション時間
+            }, 5000);
+
+            console.log(`✅ [TOAST] トースト通知表示: ${title}`);
+        }
+
         async function showNotification(title, body, options = {}) {
             // 非表示タスクの通知抑制チェック
             if (options.taskId && options.isHiddenTask) {
@@ -6651,6 +6817,9 @@
             }
 
             console.log(`🔔 [NOTIFICATION] ${title}: ${body}`);
+
+            // 🔔 トースト通知を常に表示（ページ内通知 - フォアグラウンドでも確実に表示）
+            showToastNotification(title, body, options);
 
             // 🔧 デスクトップ通知を送信（ブラウザのNotification API）
             if ('Notification' in window && Notification.permission === 'granted') {
