@@ -167,38 +167,44 @@ class SlackNotificationService {
         }
 
         // Webhook URLの妥当性チェック
-        if (webhookUrl === 'ここに新しいWebhook URLを貼り付けてください' || 
+        if (webhookUrl === 'ここに新しいWebhook URLを貼り付けてください' ||
             webhookUrl === 'WEBHOOK_URL_NOT_SET') {
             console.error('❌ [SLACK] Webhook URLが設定されていません（プレースホルダーのまま）');
             return false;
         }
 
+        // 🔧 Netlify Function経由で送信（CORS制限を回避）
         try {
-            // まずCORSモードで試行（正確なエラー情報を取得するため）
-            const response = await fetch(webhookUrl, {
+            console.log('🔔 [SLACK] Netlify Function経由で送信開始...');
+            const response = await fetch('/.netlify/functions/slack-proxy', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(message),
-                mode: 'cors'  // 詳細なレスポンス情報を取得
+                body: JSON.stringify({
+                    webhookUrl: webhookUrl,
+                    message: message
+                })
             });
 
-            if (response.ok) {
-                console.log('✅ [SLACK] 直接送信成功（CORS）');
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                console.log('✅ [SLACK] Netlify Function経由で送信成功');
                 return true;
             } else {
-                console.error(`❌ [SLACK] 直接送信失敗（CORS）: ${response.status} ${response.statusText}`);
+                console.error('❌ [SLACK] Netlify Function送信失敗:', result);
                 if (response.status === 404) {
                     console.error('❌ [SLACK] Webhook URLが無効です（404）- 新しいURLが必要です');
                 }
                 return false;
             }
-        } catch (corsError) {
-            console.warn('⚠️ [SLACK] CORS制限により詳細情報取得失敗、no-corsで再試行');
-            
-            // CORSエラーの場合はno-corsで再試行（フォールバック）
+        } catch (functionError) {
+            console.warn('⚠️ [SLACK] Netlify Function送信失敗、フォールバック試行:', functionError);
+
+            // フォールバック: no-corsモードで直接送信を試行
             try {
+                console.log('🔄 [SLACK] フォールバック: no-corsモードで直接送信...');
                 const response = await fetch(webhookUrl, {
                     method: 'POST',
                     headers: {
@@ -207,7 +213,7 @@ class SlackNotificationService {
                     body: JSON.stringify(message),
                     mode: 'no-cors'
                 });
-                
+
                 // no-corsでは詳細なレスポンスが取得できないため、
                 // エラーが投げられなければ成功の可能性あり（但し保証はなし）
                 console.warn('⚠️ [SLACK] no-cors送信完了（成功/失敗の判定不可）');
