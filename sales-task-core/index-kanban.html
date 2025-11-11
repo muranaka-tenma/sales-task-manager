@@ -3777,7 +3777,8 @@
         }
         
         async function editTask(taskId) {
-            editingTask = tasks.find(t => t.id === taskId);
+            // 🔧 型変換：文字列/数値どちらでも検索できるようにする
+            editingTask = tasks.find(t => t.id == taskId || t.id === String(taskId) || t.id === Number(taskId));
             if (!editingTask) return;
 
             // 権限チェック：一般ユーザーは自分のタスクのみ編集可能
@@ -5241,10 +5242,14 @@
             console.log(`🟢 [MAIN] handleDragStart called with taskId: ${taskId}`);
             console.log(`🟢 [MAIN] All tasks:`, tasks);
             console.log(`🟢 [MAIN] isBulkMode: ${isBulkMode}`);
-            draggedTask = tasks.find(t => t.id === taskId);
+
+            // 🔧 型変換：文字列/数値どちらでも検索できるようにする
+            draggedTask = tasks.find(t => t.id == taskId || t.id === String(taskId) || t.id === Number(taskId));
             console.log(`🟢 [MAIN] Found draggedTask:`, draggedTask);
             if (!draggedTask) {
                 console.error(`❌ [MAIN] draggedTask not found for taskId: ${taskId}`);
+                console.error(`❌ [MAIN] taskId type: ${typeof taskId}, value: ${taskId}`);
+                console.error(`❌ [MAIN] Available task IDs:`, tasks.map(t => ({id: t.id, type: typeof t.id})));
                 return false;
             }
             
