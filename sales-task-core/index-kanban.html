@@ -5296,8 +5296,48 @@
                 
                 if (draggedTask.columnId !== columnId) {
 
-                    // 🚫 期限切れチェック：期限切れタスクは移動不可
-                    if (draggedTask.deadline) {
+                    // ✅ DONEカラムへの移動時は確認アラート
+                    if (columnId === 'done') {
+                        const confirmComplete = confirm(
+                            `✅ タスクを完了にしますか？\n\n` +
+                            `「${draggedTask.title}」`
+                        );
+                        if (!confirmComplete) {
+                            console.log(`❌ [DONE] ユーザーが完了をキャンセル: ${draggedTask.title}`);
+                            // ドラッグ状態をリセット
+                            const draggingElement = document.querySelector('.dragging');
+                            if (draggingElement) {
+                                draggingElement.classList.remove('dragging');
+                            }
+                            draggedTask = null;
+                            return;
+                        }
+                    }
+
+                    // 🗑️ ゴミ箱カラムへの移動時は確認アラート
+                    if (columnId === 'trash') {
+                        const confirmTrash = confirm(
+                            `🗑️ タスクをゴミ箱に移動しますか？\n\n` +
+                            `「${draggedTask.title}」\n\n` +
+                            `※ ゴミ箱からドラッグ&ドロップで復元可能です\n` +
+                            `※ ゴミ箱で180日経過後に自動完全削除されます`
+                        );
+                        if (!confirmTrash) {
+                            console.log(`❌ [TRASH] ユーザーがゴミ箱移動をキャンセル: ${draggedTask.title}`);
+                            // ドラッグ状態をリセット
+                            const draggingElement = document.querySelector('.dragging');
+                            if (draggingElement) {
+                                draggingElement.classList.remove('dragging');
+                            }
+                            draggedTask = null;
+                            return;
+                        }
+                        // ゴミ箱移動時にdeletedAtを記録
+                        draggedTask.deletedAt = new Date().toISOString();
+                    }
+
+                    // 🚫 期限切れチェック：期限切れタスクは移動不可（DONEへの移動は例外）
+                    if (columnId !== 'done' && draggedTask.deadline) {
                         const now = new Date();
                         const deadline = new Date(draggedTask.deadline);
                         if (deadline < now) {
@@ -5387,6 +5427,17 @@
                         if (taskIndex !== -1) {
                             tasks[taskIndex].completedAt = null;
                         }
+                    }
+
+                    // ゴミ箱から復元する場合、deletedAtをクリア
+                    if (draggedTask.columnId === 'trash' && columnId !== 'trash') {
+                        draggedTask.deletedAt = null;
+                        // 🔧 tasks配列内も更新
+                        const taskIndex = tasks.findIndex(t => t.id === draggedTask.id);
+                        if (taskIndex !== -1) {
+                            tasks[taskIndex].deletedAt = null;
+                        }
+                        console.log(`♻️ [RESTORE] ゴミ箱から復元: ${draggedTask.title}`);
                     }
                     
                     console.log(`🔍 [DROP DEBUG] Before column change - Tasks count: ${tasks.length}`);
