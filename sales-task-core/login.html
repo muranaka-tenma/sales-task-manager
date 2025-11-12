@@ -313,12 +313,17 @@
                         const correctUser = systemUsers.find(u => u.email === email);
                         
                         if (correctUser) {
-                            console.log('✅ [LOGIN] systemUsersで正しいユーザー発見:', correctUser.name, correctUser.role);
-                            
+                            // 🔧 修正: correctUser.nameがundefinedの場合のフォールバック
+                            const userName = correctUser.name ||
+                                           userInfo.user?.displayName ||
+                                           userInfo.user?.name ||
+                                           email.split('@')[0];
+                            console.log('✅ [LOGIN] systemUsersで正しいユーザー発見:', userName, correctUser.role);
+
                             // 正しいユーザー情報でセッションを設定
                             const sessionData = {
                                 id: correctUser.id,
-                                name: correctUser.name,
+                                name: userName,  // 🔧 修正: フォールバック適用後のuserNameを使用
                                 email: correctUser.email,
                                 role: correctUser.role,
                                 department: correctUser.department
@@ -339,8 +344,13 @@
                         }
                         
                         showLoading(false);
-                        showSuccess(`ようこそ、${correctUser ? correctUser.name : email.split('@')[0]}さん！`);
-                        
+                        // 🔧 修正: correctUser.nameがundefinedの場合のフォールバック追加
+                        const displayName = (correctUser && correctUser.name) ||
+                                          userInfo.user?.displayName ||
+                                          userInfo.user?.name ||
+                                          email.split('@')[0];
+                        showSuccess(`ようこそ、${displayName}さん！`);
+
                         setTimeout(() => {
                             window.location.href = 'index-kanban.html';
                         }, 1500);
