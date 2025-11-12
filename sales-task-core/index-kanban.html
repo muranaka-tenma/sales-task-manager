@@ -2877,7 +2877,22 @@
                 }
                 
                 console.log(`⚠️ [DUPLICATE-CHECK] ${duplicates.length}種類の重複タスクを検出`);
-                
+
+                // 詳細ログを出力
+                duplicates.forEach(dup => {
+                    console.log(`🔍 [DUPLICATE-CHECK] 重複ID: ${dup.id} (${dup.count}個)`);
+                    dup.tasks.forEach((task, index) => {
+                        console.log(`  ${index + 1}. タイトル: "${task.title}", firebaseId: ${task.firebaseId || 'なし'}, 作成日時: ${task.createdAt || 'なし'}`);
+                    });
+                });
+
+                // 🛡️ 安全策: 自動削除を無効化して、ログのみ出力
+                console.log('⚠️ [DUPLICATE-CHECK] 自動削除は無効化されています（安全のため）');
+                console.log('💡 [DUPLICATE-CHECK] 上記のログを確認して、本当に重複しているか確認してください');
+                return;
+
+                // 以下は無効化（後で有効化する場合はコメント解除）
+                /*
                 // 自動削除（最初のタスクを残し、2番目以降を削除）
                 let deletedCount = 0;
                 for (const dup of duplicates) {
@@ -2897,6 +2912,7 @@
                         await new Promise(resolve => setTimeout(resolve, 50));
                     }
                 }
+                */
                 
                 if (deletedCount > 0) {
                     console.log(`✅ [DUPLICATE-CHECK] ${deletedCount}個の重複タスクを自動削除`);
