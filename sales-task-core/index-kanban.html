@@ -2882,7 +2882,11 @@
                 duplicates.forEach(dup => {
                     console.log(`🔍 [DUPLICATE-CHECK] 重複ID: ${dup.id} (${dup.count}個)`);
                     dup.tasks.forEach((task, index) => {
-                        console.log(`  ${index + 1}. タイトル: "${task.title}", firebaseId: ${task.firebaseId || 'なし'}, 作成日時: ${task.createdAt || 'なし'}`);
+                        console.log(`  ${index + 1}. タイトル: "${task.title}"`);
+                        console.log(`      - task.id: ${task.id}`);
+                        console.log(`      - task.firebaseId: ${task.firebaseId || 'なし'}`);
+                        console.log(`      - task.createdAt: ${task.createdAt || 'なし'}`);
+                        console.log(`      - タスクオブジェクト全体:`, task);
                     });
                 });
 
@@ -2927,6 +2931,12 @@
         
         // 10分毎に重複チェック
         setInterval(checkAndRemoveDuplicates, 10 * 60 * 1000);
+
+        // 手動で重複チェックを実行できる関数（デバッグ用）
+        window.manualDuplicateCheck = async function() {
+            console.log('🔧 [MANUAL-CHECK] 手動重複チェックを実行...');
+            await checkAndRemoveDuplicates();
+        };
 
         // グローバル変数 - Firebase専用 (初期化遅延)
         // tasks変数は既に上部で宣言済み
