@@ -209,12 +209,13 @@ window.FirebaseDB = {
             const tasksRef = collection(db, 'tasks');
             const q = query(tasksRef, orderBy('createdAt', 'desc'));
             const snapshot = await getDocs(q);
-            
+
             const tasks = [];
             snapshot.forEach((doc) => {
-                tasks.push({ id: doc.id, ...doc.data() });
+                // FirestoreドキュメントIDを最優先（上書きされないように後で設定）
+                tasks.push({ ...doc.data(), id: doc.id });
             });
-            
+
             console.log('✅ [FIREBASE] タスク取得完了:', tasks.length);
             return { success: true, tasks: tasks };
         } catch (error) {
@@ -229,14 +230,17 @@ window.FirebaseDB = {
             if (!user) {
                 return { success: false, error: '認証が必要です' };
             }
-            
+
+            // idフィールドを除外（FirestoreドキュメントIDを使用）
+            const { id, ...taskWithoutId } = task;
+
             const docRef = await addDoc(collection(db, 'tasks'), {
-                ...task,
+                ...taskWithoutId,
                 userId: user.id,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             });
-            
+
             console.log('✅ [FIREBASE] タスク作成完了:', docRef.id);
             return { success: true, id: docRef.id };
         } catch (error) {
