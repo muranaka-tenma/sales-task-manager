@@ -1485,6 +1485,7 @@
                             <div class="form-group">
                                 <label class="form-label">プロジェクト</label>
                                 <select class="form-control" id="task-project-select">
+                                    <option value="">個人タスク（プロジェクトなし）</option>
                                     <!-- プロジェクト一覧がここに動的に追加される -->
                                 </select>
                                 <small style="color: #666; font-size: 0.85rem; margin-top: 0.25rem; display: block;">
@@ -3793,8 +3794,8 @@
                 const projectSelect = document.getElementById('task-project-select');
                 if (!projectSelect) return;
                 
-                // プロジェクト選択肢をクリア
-                projectSelect.innerHTML = '';
+                // デフォルトオプションを残して、プロジェクト選択肢をクリア
+                projectSelect.innerHTML = '<option value="">個人タスク（プロジェクトなし）</option>';
 
                 // 🔥 Firebaseからプロジェクト一覧を取得
                 let projects = [];
