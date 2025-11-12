@@ -280,24 +280,6 @@
                 </div>
             </div>
         </div>
-        
-        <!-- 管理機能案内 -->
-        <div class="admin-section" id="admin-section" style="display: none;">
-            <div class="section-title">👥 管理機能について</div>
-            <div style="background: white; padding: 2rem; border-radius: 8px; text-align: center;">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
-                <h3 style="margin-bottom: 1rem;">管理者ダッシュボード</h3>
-                <p style="color: #666; margin-bottom: 1.5rem; line-height: 1.6;">
-                    • 緊急対応が必要な項目のアラート表示<br>
-                    • チーム生産性推移とタスク完了率のグラフ<br>
-                    • メンバー別のパフォーマンス分析<br>
-                    • システム状況の監視（サーバー応答時間等）
-                </p>
-                <p style="color: #999; font-size: 0.9rem;">
-                    ユーザー管理や詳細な統計情報は<br>左上のハンバーガーメニューからアクセスできます
-                </p>
-            </div>
-        </div>
     </div>
 
     <!-- Firebase SDK読み込み -->
@@ -348,11 +330,6 @@
             // 開発者専用機能
             if (currentUser.role === 'developer') {
                 document.getElementById('developer-section').style.display = 'block';
-            }
-            
-            // 管理者・開発者のみ管理機能案内を表示
-            if (currentUser.role === 'developer' || currentUser.role === 'admin') {
-                document.getElementById('admin-section').style.display = 'block';
             }
             
             // URLハッシュが#development-logの場合、機能改善書を自動で開く
