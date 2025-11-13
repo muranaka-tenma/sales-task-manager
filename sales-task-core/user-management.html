@@ -1563,57 +1563,6 @@
         }
     </script>
 
-    <!-- 福島亜未さんのユーザー追加用スクリプト -->
-    <script>
-        // 福島亜未さんのユーザー情報を直接Firestoreに追加
-        async function addFukushimaUser() {
-            if (!window.FirebaseDB) {
-                console.error('❌ Firebase未初期化');
-                return;
-            }
-            
-            const fukushimaUser = {
-                id: String(Date.now()),
-                name: '福島亜未',
-                email: 'fukushima-ami@terracom.co.jp',
-                role: 'user',
-                department: '営業部',
-                createdAt: new Date().toISOString(),
-                isFirebaseExisting: true,
-                addedByScript: true
-            };
-            
-            try {
-                const saveResult = await window.FirebaseDB.saveUser(fukushimaUser);
-                if (saveResult.success) {
-                    console.log('✅ [SCRIPT] 福島亜未さんのユーザー追加成功');
-                    alert('✅ 福島亜未さんを管理システムに追加しました。');
-                    loadUsers(); // ユーザー一覧を再読み込み
-                } else {
-                    console.error('❌ [SCRIPT] 福島亜未さんのユーザー追加失敗:', saveResult.error);
-                }
-            } catch (error) {
-                console.error('❌ [SCRIPT] エラー:', error);
-            }
-        }
-        
-        // Firebase初期化後に実行
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                if (window.FirebaseDB && window.getCurrentUser && window.getCurrentUser().isLoggedIn) {
-                    // ユーザーがログイン済みかつ、福島亜未さんが存在しない場合に追加
-                    const currentUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                    const fukushimaExists = currentUsers.some(u => u.email === 'fukushima-ami@terracom.co.jp');
-                    
-                    if (!fukushimaExists) {
-                        console.log('🔍 [SCRIPT] 福島亜未さんが見つからないため追加処理を実行');
-                        addFukushimaUser();
-                    }
-                }
-            }, 3000); // Firebase初期化を待つ
-        });
-    </script>
-
     <!-- 無効化ユーザー管理モーダル -->
     <div id="disabled-users-modal" class="modal">
         <div class="modal-content">
