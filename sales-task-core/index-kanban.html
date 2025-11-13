@@ -3658,24 +3658,37 @@
             
             // ページトップにスクロールしてからモーダル表示
             window.scrollTo(0, 0);
-            
+
+            // モーダル内部のスクロール位置を事前にリセット
+            const modalElement = document.getElementById('task-modal');
+            if (modalElement) {
+                modalElement.scrollTop = 0;
+                const modalContent = modalElement.querySelector('.modal-content');
+                if (modalContent) {
+                    modalContent.scrollTop = 0;
+                }
+            }
+
             setTimeout(() => {
                 document.getElementById('task-modal').classList.add('show');
-                
+
                 // モーダル表示後に再度トップスクロール（確実に）
                 setTimeout(() => {
                     window.scrollTo(0, 0);
                     document.body.scrollTop = 0; // Safariにも対応
                     document.documentElement.scrollTop = 0; // IEにも対応
-                    
+
                     // モーダル自体も上部に配置を強制
-                    const modalElement = document.getElementById('task-modal');
                     if (modalElement) {
                         modalElement.style.top = '0px';
                         modalElement.scrollTop = 0;
+                        const modalContent = modalElement.querySelector('.modal-content');
+                        if (modalContent) {
+                            modalContent.scrollTop = 0;
+                        }
                     }
                 }, 10);
-                
+
                 // メンション機能を初期化
                 setTimeout(() => initMentionListeners(), 100);
             }, 50);
@@ -3716,24 +3729,37 @@
             document.getElementById('task-modal').dataset.unifiedMode = 'false';
             // ページトップにスクロールしてからモーダル表示
             window.scrollTo(0, 0);
-            
+
+            // モーダル内部のスクロール位置を事前にリセット
+            const modalElement = document.getElementById('task-modal');
+            if (modalElement) {
+                modalElement.scrollTop = 0;
+                const modalContent = modalElement.querySelector('.modal-content');
+                if (modalContent) {
+                    modalContent.scrollTop = 0;
+                }
+            }
+
             setTimeout(() => {
                 document.getElementById('task-modal').classList.add('show');
-                
+
                 // モーダル表示後に再度トップスクロール（確実に）
                 setTimeout(() => {
                     window.scrollTo(0, 0);
                     document.body.scrollTop = 0; // Safariにも対応
                     document.documentElement.scrollTop = 0; // IEにも対応
-                    
+
                     // モーダル自体も上部に配置を強制
-                    const modalElement = document.getElementById('task-modal');
                     if (modalElement) {
                         modalElement.style.top = '0px';
                         modalElement.scrollTop = 0;
+                        const modalContent = modalElement.querySelector('.modal-content');
+                        if (modalContent) {
+                            modalContent.scrollTop = 0;
+                        }
                     }
                 }, 10);
-                
+
                 // メンション機能を初期化
                 setTimeout(() => initMentionListeners(), 100);
             }, 50);
@@ -4001,24 +4027,37 @@
             
             // ページトップにスクロールしてからモーダル表示
             window.scrollTo(0, 0);
-            
+
+            // モーダル内部のスクロール位置を事前にリセット
+            const modalElement = document.getElementById('task-modal');
+            if (modalElement) {
+                modalElement.scrollTop = 0;
+                const modalContent = modalElement.querySelector('.modal-content');
+                if (modalContent) {
+                    modalContent.scrollTop = 0;
+                }
+            }
+
             setTimeout(() => {
                 document.getElementById('task-modal').classList.add('show');
-                
+
                 // モーダル表示後に再度トップスクロール（確実に）
                 setTimeout(() => {
                     window.scrollTo(0, 0);
                     document.body.scrollTop = 0; // Safariにも対応
                     document.documentElement.scrollTop = 0; // IEにも対応
-                    
+
                     // モーダル自体も上部に配置を強制
-                    const modalElement = document.getElementById('task-modal');
                     if (modalElement) {
                         modalElement.style.top = '0px';
                         modalElement.scrollTop = 0;
+                        const modalContent = modalElement.querySelector('.modal-content');
+                        if (modalContent) {
+                            modalContent.scrollTop = 0;
+                        }
                     }
                 }, 10);
-                
+
                 // メンション機能を初期化
                 setTimeout(() => initMentionListeners(), 100);
             }, 50);
@@ -5926,11 +5965,29 @@
                 // プロジェクトフィルター: 特定プロジェクトのタスクのみ表示
                 filteredTasks = tasks.filter(t => {
                     // 非表示タスクは作成者+担当者のみ表示
-                    if (t.isHidden && t.createdBy !== currentUser.email) {
+                    if (t.isHidden) {
+                        console.log(`🔒 [HIDDEN-FILTER] Task "${t.title}":`, {
+                            createdBy: t.createdBy,
+                            currentEmail: currentUser.email,
+                            isCreator: t.createdBy === currentUser.email,
+                            assignees: t.assignees,
+                            assignee: t.assignee,
+                            currentName: currentUser.name
+                        });
+
+                        if (t.createdBy === currentUser.email) {
+                            console.log(`✅ [HIDDEN-FILTER] 作成者なので表示: ${t.title}`);
+                            return t.projectId && selectedProjectFilters.includes(t.projectId);
+                        }
+
                         const isAssignee = t.assignees?.includes(currentUser.name) || t.assignee === currentUser.name;
+                        console.log(`🔍 [HIDDEN-FILTER] 担当者チェック: ${isAssignee}`);
+
                         if (!isAssignee) {
+                            console.log(`❌ [HIDDEN-FILTER] 作成者でも担当者でもないので非表示: ${t.title}`);
                             return false;
                         }
+                        console.log(`✅ [HIDDEN-FILTER] 担当者なので表示: ${t.title}`);
                     }
                     return t.projectId && selectedProjectFilters.includes(t.projectId);
                 });
