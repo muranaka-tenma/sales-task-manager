@@ -1464,21 +1464,11 @@
                             </div>
                         </div>
                         
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">優先度</label>
-                                <select class="form-select" id="task-priority-input">
-                                    <option value="high">🔴 最重要</option>
-                                    <option value="medium" selected>🟡 重要</option>
-                                    <option value="low">🟢 通常</option>
-                                </select>
-                            </div>
-                            <div class="form-group" id="column-selection-group" style="display: none;">
-                                <label class="form-label">配置先ステータス *</label>
-                                <select class="form-select" id="task-column-input" required>
-                                    <!-- カラム選択肢がここに動的に追加される -->
-                                </select>
-                            </div>
+                        <div class="form-group" id="column-selection-group" style="display: none;">
+                            <label class="form-label">配置先ステータス *</label>
+                            <select class="form-select" id="task-column-input" required>
+                                <!-- カラム選択肢がここに動的に追加される -->
+                            </select>
                         </div>
                         
                         <div class="form-row">
@@ -3596,7 +3586,7 @@
             document.getElementById('task-title-input').value = '';
             document.getElementById('task-date-input').value = getDefaultDeadlineString();
             document.getElementById('task-time-input').value = getDefaultTimeString();
-            document.getElementById('task-priority-input').value = 'medium';
+            // 優先度機能削除
             document.getElementById('task-memo-input').value = '';
             document.getElementById('task-files-input').value = '';
             document.getElementById('attached-files-list').innerHTML = '';
@@ -3675,7 +3665,7 @@
             document.getElementById('task-title-input').value = '';
             document.getElementById('task-date-input').value = getDefaultDeadlineString();
             document.getElementById('task-time-input').value = getDefaultTimeString();
-            document.getElementById('task-priority-input').value = 'medium';
+            // 優先度機能削除
             document.getElementById('task-memo-input').value = '';
             document.getElementById('task-files-input').value = '';
             document.getElementById('attached-files-list').innerHTML = '';
@@ -3946,7 +3936,7 @@
             console.log('🔍 [MODAL DEBUG] After setting form values:');
             console.log('🔍 [MODAL DEBUG] Date input now:', document.getElementById('task-date-input').value);
             console.log('🔍 [MODAL DEBUG] Time input now:', document.getElementById('task-time-input').value);
-            document.getElementById('task-priority-input').value = editingTask.priority;
+            // 優先度機能削除
             document.getElementById('task-memo-input').value = editingTask.memo || '';
             document.getElementById('task-hidden-input').checked = editingTask.isHidden || false;
             
@@ -4923,7 +4913,7 @@
             console.log('🔍 [DEADLINE DEBUG] Date input value:', date);
             console.log('🔍 [DEADLINE DEBUG] Time input value:', time);
             console.log('🔍 [DEADLINE DEBUG] Original deadline:', editingTask ? editingTask.deadline : 'new task');
-            const priority = document.getElementById('task-priority-input').value;
+            // 優先度機能削除
             const selectedAssignees = getSelectedAssignees();
             const memo = document.getElementById('task-memo-input').value.trim();
             const fileInput = document.getElementById('task-files-input');
@@ -5072,7 +5062,7 @@
                 
                 editingTask.title = title;
                 editingTask.deadline = deadline.toISOString();
-                editingTask.priority = priority;
+                // 優先度機能削除
                 editingTask.assignees = selectedAssignees;
                 // 後方互換性のため古いassigneeフィールドも保持
                 editingTask.assignee = selectedAssignees.length > 0 ? selectedAssignees[0] : '未設定';
@@ -5138,7 +5128,7 @@
                     id: Date.now(),
                     title: title,
                     deadline: deadline.toISOString(),
-                    priority: priority,
+                    // 優先度機能削除（既存データの後方互換性のためフィールド定義なし）
                     assignees: selectedAssignees,
                     // 後方互換性のため古いassigneeフィールドも保持
                     assignee: selectedAssignees.length > 0 ? selectedAssignees[0] : '未設定',
@@ -6019,13 +6009,9 @@
                 deadlineClass += ' today';
                 deadlineIcon = '⏰';
             }
-            
-            const priorityText = {
-                high: '🔴 最重要',
-                medium: '🟡 重要', 
-                low: '🟢 通常'
-            }[task.priority];
-            
+
+            // 優先度機能削除
+
             const checkboxHtml = isBulkMode ? `
                 <div style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 10;">
                     <input type="checkbox"
@@ -6061,9 +6047,6 @@
                             ${elapsedText ? `<span style="font-size: 0.75rem; color: ${isStale ? '#e53e3e' : '#718096'}; font-weight: ${isStale ? '600' : '400'};">⏱️ ${elapsedText}</span>` : ''}
                             ${isStale ? '<span style="font-size: 0.75rem; color: #e53e3e;">🚨 停滞中</span>' : ''}
                         </div>
-                        <span class="task-priority-badge priority-${task.priority}">
-                            ${priorityText}
-                        </span>
                     </div>
                     ${task.memo ? `<div class="task-memo">${task.memo}</div>` : ''}
                     <div class="task-badges">
@@ -10101,7 +10084,7 @@
             // テンプレートの値を設定
             setTimeout(() => {
                 document.getElementById('task-title-input').value = template.taskTitle;
-                document.getElementById('task-priority-input').value = template.priority;
+                // 優先度機能削除
                 document.getElementById('task-column-input').value = template.columnId;
                 document.getElementById('task-memo-input').value = template.memo || '';
                 
@@ -11186,7 +11169,7 @@
             
             // テンプレートの値を設定
             document.getElementById('task-title-input').value = template.taskTitle;
-            document.getElementById('task-priority-input').value = template.priority;
+            // 優先度機能削除
             document.getElementById('task-column-input').value = template.columnId;
             document.getElementById('task-memo-input').value = template.memo || '';
             
