@@ -2515,10 +2515,13 @@
                 if (session && session.user) {
                     // systemUsersから日本語名を取得
                     let displayName = session.user.name;
+                    console.log(`🔍 [GET-USER-DEBUG] session.user.name: "${session.user.name}", email: "${session.user.email}"`);
 
                     // systemUsersから正しい日本語名を検索
                     const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                    console.log(`🔍 [GET-USER-DEBUG] systemUsers count: ${systemUsers.length}`);
                     const matchedUser = systemUsers.find(u => u.email === session.user.email);
+                    console.log(`🔍 [GET-USER-DEBUG] matchedUser:`, matchedUser);
 
                     if (matchedUser && matchedUser.name) {
                         displayName = matchedUser.name;
@@ -2531,6 +2534,7 @@
                         console.log(`⚠️ [GET-USER] systemUsersに見つからず、フォールバック名を使用: ${displayName}`);
                     }
 
+                    console.log(`✅ [GET-USER-DEBUG] 最終的なdisplayName: "${displayName}"`);
                     return {
                         name: displayName,
                         email: session.user.email,
