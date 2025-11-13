@@ -2513,12 +2513,24 @@
             try {
                 const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
                 if (session && session.user) {
-                    // Firebase認証のムラナカ・テンマを邨中天真にマッピング
+                    // systemUsersから日本語名を取得
                     let displayName = session.user.name;
-                    if (session.user.email === 'muranaka-tenma@terracom.co.jp') {
-                        displayName = '邨中天真';  // 日本名に統一
+
+                    // systemUsersから正しい日本語名を検索
+                    const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                    const matchedUser = systemUsers.find(u => u.email === session.user.email);
+
+                    if (matchedUser && matchedUser.name) {
+                        displayName = matchedUser.name;
+                        console.log(`👤 [GET-USER] systemUsersから日本語名取得: ${displayName} (${session.user.email})`);
+                    } else {
+                        // フォールバック: 邨中天真の特別処理
+                        if (session.user.email === 'muranaka-tenma@terracom.co.jp') {
+                            displayName = '邨中天真';
+                        }
+                        console.log(`⚠️ [GET-USER] systemUsersに見つからず、フォールバック名を使用: ${displayName}`);
                     }
-                    
+
                     return {
                         name: displayName,
                         email: session.user.email,
@@ -3667,6 +3679,11 @@
                 if (modalContent) {
                     modalContent.scrollTop = 0;
                 }
+                // 左側のスクロール可能エリアもリセット
+                const modalLeft = modalElement.querySelector('.modal-left');
+                if (modalLeft) {
+                    modalLeft.scrollTop = 0;
+                }
             }
 
             setTimeout(() => {
@@ -3685,6 +3702,11 @@
                         const modalContent = modalElement.querySelector('.modal-content');
                         if (modalContent) {
                             modalContent.scrollTop = 0;
+                        }
+                        // 左側のスクロール可能エリアもリセット
+                        const modalLeft = modalElement.querySelector('.modal-left');
+                        if (modalLeft) {
+                            modalLeft.scrollTop = 0;
                         }
                     }
                 }, 10);
@@ -3738,6 +3760,11 @@
                 if (modalContent) {
                     modalContent.scrollTop = 0;
                 }
+                // 左側のスクロール可能エリアもリセット
+                const modalLeft = modalElement.querySelector('.modal-left');
+                if (modalLeft) {
+                    modalLeft.scrollTop = 0;
+                }
             }
 
             setTimeout(() => {
@@ -3756,6 +3783,11 @@
                         const modalContent = modalElement.querySelector('.modal-content');
                         if (modalContent) {
                             modalContent.scrollTop = 0;
+                        }
+                        // 左側のスクロール可能エリアもリセット
+                        const modalLeft = modalElement.querySelector('.modal-left');
+                        if (modalLeft) {
+                            modalLeft.scrollTop = 0;
                         }
                     }
                 }, 10);
@@ -4036,6 +4068,11 @@
                 if (modalContent) {
                     modalContent.scrollTop = 0;
                 }
+                // 左側のスクロール可能エリアもリセット
+                const modalLeft = modalElement.querySelector('.modal-left');
+                if (modalLeft) {
+                    modalLeft.scrollTop = 0;
+                }
             }
 
             setTimeout(() => {
@@ -4054,6 +4091,11 @@
                         const modalContent = modalElement.querySelector('.modal-content');
                         if (modalContent) {
                             modalContent.scrollTop = 0;
+                        }
+                        // 左側のスクロール可能エリアもリセット
+                        const modalLeft = modalElement.querySelector('.modal-left');
+                        if (modalLeft) {
+                            modalLeft.scrollTop = 0;
                         }
                     }
                 }, 10);
