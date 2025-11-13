@@ -2595,11 +2595,11 @@
                 if (role === 'developer' || role === 'admin') {
                     adminSection.style.display = 'block';
                     console.log('✅ 管理機能: 表示');
-                    
-                    // 管理者専用リンクの制御
-                    const userManagementLink = adminSection.querySelector('a[href="user-management.html"]');
-                    const adminDashboardLink = adminSection.querySelector('a[href="admin-dashboard.html"]');
-                    
+
+                    // 管理者専用リンクの制御（IDで取得）
+                    const userManagementLink = document.getElementById('user-management-link');
+                    const adminDashboardLink = document.getElementById('admin-dashboard-link');
+
                     if (userManagementLink) userManagementLink.style.display = 'block';
                     if (adminDashboardLink) adminDashboardLink.style.display = 'block';
                 } else {
@@ -11834,16 +11834,16 @@
             const adminSection = document.getElementById('admin-menu-section');
             console.log('🍔 [DEBUG] adminSection found:', !!adminSection);
             if (adminSection) {
-                // ユーザー管理と管理ダッシュボードはadmin以上のみ
-                const userManagementLink = adminSection.querySelector('a[href="user-management.html"]');
-                const adminDashboardLink = adminSection.querySelector('a[href="admin-dashboard.html"]');
-                
+                // ユーザー管理と管理ダッシュボードはadmin以上のみ（IDで取得）
+                const userManagementLink = document.getElementById('user-management-link');
+                const adminDashboardLink = document.getElementById('admin-dashboard-link');
+
                 console.log('🍔 [DEBUG] Links found:', {
                     userManagement: !!userManagementLink,
                     adminDashboard: !!adminDashboardLink,
                     userRole: currentUser.role
                 });
-                
+
                 if (currentUser.role === 'developer' || currentUser.role === 'admin') {
                     adminSection.style.display = 'block';
                     if (userManagementLink) userManagementLink.style.display = 'block';
@@ -13284,11 +13284,11 @@
 
         <div class="menu-section" id="admin-menu-section" style="display: none;">
             <div class="menu-section-title">管理機能</div>
-            <a href="javascript:void(0);" class="menu-item" onclick="toggleHamburgerMenu(); openUserManagementModal();">
+            <a href="javascript:void(0);" id="user-management-link" class="menu-item" onclick="toggleHamburgerMenu(); openUserManagementModal();">
                 <span>👥</span>
                 <span>ユーザー管理</span>
             </a>
-            <a href="javascript:void(0);" class="menu-item" onclick="toggleHamburgerMenu(); openAdminDashboardModal();">
+            <a href="javascript:void(0);" id="admin-dashboard-link" class="menu-item" onclick="toggleHamburgerMenu(); openAdminDashboardModal();">
                 <span>📊</span>
                 <span>管理者ダッシュボード</span>
             </a>
