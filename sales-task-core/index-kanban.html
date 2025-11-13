@@ -1507,6 +1507,16 @@
                             </div>
                         </div>
                         
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="task-hidden-input" style="margin: 0;">
+                                🔒 このタスクを非表示にする（自分のみ）
+                            </label>
+                            <small style="color: #666; display: block; margin-top: 0.25rem;">
+                                チェックすると自分以外のユーザーからは見えなくなります。担当者は自分のみに制限されます。
+                            </small>
+                        </div>
+
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">担当者（複数選択可）</label>
@@ -1514,16 +1524,6 @@
                                     <!-- チェックボックスがここに動的に追加される -->
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="form-group" style="margin-bottom: 1rem;">
-                            <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                <input type="checkbox" id="task-hidden-input" style="margin: 0;">
-                                🔒 このタスクを非表示にする
-                            </label>
-                            <small style="color: #666; display: block; margin-top: 0.25rem;">
-                                チェックすると他のユーザーからは見えなくなります（通知も送信されません）
-                            </small>
                         </div>
                         
                         <div class="form-group">
@@ -3815,12 +3815,12 @@
                 container.appendChild(checkboxWrapper);
             });
             
-            // 非表示チェックボックスの存在確認とデバッグ
+            // 非表示チェックボックスの存在確認とイベントリスナー設定
             setTimeout(() => {
                 const hiddenCheckbox = document.getElementById('task-hidden-input');
                 if (!hiddenCheckbox) {
                     console.error('❌ [DEBUG] task-hidden-input チェックボックスが見つかりません！');
-                    
+
                     // チェックボックスが存在しない場合、動的に追加
                     const memoGroup = document.querySelector('#task-memo-input').parentElement;
                     if (memoGroup) {
@@ -3830,10 +3830,10 @@
                         hiddenGroup.innerHTML = `
                             <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                                 <input type="checkbox" id="task-hidden-input" style="margin: 0;">
-                                🔒 このタスクを非表示にする
+                                🔒 このタスクを非表示にする（自分のみ）
                             </label>
                             <small style="color: #666; display: block; margin-top: 0.25rem;">
-                                チェックすると他のユーザーからは見えなくなります（通知も送信されません）
+                                チェックすると自分以外のユーザーからは見えなくなります。担当者は自分のみに制限されます。
                             </small>
                         `;
                         memoGroup.parentElement.insertBefore(hiddenGroup, memoGroup);
@@ -3842,6 +3842,9 @@
                 } else {
                     console.log('✅ [DEBUG] task-hidden-input チェックボックスが存在します');
                 }
+
+                // 非表示チェックボックスのイベントリスナーを設定
+                setupHiddenTaskValidation();
             }, 100);
             
             // 新規追加ボタン
@@ -3928,6 +3931,74 @@
         function getSelectedAssignees() {
             const checkboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]:checked');
             return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // 非表示タスクのバリデーションとUI制御
+        function setupHiddenTaskValidation() {
+            const hiddenCheckbox = document.getElementById('task-hidden-input');
+            if (!hiddenCheckbox) return;
+
+            const currentUser = getCurrentUser();
+            if (!currentUser || !currentUser.name) {
+                console.error('❌ [HIDDEN-VALIDATION] ユーザー情報が取得できません');
+                return;
+            }
+
+            // 非表示チェックボックスの change イベント
+            hiddenCheckbox.addEventListener('change', function() {
+                const isHidden = this.checked;
+                console.log(`🔒 [HIDDEN-VALIDATION] 非表示チェック変更: ${isHidden}`);
+
+                if (isHidden) {
+                    // 現在選択されている担当者を確認
+                    const selectedAssignees = getSelectedAssignees();
+                    console.log(`🔍 [HIDDEN-VALIDATION] 現在の担当者: ${selectedAssignees.join(', ')}`);
+
+                    // 自分以外が選択されている場合はエラー
+                    const othersSelected = selectedAssignees.filter(name => name !== currentUser.name);
+                    if (othersSelected.length > 0) {
+                        alert(`⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n他のユーザー（${othersSelected.join(', ')}）が選択されているため、非表示にできません。`);
+                        this.checked = false;
+                        return;
+                    }
+
+                    // 自分以外のチェックボックスを無効化
+                    const assigneeCheckboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]');
+                    assigneeCheckboxes.forEach(checkbox => {
+                        if (checkbox.value !== currentUser.name) {
+                            checkbox.disabled = true;
+                            checkbox.closest('.assignee-checkbox').style.opacity = '0.5';
+                        } else {
+                            // 自分を自動チェック
+                            checkbox.checked = true;
+                        }
+                    });
+                    console.log('✅ [HIDDEN-VALIDATION] 自分以外の担当者を無効化しました');
+                } else {
+                    // 全ての担当者チェックボックスを有効化
+                    const assigneeCheckboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]');
+                    assigneeCheckboxes.forEach(checkbox => {
+                        checkbox.disabled = false;
+                        checkbox.closest('.assignee-checkbox').style.opacity = '1';
+                    });
+                    console.log('✅ [HIDDEN-VALIDATION] 全ての担当者を有効化しました');
+                }
+            });
+
+            // 担当者チェックボックスの change イベント（既存の updateSelectedAssignees に追加）
+            const assigneeCheckboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]');
+            assigneeCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const isHidden = hiddenCheckbox.checked;
+                    if (!isHidden) return; // 非表示でない場合は何もしない
+
+                    // 非表示タスクで自分以外を選択しようとした場合
+                    if (this.value !== currentUser.name && this.checked) {
+                        alert(`⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n「${this.value}」を担当者に追加できません。`);
+                        this.checked = false;
+                    }
+                });
+            });
         }
         
         function setSelectedAssignees(assigneeList) {
@@ -5078,7 +5149,50 @@
                     return;
                 }
             }
-            
+
+            // 非表示タスクのバリデーション
+            const isHidden = document.getElementById('task-hidden-input').checked;
+            const currentUser = getCurrentUser();
+
+            if (isHidden) {
+                console.log(`🔒 [HIDDEN-VALIDATION] 非表示タスクの保存時バリデーション`);
+                console.log(`🔍 [HIDDEN-VALIDATION] 担当者数: ${selectedAssignees.length}, 担当者: ${selectedAssignees.join(', ')}`);
+                console.log(`🔍 [HIDDEN-VALIDATION] 現在のユーザー: ${currentUser.name}`);
+
+                // 自分以外が選択されている場合はエラー
+                const othersSelected = selectedAssignees.filter(name => name !== currentUser.name);
+                if (othersSelected.length > 0) {
+                    alert(`⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n他のユーザー（${othersSelected.join(', ')}）が選択されているため、保存できません。`);
+                    // required属性を復活させてからreturn
+                    if (wasRequired && isColumnSelectionHidden) {
+                        columnInput.setAttribute('required', '');
+                    }
+                    return;
+                }
+
+                // 担当者が複数人（自分が複数回選択されることはないが念のため）
+                if (selectedAssignees.length > 1) {
+                    alert('⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n複数の担当者が選択されています。');
+                    // required属性を復活させてからreturn
+                    if (wasRequired && isColumnSelectionHidden) {
+                        columnInput.setAttribute('required', '');
+                    }
+                    return;
+                }
+
+                // 自分が担当者に含まれていない場合
+                if (!selectedAssignees.includes(currentUser.name)) {
+                    alert('⚠️ 非表示タスクは自分を担当者に設定する必要があります。');
+                    // required属性を復活させてからreturn
+                    if (wasRequired && isColumnSelectionHidden) {
+                        columnInput.setAttribute('required', '');
+                    }
+                    return;
+                }
+
+                console.log('✅ [HIDDEN-VALIDATION] バリデーション成功');
+            }
+
             // ★★★ タイムゾーン問題の修正：編集時のみJST補正 ★★★
             let deadline;
             if (editingTask) {
