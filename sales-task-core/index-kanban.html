@@ -998,7 +998,30 @@
             outline: none;
             border-color: #0079bf;
         }
-        
+
+        /* 期限日・時刻入力の拡大スタイル */
+        input[type="date"].form-input,
+        input[type="time"].form-input {
+            padding: 1rem;
+            font-size: 1.1rem;
+            min-height: 48px;
+            cursor: pointer;
+        }
+
+        /* カレンダーアイコンのクリック領域拡大 */
+        input[type="date"].form-input::-webkit-calendar-picker-indicator,
+        input[type="time"].form-input::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        /* ダークテーマ対応 */
+        .dark-theme input[type="date"].form-input,
+        .dark-theme input[type="time"].form-input {
+            color-scheme: dark;
+        }
+
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
