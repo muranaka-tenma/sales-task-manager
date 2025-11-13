@@ -5330,12 +5330,30 @@
         function closeModal() {
             document.getElementById('task-modal').classList.remove('show');
             editingTask = null;
-            
+
+            // フォーム全体をリセット
+            document.getElementById('task-title-input').value = '';
+            document.getElementById('task-date-input').value = '';
+            document.getElementById('task-time-input').value = '';
+            document.getElementById('task-memo-input').value = '';
+
+            // 非表示チェックボックスをリセット
+            const hiddenCheckbox = document.getElementById('task-hidden-input');
+            if (hiddenCheckbox) {
+                hiddenCheckbox.checked = false;
+            }
+
+            // 担当者選択をクリア
+            const assigneeCheckboxes = document.querySelectorAll('.assignee-checkbox');
+            assigneeCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
             // ファイル入力をクリア
             const fileInput = document.getElementById('task-files-input');
             const dropZone = document.getElementById('file-drop-zone');
             const commentInput = document.getElementById('comment-input');
-            
+
             if (fileInput) {
                 fileInput.value = '';
             }
@@ -5345,11 +5363,17 @@
             if (commentInput) {
                 commentInput.value = '';
             }
-            
+
+            // プロジェクト選択をクリア
+            const projectSelect = document.getElementById('task-project-select');
+            if (projectSelect) {
+                projectSelect.value = '';
+            }
+
             // Phase 2: PJタスク設定を非表示に戻す
             // PJタスク設定は別ページに移動
             // PJフィールドは別ページに移動
-            
+
         }
         
         // 重複関数削除: deleteTask関数は後で再定義されています（12345行目）
