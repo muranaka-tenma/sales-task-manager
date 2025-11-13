@@ -6054,10 +6054,27 @@
                 // 個人・共通タスクの担当者フィルター（プロジェクトタスクは除外）
                 filteredTasks = tasks.filter(t => {
                     // 非表示タスクは作成者+担当者のみ表示
-                    if (t.isHidden && t.createdBy !== currentUser.email) {
-                        const isAssignee = t.assignees?.includes(currentUser.name) || t.assignee === currentUser.name;
-                        if (!isAssignee) {
-                            return false;
+                    if (t.isHidden) {
+                        console.log(`🔒 [HIDDEN-FILTER-ASSIGNEE] Task "${t.title}":`, {
+                            createdBy: t.createdBy,
+                            currentEmail: currentUser.email,
+                            isCreator: t.createdBy === currentUser.email,
+                            assignees: t.assignees,
+                            assignee: t.assignee,
+                            currentName: currentUser.name
+                        });
+
+                        if (t.createdBy === currentUser.email) {
+                            console.log(`✅ [HIDDEN-FILTER-ASSIGNEE] 作成者なので表示: ${t.title}`);
+                        } else {
+                            const isAssignee = t.assignees?.includes(currentUser.name) || t.assignee === currentUser.name;
+                            console.log(`🔍 [HIDDEN-FILTER-ASSIGNEE] 担当者チェック: ${isAssignee}`);
+
+                            if (!isAssignee) {
+                                console.log(`❌ [HIDDEN-FILTER-ASSIGNEE] 作成者でも担当者でもないので非表示: ${t.title}`);
+                                return false;
+                            }
+                            console.log(`✅ [HIDDEN-FILTER-ASSIGNEE] 担当者なので表示: ${t.title}`);
                         }
                     }
                     // プロジェクトタスクは除外
@@ -6074,10 +6091,27 @@
                 // 個人・共通タスクのみ表示（プロジェクトタスクは除外）
                 filteredTasks = tasks.filter(t => {
                     // 非表示タスクは作成者+担当者のみ表示
-                    if (t.isHidden && t.createdBy !== currentUser.email) {
-                        const isAssignee = t.assignees?.includes(currentUser.name) || t.assignee === currentUser.name;
-                        if (!isAssignee) {
-                            return false;
+                    if (t.isHidden) {
+                        console.log(`🔒 [HIDDEN-FILTER-NORMAL] Task "${t.title}":`, {
+                            createdBy: t.createdBy,
+                            currentEmail: currentUser.email,
+                            isCreator: t.createdBy === currentUser.email,
+                            assignees: t.assignees,
+                            assignee: t.assignee,
+                            currentName: currentUser.name
+                        });
+
+                        if (t.createdBy === currentUser.email) {
+                            console.log(`✅ [HIDDEN-FILTER-NORMAL] 作成者なので表示: ${t.title}`);
+                        } else {
+                            const isAssignee = t.assignees?.includes(currentUser.name) || t.assignee === currentUser.name;
+                            console.log(`🔍 [HIDDEN-FILTER-NORMAL] 担当者チェック: ${isAssignee}`);
+
+                            if (!isAssignee) {
+                                console.log(`❌ [HIDDEN-FILTER-NORMAL] 作成者でも担当者でもないので非表示: ${t.title}`);
+                                return false;
+                            }
+                            console.log(`✅ [HIDDEN-FILTER-NORMAL] 担当者なので表示: ${t.title}`);
                         }
                     }
                     return !t.projectId;
