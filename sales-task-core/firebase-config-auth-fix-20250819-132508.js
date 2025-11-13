@@ -39,11 +39,29 @@ onAuthStateChanged(auth, (user) => {
     if (user) {
         console.log('🔐 Firebase認証成功:', user.email);
         window.currentFirebaseUser = user;
-        
-        // セッション情報をローカルストレージに保存（日本名マッピング込み）
-        const displayName = user.email === 'muranaka-tenma@terracom.co.jp' ? '邨中天真' : 
-                           user.displayName || user.email.split('@')[0];
-        
+
+        // セッション情報をローカルストレージに保存（systemUsersから日本語名を取得）
+        let displayName;
+        try {
+            // systemUsersから日本語名を取得
+            const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const matchedUser = systemUsers.find(u => u.email === user.email);
+
+            if (matchedUser && matchedUser.name) {
+                displayName = matchedUser.name;
+                console.log(`👤 [FIREBASE-SESSION] systemUsersから日本語名取得: ${displayName} (${user.email})`);
+            } else {
+                // フォールバック: 邨中天真の特別処理
+                displayName = user.email === 'muranaka-tenma@terracom.co.jp' ? '邨中天真' :
+                             user.displayName || user.email.split('@')[0];
+                console.log(`⚠️ [FIREBASE-SESSION] systemUsersに見つからず、フォールバック: ${displayName}`);
+            }
+        } catch (error) {
+            console.error('❌ [FIREBASE-SESSION] systemUsers取得エラー:', error);
+            displayName = user.email === 'muranaka-tenma@terracom.co.jp' ? '邨中天真' :
+                         user.displayName || user.email.split('@')[0];
+        }
+
         const roleMap = {
             'muranaka-tenma@terracom.co.jp': 'developer',
             'kato-jun@terracom.co.jp': 'admin',
