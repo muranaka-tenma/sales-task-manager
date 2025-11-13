@@ -5124,6 +5124,7 @@
                 const targetColumn = isUnifiedMode 
                     ? document.getElementById('task-column-input').value 
                     : document.getElementById('task-modal').dataset.targetColumn;
+                const currentUser = getCurrentUser();
                 const newTask = {
                     id: Date.now(),
                     title: title,
@@ -5138,10 +5139,11 @@
                     columnId: targetColumn,
                     completed: targetColumn === 'done',
                     createdAt: new Date().toISOString(),
-                    
+                    createdBy: currentUser.email || 'unknown', // 作成者のemail
+
                     // タスク非表示機能
                     isHidden: document.getElementById('task-hidden-input').checked,
-                    
+
                     // Phase 2: PJタスク拡張フィールド
                     projectId: isProjectTask ? projectId : null,
                     projectName: isProjectTask ? projectName : null,
@@ -5849,15 +5851,22 @@
             // 統合フィルターを適用
             let filteredTasks = tasks;
             let currentColumns = columns; // デフォルトカラム
-            
+
             // フィルタリングデバッグログは削除済み
-            
+
+            // 現在のユーザーを取得（非表示タスクフィルター用）
+            const currentUser = getCurrentUser();
+
             if (selectedProjectFilters.length > 0) {
                 // プロジェクトフィルター: 特定プロジェクトのタスクのみ表示
-                filteredTasks = tasks.filter(t => 
-                    t.projectId && selectedProjectFilters.includes(t.projectId)
-                );
-                
+                filteredTasks = tasks.filter(t => {
+                    // 非表示タスクは作成者のみ表示
+                    if (t.isHidden && t.createdBy !== currentUser.email) {
+                        return false;
+                    }
+                    return t.projectId && selectedProjectFilters.includes(t.projectId);
+                });
+
                 // メンバーフィルターとの組み合わせ
                 if (selectedAssigneeFilters.length > 0) {
                     filteredTasks = filteredTasks.filter(t => {
@@ -5870,16 +5879,20 @@
                 } else {
                     console.log(`👥 [RENDER] Project filter: showing ${filteredTasks.length} tasks for project ${selectedProjectFilters[0]}`);
                 }
-                
+
                 // プロジェクト専用カラムを取得
                 currentColumns = getProjectColumns(selectedProjectFilters[0]);
                 console.log('🎨 [RENDER] プロジェクトカラム取得:', selectedProjectFilters[0], '→', currentColumns.length, '個');
             } else if (selectedAssigneeFilters.length > 0) {
                 // 個人・共通タスクの担当者フィルター（プロジェクトタスクは除外）
                 filteredTasks = tasks.filter(t => {
+                    // 非表示タスクは作成者のみ表示
+                    if (t.isHidden && t.createdBy !== currentUser.email) {
+                        return false;
+                    }
                     // プロジェクトタスクは除外
                     if (t.projectId) return false;
-                    
+
                     // メンバーフィルター適用
                     if (t.assignees && Array.isArray(t.assignees)) {
                         return t.assignees.some(a => selectedAssigneeFilters.includes(a));
@@ -5889,7 +5902,13 @@
                 console.log(`👤 [RENDER] Assignee filter (normal tasks only): showing ${filteredTasks.length} tasks for ${selectedAssigneeFilters[0]}`);
             } else {
                 // 個人・共通タスクのみ表示（プロジェクトタスクは除外）
-                filteredTasks = tasks.filter(t => !t.projectId);
+                filteredTasks = tasks.filter(t => {
+                    // 非表示タスクは作成者のみ表示
+                    if (t.isHidden && t.createdBy !== currentUser.email) {
+                        return false;
+                    }
+                    return !t.projectId;
+                });
                 console.log('📋 [RENDER] 個人・共通タスクのみ表示:', filteredTasks.length, '件');
             }
             
