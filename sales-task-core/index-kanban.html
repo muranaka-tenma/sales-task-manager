@@ -2032,17 +2032,7 @@
                                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">テンプレート名 *</label>
                                 <input type="text" id="mgmt-template-name" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;" placeholder="例: 営業レポート作成" required>
                             </div>
-                            
-                            <div style="margin-bottom: 1.5rem;">
-                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">カテゴリ</label>
-                                <select id="mgmt-template-category" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
-                                    <option value="営業">営業</option>
-                                    <option value="企画">企画</option>
-                                    <option value="管理">管理</option>
-                                    <option value="その他">その他</option>
-                                </select>
-                            </div>
-                            
+
                             <div style="margin-bottom: 1.5rem;">
                                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">タスク名 *</label>
                                 <input type="text" id="mgmt-template-task-title" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;" placeholder="例: 月次営業レポート作成" required>
@@ -9896,29 +9886,28 @@
         
         async function saveTemplate(event) {
             event.preventDefault();
-            
+
             const name = document.getElementById('template-name').value.trim();
-            const category = document.getElementById('template-category').value;
+            // カテゴリ機能削除
             const taskTitle = document.getElementById('template-task-title').value.trim();
             const priority = document.getElementById('template-priority').value;
             const columnId = document.getElementById('template-column').value;
             const memo = document.getElementById('template-memo').value.trim();
-            
+
             // 選択された担当者を取得
             const selectedAssignees = Array.from(document.querySelectorAll('#template-assignees input[type="checkbox"]:checked'))
                 .map(cb => cb.value);
-            
+
             if (!name || !taskTitle) {
                 alert('テンプレート名とタスク名は必須です');
                 return;
             }
-            
+
             try {
                 if (editingTemplateId) {
                     // 編集モード - Firebase統合
                     const templateData = {
                         name: name,
-                        category: category,
                         taskTitle: taskTitle,
                         priority: priority,
                         columnId: columnId,
@@ -9967,7 +9956,6 @@
                     const templateData = {
                         id: Date.now(),
                         name: name,
-                        category: category,
                         taskTitle: taskTitle,
                         priority: priority,
                         columnId: columnId,
@@ -10028,49 +10016,33 @@
                 container.innerHTML = '<div style="text-align: center; color: #6c757d; padding: 2rem;">テンプレートがありません</div>';
                 return;
             }
-            
-            // カテゴリ別にグループ化
-            const groupedTemplates = {};
+
+            // シンプルなリスト表示（カテゴリ機能削除）
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem;">';
+
             taskTemplates.forEach(template => {
-                if (!groupedTemplates[template.category]) {
-                    groupedTemplates[template.category] = [];
-                }
-                groupedTemplates[template.category].push(template);
-            });
-            
-            let html = '';
-            Object.keys(groupedTemplates).forEach(category => {
                 html += `
-                    <div style="margin-bottom: 1.5rem;">
-                        <h5 style="margin: 0 0 0.75rem 0; color: #495057; font-size: 1rem; font-weight: 600; border-bottom: 2px solid #e9ecef; padding-bottom: 0.25rem;">${category}</h5>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem;">
-                `;
-                
-                groupedTemplates[category].forEach(template => {
-                    html += `
-                        <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; width: 220px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" onmouseover="this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
-                                <h6 style="margin: 0; font-size: 1rem; font-weight: 600; color: #172b4d; line-height: 1.2;">${template.name}</h6>
-                                <div style="display: flex; gap: 0.25rem;">
-                                    <button onclick="editTemplate(${template.id})" style="background: none; border: none; color: #6c757d; cursor: pointer; font-size: 0.9rem; padding: 0.2rem;" title="編集">✏️</button>
-                                    <button onclick="deleteTemplate(${template.id})" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; padding: 0.2rem;" title="削除">🗑️</button>
-                                </div>
+                    <div style="background: white; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; width: 220px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" onmouseover="this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            <h6 style="margin: 0; font-size: 1rem; font-weight: 600; color: #172b4d; line-height: 1.2;">${template.name}</h6>
+                            <div style="display: flex; gap: 0.25rem;">
+                                <button onclick="editTemplate(${template.id})" style="background: none; border: none; color: #6c757d; cursor: pointer; font-size: 0.9rem; padding: 0.2rem;" title="編集">✏️</button>
+                                <button onclick="deleteTemplate(${template.id})" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; padding: 0.2rem;" title="削除">🗑️</button>
                             </div>
-                            <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.75rem; line-height: 1.3;">${template.taskTitle}</div>
-                            <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.75rem;">
-                                <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; white-space: nowrap;">${template.priority === 'high' ? '🔴 最重要' : template.priority === 'medium' ? '🟡 重要' : '🟢 通常'}</span>
-                                <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; white-space: nowrap;">${columns.find(c => c.id === template.columnId)?.title || template.columnId}</span>
-                            </div>
-                            <button onclick="applyTemplate(${template.id})" style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
-                                ⚡ 適用
-                            </button>
                         </div>
-                    `;
-                });
-                
-                html += '</div></div>';
+                        <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.75rem; line-height: 1.3;">${template.taskTitle}</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.75rem;">
+                            <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; white-space: nowrap;">${template.priority === 'high' ? '🔴 最重要' : template.priority === 'medium' ? '🟡 重要' : '🟢 通常'}</span>
+                            <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; white-space: nowrap;">${columns.find(c => c.id === template.columnId)?.title || template.columnId}</span>
+                        </div>
+                        <button onclick="applyTemplate(${template.id})" style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                            ⚡ 適用
+                        </button>
+                    </div>
+                `;
             });
-            
+
+            html += '</div>';
             container.innerHTML = html;
         }
         
@@ -10251,7 +10223,7 @@
             
             // フォームに値を設定
             document.getElementById('mgmt-template-name').value = template.name;
-            document.getElementById('mgmt-template-category').value = template.category;
+            // カテゴリ機能削除
             document.getElementById('mgmt-template-task-title').value = template.taskTitle;
             document.getElementById('mgmt-template-priority').value = template.priority;
             document.getElementById('mgmt-template-column').value = template.columnId;
@@ -10316,18 +10288,18 @@
         
         async function saveTemplateFromManagement(event) {
             event.preventDefault();
-            
+
             const name = document.getElementById('mgmt-template-name').value.trim();
-            const category = document.getElementById('mgmt-template-category').value;
+            // カテゴリ機能削除
             const taskTitle = document.getElementById('mgmt-template-task-title').value.trim();
             const priority = document.getElementById('mgmt-template-priority').value;
             const columnId = document.getElementById('mgmt-template-column').value;
             const memo = document.getElementById('mgmt-template-memo').value.trim();
-            
+
             // 選択された担当者を取得
             const selectedAssignees = Array.from(document.querySelectorAll('#mgmt-template-assignees input[type="checkbox"]:checked'))
                 .map(cb => cb.value);
-            
+
             if (!name || !taskTitle) {
                 alert('テンプレート名とタスク名は必須です');
                 return;
@@ -10338,7 +10310,6 @@
                     // 更新モード - Firebase統合
                     const templateData = {
                         name: name,
-                        category: category,
                         taskTitle: taskTitle,
                         priority: priority,
                         columnId: columnId,
@@ -10387,7 +10358,6 @@
                     const templateData = {
                         id: Date.now(),
                         name: name,
-                        category: category,
                         taskTitle: taskTitle,
                         priority: priority,
                         columnId: columnId,
