@@ -111,15 +111,24 @@
             background: #025aa0;
         }
         
+        .btn-success {
+            background: #38a169;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #2f855a;
+        }
+
         .btn-danger {
             background: #e53e3e;
             color: white;
         }
-        
+
         .btn-danger:hover {
             background: #c53030;
         }
-        
+
         .btn-secondary {
             background: #718096;
             color: white;
@@ -201,6 +210,124 @@
         .back-link:hover {
             background: rgba(255,255,255,0.3);
         }
+
+        /* モーダルスタイル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 900px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            background: #e53e3e;
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .disabled-user-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .disabled-user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .disabled-user-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #2d3748;
+        }
+
+        .disabled-user-email {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .disabled-user-meta {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .disabled-user-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #94a3b8;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -208,8 +335,8 @@
         <div class="header">
             <h1>👥 ユーザー管理</h1>
             <div style="display: flex; gap: 1rem; align-items: center;">
-                <button id="disabled-users-btn" onclick="window.location.href='user-management-disabled.html'" style="display: none; padding: 0.5rem 1rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
-                    🔒 無効化・非表示ユーザー管理
+                <button id="disabled-users-btn" onclick="openDisabledUsersModal()" style="display: none; padding: 0.5rem 1rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
+                    🔒 無効化されたユーザー
                 </button>
             </div>
         </div>
@@ -261,16 +388,6 @@
             <div class="section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h2>登録済みユーザー一覧</h2>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">
-                            <input type="checkbox" id="show-disabled-users" onchange="toggleDisabledUsers()" checked> 
-                            無効化ユーザーを表示
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">
-                            <input type="checkbox" id="show-hidden-users" onchange="toggleHiddenUsers()"> 
-                            非表示ユーザーを表示
-                        </label>
-                    </div>
                 </div>
                 <table class="users-table">
                     <thead>
@@ -831,29 +948,14 @@
                     statusInfo = ` <br><small style="color: #666;">無効化: ${user.disabledAt ? new Date(user.disabledAt).toLocaleDateString('ja-JP') : '不明'} by ${user.disabledBy || '不明'}</small>`;
                 }
                 
-                // ユーザーの状態に基づいてボタンを制御
+                // ユーザーの状態に基づいてボタンを制御（無効化=非表示化に統合）
                 let actionButtons = '';
-                if (user.isHidden) {
-                    // 非表示ユーザー: 復旧と完全削除
-                    actionButtons = `
-                        <button class="btn btn-primary" onclick="restoreUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">復旧</button>
-                        <button class="btn btn-danger" onclick="permanentDeleteUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">完全削除</button>
-                    `;
-                } else if (isDisabled) {
-                    // 無効化ユーザー: 復旧と非表示
-                    actionButtons = `
-                        <button class="btn btn-primary" onclick="restoreUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">復旧</button>
-                        <button class="btn btn-warning" onclick="hideUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">非表示化</button>
-                    `;
-                } else {
-                    // 通常ユーザー: 編集・パスワード・無効化
-                    actionButtons = `
-                        <button class="btn btn-secondary" onclick="editUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">編集</button>
-                        <button class="btn btn-secondary" onclick="changePassword('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">パスワード</button>
-                        <button class="btn btn-warning" onclick="disableUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">無効化</button>
-                        <button class="btn btn-danger" onclick="hideUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">非表示化</button>
-                    `;
-                }
+                // 通常ユーザーのみ表示（無効化ユーザーはフィルタリングで除外される）
+                actionButtons = `
+                    <button class="btn btn-secondary" onclick="editUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">編集</button>
+                    <button class="btn btn-secondary" onclick="changePassword('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">パスワード</button>
+                    <button class="btn btn-warning" onclick="disableUser('${user.uid || user.id}')" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">🔒 無効化</button>
+                `;
                 
                 row.innerHTML = `
                     <td style="${statusStyle}">${user.name} <small style="color: #666;">(${userType})</small>${statusText}${statusInfo}</td>
@@ -1000,8 +1102,11 @@
                         const disabledUser = {
                             ...targetUser,
                             isDisabled: true,
+                            isHidden: true,  // 無効化と同時に非表示化
                             disabledAt: new Date().toISOString(),
-                            disabledBy: currentUser ? currentUser.name : 'unknown'
+                            disabledBy: currentUser ? currentUser.name : 'unknown',
+                            hiddenAt: new Date().toISOString(),
+                            hiddenBy: currentUser ? currentUser.name : 'unknown'
                         };
                         
                         console.log('🔍 [DEBUG] 無効化ユーザーデータ:', disabledUser);
@@ -1025,8 +1130,11 @@
                             users[userIndex] = {
                                 ...targetUser,
                                 isDisabled: true,
+                                isHidden: true,  // 無効化と同時に非表示化
                                 disabledAt: new Date().toISOString(),
-                                disabledBy: currentUser ? currentUser.name : 'unknown'
+                                disabledBy: currentUser ? currentUser.name : 'unknown',
+                                hiddenAt: new Date().toISOString(),
+                                hiddenBy: currentUser ? currentUser.name : 'unknown'
                             };
                             console.log('✅ [DISABLE] LocalStorageでユーザー無効化完了:', disabledUserName);
                         }
@@ -1219,7 +1327,124 @@
             localStorage.setItem('taskAssignees', JSON.stringify(updatedAssignees));
             console.log('📝 担当者リスト更新:', `"${userName}"を削除`, updatedAssignees);
         }
-        
+
+        // ===== モーダル制御関数 =====
+
+        // 無効化ユーザーモーダルを開く
+        function openDisabledUsersModal() {
+            const modal = document.getElementById('disabled-users-modal');
+            modal.style.display = 'block';
+            loadDisabledUsers();
+        }
+
+        // 無効化ユーザーモーダルを閉じる
+        function closeDisabledUsersModal() {
+            const modal = document.getElementById('disabled-users-modal');
+            modal.style.display = 'none';
+        }
+
+        // 無効化されたユーザーをモーダルに表示
+        function loadDisabledUsers() {
+            const container = document.getElementById('disabled-users-list');
+
+            // 無効化されたユーザーを取得
+            const disabledUsers = users.filter(user => user.isDisabled || user.isHidden);
+
+            if (disabledUsers.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✓</div>
+                        <p>無効化されたユーザーはいません</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // ユーザーカードを生成
+            container.innerHTML = disabledUsers.map(user => {
+                const disabledDate = user.disabledAt ? new Date(user.disabledAt).toLocaleDateString('ja-JP') : '不明';
+                const disabledBy = user.disabledBy || '不明';
+
+                return `
+                    <div class="disabled-user-card">
+                        <div class="disabled-user-info">
+                            <div class="disabled-user-name">${user.name}</div>
+                            <div class="disabled-user-email">${user.email}</div>
+                            <div class="disabled-user-meta">
+                                無効化日: ${disabledDate} | 実行者: ${disabledBy}
+                            </div>
+                        </div>
+                        <div class="disabled-user-actions">
+                            <button onclick="restoreUserFromModal('${user.uid || user.id}')" class="btn btn-success">
+                                🔓 復旧
+                            </button>
+                            <button onclick="permanentlyDeleteUserFromModal('${user.uid || user.id}')" class="btn btn-danger">
+                                🗑️ 完全削除
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // モーダルからユーザーを復旧
+        async function restoreUserFromModal(userId) {
+            await restoreUser(userId);
+            loadDisabledUsers(); // モーダル内表示を更新
+            loadUsers(); // メイン画面も更新
+        }
+
+        // モーダルからユーザーを完全削除
+        async function permanentlyDeleteUserFromModal(userId) {
+            const user = users.find(u => u.id === userId || u.uid === userId);
+            if (!user) {
+                alert('ユーザーが見つかりません。');
+                return;
+            }
+
+            if (confirm(`⚠️ 【危険操作】\n\n${user.name} を完全削除しますか？\n\n🚨 この操作は取り消せません:\n• Firestoreから完全削除\n• 関連タスクは残りますが担当者情報が失われます\n• Firebase Authからの削除も推奨されます\n\n本当に実行しますか？`)) {
+                try {
+                    console.log('🗑️ [PERMANENT] 完全削除実行中:', user.name);
+
+                    // Firestoreから完全削除
+                    if (window.FirebaseDB && window.FirebaseDB.deleteUser) {
+                        const firebaseResult = await window.FirebaseDB.deleteUser(userId);
+                        if (firebaseResult.success) {
+                            console.log('✅ [PERMANENT] Firestore削除成功:', user.name);
+                        } else {
+                            console.error('❌ [PERMANENT] Firestore削除エラー:', firebaseResult.error);
+                        }
+                    }
+
+                    // ローカルからも削除
+                    users = users.filter(u => u.id !== userId && u.uid !== userId);
+                    saveUsers();
+                    removeFromAssigneesList(user.name);
+
+                    loadDisabledUsers(); // モーダル内表示を更新
+                    await loadUsers(); // メイン画面も更新
+                    showSuccess();
+
+                    alert(`🗑️ ユーザー「${user.name}」を完全削除しました。\n\n📋 処理完了:\n• Firestoreから削除済み\n• ローカルデータから削除済み\n\n⚠️ Firebase Console での ${user.email} の削除も推奨します。`);
+
+                    console.log('🗑️ [PERMANENT] 完全削除完了:', user.name);
+                } catch (error) {
+                    console.error('❌ [PERMANENT] 完全削除エラー:', error);
+                    alert('完全削除中にエラーが発生しました。\n\n' + error.message);
+                }
+            }
+        }
+
+        // モーダル外クリックで閉じる
+        window.onclick = function(event) {
+            const modal = document.getElementById('disabled-users-modal');
+            if (event.target === modal) {
+                closeDisabledUsersModal();
+            }
+        }
+
+        // ===== 既存のユーザー非表示化機能 =====
+
         // ユーザー非表示化機能
         async function hideUser(userId) {
             const user = users.find(u => (u.uid || u.id) === String(userId));
@@ -1388,7 +1613,22 @@
             }, 3000); // Firebase初期化を待つ
         });
     </script>
-    
+
+    <!-- 無効化ユーザー管理モーダル -->
+    <div id="disabled-users-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔒 無効化されたユーザー管理</h2>
+                <button class="modal-close" onclick="closeDisabledUsersModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="disabled-users-list">
+                    <!-- 無効化ユーザーがここに表示される -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase統合システム - マルチユーザー対応 -->
     <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20250820-user-mgmt"></script>
     <!-- File Updated: 2025-08-21 13:30 - Simplified user addition, added Fukushima user script -->
