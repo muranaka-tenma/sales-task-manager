@@ -5736,26 +5736,44 @@
             
             // 各プロジェクトのタスク数を計算（メンバーフィルター考慮）
             const projectTaskCounts = {};
-            const filteredByMember = selectedAssigneeFilters.length > 0 ? 
+            const currentUser = getCurrentUser();
+            const filteredByMember = selectedAssigneeFilters.length > 0 ?
                 tasks.filter(t => {
                     if (t.assignees && Array.isArray(t.assignees)) {
                         return t.assignees.includes(selectedAssigneeFilters[0]);
                     }
                     return t.assignee === selectedAssigneeFilters[0];
                 }) : tasks;
-                
+
             filteredByMember.forEach(task => {
+                // 非表示タスクは作成者+担当者以外はカウントしない
+                if (task.isHidden && task.createdBy !== currentUser.email) {
+                    const isAssignee = task.assignees?.includes(currentUser.name) || task.assignee === currentUser.name;
+                    if (!isAssignee) {
+                        return;
+                    }
+                }
                 if (task.projectId) {
                     projectTaskCounts[task.projectId] = (projectTaskCounts[task.projectId] || 0) + 1;
                 }
             });
-            
+
             // プロジェクト一覧のHTML生成
             let projectsHTML = '';
-            
+
             // 通常タスク表示ボタン
             const isNormalTasksSelected = selectedProjectFilters.length === 0;
-            const normalTasksCount = filteredByMember.filter(t => !t.projectId).length;
+            const normalTasksCount = filteredByMember.filter(t => {
+                if (t.projectId) return false;
+                // 非表示タスクは作成者+担当者以外はカウントしない
+                if (t.isHidden && t.createdBy !== currentUser.email) {
+                    const isAssignee = t.assignees?.includes(currentUser.name) || t.assignee === currentUser.name;
+                    if (!isAssignee) {
+                        return false;
+                    }
+                }
+                return true;
+            }).length;
             projectsHTML += `
                 <div class="project-card ${isNormalTasksSelected ? 'active' : ''}" onclick="showNormalTasks()">
                     <div class="project-card-name">📋 通常タスク</div>
@@ -5860,9 +5878,12 @@
             if (selectedProjectFilters.length > 0) {
                 // プロジェクトフィルター: 特定プロジェクトのタスクのみ表示
                 filteredTasks = tasks.filter(t => {
-                    // 非表示タスクは作成者のみ表示
+                    // 非表示タスクは作成者+担当者のみ表示
                     if (t.isHidden && t.createdBy !== currentUser.email) {
-                        return false;
+                        const isAssignee = t.assignees?.includes(currentUser.name) || t.assignee === currentUser.name;
+                        if (!isAssignee) {
+                            return false;
+                        }
                     }
                     return t.projectId && selectedProjectFilters.includes(t.projectId);
                 });
@@ -5886,9 +5907,12 @@
             } else if (selectedAssigneeFilters.length > 0) {
                 // 個人・共通タスクの担当者フィルター（プロジェクトタスクは除外）
                 filteredTasks = tasks.filter(t => {
-                    // 非表示タスクは作成者のみ表示
+                    // 非表示タスクは作成者+担当者のみ表示
                     if (t.isHidden && t.createdBy !== currentUser.email) {
-                        return false;
+                        const isAssignee = t.assignees?.includes(currentUser.name) || t.assignee === currentUser.name;
+                        if (!isAssignee) {
+                            return false;
+                        }
                     }
                     // プロジェクトタスクは除外
                     if (t.projectId) return false;
@@ -5903,9 +5927,12 @@
             } else {
                 // 個人・共通タスクのみ表示（プロジェクトタスクは除外）
                 filteredTasks = tasks.filter(t => {
-                    // 非表示タスクは作成者のみ表示
+                    // 非表示タスクは作成者+担当者のみ表示
                     if (t.isHidden && t.createdBy !== currentUser.email) {
-                        return false;
+                        const isAssignee = t.assignees?.includes(currentUser.name) || t.assignee === currentUser.name;
+                        if (!isAssignee) {
+                            return false;
+                        }
                     }
                     return !t.projectId;
                 });
