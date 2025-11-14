@@ -353,7 +353,7 @@
 
                         setTimeout(() => {
                             window.location.href = 'index-kanban.html';
-                        }, 500);
+                        }, 1500);
                         return;
                     } else {
                         console.log('🔄 Firebase認証失敗、LocalStorage認証にフォールバック');
@@ -361,18 +361,20 @@
                 }
 
                 // フォールバック: 既存のLocalStorage認証
-                const localResult = authenticate(email, password);
-                showLoading(false);
+                setTimeout(() => {
+                    const localResult = authenticate(email, password);
+                    showLoading(false);
 
-                if (localResult.success) {
-                    setCurrentUser(localResult.user);
-                    showSuccess(`ようこそ、${localResult.user.name}さん！`);
-                    setTimeout(() => {
-                        window.location.href = 'index-kanban.html';
-                    }, 500);
-                } else {
-                    showError(localResult.message);
-                }
+                    if (localResult.success) {
+                        setCurrentUser(localResult.user);
+                        showSuccess(`ようこそ、${localResult.user.name}さん！`);
+                        setTimeout(() => {
+                            window.location.href = 'index-kanban.html';
+                        }, 1500);
+                    } else {
+                        showError(localResult.message);
+                    }
+                }, 1000);
                 
             } catch (error) {
                 console.error('❌ 認証処理エラー:', error);
