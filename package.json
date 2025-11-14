@@ -9,7 +9,18 @@
     "test:headed": "playwright test --headed"
   },
   "devDependencies": {
-    "netlify-cli": "^23.9.1",
-    "@playwright/test": "^1.40.0"
-  }
+    "@playwright/test": "^1.56.1",
+    "netlify-cli": "^23.9.1"
+  },
+  "main": "playwright.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "dependencies": {
+    "playwright": "^1.56.1",
+    "playwright-core": "^1.56.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
