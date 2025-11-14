@@ -1756,3 +1756,195 @@ await page.waitForFunction(() => {
 - 必ずステップ1-3を完了してから作業を開始してください
 
 ---
+
+# 📅 2025-11-14 セッション進捗（夜）
+
+## ✅ 本日完了した作業
+
+### 1. ✅ ドキュメント整理（commit: 引継ぎ書整理）
+
+**実施内容**:
+- `README.md`を作成（プロジェクトエントリーポイント）
+- `CURRENT-SESSION.md` → `SESSION.md` にリネーム
+- `handover/`ディレクトリ構造を作成
+  - `handover/requirements/` - 要件定義
+  - `handover/design/` - 設計ドキュメント
+- 不要なファイル・ディレクトリを削除（約9MB削減）
+
+**結果**: 次回セッションで迷わずに引継ぎ書にアクセス可能
+
+---
+
+### 2. ❌ ログイン問題調査（パフォーマンス改善試行 → 失敗）
+
+**問題**: `[Violation] 'submit' handler took 2877ms`
+
+**調査結果**:
+- LocalStorageフォールバックの1秒待機を削除
+- リダイレクト遅延を1500ms→500msに短縮
+- **結果**: E2Eテスト全失敗（ログイン後に遷移しない）
+- **原因**: Firebase認証完了を待つための遅延だった
+- **対応**: 元のコードに戻した（commit: 36fef88）
+
+**結論**: この遅延は意図的なもので、削除すべきではない
+
+---
+
+### 3. ❌ ゲストユーザー問題調査（根本原因特定）
+
+**症状**: ログイン後に「ゲストユーザー」として認識される
+
+**根本原因を特定**:
+```javascript
+// firebase-config-auth-fix-20250819-132508.js:107
+} else {
+    console.log('⚠️ Firebase未認証');
+    window.currentFirebaseUser = null;
+    localStorage.removeItem('currentSession');  // ← 犯人
+}
+```
+
+**問題の流れ**:
+1. login.htmlでLocalStorage認証成功 → `currentSession`保存
+2. index-kanban.htmlに遷移
+3. `onAuthStateChanged`が発火 → Firebase未認証
+4. `currentSession`が削除される
+5. ユーザーが「ゲストユーザー」として認識される
+
+**修正試行**（commit: 167e5b8）:
+- `localStorage.removeItem('currentSession')`を削除
+- LocalStorage認証との共存を試みた
+
+**結果**: **修正は反映されたが、問題は解決しなかった**
+- ログに `📝 [FIREBASE] LocalStorage認証セッションを保持` が表示
+- しかし依然として「ゲストユーザー」になる
+
+---
+
+## 🎯 真の問題（ユーザー指摘により判明）
+
+**ユーザーからの重要な指摘**:
+> "LocalStorageには絶対に書き換えとか機能修正は入れないでね。意味ないよね？依存情報をすべてクラウド準拠にするんだから。"
+
+**SESSION.md記載の方針**:
+- **currentSession | ❌ Firebase | ✅ LocalStorage | 要移行**
+- **LocalStorage完全脱却プロジェクト（3-5時間）が必要**
+- 132箇所でLocalStorageを使用中
+
+**根本問題**:
+- Firebase Authenticationにユーザーが登録されていない
+- または、パスワードが間違っている
+- そのため、LocalStorageフォールバックを使用
+- しかし、Firebase未認証なので「ゲストユーザー」になる
+
+---
+
+## 🚨 次回セッション開始時の最優先事項
+
+### 重要な決定事項（ユーザー判断待ち）
+
+**現在の状況**:
+```
+❌ Firebase認証エラー: Firebase: Error (auth/invalid-credential).
+🔄 Firebase認証失敗、LocalStorage認証にフォールバック
+```
+
+**選択肢を提示する必要がある**:
+
+#### 選択肢A: Firebase Authentication使用（推奨）
+**方針**:
+- Firebase Authenticationに全ユーザーを登録する
+- login.htmlでFirebase認証を成功させる
+- LocalStorage認証を完全に削除する
+- `currentSession`をFirebaseに移行
+
+**メリット**:
+- ✅ クラウド準拠（デバイス間同期）
+- ✅ セキュアな認証
+- ✅ チーム共有可能
+
+**作業量**: 約2-3時間
+
+---
+
+#### 選択肢B: Firebase Authentication不使用（カスタム認証）
+**方針**:
+- Firestoreのみを使用（認証なし）
+- `onAuthStateChanged`の処理を削除または無効化
+- `currentSession`をFirestoreの`sessions`コレクションに保存
+- 独自のセッション管理を実装
+
+**メリット**:
+- ✅ Firebase Authenticationの認証エラーが発生しない
+- ✅ 既存のユーザー管理ロジックを活かせる
+
+**デメリット**:
+- ❌ セキュリティ面でFirebase Authenticationより劣る
+- ❌ セッション管理を自前で実装
+
+**作業量**: 約1-2時間
+
+---
+
+#### 選択肢C: LocalStorage完全脱却プロジェクト（大規模）
+**方針**:
+- 132箇所のLocalStorage参照を全てFirebaseに移行
+- `currentSession`, `taskTemplates`, `projectSettings`, `kanbanColumns`, `recurringTemplates`を全て移行
+
+**作業量**: 約3-5時間（超大きな山）
+
+---
+
+## 📊 コミット履歴（2025-11-14 夜）
+
+| コミット | 内容 | ファイル | 時刻 |
+|---------|------|----------|------|
+| da5a1f7 | perf: ログインパフォーマンス改善（submit handler処理時間を約2秒短縮） | login.html | 19:47 |
+| 36fef88 | revert: ログイン修正を元に戻す（E2Eテスト失敗のため） | login.html | 19:52 |
+| 167e5b8 | fix: ゲストユーザー問題を修正（Firebase未認証時のcurrentSession削除を停止） | firebase-config-auth-fix-20250819-132508.js | 19:55 |
+
+---
+
+## 📋 次回セッション開始時の手順（厳守）
+
+### ステップ1: プロジェクト確認（最重要）
+1. **README.mdを確認** ← ディレクトリとURLを確認
+2. **SESSION.mdを読む** ← 最新の進捗と課題を把握
+3. **他のプロジェクトと混同していないか確認**
+   - CocoFileではない
+   - タスク管理ツール（別ディレクトリ）ではない
+
+### ステップ2: ユーザーに提案
+4. **上記3つの選択肢を提示**
+   - 選択肢A: Firebase Authentication使用（推奨）
+   - 選択肢B: Firebase Authentication不使用（カスタム認証）
+   - 選択肢C: LocalStorage完全脱却プロジェクト（大規模）
+
+### ステップ3: ユーザー判断後に作業開始
+5. **選択された方針で実装を開始**
+
+---
+
+## ⚠️ 重要な教訓
+
+### 1. LocalStorage修正は無意味
+- LocalStorageへの修正は全て無駄
+- Firebase移行が完了するまでの一時的な解決策にすぎない
+- **今後はLocalStorageを触らない**
+
+### 2. 本番環境でのテストの重要性
+- ローカル修正は意味がない
+- 本番環境＝テスト環境
+
+### 3. 引継ぎ書の重要性
+- SESSION.mdを読まずに作業すると混乱する
+- 毎回セッション開始時に必ず確認する
+
+---
+
+**最終更新**: 2025-11-14 19:30 JST（ゲストユーザー問題調査完了）
+**次回セッション**: ユーザー判断待ち（Firebase Authentication使用 vs カスタム認証）
+**作成者**: Claude Code
+**更新者**: Claude Code
+
+---
