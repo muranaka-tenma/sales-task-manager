@@ -104,8 +104,11 @@ onAuthStateChanged(auth, (user) => {
     } else {
         console.log('⚠️ Firebase未認証');
         window.currentFirebaseUser = null;
-        localStorage.removeItem('currentSession');
-        
+
+        // LocalStorage認証との共存のため、currentSessionは削除しない
+        // Firebase認証とLocalStorage認証は独立して動作する
+        console.log('📝 [FIREBASE] LocalStorage認証セッションを保持（Firebase未認証でも削除しない）');
+
         // ログアウト時もハンバーガーメニューを更新（診断ボタンも含む）
         setTimeout(() => {
             if (window.updateHamburgerMenu) {
