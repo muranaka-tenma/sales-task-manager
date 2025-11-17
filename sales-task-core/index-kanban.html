@@ -3938,14 +3938,33 @@
             const hiddenCheckbox = document.getElementById('task-hidden-input');
             if (!hiddenCheckbox) return;
 
-            // Firebaseから直接現在ログイン中のユーザーのdisplayNameを取得
-            if (!window.currentFirebaseUser || !window.currentFirebaseUser.displayName) {
+            // 現在ログイン中のユーザーの日本語名を取得
+            if (!window.currentFirebaseUser || !window.currentFirebaseUser.email) {
                 console.error('❌ [HIDDEN-VALIDATION] Firebase認証ユーザー情報が取得できません');
                 return;
             }
 
-            const currentUserDisplayName = window.currentFirebaseUser.displayName;
-            console.log(`✅ [HIDDEN-VALIDATION] 現在のユーザー: ${currentUserDisplayName} (${window.currentFirebaseUser.email})`);
+            let currentUserDisplayName;
+            try {
+                // localStorageのsystemUsersから日本語名を取得
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                const matchedUser = systemUsers.find(u => u.email === window.currentFirebaseUser.email);
+
+                if (matchedUser && matchedUser.name) {
+                    currentUserDisplayName = matchedUser.name;
+                    console.log(`✅ [HIDDEN-VALIDATION] 現在のユーザー: ${currentUserDisplayName} (${window.currentFirebaseUser.email})`);
+                } else {
+                    console.error(`❌ [HIDDEN-VALIDATION] systemUsersから日本語名が取得できません`);
+                    console.error(`❌ [HIDDEN-VALIDATION] systemUsers:`, systemUsers);
+                    console.error(`❌ [HIDDEN-VALIDATION] 検索email:`, window.currentFirebaseUser.email);
+                    // フォールバック：FirebaseのdisplayName
+                    currentUserDisplayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
+                    console.warn(`⚠️ [HIDDEN-VALIDATION] フォールバック使用: ${currentUserDisplayName}`);
+                }
+            } catch (error) {
+                console.error('❌ [HIDDEN-VALIDATION] systemUsers取得エラー:', error);
+                currentUserDisplayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
+            }
 
             // 非表示チェックボックスの change イベント
             hiddenCheckbox.addEventListener('change', function() {
