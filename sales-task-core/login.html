@@ -361,11 +361,21 @@
                 }
 
                 // フォールバック: 既存のLocalStorage認証
-                setTimeout(() => {
+                setTimeout(async () => {
                     const localResult = authenticate(email, password);
                     showLoading(false);
 
                     if (localResult.success) {
+                        // 🔧 重要: LocalStorage認証成功時、既存のFirebaseセッションをログアウト
+                        if (window.FirebaseAuth) {
+                            try {
+                                await window.FirebaseAuth.signOut();
+                                console.log('🔓 [LOGIN] 既存のFirebaseセッションをログアウト');
+                            } catch (error) {
+                                console.warn('⚠️ [LOGIN] Firebaseログアウト失敗:', error);
+                            }
+                        }
+
                         setCurrentUser(localResult.user);
                         showSuccess(`ようこそ、${localResult.user.name}さん！`);
                         setTimeout(() => {
