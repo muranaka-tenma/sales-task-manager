@@ -152,6 +152,13 @@ window.getCurrentUser = function() {
         let displayName;
         try {
             const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+
+            // デバッグ：systemUsersの構造を確認
+            if (systemUsers.length > 0) {
+                console.log('🔍 [DEBUG] systemUsersの最初のユーザー構造:', systemUsers[0]);
+                console.log('🔍 [DEBUG] 検索対象email:', window.currentFirebaseUser.email);
+            }
+
             const matchedUser = systemUsers.find(u => u.email === window.currentFirebaseUser.email);
 
             if (matchedUser && matchedUser.name) {
@@ -161,6 +168,7 @@ window.getCurrentUser = function() {
                 // systemUsersにデータが無い場合はエラーログ
                 console.error(`❌ [getCurrentUser] systemUsersに ${window.currentFirebaseUser.email} のデータがありません`);
                 console.error(`❌ [getCurrentUser] systemUsers内容:`, systemUsers);
+                console.error(`❌ [getCurrentUser] 全ユーザーのemail:`, systemUsers.map(u => u.email));
                 // FirebaseのdisplayNameまたはemail prefixをフォールバックとして使用
                 displayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
             }
