@@ -3938,11 +3938,14 @@
             const hiddenCheckbox = document.getElementById('task-hidden-input');
             if (!hiddenCheckbox) return;
 
-            const currentUser = getCurrentUser();
-            if (!currentUser || !currentUser.name) {
-                console.error('❌ [HIDDEN-VALIDATION] ユーザー情報が取得できません');
+            // Firebaseから直接現在ログイン中のユーザーのdisplayNameを取得
+            if (!window.currentFirebaseUser || !window.currentFirebaseUser.displayName) {
+                console.error('❌ [HIDDEN-VALIDATION] Firebase認証ユーザー情報が取得できません');
                 return;
             }
+
+            const currentUserDisplayName = window.currentFirebaseUser.displayName;
+            console.log(`✅ [HIDDEN-VALIDATION] 現在のユーザー: ${currentUserDisplayName} (${window.currentFirebaseUser.email})`);
 
             // 非表示チェックボックスの change イベント
             hiddenCheckbox.addEventListener('change', function() {
@@ -3955,7 +3958,7 @@
                     console.log(`🔍 [HIDDEN-VALIDATION] 現在の担当者: ${selectedAssignees.join(', ')}`);
 
                     // 自分以外が選択されている場合はエラー
-                    const othersSelected = selectedAssignees.filter(name => name !== currentUser.name);
+                    const othersSelected = selectedAssignees.filter(name => name !== currentUserDisplayName);
                     if (othersSelected.length > 0) {
                         alert(`⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n他のユーザー（${othersSelected.join(', ')}）が選択されているため、非表示にできません。`);
                         this.checked = false;
@@ -3964,15 +3967,23 @@
 
                     // 自分以外のチェックボックスを無効化
                     const assigneeCheckboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]');
+                    let selfCheckboxFound = false;
                     assigneeCheckboxes.forEach(checkbox => {
-                        if (checkbox.value !== currentUser.name) {
+                        if (checkbox.value !== currentUserDisplayName) {
                             checkbox.disabled = true;
                             checkbox.closest('.assignee-checkbox').style.opacity = '0.5';
                         } else {
                             // 自分を自動チェック
                             checkbox.checked = true;
+                            selfCheckboxFound = true;
+                            console.log(`✅ [HIDDEN-VALIDATION] 自分のチェックボックスを自動選択: ${currentUserDisplayName}`);
                         }
                     });
+
+                    if (!selfCheckboxFound) {
+                        console.error(`❌ [HIDDEN-VALIDATION] 自分のチェックボックスが見つかりません: ${currentUserDisplayName}`);
+                    }
+
                     console.log('✅ [HIDDEN-VALIDATION] 自分以外の担当者を無効化しました');
                 } else {
                     // 全ての担当者チェックボックスを有効化
@@ -3993,7 +4004,7 @@
                     if (!isHidden) return; // 非表示でない場合は何もしない
 
                     // 非表示タスクで自分以外を選択しようとした場合
-                    if (this.value !== currentUser.name && this.checked) {
+                    if (this.value !== currentUserDisplayName && this.checked) {
                         alert(`⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n「${this.value}」を担当者に追加できません。`);
                         this.checked = false;
                     }
