@@ -269,22 +269,14 @@
     
     
     <script>
-        // ページ読み込み時の処理
-        window.addEventListener('DOMContentLoaded', () => {
-            // Enterキーでログイン
-            document.getElementById('password').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    handleLogin();
-                }
-            });
-        });
-
         // Firebase認証のみを使用したログイン処理
-        async function handleLogin() {
+        async function handleLogin(event) {
+            event.preventDefault(); // フォームのデフォルト送信を防止
+
             const username = document.getElementById('username').value.trim();
             const email = username + '@terracom.co.jp'; // ドメイン自動付与
             const password = document.getElementById('password').value;
-            
+
             // ローディング表示
             showLoading(true);
             hideMessages();
