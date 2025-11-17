@@ -1542,7 +1542,7 @@
                         
                         <div class="modal-actions">
                             <button type="button" class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
-                            <button type="submit" class="btn btn-primary">保存</button>
+                            <button type="submit" class="btn btn-primary" id="save-task-button">保存</button>
                         </div>
                     </form>
                 </div>
@@ -5072,6 +5072,13 @@
             try {
                 console.log('🚀 [SAVE TASK] Starting saveTask function...');
                 event.preventDefault();
+
+                // 二重クリック防止: 保存ボタンを無効化
+                const saveButton = document.getElementById('save-task-button');
+                if (saveButton) {
+                    saveButton.disabled = true;
+                    console.log('🔒 [SAVE] 保存ボタンを無効化（二重クリック防止）');
+                }
             
             // 編集モード時は task-column-input の required 属性を一時的に削除
             const columnInput = document.getElementById('task-column-input');
@@ -5539,12 +5546,19 @@
             } catch (error) {
                 console.error('🚨 [SAVE TASK ERROR]', error);
                 alert('タスクの保存中にエラーが発生しました: ' + error.message);
-                
+
                 // エラー時もrequired属性を復活
                 const columnInput = document.getElementById('column-select');
                 const wasRequired = columnInput && columnInput.hasAttribute('required');
                 if (wasRequired && isColumnSelectionHidden) {
                     columnInput.setAttribute('required', '');
+                }
+            } finally {
+                // 二重クリック防止: 保存ボタンを再有効化
+                const saveButton = document.getElementById('save-task-button');
+                if (saveButton) {
+                    saveButton.disabled = false;
+                    console.log('🔓 [SAVE] 保存ボタンを再有効化');
                 }
             }
         }
