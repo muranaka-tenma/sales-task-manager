@@ -132,13 +132,28 @@ window.getCurrentUser = function() {
             'hashimoto-yumi@terracom.co.jp': 'user',
             'fukushima-ami@terracom.co.jp': 'user'
         };
-        
+
         const userRole = roleMap[window.currentFirebaseUser.email] || 'user';
-        
-        // 日本名マッピング
-        const displayName = window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ? 
-                           '邨中天真' : window.currentFirebaseUser.email.split('@')[0];
-        
+
+        // systemUsersから日本語名を取得（非表示タスクの担当者自動選択で必要）
+        let displayName;
+        try {
+            const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const matchedUser = systemUsers.find(u => u.email === window.currentFirebaseUser.email);
+
+            if (matchedUser && matchedUser.name) {
+                displayName = matchedUser.name;
+            } else {
+                // フォールバック
+                displayName = window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ?
+                             '邨中天真' : window.currentFirebaseUser.email.split('@')[0];
+            }
+        } catch (error) {
+            console.error('❌ [getCurrentUser] systemUsers取得エラー:', error);
+            displayName = window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ?
+                         '邨中天真' : window.currentFirebaseUser.email.split('@')[0];
+        }
+
         return {
             id: window.currentFirebaseUser.uid,
             name: displayName,

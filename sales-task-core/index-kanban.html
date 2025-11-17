@@ -5457,7 +5457,7 @@
             // Firebase同期（新規タスクまたは編集タスク）
             if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
                 try {
-                    const targetTask = editingTask || tasks[tasks.length - 1]; // 編集中または最新タスク
+                    const targetTask = editingTask || tasks[0]; // 編集中または最新タスク（unshiftで先頭に追加されるため）
                     if (targetTask) {
                         console.log('🔥 [FIREBASE] タスクをFirebaseに同期中...', targetTask.title);
                         
