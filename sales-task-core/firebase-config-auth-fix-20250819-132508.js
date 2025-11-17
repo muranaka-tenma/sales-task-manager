@@ -156,15 +156,18 @@ window.getCurrentUser = function() {
 
             if (matchedUser && matchedUser.name) {
                 displayName = matchedUser.name;
+                console.log(`✅ [getCurrentUser] systemUsersから日本語名を取得: ${displayName} (${window.currentFirebaseUser.email})`);
             } else {
-                // フォールバック
-                displayName = window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ?
-                             '邨中天真' : window.currentFirebaseUser.email.split('@')[0];
+                // systemUsersにデータが無い場合はエラーログ
+                console.error(`❌ [getCurrentUser] systemUsersに ${window.currentFirebaseUser.email} のデータがありません`);
+                console.error(`❌ [getCurrentUser] systemUsers内容:`, systemUsers);
+                // FirebaseのdisplayNameまたはemail prefixをフォールバックとして使用
+                displayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
             }
         } catch (error) {
             console.error('❌ [getCurrentUser] systemUsers取得エラー:', error);
-            displayName = window.currentFirebaseUser.email === 'muranaka-tenma@terracom.co.jp' ?
-                         '邨中天真' : window.currentFirebaseUser.email.split('@')[0];
+            // エラー時はFirebaseのdisplayNameまたはemail prefixを使用
+            displayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
         }
 
         return {
