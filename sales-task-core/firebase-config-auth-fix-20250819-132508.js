@@ -35,10 +35,23 @@ console.log('🔧 [FIREBASE CONFIG] Firestore設定: リアルタイムリスナ
 console.log('🔥 Firebase完全統合モード - LocalStorage依存削除');
 
 // Firebase認証状態監視
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
         console.log('🔐 Firebase認証成功:', user.email);
         window.currentFirebaseUser = user;
+
+        // 🔧 systemUsersをFirebaseから初期化（非表示タスクの担当者自動選択で必要）
+        try {
+            if (window.FirebaseDB && window.FirebaseDB.getUsers) {
+                const firebaseUsers = await window.FirebaseDB.getUsers();
+                if (firebaseUsers.success && firebaseUsers.users.length > 0) {
+                    localStorage.setItem('systemUsers', JSON.stringify(firebaseUsers.users));
+                    console.log('✅ [FIREBASE-INIT] systemUsers初期化完了:', firebaseUsers.users.length, '名');
+                }
+            }
+        } catch (error) {
+            console.error('❌ [FIREBASE-INIT] systemUsers初期化エラー:', error);
+        }
 
         // セッション情報をローカルストレージに保存（systemUsersから日本語名を取得）
         let displayName;
