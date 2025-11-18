@@ -13310,8 +13310,8 @@
             if (window.FirebaseDB && window.getCurrentUser()?.isLoggedIn) {
                 console.log('🔥 [PJ-MODAL] Firebase統合モード');
                 try {
-                    if (window.FirebaseDB.getUsers) {
-                        const firebaseUsers = await window.FirebaseDB.getUsers();
+                    if (window.FirebaseDB.getActiveUsers) {
+                        const firebaseUsers = await window.FirebaseDB.getActiveUsers();
                         if (firebaseUsers.success && firebaseUsers.users.length > 0) {
                             // LocalStorageのsystemUsersを更新
                             localStorage.setItem('systemUsers', JSON.stringify(firebaseUsers.users));

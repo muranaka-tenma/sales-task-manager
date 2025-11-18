@@ -1963,3 +1963,76 @@ await page.waitForFunction(() => {
 **更新者**: Claude Code
 
 ---
+
+---
+
+## 🔧 2025-11-17: 非表示タスク自動選択機能の根本修正
+
+### 問題の根本原因
+サブエージェントによる包括的調査の結果、以下の6つの根本原因を特定：
+
+1. **FirebaseDB.getUsers() が存在しない** (`index-kanban.html:13314`)
+   - 実際の関数: `getActiveUsers()`, `getAllUsers()`, `getUserInfo()`
+   - 影響: systemUsersがFirebaseから更新されず、古いデータのまま
+
+2. **window.currentFirebaseUser が設定されていない**
+   - メインの`firebase-config.js`でグローバル変数を設定していない
+   - 影響: `setupHiddenTaskValidation()`が最初から失敗
+
+3. **systemUsersにテストユーザーが混在**
+   - 最初のユーザーが'tester1' (email: testtest@gmail.com)
+   - 本番ユーザーとテストユーザーのデータ構造不整合
+
+4. **フィールド名の不一致**
+   - Firestore: `displayName`
+   - systemUsers: `name`
+   - 関数によって変換処理が異なる
+
+5. **email照合ロジックの重複** (10箇所以上)
+   - メンテナンス性の低下
+
+6. **clearAllData()関数が未定義** (`index-kanban.html:1644`)
+
+### 実施した修正（最小限・2箇所のみ）
+
+#### 修正1: firebase-config.js (Line 29-32)
+```javascript
+onAuthStateChanged(auth, (user) => {
+  // 🔧 グローバル変数に設定（非表示タスク自動選択で使用）
+  window.currentFirebaseUser = user;
+  // ... 以下既存処理
+});
+```
+
+**目的**: `setupHiddenTaskValidation()`で使用する`window.currentFirebaseUser`を確実に設定
+
+#### 修正2: index-kanban.html (Line 13313-13314)
+```javascript
+// 変更前: if (window.FirebaseDB.getUsers) {
+//           const firebaseUsers = await window.FirebaseDB.getUsers();
+// 変更後:
+if (window.FirebaseDB.getActiveUsers) {
+    const firebaseUsers = await window.FirebaseDB.getActiveUsers();
+```
+
+**目的**: 存在しない`getUsers()`を正しい`getActiveUsers()`に修正
+
+### テスト対象ユーザー（全7名）
+1. 邨中天真 (muranaka-tenma@terracom.co.jp)
+2. 橋本友美 (hashimoto-yumi@terracom.co.jp)
+3. 加藤純 (kato-jun@terracom.co.jp)
+4. 朝日圭一 (asahi-keiichi@terracom.co.jp)
+5. 半澤侑果 (hanzawa-yuka@terracom.co.jp)
+6. 田村渉 (tamura-wataru@terracom.co.jp)
+7. 福島亜未 (fukushima-ami@terracom.co.jp)
+
+### 期待される動作
+- **全ユーザー**で非表示タスク作成時に自分が自動選択される
+- 他のユーザーは無効化される
+- 非表示タスクは作成者と担当者のみに表示される
+
+---
+
+**修正実施**: 2025-11-17 (2箇所のみの最小限修正)
+**次の作業**: Playwright E2Eテスト実行（全7ユーザー）
+

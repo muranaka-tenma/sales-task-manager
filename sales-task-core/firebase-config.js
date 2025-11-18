@@ -27,6 +27,9 @@ console.log('🔥 Firebase初期化完了');
 
 // デバッグ: 認証状態の変化を監視
 onAuthStateChanged(auth, (user) => {
+  // 🔧 グローバル変数に設定（非表示タスク自動選択で使用）
+  window.currentFirebaseUser = user;
+
   if (user) {
     console.log('🔐 [AUTH-DEBUG] ユーザーログイン検出:', {
       uid: user.uid,
