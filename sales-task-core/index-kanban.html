@@ -1358,10 +1358,7 @@
             </div>
         </div>
         <div style="display: flex; gap: 1rem; align-items: center;">
-            <!-- プロジェクトタスク作成ボタン -->
-            <button onclick="openProjectTaskCreateModal()" style="padding: 0.5rem 0.75rem; background: #2b6cb0; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="新しいプロジェクトタスクを作成">
-                👥 プロジェクトタスク作成
-            </button>
+            <!-- プロジェクトタスク作成ボタン廃止: 通常のタスク作成モーダルで統合 -->
             <!-- ユーザー管理ボタンをマイページに移植のため非表示 -->
             <button onclick="window.location.href='user-management.html'" style="display: none; padding: 0.5rem 0.75rem; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="ユーザー管理">
                 👥 ユーザー管理
@@ -3915,7 +3912,80 @@
                 console.error('プロジェクト選択肢の更新エラー:', error);
             }
         }
-        
+
+        // プロジェクト選択変更時にカラムドロップダウンを更新
+        async function updateColumnOptionsForProject(projectId) {
+            const columnSelect = document.getElementById('task-column-input');
+            if (!columnSelect) return;
+
+            columnSelect.innerHTML = '';
+
+            if (!projectId) {
+                // 個人タスク：標準カラムを使用
+                console.log('📋 [COLUMN-UPDATE] 標準カラムに切り替え');
+                columns.forEach(column => {
+                    const option = document.createElement('option');
+                    option.value = column.id;
+                    option.textContent = column.title;
+                    columnSelect.appendChild(option);
+                });
+                if (columns.length > 0) {
+                    columnSelect.value = columns[0].id;
+                }
+            } else {
+                // プロジェクトタスク：プロジェクト固有のカラムを使用
+                console.log('📋 [COLUMN-UPDATE] プロジェクトカラムに切り替え:', projectId);
+
+                // キャッシュまたはFirebaseからプロジェクトカラムを取得
+                let projectColumns = null;
+
+                if (cachedProjectsData && cachedProjectsData[projectId]) {
+                    projectColumns = cachedProjectsData[projectId].columns;
+                } else if (window.FirebaseDB && window.FirebaseDB.getProjects) {
+                    const result = await window.FirebaseDB.getProjects();
+                    if (result.success) {
+                        const project = result.projects.find(p => p.id === projectId);
+                        if (project) {
+                            projectColumns = project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+                        }
+                    }
+                }
+
+                // デフォルトカラム
+                if (!projectColumns) {
+                    projectColumns = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+                }
+
+                // プロジェクト固有のカラムIDを生成
+                projectColumns.forEach((columnTitle, index) => {
+                    const option = document.createElement('option');
+                    option.value = `pj_${projectId}_${index}`;
+                    option.textContent = columnTitle;
+                    columnSelect.appendChild(option);
+                });
+
+                // デフォルトで最初のカラムを選択
+                if (projectColumns.length > 0) {
+                    columnSelect.value = `pj_${projectId}_0`;
+                }
+
+                console.log('✅ [COLUMN-UPDATE] プロジェクトカラム設定完了:', projectColumns.length, '個');
+            }
+        }
+
+        // プロジェクト選択のイベントリスナーを設定
+        function setupProjectSelectListener() {
+            const projectSelect = document.getElementById('task-project-select');
+            if (projectSelect) {
+                projectSelect.addEventListener('change', async function() {
+                    const selectedProjectId = this.value;
+                    console.log('📂 [PROJECT-SELECT] プロジェクト選択変更:', selectedProjectId || '個人タスク');
+                    await updateColumnOptionsForProject(selectedProjectId);
+                });
+                console.log('✅ [SETUP] プロジェクト選択リスナー設定完了');
+            }
+        }
+
         function updateSelectedAssignees() {
             const checkboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
@@ -8348,7 +8418,10 @@
                 updateHamburgerMenu();
                 console.log('🍔 ハンバーガーメニュー更新完了');
             }, 100);
-            
+
+            // プロジェクト選択変更リスナーを設定
+            setupProjectSelectListener();
+
             // 🔧 修正: Firebase認証状態の復元を待ってから初期化
             console.log('⏳ [INIT] Firebase認証状態の復元を待機中...');
             

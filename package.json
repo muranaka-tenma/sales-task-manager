@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "description": "E2E tests for Sales Task Manager",
   "scripts": {
+    "dev": "live-server sales-task-core --port=3000 --no-browser",
+    "dev:open": "live-server sales-task-core --port=3000",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
-    "test:headed": "playwright test --headed"
+    "test:headed": "playwright test --headed",
+    "test:local": "BASE_URL=http://localhost:3000 playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
+    "live-server": "^1.2.2",
     "netlify-cli": "^23.9.1"
   },
   "main": "playwright.config.js",

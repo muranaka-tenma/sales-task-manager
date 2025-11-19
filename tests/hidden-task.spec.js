@@ -94,7 +94,7 @@ test.describe('非表示タスク機能のテスト', () => {
 
     // ログイン（usernameに@terracom.co.jp前の部分のみ入力）
     await page.fill('#username', 'hashimoto-yumi');
-    await page.fill('#password', 'Yumi5129');
+    await page.fill('#password', 'aikakumei');
     await page.click('button[type="submit"]');
 
     // メインページに遷移するまで待機
@@ -122,7 +122,7 @@ test.describe('非表示タスク機能のテスト', () => {
     // ログイン
     await page.goto(`${BASE_URL}/login.html`);
     await page.fill('#username', 'hashimoto-yumi');
-    await page.fill('#password', 'Yumi5129');
+    await page.fill('#password', 'aikakumei');
     await page.click('button[type="submit"]');
     await page.waitForURL(`${BASE_URL}/index-kanban.html`);
 
@@ -164,7 +164,7 @@ test.describe('非表示タスク機能のテスト', () => {
     // ログイン
     await page.goto(`${BASE_URL}/login.html`);
     await page.fill('#username', 'hashimoto-yumi');
-    await page.fill('#password', 'Yumi5129');
+    await page.fill('#password', 'aikakumei');
     await page.click('button[type="submit"]');
     await page.waitForURL(`${BASE_URL}/index-kanban.html`);
 
@@ -215,7 +215,7 @@ test.describe('非表示タスク機能のテスト', () => {
     // ログイン
     await page.goto(`${BASE_URL}/login.html`);
     await page.fill('#username', 'hashimoto-yumi');
-    await page.fill('#password', 'Yumi5129');
+    await page.fill('#password', 'aikakumei');
     await page.click('button[type="submit"]');
     await page.waitForURL(`${BASE_URL}/index-kanban.html`);
 
