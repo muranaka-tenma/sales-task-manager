@@ -5,12 +5,12 @@ const BASE_URL = 'https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core
 // テスト対象ユーザー一覧
 const TEST_USERS = [
   { username: 'muranaka-tenma', password: 'Tenma7041', displayName: '邨中天真', email: 'muranaka-tenma@terracom.co.jp' },
-  { username: 'hashimoto-yumi', password: 'Yumi5129', displayName: '橋本友美', email: 'hashimoto-yumi@terracom.co.jp' },
-  { username: 'kato-jun', password: 'Jun1234', displayName: '加藤純', email: 'kato-jun@terracom.co.jp' },
-  { username: 'asahi-keiichi', password: 'Keiichi1234', displayName: '朝日圭一', email: 'asahi-keiichi@terracom.co.jp' },
-  { username: 'hanzawa-yuka', password: 'Yuka1234', displayName: '半澤侑果', email: 'hanzawa-yuka@terracom.co.jp' },
-  { username: 'tamura-wataru', password: 'Wataru1234', displayName: '田村渉', email: 'tamura-wataru@terracom.co.jp' },
-  { username: 'fukushima-ami', password: 'Ami1234', displayName: '福島亜未', email: 'fukushima-ami@terracom.co.jp' }
+  { username: 'hashimoto-yumi', password: 'aikakumei', displayName: '橋本友美', email: 'hashimoto-yumi@terracom.co.jp' },
+  { username: 'kato-jun', password: 'aikakumei', displayName: '加藤純', email: 'kato-jun@terracom.co.jp' },
+  { username: 'asahi-keiichi', password: 'aikakumei', displayName: '朝日圭一', email: 'asahi-keiichi@terracom.co.jp' },
+  { username: 'hanzawa-yuka', password: 'aikakumei', displayName: '半澤侑果', email: 'hanzawa-yuka@terracom.co.jp' },
+  { username: 'tamura-wataru', password: 'aikakumei', displayName: '田村渉', email: 'tamura-wataru@terracom.co.jp' },
+  { username: 'fukushima-ami', password: 'aikakumei', displayName: '福島亜未', email: 'fukushima-ami@terracom.co.jp' }
 ];
 
 test.describe('全ユーザーの非表示タスク機能テスト', () => {

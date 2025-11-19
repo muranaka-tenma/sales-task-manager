@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 ログイン - 営業タスク管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #026aa7 0%, #0284c7 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-title {
+            color: #026aa7;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .login-subtitle {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #026aa7;
+            box-shadow: 0 0 0 3px rgba(2, 106, 167, 0.1);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: #026aa7;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+        
+        .login-btn:hover {
+            background: #025aa0;
+            transform: translateY(-1px);
+        }
+        
+        .login-btn:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+            text-align: center;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+            text-align: center;
+        }
+        
+        .forgot-password {
+            text-align: center;
+            margin-top: 1rem;
+        }
+        
+        .forgot-password a {
+            color: #026aa7;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+        
+        .demo-accounts {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            border-left: 4px solid #026aa7;
+        }
+        
+        .demo-accounts h4 {
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .demo-accounts p {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin: 0.25rem 0;
+        }
+        
+        /* スマホ対応の改善 */
+        @media (max-width: 480px) {
+            body {
+                padding: 0.5rem;
+            }
+            
+            .login-container {
+                padding: 1.5rem;
+            }
+            
+            .form-input {
+                padding: 1rem 0.75rem;
+                font-size: 16px; /* iOS zoominを防ぐ */
+            }
+            
+            .login-btn {
+                padding: 1rem;
+                font-size: 1.1rem;
+            }
+            
+            .demo-accounts {
+                margin-top: 1rem;
+                padding: 0.75rem;
+            }
+            
+            .demo-accounts h4 {
+                font-size: 0.85rem;
+            }
+            
+            .demo-accounts p {
+                font-size: 0.75rem;
+            }
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #026aa7;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1 class="login-title">🔐 ログイン</h1>
+            <p class="login-subtitle">営業タスク管理システム</p>
+        </div>
+        
+        <div id="error-message" class="error-message"></div>
+        <div id="success-message" class="success-message"></div>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            ログイン中...
+        </div>
+        
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label class="form-label" for="username">ユーザー名</label>
+                <div style="display: flex; align-items: center; position: relative;">
+                    <input type="text" id="username" class="form-input" placeholder="例: muranaka-tenma" required 
+                           style="padding-right: 140px;">
+                    <span style="position: absolute; right: 10px; color: #64748b;">@terracom.co.jp</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">パスワード</label>
+                <input type="password" id="password" class="form-input" required>
+            </div>
+            
+            <button type="submit" class="login-btn" id="login-btn">ログイン</button>
+        </form>
+        
+        <div class="forgot-password">
+            <a href="#" onclick="showForgotPassword()">パスワードを忘れた場合</a>
+        </div>
+        
+        <div class="demo-accounts">
+            <h4>💡 テストアカウント（全デバイス対応）</h4>
+            <p><strong>開発者:</strong> muranaka-tenma / Tenma7041</p>
+            <p><strong>管理者:</strong> kato-jun / aikakumei</p>
+            <p><strong>一般:</strong> hanzawa-yuka / aikakumei</p>
+            <p style="margin-top: 0.5rem; font-size: 0.75rem; color: #666;">
+                ※ すべてのユーザーがスマホ・他PCからもログイン可能です
+            </p>
+        </div>
+    </div>
+    
+    <!-- Firebase統合システム - マルチユーザー対応 -->
+    <script type="module" src="firebase-config.js"></script>
+    <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化 -->
+    <!-- キャッシュ問題解決のため完全無効化 -->
+    <!-- <script src="shared-users-database.js?v=disabled-20250806"></script> -->
+    
+    <script>
+        // ページ読み込み時にログイン状態をチェック
+        window.addEventListener('DOMContentLoaded', () => {
+            // 共有ユーザーデータベースの初期化をスキップ（ユーザーデータ保護）
+            // if (typeof initializeSharedUserDatabase === 'function') {
+            //     initializeSharedUserDatabase();
+            // }
+            
+            const currentUser = getCurrentUser();
+            if (currentUser) {
+                // 既にログイン済みの場合はメインページにリダイレクト
+                showSuccess('既にログインしています。メインページに移動します...');
+                setTimeout(() => {
+                    window.location.href = 'index-kanban.html';
+                }, 1500);
+            }
+        });
+        
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const email = username + '@terracom.co.jp'; // ドメイン自動付与
+            const password = document.getElementById('password').value;
+            
+            // ローディング表示
+            showLoading(true);
+            hideMessages();
+            
+            try {
+                // Firebase認証を試行
+                let result;
+                if (window.FirebaseAuth) {
+                    console.log('🔥 Firebase認証を試行中...');
+                    result = await window.FirebaseAuth.signIn(email, password);
+                    
+                    if (result.success) {
+                        // Firebase認証成功
+                        const userInfo = await window.FirebaseDB.getUserInfo(result.user.uid);
+                        
+                        // 🔧 Firebase認証成功時のLocalStorageセッション強制同期
+                        console.log('🔥 [LOGIN] Firebase認証成功 - セッション同期開始:', email);
+                        const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                        const correctUser = systemUsers.find(u => u.email === email);
+                        
+                        if (correctUser) {
+                            // 🔧 修正: correctUser.nameがundefinedの場合のフォールバック
+                            const userName = correctUser.name ||
+                                           userInfo.user?.displayName ||
+                                           userInfo.user?.name ||
+                                           email.split('@')[0];
+                            console.log('✅ [LOGIN] systemUsersで正しいユーザー発見:', userName, correctUser.role);
+
+                            // 正しいユーザー情報でセッションを設定
+                            const sessionData = {
+                                id: correctUser.id,
+                                name: userName,  // 🔧 修正: フォールバック適用後のuserNameを使用
+                                email: correctUser.email,
+                                role: correctUser.role,
+                                department: correctUser.department
+                            };
+                            setCurrentUser(sessionData);
+                            console.log('✅ [LOGIN] セッション設定完了:', sessionData.name, sessionData.role);
+                        } else {
+                            console.error('❌ [LOGIN] systemUsersに該当ユーザーなし:', email);
+                            // フォールバック
+                            const fallbackUser = {
+                                id: Date.now(),
+                                name: userInfo.user?.displayName || email.split('@')[0],
+                                email: email,
+                                role: userInfo.user?.role || 'user',
+                                department: userInfo.user?.department || '-'
+                            };
+                            setCurrentUser(fallbackUser);
+                        }
+                        
+                        showLoading(false);
+                        // 🔧 修正: correctUser.nameがundefinedの場合のフォールバック追加
+                        const displayName = (correctUser && correctUser.name) ||
+                                          userInfo.user?.displayName ||
+                                          userInfo.user?.name ||
+                                          email.split('@')[0];
+                        showSuccess(`ようこそ、${displayName}さん！`);
+
+                        setTimeout(() => {
+                            window.location.href = 'index-kanban.html';
+                        }, 1500);
+                        return;
+                    } else {
+                        console.log('🔄 Firebase認証失敗、LocalStorage認証にフォールバック');
+                    }
+                }
+
+                // フォールバック: 既存のLocalStorage認証
+                setTimeout(async () => {
+                    const localResult = authenticate(email, password);
+                    showLoading(false);
+
+                    if (localResult.success) {
+                        // 🔧 重要: LocalStorage認証成功時、既存のFirebaseセッションをログアウト
+                        if (window.FirebaseAuth) {
+                            try {
+                                await window.FirebaseAuth.signOut();
+                                console.log('🔓 [LOGIN] 既存のFirebaseセッションをログアウト');
+                            } catch (error) {
+                                console.warn('⚠️ [LOGIN] Firebaseログアウト失敗:', error);
+                            }
+                        }
+
+                        setCurrentUser(localResult.user);
+                        showSuccess(`ようこそ、${localResult.user.name}さん！`);
+                        setTimeout(() => {
+                            window.location.href = 'index-kanban.html';
+                        }, 1500);
+                    } else {
+                        showError(localResult.message);
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                console.error('❌ 認証処理エラー:', error);
+                showLoading(false);
+                showError('認証処理中にエラーが発生しました');
+            }
+        }
+        
+        function authenticate(email, password) {
+            console.log('🔐 [AUTH] 安全な動的認証開始...');
+            
+            try {
+                // 安全なユーザーデータベース初期化
+                initializeUserDatabase();
+                
+                const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                console.log('🔍 [AUTH] 統合ユーザーデータベース:', users.length, '名');
+                console.log('🔍 [AUTH] 認証試行:', email);
+                
+                const user = users.find(u => u.email === email && u.password === password);
+                
+                if (user) {
+                    console.log('✅ [AUTH] ログイン成功:', user.name, user.role);
+                    return {
+                        success: true,
+                        user: {
+                            id: user.id,
+                            name: user.name,
+                            email: user.email,
+                            role: user.role,
+                            department: user.department
+                        }
+                    };
+                } else {
+                    console.log('❌ [AUTH] ログイン失敗:', email);
+                    console.log('🔍 [AUTH] 登録ユーザー一覧:');
+                    users.forEach(u => console.log(`  - ${u.email} (${u.name}) ${u.isDynamic ? '[動的]' : '[デフォルト]'}`));
+                    
+                    const userExists = users.find(u => u.email === email);
+                    if (userExists) {
+                        console.log('❌ [AUTH] パスワード不一致');
+                        return {
+                            success: false,
+                            message: 'パスワードが正しくありません'
+                        };
+                    } else {
+                        console.log('❌ [AUTH] ユーザー不存在');
+                        return {
+                            success: false,
+                            message: `ユーザー "${email}" が見つかりません。利用可能なアカウントを確認してください。`
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error('⚠️ [AUTH] 認証エラー:', error);
+                
+                // 緊急フォールバック: 基本ユーザーで認証
+                const emergencyUsers = [
+                    { email: 'muranaka-tenma@terracom.co.jp', password: 'Tenma7041', name: '邨中天真', role: 'developer' },
+                    // admin と test ユーザーは削除 - デフォルトユーザーのシンプル化
+                ];
+                
+                const emergencyUser = emergencyUsers.find(u => u.email === email && u.password === password);
+                if (emergencyUser) {
+                    console.log('🆘 [AUTH] 緊急フォールバック認証成功:', emergencyUser.name);
+                    return {
+                        success: true,
+                        user: {
+                            id: 999,
+                            name: emergencyUser.name,
+                            email: emergencyUser.email,
+                            role: emergencyUser.role,
+                            department: '緊急アクセス'
+                        }
+                    };
+                } else {
+                    return {
+                        success: false,
+                        message: 'システムエラーが発生しました。管理者にお問い合わせください。'
+                    };
+                }
+            }
+        }
+        
+        // 安全なバックアップ機能
+        function createSafetyBackup(data, reason) {
+            const timestamp = Date.now();
+            const backupKey = `systemUsers_safety_backup_${timestamp}_${reason}`;
+            localStorage.setItem(backupKey, JSON.stringify(data));
+            console.log(`🛡️ [SAFETY] データバックアップ作成: ${backupKey}`);
+            return backupKey;
+        }
+        
+        // 動的ユーザー統合（データ保護優先）
+        function getDynamicUserDatabase() {
+            // 1. 必須ユーザー（全員をデフォルトで含める - Clear site data対策）
+            const baseUsers = [
+                {
+                    id: 1,
+                    name: '邨中天真',
+                    email: 'muranaka-tenma@terracom.co.jp',
+                    password: 'Tenma7041',
+                    role: 'developer',
+                    department: '開発部',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 's3LnbJIS2AdseIAumAJGELyrBKX2',
+                    name: '橋本友美',
+                    email: 'hashimoto-yumi@terracom.co.jp',
+                    password: 'Yumi5129',
+                    role: 'user',
+                    department: '-',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 'kato-jun-uid',
+                    name: '加藤純',
+                    email: 'kato-jun@terracom.co.jp',
+                    password: 'Jun1234',
+                    role: 'user',
+                    department: '-',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 'asahi-keiichi-uid',
+                    name: '朝日圭一',
+                    email: 'asahi-keiichi@terracom.co.jp',
+                    password: 'Keiichi1234',
+                    role: 'user',
+                    department: '-',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 'hanzawa-yuka-uid',
+                    name: '半澤侑果',
+                    email: 'hanzawa-yuka@terracom.co.jp',
+                    password: 'Yuka1234',
+                    role: 'user',
+                    department: '-',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 'tamura-wataru-uid',
+                    name: '田村渉',
+                    email: 'tamura-wataru@terracom.co.jp',
+                    password: 'Wataru1234',
+                    role: 'user',
+                    department: '-',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 2,
+                    name: 'tester1',
+                    email: 'testtest@gmail.com',
+                    password: 'testtest',
+                    role: 'user',
+                    department: 'テスト部',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                },
+                {
+                    id: 3,
+                    name: 'テストパイロット',
+                    email: 'test@gmail.co.jp',
+                    password: 'test',
+                    role: 'user',
+                    department: 'テスト部',
+                    createdAt: '2025-08-04T00:00:00.000Z'
+                }
+            ];
+            
+            // 2. デフォルトユーザーは削除（既存ユーザーはlocalStorageから自動読み込み）
+            const realUsers = [];
+            // 追加済みユーザーは既存のlocalStorageから完全保護される
+            
+            // 3. 動的に追加されたユーザーも取得（将来対応）
+            let dynamicUsers = [];
+            try {
+                const stored = localStorage.getItem('dynamicUsers');
+                if (stored) {
+                    dynamicUsers = JSON.parse(stored);
+                    console.log(`🔄 [DYNAMIC] 動的ユーザー読み込み: ${dynamicUsers.length}名`);
+                }
+            } catch (e) {
+                console.warn('⚠️ [DYNAMIC] 動的ユーザー読み込みエラー:', e);
+            }
+            
+            // 4. 全ユーザーをデフォルトで含める（Clear site data対策）
+            const allUsers = [...baseUsers, ...dynamicUsers];
+            console.log(`✅ [DYNAMIC] 完全なユーザーデータベース: ${allUsers.length}名（全員デフォルト含む）`);
+            console.log(`🛡️ [PROTECTION] Clear site data対策: 全ユーザーをbaseUsersに含めました`);
+            
+            return allUsers;
+        }
+        
+        // ユーザーデータベースの初期化（データ保護強化版）
+        function initializeUserDatabase() {
+            console.log('🔧 [INIT] 安全なユーザーデータベース初期化中...');
+            
+            // 既存データの安全バックアップ
+            const existingUsers = localStorage.getItem('systemUsers');
+            if (existingUsers) {
+                createSafetyBackup(JSON.parse(existingUsers), 'before_dynamic_init');
+            }
+            
+            // 動的ユーザーデータベースを使用
+            const dynamicUsers = getDynamicUserDatabase();
+            
+            // 安全なデータ統合（不要ユーザー削除対応）
+            const currentUsers = existingUsers ? JSON.parse(existingUsers) : [];
+            
+            // 不要ユーザーを検出
+            const unwantedEmails = ['admin@terracom.co.jp', 'test@terracom.co.jp'];
+            const hasUnwantedUsers = currentUsers.some(u => unwantedEmails.includes(u.email));
+            
+            // デバッグ情報出力
+            console.log('🔍 [DEBUG] 現在のユーザー数:', currentUsers.length);
+            console.log('🔍 [DEBUG] 不要ユーザー検出:', hasUnwantedUsers);
+            console.log('🔍 [DEBUG] ユーザーメール一覧:', currentUsers.map(u => u.email));
+            console.log('🔍 [DEBUG] 不要メール:', unwantedEmails);
+            
+            if (currentUsers.length === 0) {
+                // 新規端末または Clear site data後: 全8名を設定
+                localStorage.setItem('systemUsers', JSON.stringify(dynamicUsers));
+                console.log('✅ [INIT] 全8名のユーザーを設定（Clear site data対策）');
+            } else if (false) { // 強制統合処理を完全削除 - タスク消失の根本原因を除去
+                /* 以下の強制統合処理はタスク消失の原因であるため完全削除
+                // 不要ユーザーがある場合または9名の場合: 強制統合実行
+                console.log('🗑️ [CLEANUP] 統合条件満たし - 強制統合を実行します...');
+                console.log('🗑️ [CLEANUP] 不要ユーザー検出:', hasUnwantedUsers, 'ユーザー数:', currentUsers.length);
+                
+                // 完全バックアップ
+                createSafetyBackup(currentUsers, 'before_forced_cleanup');
+                
+                // 既存パスワードを取得
+                const getExistingPassword = (email, defaultPwd) => {
+                    const existing = currentUsers.find(u => u.email === email);
+                    return existing ? existing.password : defaultPwd;
+                };
+                
+                // 強制統合: 7名のみにリセット
+                const forcedCleanUsers = [
+                    {
+                        id: 1,
+                        name: '邨中天真',
+                        email: 'muranaka-tenma@terracom.co.jp',
+                        password: getExistingPassword('muranaka-tenma@terracom.co.jp', 'Tenma7041'),
+                        role: 'developer',
+                        department: '開発部',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 2,
+                        name: '加藤純',
+                        email: 'kato-jun@terracom.co.jp',
+                        password: getExistingPassword('kato-jun@terracom.co.jp', 'kato123'),
+                        role: 'admin',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 3,
+                        name: '朝日圭一',
+                        email: 'asahi-keiichi@terracom.co.jp',
+                        password: getExistingPassword('asahi-keiichi@terracom.co.jp', 'asahi123'),
+                        role: 'admin',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 4,
+                        name: '半澤侑果',
+                        email: 'hanzawa-yuka@terracom.co.jp',
+                        password: getExistingPassword('hanzawa-yuka@terracom.co.jp', 'hanzawa123'),
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 5,
+                        name: '田村渉',
+                        email: 'tamura-wataru@terracom.co.jp',
+                        password: getExistingPassword('tamura-wataru@terracom.co.jp', 'tamura123'),
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 6,
+                        name: '橋本友美',
+                        email: 'hashimoto-yumi@terracom.co.jp',
+                        password: getExistingPassword('hashimoto-yumi@terracom.co.jp', 'hashimoto123'),
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    },
+                    {
+                        id: 7,
+                        name: '福島亜未',
+                        email: 'fukushima-ami@terracom.co.jp',
+                        password: getExistingPassword('fukushima-ami@terracom.co.jp', 'fukushima123'),
+                        role: 'user',
+                        department: '-',
+                        createdAt: '2025-08-04T00:00:00.000Z'
+                    }
+                ];
+                
+                // 強制統合実行
+                localStorage.setItem('systemUsers', JSON.stringify(forcedCleanUsers));
+                
+                // パスワード保持ユーザーをログ出力
+                forcedCleanUsers.forEach(cleanUser => {
+                    const original = currentUsers.find(u => u.email === cleanUser.email);
+                    if (original && original.password === cleanUser.password) {
+                        console.log(`🔄 [CLEANUP] 既存パスワード保持: ${cleanUser.name}`);
+                    } else {
+                        console.log(`➕ [CLEANUP] デフォルトパスワード: ${cleanUser.name}`);
+                    }
+                });
+                
+                // 削除されたユーザーをログ出力
+                unwantedEmails.forEach(email => {
+                    const removed = currentUsers.find(u => u.email === email);
+                    if (removed) {
+                        console.log(`🗑️ [CLEANUP] 不要ユーザーを強制削除: ${removed.name} (${email})`);
+                    }
+                });
+                
+                この処理はタスクデータを消失させるため削除しました
+                */
+            } else {
+                // 不要ユーザーがない場合: 通常のマージ
+                const mergedUsers = [...currentUsers];
+                let updated = false;
+                
+                dynamicUsers.forEach(dynamicUser => {
+                    const exists = mergedUsers.find(u => u.email === dynamicUser.email);
+                    if (!exists) {
+                        const maxId = Math.max(...mergedUsers.map(u => u.id || 0));
+                        dynamicUser.id = maxId + 1;
+                        mergedUsers.push(dynamicUser);
+                        updated = true;
+                        console.log(`✅ [INIT] 新ユーザーを安全に追加: ${dynamicUser.name}`);
+                    }
+                });
+                
+                if (updated) {
+                    createSafetyBackup(currentUsers, 'before_merge');
+                    localStorage.setItem('systemUsers', JSON.stringify(mergedUsers));
+                    console.log('✅ [INIT] ユーザーデータベースを安全に更新');
+                }
+            }
+            
+            // 担当者リストも同期（不要ユーザーを除外）
+            const finalUsers = JSON.parse(localStorage.getItem('systemUsers'));
+            const assignees = finalUsers.map(u => u.name);
+            
+            // 不要な担当者を削除
+            const unwantedNames = ['システム管理者', 'テストユーザー'];
+            const existingAssignees = JSON.parse(localStorage.getItem('taskAssignees') || '[]');
+            const cleanedAssignees = existingAssignees.filter(name => !unwantedNames.includes(name));
+            
+            // 新しい担当者を追加
+            assignees.forEach(name => {
+                if (!cleanedAssignees.includes(name)) {
+                    cleanedAssignees.push(name);
+                }
+            });
+            
+            localStorage.setItem('taskAssignees', JSON.stringify(cleanedAssignees));
+            console.log('✅ [INIT] 担当者リストをクリーンアップ:', cleanedAssignees);
+            
+            if (unwantedNames.some(name => existingAssignees.includes(name))) {
+                console.log('🗑️ [CLEANUP] 担当者リストから不要ユーザーを削除しました');
+            }
+        }
+        
+        function setCurrentUser(user) {
+            // セッション情報を保存
+            const session = {
+                user: user,
+                loginTime: new Date().toISOString(),
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24時間後に期限切れ
+            };
+            localStorage.setItem('currentSession', JSON.stringify(session));
+            localStorage.setItem('currentUser', user.name); // currentUserも追加保存
+            console.log('📝 セッション保存:', user.name, user.role);
+        }
+        
+        function getCurrentUser() {
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (!session) return null;
+                
+                // セッション期限チェック
+                if (new Date() > new Date(session.expiresAt)) {
+                    localStorage.removeItem('currentSession');
+                    return null;
+                }
+                
+                return session.user;
+            } catch (error) {
+                console.error('セッション読み込みエラー:', error);
+                return null;
+            }
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('login-btn').disabled = show;
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+        
+        function hideMessages() {
+            document.getElementById('error-message').style.display = 'none';
+            document.getElementById('success-message').style.display = 'none';
+        }
+        
+        function showForgotPassword() {
+            alert('パスワードリセット機能は管理者にお問い合わせください。\n\n管理者がユーザー管理画面でパスワードを変更できます。');
+        }
+        
+        // グローバル関数として公開（他のページからも使用可能）
+        window.getCurrentUser = getCurrentUser;
+        window.setCurrentUser = setCurrentUser;
+        window.logout = function() {
+            localStorage.removeItem('currentSession');
+            window.location.href = 'login.html';
+        };
+    </script>
+</body>
+</html>
