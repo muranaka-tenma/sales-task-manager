@@ -29,48 +29,38 @@ window.firebaseAuth = auth;
 
 // 接続エラー回避: リアルタイム機能を使用しない設定
 // ※onSnapshotを使用せず、getDocs()による手動更新のみ使用
-console.log('🔧 [FIREBASE CONFIG] Firestore設定: リアルタイムリスナー無効化');
-
-// 🚫 LocalStorage完全削除モード
-console.log('🔥 Firebase完全統合モード - LocalStorage依存削除');
 
 // Firebase認証状態監視
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        console.log('🔐 Firebase認証成功:', user.email);
         window.currentFirebaseUser = user;
 
-        // 🔧 systemUsersをFirebaseから初期化（非表示タスクの担当者自動選択で必要）
+        // systemUsersをFirebaseから初期化
         try {
             if (window.FirebaseDB && window.FirebaseDB.getUsers) {
                 const firebaseUsers = await window.FirebaseDB.getUsers();
                 if (firebaseUsers.success && firebaseUsers.users.length > 0) {
                     localStorage.setItem('systemUsers', JSON.stringify(firebaseUsers.users));
-                    console.log('✅ [FIREBASE-INIT] systemUsers初期化完了:', firebaseUsers.users.length, '名');
                 }
             }
         } catch (error) {
-            console.error('❌ [FIREBASE-INIT] systemUsers初期化エラー:', error);
+            console.error('❌ systemUsers初期化エラー:', error);
         }
 
-        // セッション情報をローカルストレージに保存（systemUsersから日本語名を取得）
+        // セッション情報をローカルストレージに保存
         let displayName;
         try {
-            // systemUsersから日本語名を取得
             const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-            const matchedUser = systemUsers.find(u => u.email === user.email);
+            const targetEmail = user.email.trim().toLowerCase();
+            const matchedUser = systemUsers.find(u => u.email && u.email.trim().toLowerCase() === targetEmail);
 
             if (matchedUser && matchedUser.name) {
                 displayName = matchedUser.name;
-                console.log(`👤 [FIREBASE-SESSION] systemUsersから日本語名取得: ${displayName} (${user.email})`);
             } else {
-                // フォールバック: 邨中天真の特別処理
                 displayName = user.email === 'muranaka-tenma@terracom.co.jp' ? '邨中天真' :
                              user.displayName || user.email.split('@')[0];
-                console.log(`⚠️ [FIREBASE-SESSION] systemUsersに見つからず、フォールバック: ${displayName}`);
             }
         } catch (error) {
-            console.error('❌ [FIREBASE-SESSION] systemUsers取得エラー:', error);
             displayName = user.email === 'muranaka-tenma@terracom.co.jp' ? '邨中天真' :
                          user.displayName || user.email.split('@')[0];
         }
@@ -84,7 +74,7 @@ onAuthStateChanged(auth, async (user) => {
             'hashimoto-yumi@terracom.co.jp': 'user',
             'fukushima-ami@terracom.co.jp': 'user'
         };
-        
+
         const sessionData = {
             user: {
                 id: user.uid,
@@ -93,40 +83,24 @@ onAuthStateChanged(auth, async (user) => {
                 role: roleMap[user.email] || 'user'
             },
             loginTime: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24時間後
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         };
-        
+
         localStorage.setItem('currentSession', JSON.stringify(sessionData));
-        
-        // 接続状態確認
-        console.log('🔍 [FIREBASE DEBUG] 認証後の接続状態:', {
-            uid: user.uid,
-            email: user.email,
-            displayName: displayName,
-            projectId: db.app.options.projectId,
-            timestamp: new Date().toISOString()
-        });
-        
-        // ハンバーガーメニューを更新（診断ボタンも含む）
+
+        // ハンバーガーメニューを更新
         setTimeout(() => {
             if (window.updateHamburgerMenu) {
                 window.updateHamburgerMenu();
-                console.log('🍔 [FIREBASE] Firebase認証後にメニューを更新');
             }
         }, 100);
     } else {
-        console.log('⚠️ Firebase未認証');
         window.currentFirebaseUser = null;
 
-        // LocalStorage認証との共存のため、currentSessionは削除しない
-        // Firebase認証とLocalStorage認証は独立して動作する
-        console.log('📝 [FIREBASE] LocalStorage認証セッションを保持（Firebase未認証でも削除しない）');
-
-        // ログアウト時もハンバーガーメニューを更新（診断ボタンも含む）
+        // ログアウト時もメニューを更新
         setTimeout(() => {
             if (window.updateHamburgerMenu) {
                 window.updateHamburgerMenu();
-                console.log('🍔 [FIREBASE] Firebase未認証時にメニューを更新');
             }
         }, 100);
     }
@@ -152,28 +126,20 @@ window.getCurrentUser = function() {
         let displayName;
         try {
             const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+            const targetEmail = window.currentFirebaseUser.email.trim().toLowerCase();
 
-            // デバッグ：systemUsersの構造を確認
-            if (systemUsers.length > 0) {
-                console.log('🔍 [DEBUG] systemUsersの最初のユーザー構造:', systemUsers[0]);
-                console.log('🔍 [DEBUG] 検索対象email:', window.currentFirebaseUser.email);
-            }
-
-            const matchedUser = systemUsers.find(u => u.email === window.currentFirebaseUser.email);
+            // 大文字小文字無視・空白トリムで比較
+            const matchedUser = systemUsers.find(u =>
+                u.email && u.email.trim().toLowerCase() === targetEmail
+            );
 
             if (matchedUser && matchedUser.name) {
                 displayName = matchedUser.name;
-                console.log(`✅ [getCurrentUser] systemUsersから日本語名を取得: ${displayName} (${window.currentFirebaseUser.email})`);
             } else {
-                // systemUsersにデータが無い場合はエラーログ
-                console.error(`❌ [getCurrentUser] systemUsersに ${window.currentFirebaseUser.email} のデータがありません`);
-                console.error(`❌ [getCurrentUser] systemUsers内容:`, systemUsers);
-                console.error(`❌ [getCurrentUser] 全ユーザーのemail:`, systemUsers.map(u => u.email));
-                // FirebaseのdisplayNameまたはemail prefixをフォールバックとして使用
+                // フォールバック: FirebaseのdisplayNameまたはemail prefixを使用
                 displayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
             }
         } catch (error) {
-            console.error('❌ [getCurrentUser] systemUsers取得エラー:', error);
             // エラー時はFirebaseのdisplayNameまたはemail prefixを使用
             displayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
         }
@@ -227,42 +193,89 @@ window.checkUserDisabled = async function() {
 window.FirebaseDB = {
     async saveTasks(tasks) {
         try {
-            console.log('💾 [FIREBASE] タスク保存開始:', tasks.length);
             const user = window.getCurrentUser();
             if (!user) throw new Error('認証が必要です');
 
-            // 既存タスクをクリア後、新しいタスクを保存
+            // 安全チェック: 空配列や極端に少ないタスクは保存しない
+            if (!tasks || !Array.isArray(tasks)) {
+                console.error('❌ [SAVE-TASKS] 無効なタスク配列');
+                return { success: false, error: '無効なタスク配列' };
+            }
+
+            // 警告: タスク数が急激に減少した場合
             const tasksRef = collection(db, 'tasks');
-            const snapshot = await getDocs(tasksRef);
-            
-            // 削除処理
-            for (const docSnap of snapshot.docs) {
-                await deleteDoc(doc(db, 'tasks', docSnap.id));
+            const currentSnapshot = await getDocs(tasksRef);
+            const currentCount = currentSnapshot.docs.length;
+
+            if (currentCount > 10 && tasks.length < currentCount * 0.5) {
+                console.error(`❌ [SAVE-TASKS] データ消失防止: 現在${currentCount}件 → ${tasks.length}件への大幅削減を拒否`);
+                return { success: false, error: `データ消失防止: ${currentCount}件から${tasks.length}件への保存は拒否されました` };
             }
-            
-            // 新規保存
+
+            // 差分更新: 既存タスクをMapで管理
+            const existingTaskMap = new Map();
+            currentSnapshot.forEach(doc => {
+                existingTaskMap.set(doc.id, doc.data());
+            });
+
+            // 新しいタスクのIDセット
+            const newTaskIds = new Set();
+
+            // タスクを更新または追加
             for (const task of tasks) {
-                await addDoc(tasksRef, {
-                    ...task,
-                    userId: user.id,
-                    updatedAt: new Date().toISOString()
-                });
+                const taskId = task.firebaseId || task.id;
+
+                if (taskId && existingTaskMap.has(taskId)) {
+                    // 既存タスクを更新
+                    await updateDoc(doc(db, 'tasks', taskId), {
+                        ...task,
+                        userId: user.id,
+                        updatedAt: new Date().toISOString()
+                    });
+                    newTaskIds.add(taskId);
+                } else if (taskId && typeof taskId === 'string' && taskId.length > 10) {
+                    // FirebaseIDっぽいが存在しない場合は新規作成
+                    const docRef = await addDoc(tasksRef, {
+                        ...task,
+                        userId: user.id,
+                        updatedAt: new Date().toISOString()
+                    });
+                    newTaskIds.add(docRef.id);
+                } else {
+                    // 新規タスクを追加
+                    const docRef = await addDoc(tasksRef, {
+                        ...task,
+                        userId: user.id,
+                        updatedAt: new Date().toISOString()
+                    });
+                    newTaskIds.add(docRef.id);
+                }
             }
-            
-            console.log('✅ [FIREBASE] タスク保存完了:', tasks.length);
+
+            // 削除されたタスクを削除（差分のみ）
+            for (const [docId] of existingTaskMap) {
+                if (!newTaskIds.has(docId)) {
+                    // タスクが明示的に削除された場合のみ削除
+                    const taskInNew = tasks.find(t => (t.firebaseId || t.id) === docId);
+                    if (!taskInNew) {
+                        await deleteDoc(doc(db, 'tasks', docId));
+                        console.log(`🗑️ [SAVE-TASKS] タスク削除: ${docId}`);
+                    }
+                }
+            }
+
+            console.log(`✅ [SAVE-TASKS] 差分更新完了: ${tasks.length}件`);
             return { success: true };
         } catch (error) {
-            console.warn('⚠️ [FIREBASE] タスク保存: LocalStorageフォールバック使用', error.message);
+            console.error('❌ [SAVE-TASKS] エラー:', error);
             return { success: false, error: error.message };
         }
     },
 
     async getTasks() {
         try {
-            console.log('📥 [FIREBASE] タスク取得開始');
             const user = window.getCurrentUser();
             if (!user) {
-                console.warn('⚠️ [FIREBASE] 認証なし - 空配列を返します');
                 return { success: true, tasks: [] };
             }
 
@@ -272,14 +285,11 @@ window.FirebaseDB = {
 
             const tasks = [];
             snapshot.forEach((doc) => {
-                // FirestoreドキュメントIDを最優先（上書きされないように後で設定）
                 tasks.push({ ...doc.data(), id: doc.id });
             });
 
-            console.log('✅ [FIREBASE] タスク取得完了:', tasks.length);
             return { success: true, tasks: tasks };
         } catch (error) {
-            console.warn('⚠️ [FIREBASE] タスク取得: LocalStorageフォールバック使用', error.message);
             return { success: false, error: error.message, tasks: [] };
         }
     },
@@ -291,7 +301,6 @@ window.FirebaseDB = {
                 return { success: false, error: '認証が必要です' };
             }
 
-            // idフィールドを除外（FirestoreドキュメントIDを使用）
             const { id, ...taskWithoutId } = task;
 
             const docRef = await addDoc(collection(db, 'tasks'), {
@@ -301,10 +310,9 @@ window.FirebaseDB = {
                 updatedAt: new Date().toISOString()
             });
 
-            console.log('✅ [FIREBASE] タスク作成完了:', docRef.id);
             return { success: true, id: docRef.id };
         } catch (error) {
-            console.error('❌ [FIREBASE] タスク作成エラー:', error);
+            console.error('❌ タスク作成エラー:', error);
             return { success: false, error: error.message };
         }
     },
@@ -315,16 +323,15 @@ window.FirebaseDB = {
             if (!user) {
                 return { success: false, error: '認証が必要です' };
             }
-            
+
             await updateDoc(doc(db, 'tasks', taskId), {
                 ...taskData,
                 updatedAt: new Date().toISOString()
             });
-            
-            console.log('✅ [FIREBASE] タスク更新完了:', taskId);
+
             return { success: true };
         } catch (error) {
-            console.error('❌ [FIREBASE] タスク更新エラー:', error);
+            console.error('❌ タスク更新エラー:', error);
             return { success: false, error: error.message };
         }
     },
@@ -335,8 +342,7 @@ window.FirebaseDB = {
             if (!user) {
                 return { success: false, error: '認証が必要です' };
             }
-            
-            // taskIdが数値の場合は文字列に変換
+
             let documentId;
             if (typeof taskId === 'object' && taskId.id) {
                 documentId = String(taskId.id);
@@ -345,14 +351,11 @@ window.FirebaseDB = {
             } else if (typeof taskId === 'string') {
                 documentId = taskId;
             } else {
-                console.error('❌ [FIREBASE] 無効なタスクID:', taskId, typeof taskId);
                 return { success: false, error: '無効なタスクIDです' };
             }
-            
-            console.log('🗑️ [FIREBASE] タスク削除実行:', documentId);
+
             await deleteDoc(doc(db, 'tasks', documentId));
-            
-            console.log('✅ [FIREBASE] タスク削除完了:', documentId);
+
             return { success: true };
         } catch (error) {
             console.error('❌ [FIREBASE] タスク削除エラー:', error);
@@ -360,38 +363,31 @@ window.FirebaseDB = {
         }
     },
 
-    // プロジェクト管理機能（pj-create.html対応）
+    // プロジェクト管理機能
     async getProjects(forceRefresh = false) {
         try {
-            console.log('📥 [FIREBASE] プロジェクト取得開始', forceRefresh ? '(サーバーから強制取得)' : '');
             const user = window.getCurrentUser();
             if (!user) {
-                console.warn('⚠️ [FIREBASE] 認証なし - 空配列を返します');
                 return { success: true, projects: [] };
             }
 
             const projectsRef = collection(db, 'projects');
             const q = query(projectsRef, orderBy('createdAt', 'desc'));
-
-            // forceRefreshがtrueの場合、サーバーから強制取得（キャッシュを使用しない）
-            const snapshot = forceRefresh
-                ? await getDocs(q) // 強制取得の実装は後で追加
-                : await getDocs(q);
+            const snapshot = await getDocs(q);
 
             const projects = [];
             snapshot.forEach((doc) => {
                 projects.push({ id: doc.id, ...doc.data() });
             });
 
-            console.log('✅ [FIREBASE] プロジェクト取得完了:', projects.length);
             return { success: true, projects: projects };
         } catch (error) {
-            console.error('❌ [FIREBASE] プロジェクト取得エラー:', error);
+            console.error('❌ プロジェクト取得エラー:', error);
             return { success: false, error: error.message, projects: [] };
         }
     },
 
-    // 🔥 既存プロジェクトのcreatedBy修正（名前→メールアドレス）
+    // 既存プロジェクトのcreatedBy修正
     async fixProjectCreatedBy() {
         try {
             const user = window.getCurrentUser();
@@ -399,7 +395,6 @@ window.FirebaseDB = {
                 return { success: false, error: '認証が必要です' };
             }
 
-            console.log('🔧 [FIREBASE] プロジェクトcreatedBy修正開始...');
             const projectsRef = collection(db, 'projects');
             const snapshot = await getDocs(projectsRef);
 
@@ -407,7 +402,6 @@ window.FirebaseDB = {
             for (const docSnap of snapshot.docs) {
                 const data = docSnap.data();
 
-                // createdByがメールアドレスでない場合（@を含まない）→メールアドレスに変換
                 if (data.createdBy && !data.createdBy.includes('@')) {
                     const updates = {
                         createdBy: user.email,
@@ -416,20 +410,18 @@ window.FirebaseDB = {
                         updatedAt: new Date().toISOString()
                     };
                     await updateDoc(doc(db, 'projects', docSnap.id), updates);
-                    console.log(`✅ [FIREBASE] 修正完了: ${data.name} (${data.createdBy} → ${user.email})`);
                     fixedCount++;
                 }
             }
 
-            console.log(`🎉 [FIREBASE] プロジェクト修正完了: ${fixedCount}件`);
             return { success: true, fixedCount };
         } catch (error) {
-            console.error('❌ [FIREBASE] プロジェクト修正エラー:', error);
+            console.error('❌ プロジェクト修正エラー:', error);
             return { success: false, error: error.message };
         }
     },
 
-    // 🔧 既存プロジェクトにstatusフィールドを追加（下位互換性対応）
+    // 既存プロジェクトにstatusフィールドを追加
     async fixProjectStatus() {
         try {
             const user = window.getCurrentUser();
@@ -437,7 +429,6 @@ window.FirebaseDB = {
                 return { success: false, error: '認証が必要です' };
             }
 
-            console.log('🔧 [FIREBASE] プロジェクトstatus移行開始...');
             const projectsRef = collection(db, 'projects');
             const snapshot = await getDocs(projectsRef);
 
@@ -445,22 +436,19 @@ window.FirebaseDB = {
             for (const docSnap of snapshot.docs) {
                 const data = docSnap.data();
 
-                // statusフィールドが存在しない場合、activeを追加
                 if (!data.status) {
                     const updates = {
                         status: 'active',
                         updatedAt: new Date().toISOString()
                     };
                     await updateDoc(doc(db, 'projects', docSnap.id), updates);
-                    console.log(`✅ [FIREBASE] status追加: ${data.name} → active`);
                     fixedCount++;
                 }
             }
 
-            console.log(`🎉 [FIREBASE] プロジェクトstatus移行完了: ${fixedCount}件`);
             return { success: true, fixedCount };
         } catch (error) {
-            console.error('❌ [FIREBASE] プロジェクトstatus移行エラー:', error);
+            console.error('❌ プロジェクトstatus移行エラー:', error);
             return { success: false, error: error.message };
         }
     },
@@ -472,57 +460,44 @@ window.FirebaseDB = {
                 return { success: false, error: '認証が必要です' };
             }
 
-            let docRef;
-            let isUpdate = false;
-
-            // プロジェクトIDが指定されている場合は既存チェック
             if (project.id) {
                 const existingDoc = await getDoc(doc(db, 'projects', project.id));
 
                 if (existingDoc.exists()) {
-                    // 既存プロジェクトの更新
-                    isUpdate = true;
                     const projectData = {
                         ...project,
                         updatedAt: new Date().toISOString()
                     };
-                    docRef = doc(db, 'projects', project.id);
-                    await updateDoc(docRef, projectData);
-                    console.log('✅ [FIREBASE] プロジェクト更新完了:', project.id);
+                    await updateDoc(doc(db, 'projects', project.id), projectData);
                     return { success: true, id: project.id, isUpdate: true };
                 } else {
-                    // 指定IDで新規作成
                     const projectData = {
                         ...project,
                         userId: user.id,
-                        createdBy: user.email,  // 🔥 メールアドレスで統一
-                        visibility: project.visibility || 'public',  // 🔥 デフォルト値
-                        members: project.members || [user.email],    // 🔥 デフォルト値
+                        createdBy: user.email,
+                        visibility: project.visibility || 'public',
+                        members: project.members || [user.email],
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString()
                     };
-                    docRef = doc(db, 'projects', project.id);
-                    await setDoc(docRef, projectData);
-                    console.log('✅ [FIREBASE] プロジェクト作成完了（指定ID）:', project.id);
+                    await setDoc(doc(db, 'projects', project.id), projectData);
                     return { success: true, id: project.id, isUpdate: false };
                 }
             } else {
-                // 自動IDで新規作成
                 const projectData = {
                     ...project,
                     userId: user.id,
-                    createdBy: user.email,  // 🔥 メールアドレスで統一
-                    visibility: project.visibility || 'public',  // 🔥 デフォルト値
-                    members: project.members || [user.email],    // 🔥 デフォルト値
+                    createdBy: user.email,
+                    visibility: project.visibility || 'public',
+                    members: project.members || [user.email],
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
                 };
-                docRef = await addDoc(collection(db, 'projects'), projectData);
-                console.log('✅ [FIREBASE] プロジェクト作成完了（自動ID）:', docRef.id);
+                const docRef = await addDoc(collection(db, 'projects'), projectData);
                 return { success: true, id: docRef.id, isUpdate: false };
             }
         } catch (error) {
-            console.error('❌ [FIREBASE] プロジェクト保存エラー:', error);
+            console.error('❌ プロジェクト保存エラー:', error);
             return { success: false, error: error.message };
         }
     },
@@ -534,13 +509,10 @@ window.FirebaseDB = {
                 return { success: false, error: '認証が必要です' };
             }
 
-            console.log('🗑️ [FIREBASE] プロジェクト削除実行:', projectId);
             await deleteDoc(doc(db, 'projects', projectId));
-
-            console.log('✅ [FIREBASE] プロジェクト削除完了:', projectId);
             return { success: true };
         } catch (error) {
-            console.error('❌ [FIREBASE] プロジェクト削除エラー:', error);
+            console.error('❌ プロジェクト削除エラー:', error);
             return { success: false, error: error.message };
         }
     },
@@ -548,10 +520,8 @@ window.FirebaseDB = {
     // ユーザー管理機能
     async getUsers() {
         try {
-            console.log('👥 [FIREBASE] ユーザー一覧取得開始');
             const user = window.getCurrentUser();
             if (!user) {
-                console.warn('⚠️ [FIREBASE] 認証なし - 空配列を返します');
                 return { success: true, users: [] };
             }
 
@@ -563,25 +533,22 @@ window.FirebaseDB = {
             snapshot.forEach((doc) => {
                 users.push({ id: doc.id, ...doc.data() });
             });
-            
-            console.log('✅ [FIREBASE] ユーザー取得完了:', users.length);
+
             return { success: true, users: users };
         } catch (error) {
-            console.error('❌ [FIREBASE] ユーザー取得エラー:', error);
+            console.error('❌ ユーザー取得エラー:', error);
             return { success: false, error: error.message, users: [] };
         }
     },
 
-    // 有効なユーザーのみ取得（無効化・非表示ユーザーを除外）
+    // 有効なユーザーのみ取得
     async getActiveUsers() {
         try {
             const result = await window.FirebaseDB.getUsers();
             if (!result.success) {
-                console.error('❌ [ACTIVE-USERS] ユーザー取得失敗:', result.error);
                 return { success: false, users: [], error: result.error };
             }
 
-            // displayName → name へのマッピングとフィルタリング
             const activeUsers = result.users
                 .filter(user => !user.isHidden && !user.isDisabled)
                 .map(user => ({
@@ -593,13 +560,11 @@ window.FirebaseDB = {
                     isHidden: user.isHidden || false,
                     isDisabled: user.isDisabled || false,
                     createdAt: user.createdAt,
-                    displayName: user.displayName || user.name // 互換性のため残す
+                    displayName: user.displayName || user.name
                 }));
 
-            console.log(`✅ [ACTIVE-USERS] ${result.users.length}人中 ${activeUsers.length}人が有効`);
             return { success: true, users: activeUsers };
         } catch (error) {
-            console.error('❌ [ACTIVE-USERS] エラー:', error.message);
             return { success: false, users: [], error: error.message };
         }
     },
@@ -610,14 +575,11 @@ window.FirebaseDB = {
             if (!user) {
                 return { success: false, error: '認証が必要です' };
             }
-            
-            console.log('🗑️ [FIREBASE] ユーザー削除実行:', userId);
+
             await deleteDoc(doc(db, 'users', userId));
-            
-            console.log('✅ [FIREBASE] ユーザー削除完了:', userId);
             return { success: true };
         } catch (error) {
-            console.error('❌ [FIREBASE] ユーザー削除エラー:', error);
+            console.error('❌ ユーザー削除エラー:', error);
             return { success: false, error: error.message };
         }
     },
@@ -628,19 +590,17 @@ window.FirebaseDB = {
             if (!user) {
                 return { success: false, error: '認証が必要です' };
             }
-            
+
             const userDocId = userObj.uid || userObj.id || Date.now().toString();
-            console.log('💾 [FIREBASE] ユーザー情報保存中:', userDocId);
-            
+
             await setDoc(doc(db, 'users', userDocId), {
                 ...userObj,
                 updatedAt: new Date().toISOString()
             });
-            
-            console.log('✅ [FIREBASE] ユーザー情報保存完了:', userDocId);
+
             return { success: true };
         } catch (error) {
-            console.error('❌ [FIREBASE] ユーザー保存エラー:', error);
+            console.error('❌ ユーザー保存エラー:', error);
             return { success: false, error: error.message };
         }
     },
@@ -652,20 +612,14 @@ window.FirebaseDB = {
             if (!currentUser || (currentUser.role !== 'developer' && currentUser.role !== 'admin')) {
                 return { success: false, error: '管理者権限が必要です' };
             }
-            
-            console.log('🗑️ [FIREBASE-AUTH] Firebase Authユーザー削除を試行:', email);
-            
-            // 注意: フロントエンドからはFirebase Authのユーザー削除は制限されている
-            // 実際の削除は管理者がFirebase Consoleで行う必要がある
-            console.log('⚠️ [FIREBASE-AUTH] Firebase Authからの削除はFirebase Consoleで実行してください');
-            
-            return { 
-                success: true, 
+
+            return {
+                success: true,
                 message: 'Firestoreからは削除済み。Firebase Authからの削除はFirebase Consoleで実行してください。',
                 requiresManualDeletion: true
             };
         } catch (error) {
-            console.error('❌ [FIREBASE-AUTH] 削除処理エラー:', error);
+            console.error('❌ Auth削除処理エラー:', error);
             return { success: false, error: error.message };
         }
     }
@@ -674,12 +628,11 @@ window.FirebaseDB = {
 // Firebase認証ログイン
 window.FirebaseAuth = {
     currentUser: null,
-    
+
     async signIn(email, password) {
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             window.currentFirebaseUser = userCredential.user;
-            console.log('🔐 Firebase認証成功:', email);
             return { success: true, user: userCredential.user };
         } catch (error) {
             console.error('❌ Firebase認証エラー:', error);
@@ -689,12 +642,10 @@ window.FirebaseAuth = {
 
     async createUser(email, password, displayName) {
         try {
-            console.log('🔥 [AUTH] Firebase Authユーザー作成中:', email);
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            console.log('✅ [AUTH] Firebase Authユーザー作成成功:', userCredential.user.uid);
             return { success: true, user: userCredential.user };
         } catch (error) {
-            console.error('❌ [AUTH] Firebase Authユーザー作成エラー:', error);
+            console.error('❌ Authユーザー作成エラー:', error);
             return { success: false, error: error.message };
         }
     },
@@ -707,8 +658,3 @@ window.FirebaseAuth = {
         return window.currentFirebaseUser;
     }
 };
-
-// FCM削除: Firebase Cloud Messaging機能を完全削除
-// Slack通知システムに統一
-
-console.log('🔥 Firebase完全統合システム初期化完了');
