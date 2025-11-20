@@ -132,7 +132,7 @@ test.describe('非表示タスク機能のテスト', () => {
     }, { timeout: 10000 });
 
     // タスク作成モーダルを開く
-    await page.click('text=タスク作成');
+    await page.click('text=新規タスク');
 
     // モーダルが開くのを待つ
     await page.waitForSelector('#task-modal', { state: 'visible' });
@@ -174,7 +174,7 @@ test.describe('非表示タスク機能のテスト', () => {
     }, { timeout: 10000 });
 
     // タスク作成モーダルを開く
-    await page.click('text=タスク作成');
+    await page.click('text=新規タスク');
 
     // モーダルが開くのを待つ
     await page.waitForSelector('#task-modal', { state: 'visible' });
@@ -225,7 +225,7 @@ test.describe('非表示タスク機能のテスト', () => {
     }, { timeout: 10000 });
 
     // タスク作成モーダルを開く
-    await page.click('text=タスク作成');
+    await page.click('text=新規タスク');
 
     // モーダルが開くのを待つ
     await page.waitForSelector('#task-modal', { state: 'visible' });
@@ -251,7 +251,7 @@ test.describe('非表示タスク機能のテスト', () => {
     await page.click('.modal .close, button:has-text("キャンセル")');
 
     // 再度モーダルを開く
-    await page.click('text=タスク作成');
+    await page.click('text=新規タスク');
 
     // スクロール位置がリセットされているか確認
     const scrollTopAfter = await page.evaluate(() => {

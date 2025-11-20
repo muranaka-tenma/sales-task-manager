@@ -2099,7 +2099,7 @@
         // 🔥 Firebase専用モード - グローバル変数初期化
         let tasks = [];
         window.tasks = [];
-        let assignees = [];
+        let assignees = []; // {email, name}のオブジェクト配列に変更
         let taskTemplates = [];
         
         // 認証チェック（ページ読み込み時）
@@ -2211,8 +2211,8 @@
                 // localStorage.setItem('systemUsers', JSON.stringify(systemUsers)); // 🔥 削除
                 console.log('✅ [INIT] ユーザーデータはFirebaseで管理されます');
                 
-                // 担当者リストも初期化（有効ユーザーのみ）
-                const assignees = systemUsers.map(u => u.name); // 初期化時は全ユーザー追加
+                // 担当者リストも初期化（有効ユーザーのみ）- オブジェクト配列に変更
+                assignees = systemUsers.map(u => ({email: u.email, name: u.name}));
                 // 担当者リストはFirestoreで管理される
                 
                 // 権限確認ログ
@@ -2224,12 +2224,12 @@
                 });
             } else {
                 
-                // 🔧 担当者リストをsystemUsersから自動更新（有効ユーザーのみ）
+                // 🔧 担当者リストをsystemUsersから自動更新（有効ユーザーのみ）- オブジェクト配列
                 const activeUsers = getActiveUsers();
                 if (activeUsers.length > 0) {
-                    const assignees = activeUsers.map(u => u.name);
+                    assignees = activeUsers.map(u => ({email: u.email, name: u.name}));
                     // 担当者リストはFirestoreで管理される
-                    console.log(`👥 [UPDATE] 有効な担当者: ${assignees.join(', ')}`);
+                    console.log(`👥 [UPDATE] 有効な担当者: ${assignees.map(a => a.name).join(', ')}`);
                 }
                 
                 // 権限の完全性チェック（権限リセット防止）
@@ -3033,24 +3033,28 @@
         // assignees変数は既に上部で宣言済み
         window.assignees = assignees; // グローバルにも設定
         
-        // 「ユーザー」を担当者リストから削除
-        assignees = assignees.filter(assignee => assignee !== 'ユーザー');
+        // 「ユーザー」を担当者リストから削除（オブジェクト配列対応）
+        assignees = assignees.filter(assignee => {
+            const name = assignee.name || assignee;
+            return name !== 'ユーザー';
+        });
         if (assignees.length === 0) {
             // 担当者が空の場合、アクティブユーザーから取得
-            const activeUserNames = getActiveUserNames();
-            if (activeUserNames.length > 0) {
-                assignees = activeUserNames;
-                console.log('👥 [ASSIGNEE CLEANUP] アクティブユーザーから担当者を復元:', assignees);
+            const activeUsers = getActiveUsers();
+            if (activeUsers.length > 0) {
+                // オブジェクト配列として設定（メールアドレスベース識別）
+                assignees = activeUsers.map(u => ({email: u.email, name: u.name}));
+                console.log('👥 [ASSIGNEE CLEANUP] アクティブユーザーから担当者を復元:', assignees.map(a => a.name));
             } else {
                 // アクティブユーザーも空の場合、現在のユーザーを追加
                 const currentUser = getCurrentUser();
                 if (currentUser && currentUser.name && currentUser.name !== 'ゲスト') {
-                    assignees = [currentUser.name];
-                    console.log('👤 [ASSIGNEE CLEANUP] 現在のユーザーを担当者として設定:', assignees);
+                    assignees = [{email: currentUser.email || 'unknown@temp.local', name: currentUser.name}];
+                    console.log('👤 [ASSIGNEE CLEANUP] 現在のユーザーを担当者として設定:', assignees.map(a => a.name));
                 } else {
                     // 最後の手段として「未設定」を追加
-                    assignees = ['未設定'];
-                    console.log('⚠️ [ASSIGNEE CLEANUP] フォールバック担当者を設定:', assignees);
+                    assignees = [{email: 'unset@temp.local', name: '未設定'}];
+                    console.log('⚠️ [ASSIGNEE CLEANUP] フォールバック担当者を設定:', assignees.map(a => a.name));
                 }
             }
         }
@@ -3078,21 +3082,31 @@
             
             const sampleUsers = ['田中部長', '佐藤課長', '鈴木主任', '山田さん', '山田主任', '鈴木係長'];
             let updated = false;
-            
-            // 担当者リストの置換
-            assignees = assignees.map(name => {
+
+            // 担当者リストの置換（オブジェクト配列対応）
+            assignees = assignees.map(item => {
+                const name = item.name || item;
                 if (sampleUsers.includes(name)) {
                     updated = true;
                     console.log(`🔄 置換: ${name} → ${realUser}`);
+                    // オブジェクトの場合は名前を置換、文字列の場合はそのまま
+                    if (item.name) {
+                        return {email: item.email, name: realUser};
+                    }
                     return realUser;
                 }
-                return name;
+                return item;
             });
-            
+
             // 重複を削除し、実ユーザーが含まれていない場合は追加
-            assignees = [...new Set(assignees)];
-            if (!assignees.includes(realUser)) {
-                assignees.push(realUser);
+            const uniqueNames = new Set(assignees.map(a => a.name || a));
+            assignees = assignees.filter((item, index) => {
+                const name = item.name || item;
+                const firstIndex = assignees.findIndex(a => (a.name || a) === name);
+                return index === firstIndex;
+            });
+            if (!uniqueNames.has(realUser)) {
+                assignees.push({email: 'fallback@terracom.co.jp', name: realUser});
                 updated = true;
             }
             
@@ -3801,13 +3815,36 @@
         function updateAssigneeOptions() {
             const container = document.getElementById('assignees-container');
             container.innerHTML = '';
-            
+
+            // assigneesが文字列配列の場合、getActiveUsers()からメールアドレスを取得して変換
+            const activeUsers = getActiveUsers();
+            const emailMap = {};
+            activeUsers.forEach(u => {
+                if (u.email && u.name) {
+                    emailMap[u.name] = u.email;
+                }
+            });
+
+            // assigneesがオブジェクト配列の場合と文字列配列の場合の両方に対応
             assignees.forEach(assignee => {
                 const checkboxWrapper = document.createElement('div');
                 checkboxWrapper.className = 'assignee-checkbox';
+
+                // オブジェクト配列の場合: {email, name}
+                // 文字列配列の場合: emailMapから取得、なければ仮のメールを生成
+                let email, name;
+                if (assignee.email) {
+                    email = assignee.email;
+                    name = assignee.name;
+                } else {
+                    name = assignee;
+                    email = emailMap[name] || (name.toLowerCase().replace(/\s+/g, '-') + '@temp.local');
+                }
+                const safeId = email.replace(/[@.]/g, '-'); // IDに使えない文字を置換
+
                 checkboxWrapper.innerHTML = `
-                    <input type="checkbox" id="assignee-${assignee}" value="${assignee}" onchange="updateSelectedAssignees()">
-                    <label for="assignee-${assignee}">${assignee}</label>
+                    <input type="checkbox" id="assignee-${safeId}" value="${email}" data-name="${name}" onchange="updateSelectedAssignees()">
+                    <label for="assignee-${safeId}">${name}</label>
                 `;
                 container.appendChild(checkboxWrapper);
             });
@@ -4000,40 +4037,90 @@
         
         function getSelectedAssignees() {
             const checkboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]:checked');
+            // data-name属性から日本語名を取得（後方互換性のため）
+            return Array.from(checkboxes).map(cb => cb.dataset.name || cb.value);
+        }
+
+        // 選択された担当者のメールアドレスを取得
+        function getSelectedAssigneeEmails() {
+            const checkboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]:checked');
             return Array.from(checkboxes).map(cb => cb.value);
         }
 
         // 非表示タスクのバリデーションとUI制御
+        // 現在のユーザーのメールアドレスを取得するヘルパー関数
+        function getCurrentUserEmail() {
+            const currentUser = getCurrentUser();
+            if (currentUser && currentUser.email) {
+                return currentUser.email;
+            } else if (window.currentFirebaseUser && window.currentFirebaseUser.email) {
+                return window.currentFirebaseUser.email;
+            }
+            console.error('❌ [HIDDEN-VALIDATION] ユーザーメールが取得できません');
+            return null;
+        }
+
+        // 現在のユーザー名を動的に取得するヘルパー関数（後方互換性のため維持）
+        function getCurrentUserDisplayName() {
+            // 現在のユーザーのメールアドレスを取得
+            const userEmail = getCurrentUserEmail();
+
+            if (!userEmail) {
+                return null;
+            }
+
+            console.log(`📧 [HIDDEN-VALIDATION] ユーザーメール: ${userEmail}`);
+
+            // systemUsersからメールアドレスで日本語名を取得
+            try {
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                const matchedUser = systemUsers.find(u => u.email === userEmail);
+
+                if (matchedUser && matchedUser.name) {
+                    console.log(`✅ [HIDDEN-VALIDATION] systemUsersから取得: ${matchedUser.name}`);
+                    return matchedUser.name;
+                }
+            } catch (error) {
+                console.error('❌ [HIDDEN-VALIDATION] systemUsers取得エラー:', error);
+            }
+
+            // メールアドレスから日本語名へのマッピング（systemUsersが不完全な場合のフォールバック）
+            const emailToNameMap = {
+                'muranaka-tenma@terracom.co.jp': '邨中天真',
+                'hashimoto-yumi@terracom.co.jp': '橋本友美',
+                'kato-jun@terracom.co.jp': '加藤純',
+                'asahi-keiichi@terracom.co.jp': '朝日圭一',
+                'hanzawa-yuka@terracom.co.jp': '半澤侑果',
+                'tamura-wataru@terracom.co.jp': '田村渉',
+                'fukushima-ami@terracom.co.jp': '福島阿美'
+            };
+
+            if (emailToNameMap[userEmail]) {
+                console.log(`✅ [HIDDEN-VALIDATION] マッピングから取得: ${emailToNameMap[userEmail]}`);
+                return emailToNameMap[userEmail];
+            }
+
+            // getCurrentUser()の名前を使用（最後の手段）
+            if (currentUser && currentUser.name) {
+                console.warn(`⚠️ [HIDDEN-VALIDATION] フォールバック（getCurrentUser().name）: ${currentUser.name}`);
+                return currentUser.name;
+            }
+
+            console.error('❌ [HIDDEN-VALIDATION] ユーザー情報が取得できません');
+            return null;
+        }
+
+        // イベントリスナーが設定済みかどうかのフラグ
+        let hiddenValidationSetup = false;
+
         function setupHiddenTaskValidation() {
             const hiddenCheckbox = document.getElementById('task-hidden-input');
             if (!hiddenCheckbox) return;
 
-            // 現在ログイン中のユーザーの日本語名を取得
-            if (!window.currentFirebaseUser || !window.currentFirebaseUser.email) {
-                console.error('❌ [HIDDEN-VALIDATION] Firebase認証ユーザー情報が取得できません');
+            // 既に設定済みの場合は重複を避ける
+            if (hiddenCheckbox.dataset.validationSetup === 'true') {
+                console.log('✅ [HIDDEN-VALIDATION] イベントリスナーは既に設定済みです');
                 return;
-            }
-
-            let currentUserDisplayName;
-            try {
-                // localStorageのsystemUsersから日本語名を取得
-                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                const matchedUser = systemUsers.find(u => u.email === window.currentFirebaseUser.email);
-
-                if (matchedUser && matchedUser.name) {
-                    currentUserDisplayName = matchedUser.name;
-                    console.log(`✅ [HIDDEN-VALIDATION] 現在のユーザー: ${currentUserDisplayName} (${window.currentFirebaseUser.email})`);
-                } else {
-                    console.error(`❌ [HIDDEN-VALIDATION] systemUsersから日本語名が取得できません`);
-                    console.error(`❌ [HIDDEN-VALIDATION] systemUsers:`, systemUsers);
-                    console.error(`❌ [HIDDEN-VALIDATION] 検索email:`, window.currentFirebaseUser.email);
-                    // フォールバック：FirebaseのdisplayName
-                    currentUserDisplayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
-                    console.warn(`⚠️ [HIDDEN-VALIDATION] フォールバック使用: ${currentUserDisplayName}`);
-                }
-            } catch (error) {
-                console.error('❌ [HIDDEN-VALIDATION] systemUsers取得エラー:', error);
-                currentUserDisplayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
             }
 
             // 非表示チェックボックスの change イベント
@@ -4041,36 +4128,68 @@
                 const isHidden = this.checked;
                 console.log(`🔒 [HIDDEN-VALIDATION] 非表示チェック変更: ${isHidden}`);
 
+                // メールアドレスでユーザーを識別（根本治療）
+                const currentUserEmail = getCurrentUserEmail();
+                if (!currentUserEmail) {
+                    alert('⚠️ ユーザー情報の取得に失敗しました。ページを再読み込みしてください。');
+                    this.checked = false;
+                    return;
+                }
+                console.log(`👤 [HIDDEN-VALIDATION] 現在のユーザー: ${currentUserEmail}`);
+
                 if (isHidden) {
-                    // 現在選択されている担当者を確認
-                    const selectedAssignees = getSelectedAssignees();
-                    console.log(`🔍 [HIDDEN-VALIDATION] 現在の担当者: ${selectedAssignees.join(', ')}`);
+                    // 現在選択されている担当者のメールアドレスを取得
+                    const selectedEmails = getSelectedAssigneeEmails();
+                    console.log(`🔍 [HIDDEN-VALIDATION] 現在の担当者: ${selectedEmails.join(', ')}`);
 
                     // 自分以外が選択されている場合はエラー
-                    const othersSelected = selectedAssignees.filter(name => name !== currentUserDisplayName);
+                    const othersSelected = selectedEmails.filter(email => email !== currentUserEmail);
                     if (othersSelected.length > 0) {
-                        alert(`⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n他のユーザー（${othersSelected.join(', ')}）が選択されているため、非表示にできません。`);
+                        // エラーメッセージには日本語名を表示
+                        const otherNames = othersSelected.map(email => {
+                            const cb = document.querySelector(`#assignees-container input[value="${email}"]`);
+                            return cb ? cb.dataset.name : email;
+                        });
+                        alert(`⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n他のユーザー（${otherNames.join(', ')}）が選択されているため、非表示にできません。`);
                         this.checked = false;
                         return;
                     }
 
-                    // 自分以外のチェックボックスを無効化
+                    // 自分以外のチェックボックスを無効化し、自分を自動チェック
                     const assigneeCheckboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]');
                     let selfCheckboxFound = false;
                     assigneeCheckboxes.forEach(checkbox => {
-                        if (checkbox.value !== currentUserDisplayName) {
+                        if (checkbox.value !== currentUserEmail) {
                             checkbox.disabled = true;
-                            checkbox.closest('.assignee-checkbox').style.opacity = '0.5';
+                            checkbox.checked = false; // 他のユーザーのチェックを外す
+                            const wrapper = checkbox.closest('.assignee-checkbox');
+                            if (wrapper) {
+                                wrapper.style.opacity = '0.5';
+                                wrapper.classList.remove('checked');
+                            }
                         } else {
                             // 自分を自動チェック
                             checkbox.checked = true;
+                            checkbox.disabled = false;
                             selfCheckboxFound = true;
-                            console.log(`✅ [HIDDEN-VALIDATION] 自分のチェックボックスを自動選択: ${currentUserDisplayName}`);
+                            const wrapper = checkbox.closest('.assignee-checkbox');
+                            if (wrapper) {
+                                wrapper.classList.add('checked');
+                                wrapper.style.opacity = '1';
+                            }
+                            console.log(`✅ [HIDDEN-VALIDATION] 自分のチェックボックスを自動選択: ${currentUserEmail}`);
                         }
                     });
 
                     if (!selfCheckboxFound) {
-                        console.error(`❌ [HIDDEN-VALIDATION] 自分のチェックボックスが見つかりません: ${currentUserDisplayName}`);
+                        console.error(`❌ [HIDDEN-VALIDATION] 自分のチェックボックスが見つかりません: ${currentUserEmail}`);
+                        console.log(`📋 [HIDDEN-VALIDATION] 利用可能なチェックボックス:`,
+                            Array.from(assigneeCheckboxes).map(cb => cb.value));
+                    }
+
+                    // updateSelectedAssigneesを呼び出して表示を更新
+                    if (typeof updateSelectedAssignees === 'function') {
+                        updateSelectedAssignees();
                     }
 
                     console.log('✅ [HIDDEN-VALIDATION] 自分以外の担当者を無効化しました');
@@ -4079,26 +4198,40 @@
                     const assigneeCheckboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]');
                     assigneeCheckboxes.forEach(checkbox => {
                         checkbox.disabled = false;
-                        checkbox.closest('.assignee-checkbox').style.opacity = '1';
+                        const wrapper = checkbox.closest('.assignee-checkbox');
+                        if (wrapper) {
+                            wrapper.style.opacity = '1';
+                        }
                     });
                     console.log('✅ [HIDDEN-VALIDATION] 全ての担当者を有効化しました');
                 }
             });
 
-            // 担当者チェックボックスの change イベント（既存の updateSelectedAssignees に追加）
-            const assigneeCheckboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]');
-            assigneeCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
+            // フラグを設定
+            hiddenCheckbox.dataset.validationSetup = 'true';
+            console.log('✅ [HIDDEN-VALIDATION] イベントリスナー設定完了');
+
+            // 担当者チェックボックスへのイベントリスナーは、イベント委譲で処理
+            const assigneesContainer = document.getElementById('assignees-container');
+            if (assigneesContainer && !assigneesContainer.dataset.hiddenValidation) {
+                assigneesContainer.addEventListener('change', function(e) {
+                    if (e.target.type !== 'checkbox') return;
+
                     const isHidden = hiddenCheckbox.checked;
                     if (!isHidden) return; // 非表示でない場合は何もしない
 
-                    // 非表示タスクで自分以外を選択しようとした場合
-                    if (this.value !== currentUserDisplayName && this.checked) {
-                        alert(`⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n「${this.value}」を担当者に追加できません。`);
-                        this.checked = false;
+                    const currentUserEmail = getCurrentUserEmail();
+                    if (!currentUserEmail) return;
+
+                    // 非表示タスクで自分以外を選択しようとした場合（メールアドレスで比較）
+                    if (e.target.value !== currentUserEmail && e.target.checked) {
+                        const displayName = e.target.dataset.name || e.target.value;
+                        alert(`⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n「${displayName}」を担当者に追加できません。`);
+                        e.target.checked = false;
                     }
                 });
-            });
+                assigneesContainer.dataset.hiddenValidation = 'true';
+            }
         }
         
         function setSelectedAssignees(assigneeList) {
@@ -4106,10 +4239,12 @@
             if (typeof assigneeList === 'string') {
                 assigneeList = assigneeList.split(',').map(a => a.trim()).filter(a => a);
             }
-            
+
             const checkboxes = document.querySelectorAll('#assignees-container input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
-                checkbox.checked = assigneeList.includes(checkbox.value);
+                // 日本語名（data-name）またはメールアドレス（value）で比較
+                const name = checkbox.dataset.name || checkbox.value;
+                checkbox.checked = assigneeList.includes(name) || assigneeList.includes(checkbox.value);
                 const wrapper = checkbox.closest('.assignee-checkbox');
                 if (checkbox.checked) {
                     wrapper.classList.add('checked');
@@ -4131,13 +4266,18 @@
             const newAssignee = prompt('新しい担当者名を入力してください:');
             if (newAssignee && newAssignee.trim()) {
                 const trimmedName = newAssignee.trim();
-                if (!assignees.includes(trimmedName)) {
-                    assignees.push(trimmedName);
+                // オブジェクト配列で名前の重複チェック
+                const exists = assignees.some(a => (a.name || a) === trimmedName);
+                if (!exists) {
+                    // 仮のメールアドレスを生成（実際のユーザーでない場合）
+                    const tempEmail = trimmedName.toLowerCase().replace(/\s+/g, '-') + '@temp.local';
+                    assignees.push({email: tempEmail, name: trimmedName});
                     // 担当者リストはFirestoreで管理される
                     updateAssigneeOptions();
                     // 新しく追加した担当者を選択状態にする
                     setTimeout(() => {
-                        const newCheckbox = document.getElementById(`assignee-${trimmedName}`);
+                        const safeId = tempEmail.replace(/[@.]/g, '-');
+                        const newCheckbox = document.getElementById(`assignee-${safeId}`);
                         if (newCheckbox) {
                             newCheckbox.checked = true;
                             updateSelectedAssignees();
@@ -5259,15 +5399,15 @@
 
             // 非表示タスクのバリデーション
             const isHidden = document.getElementById('task-hidden-input').checked;
-            const currentUser = getCurrentUser();
+            const currentUserDisplayName = getCurrentUserDisplayName(); // 日本語名を取得
 
             if (isHidden) {
                 console.log(`🔒 [HIDDEN-VALIDATION] 非表示タスクの保存時バリデーション`);
                 console.log(`🔍 [HIDDEN-VALIDATION] 担当者数: ${selectedAssignees.length}, 担当者: ${selectedAssignees.join(', ')}`);
-                console.log(`🔍 [HIDDEN-VALIDATION] 現在のユーザー: ${currentUser.name}`);
+                console.log(`🔍 [HIDDEN-VALIDATION] 現在のユーザー: ${currentUserDisplayName}`);
 
                 // 自分以外が選択されている場合はエラー
-                const othersSelected = selectedAssignees.filter(name => name !== currentUser.name);
+                const othersSelected = selectedAssignees.filter(name => name !== currentUserDisplayName);
                 if (othersSelected.length > 0) {
                     alert(`⚠️ 非表示タスクは自分のみ担当者に設定できます。\n\n他のユーザー（${othersSelected.join(', ')}）が選択されているため、保存できません。`);
                     // required属性を復活させてからreturn
@@ -5288,7 +5428,7 @@
                 }
 
                 // 自分が担当者に含まれていない場合
-                if (!selectedAssignees.includes(currentUser.name)) {
+                if (!selectedAssignees.includes(currentUserDisplayName)) {
                     alert('⚠️ 非表示タスクは自分を担当者に設定する必要があります。');
                     // required属性を復活させてからreturn
                     if (wasRequired && isColumnSelectionHidden) {
@@ -8226,22 +8366,15 @@
                     console.log(`👥 [RENDER] 有効な担当者更新: ${assignees.join(', ')}`);
                 }
                 
-                // 画面上部のユーザー表示更新
+                // 画面上部のユーザー表示更新（権限表示なし）
                 const currentSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
                 if (currentSession?.user) {
                     const headerTitle = document.querySelector('.header-title');
                     if (headerTitle) {
-                        const roleNames = {
-                            'developer': '開発者',
-                            'admin': '管理者',
-                            'user': '一般ユーザー'
-                        };
-                        const roleName = roleNames[currentSession.user.role] || currentSession.user.role;
-                        
                         headerTitle.innerHTML = `
                             🎯 営業タスク管理 - Kanbanボード
                             <span style="font-size: 0.8rem; font-weight: normal; margin-left: 1rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.5rem; border-radius: 4px;">
-                                ${currentSession.user.name} (${roleName})
+                                ${currentSession.user.name}
                             </span>
                         `;
                     }
