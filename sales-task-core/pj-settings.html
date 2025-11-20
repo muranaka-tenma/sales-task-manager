@@ -365,6 +365,18 @@
         
         // デフォルトカラム設定
         const DEFAULT_COLUMNS = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+
+        // 🔒 【必須カラム】完了とゴミ箱は削除不可（DONE/TRASHとして機能）
+        const REQUIRED_COLUMNS = {
+            done: { pattern: /完了|done|完成/i, default: "✅ 完了" },
+            trash: { pattern: /ゴミ箱|trash|削除/i, default: "🗑️ ゴミ箱" }
+        };
+
+        // カラムが必須カラムかどうかを判定
+        function isRequiredColumn(columnName) {
+            return REQUIRED_COLUMNS.done.pattern.test(columnName) ||
+                   REQUIRED_COLUMNS.trash.pattern.test(columnName);
+        }
         
         // 🔥 getProjectSettings()とsaveProjectSettings()は削除（Firebase化により不要）
         // 🔥 validateProjectId()関数は削除（タイムスタンプIDは検証不要）
@@ -534,16 +546,23 @@
         
         // カラムを読み込む
         function loadColumns(columns) {
+            console.log('🎨 [LOAD-COLUMNS] カラム読み込み開始:', columns);
             const container = document.getElementById('columns-container');
-            container.innerHTML = columns.map((column, index) => `
-                <div class="column-item" data-index="${index}">
-                    <span class="column-drag-handle">⋮⋮</span>
-                    <input type="text" class="column-input" value="${column}" onchange="updateColumn(${index}, this.value)">
-                    <button type="button" class="btn btn-danger" onclick="removeColumn(${index})" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
-                        ✕
-                    </button>
-                </div>
-            `).join('');
+            container.innerHTML = columns.map((column, index) => {
+                const isRequired = isRequiredColumn(column);
+                console.log(`🎨 [LOAD-COLUMNS] カラム ${index}: "${column}" - 必須=${isRequired}`);
+                return `
+                    <div class="column-item" data-index="${index}">
+                        <span class="column-drag-handle">⋮⋮</span>
+                        <input type="text" class="column-input" value="${column}" onchange="updateColumn(${index}, this.value)" ${isRequired ? 'readonly' : ''}>
+                        ${isRequired ?
+                            `<span style="color: #666; font-size: 0.8rem; padding: 0.25rem;">🔒 必須</span>` :
+                            `<button type="button" class="btn btn-danger" onclick="removeColumn(${index})" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">✕</button>`
+                        }
+                    </div>
+                `;
+            }).join('');
+            console.log('✅ [LOAD-COLUMNS] カラム読み込み完了');
         }
         
         // カラム追加
@@ -561,7 +580,14 @@
                 alert('最低1つのカラムが必要です');
                 return;
             }
-            
+
+            // 🔒 必須カラムは削除不可
+            const columnToRemove = currentColumns[index];
+            if (isRequiredColumn(columnToRemove)) {
+                alert('「完了」と「ゴミ箱」カラムは必須のため削除できません。\n\nこれらのカラムはDONE/TRASHとして機能します。');
+                return;
+            }
+
             currentColumns.splice(index, 1);
             loadColumns(currentColumns);
         }
@@ -602,7 +628,20 @@
                 return;
             }
 
-            console.log('✅ [PJ SAVE] All validations passed');
+            // 🔒 【必須カラム自動追加】完了・ゴミ箱カラムがなければ追加
+            const hasDone = columns.some(col => REQUIRED_COLUMNS.done.pattern.test(col));
+            const hasTrash = columns.some(col => REQUIRED_COLUMNS.trash.pattern.test(col));
+
+            if (!hasDone) {
+                columns.push(REQUIRED_COLUMNS.done.default);
+                console.log('🔧 [PJ SAVE] 完了カラムを自動追加');
+            }
+            if (!hasTrash) {
+                columns.push(REQUIRED_COLUMNS.trash.default);
+                console.log('🔧 [PJ SAVE] ゴミ箱カラムを自動追加');
+            }
+
+            console.log('✅ [PJ SAVE] All validations passed (columns with required:', columns, ')');
 
             const currentUser = getCurrentUser();
             console.log('🔍 [PJ SAVE] Current user:', currentUser);

@@ -3160,8 +3160,72 @@
             const projectSettings = document.getElementById('project-task-settings');
             return projectSettings && projectSettings.style.display === 'block';
         }
-        
-        
+
+        // 🔒 【DONE/TRASH判定ヘルパー】プロジェクトタスクも通常タスクと同じDONE/TRASH機能を持たせる
+
+        // カラムIDからカラム名を取得（プロジェクトカラムの場合）
+        function getColumnNameById(columnId) {
+            if (!columnId) return '';
+
+            // 通常タスクのカラムIDはそのまま返す
+            if (columnId === 'done' || columnId === 'trash' || columnId === 'todo' || columnId === 'in-progress') {
+                return columnId;
+            }
+
+            // プロジェクトカラムの場合（pj_{projectId}_{index}形式）
+            if (columnId.startsWith('pj_')) {
+                const parts = columnId.split('_');
+                if (parts.length >= 3) {
+                    const projectId = parts[1];
+                    const columnIndex = parseInt(parts[2]);
+
+                    // キャッシュからプロジェクトデータを取得
+                    if (cachedProjectsData && cachedProjectsData[projectId]) {
+                        const project = cachedProjectsData[projectId];
+                        if (project.columns && project.columns[columnIndex]) {
+                            return project.columns[columnIndex];
+                        }
+                    }
+                }
+            }
+
+            // フォールバック: columnIdをそのまま返す
+            return columnId;
+        }
+
+        // カラムIDまたはカラム名からDONEカラムかどうかを判定
+        function isDoneColumn(columnId) {
+            if (!columnId) return false;
+
+            // 通常タスクのDONEカラム
+            if (columnId === 'done') return true;
+
+            // プロジェクトカラムの場合は名前を取得してから判定
+            const columnName = getColumnNameById(columnId);
+            const lowerColumnName = columnName.toLowerCase();
+
+            return lowerColumnName.includes('完了') ||
+                   lowerColumnName.includes('done') ||
+                   lowerColumnName.includes('完成');
+        }
+
+        // カラムIDまたはカラム名からTRASHカラムかどうかを判定
+        function isTrashColumn(columnId) {
+            if (!columnId) return false;
+
+            // 通常タスクのTRASHカラム
+            if (columnId === 'trash') return true;
+
+            // プロジェクトカラムの場合は名前を取得してから判定
+            const columnName = getColumnNameById(columnId);
+            const lowerColumnName = columnName.toLowerCase();
+
+            return lowerColumnName.includes('ゴミ箱') ||
+                   lowerColumnName.includes('trash') ||
+                   lowerColumnName.includes('削除');
+        }
+
+
         
         // 統合フィルター機能（担当者 + プロジェクト）
         function toggleAssigneeFilterDropdown() {
@@ -3576,12 +3640,18 @@
         }
         
         function isOverdue(deadline, columnId) {
-            if (columnId === 'done') return false;
+            // 完了カラム（通常タスク・プロジェクトタスク両対応）は期限切れ判定しない
+            if (isDoneColumn(columnId)) return false;
+            // ゴミ箱カラム（通常タスク・プロジェクトタスク両対応）は期限切れ判定しない
+            if (isTrashColumn(columnId)) return false;
             return new Date(deadline) < getCurrentDateTime();
         }
-        
+
         function isToday(deadline, columnId) {
-            if (columnId === 'done') return false;
+            // 完了カラム（通常タスク・プロジェクトタスク両対応）は本日期限判定しない
+            if (isDoneColumn(columnId)) return false;
+            // ゴミ箱カラム（通常タスク・プロジェクトタスク両対応）は本日期限判定しない
+            if (isTrashColumn(columnId)) return false;
             const today = new Date();
             const deadlineDate = new Date(deadline);
             return today.toDateString() === deadlineDate.toDateString();
@@ -4357,7 +4427,8 @@
             // プロジェクトタスクの場合はタイトルに表示
             const isPJTask = editingTask.projectId && editingTask.projectId !== null;
             if (isPJTask) {
-                document.getElementById('modal-title').textContent = `👥 プロジェクトタスク編集: ${editingTask.projectId}`;
+                // 管理IDは非表示（ユーザーには不要な情報）
+                document.getElementById('modal-title').textContent = `👥 プロジェクトタスク編集`;
                 console.log(`🎯 [EDIT] Editing project task: ${editingTask.projectId} - ${editingTask.projectName}`);
             } else {
                 console.log(`👤 [EDIT] Editing personal task: ${editingTask.title}`);
@@ -5918,8 +5989,8 @@
                 
                 if (draggedTask.columnId !== columnId) {
 
-                    // ✅ DONEカラムへの移動時は確認アラート
-                    if (columnId === 'done') {
+                    // ✅ DONEカラムへの移動時は確認アラート（プロジェクトタスクも対応）
+                    if (isDoneColumn(columnId)) {
                         const confirmComplete = confirm(
                             `✅ タスクを完了にしますか？\n\n` +
                             `「${draggedTask.title}」`
@@ -5936,8 +6007,8 @@
                         }
                     }
 
-                    // 🗑️ ゴミ箱カラムへの移動時は確認アラート
-                    if (columnId === 'trash') {
+                    // 🗑️ ゴミ箱カラムへの移動時は確認アラート（プロジェクトタスクも対応）
+                    if (isTrashColumn(columnId)) {
                         const confirmTrash = confirm(
                             `🗑️ タスクをゴミ箱に移動しますか？\n\n` +
                             `「${draggedTask.title}」\n\n` +
@@ -5958,8 +6029,8 @@
                         draggedTask.deletedAt = new Date().toISOString();
                     }
 
-                    // 🚫 期限切れチェック：期限切れタスクは移動不可（DONEへの移動は例外）
-                    if (columnId !== 'done' && draggedTask.deadline) {
+                    // 🚫 期限切れチェック：期限切れタスクは移動不可（DONEへの移動は例外・プロジェクトタスクも対応）
+                    if (!isDoneColumn(columnId) && draggedTask.deadline) {
                         const now = new Date();
                         const deadline = new Date(draggedTask.deadline);
                         if (deadline < now) {
@@ -6032,8 +6103,8 @@
                         console.log(`🔧 [FIX] 証憑チェック外でdraggedTaskをIDから再取得:`, draggedTask);
                     }
 
-                    // Doneカラムに移動する場合、completedAtを記録
-                    if (columnId === 'done' && !draggedTask.completedAt) {
+                    // Doneカラムに移動する場合、completedAtを記録（プロジェクトタスクも対応）
+                    if (isDoneColumn(columnId) && !draggedTask.completedAt) {
                         draggedTask.completedAt = new Date().toISOString();
                         // 🔧 tasks配列内も更新
                         const taskIndex = tasks.findIndex(t => t.id === draggedTask.id);
@@ -6041,8 +6112,8 @@
                             tasks[taskIndex].completedAt = draggedTask.completedAt;
                         }
                     }
-                    // Doneカラムから他に移動する場合、completedAtをクリア
-                    else if (draggedTask.columnId === 'done' && columnId !== 'done') {
+                    // Doneカラムから他に移動する場合、completedAtをクリア（プロジェクトタスクも対応）
+                    else if (isDoneColumn(draggedTask.columnId) && !isDoneColumn(columnId)) {
                         draggedTask.completedAt = null;
                         // 🔧 tasks配列内も更新
                         const taskIndex = tasks.findIndex(t => t.id === draggedTask.id);
@@ -6051,8 +6122,8 @@
                         }
                     }
 
-                    // ゴミ箱から復元する場合、deletedAtをクリア
-                    if (draggedTask.columnId === 'trash' && columnId !== 'trash') {
+                    // ゴミ箱から復元する場合、deletedAtをクリア（プロジェクトタスクも対応）
+                    if (isTrashColumn(draggedTask.columnId) && !isTrashColumn(columnId)) {
                         draggedTask.deletedAt = null;
                         // 🔧 tasks配列内も更新
                         const taskIndex = tasks.findIndex(t => t.id === draggedTask.id);
@@ -6061,16 +6132,16 @@
                         }
                         console.log(`♻️ [RESTORE] ゴミ箱から復元: ${draggedTask.title}`);
                     }
-                    
+
                     console.log(`🔍 [DROP DEBUG] Before column change - Tasks count: ${tasks.length}`);
                     draggedTask.columnId = columnId;
-                    draggedTask.completed = (columnId === 'done');
+                    draggedTask.completed = isDoneColumn(columnId);
 
                     // 🔧 tasks配列内の元のタスクも確実に更新（参照が切れている場合に備えて）
                     const taskIndex = tasks.findIndex(t => t.id === draggedTask.id);
                     if (taskIndex !== -1) {
                         tasks[taskIndex].columnId = columnId;
-                        tasks[taskIndex].completed = (columnId === 'done');
+                        tasks[taskIndex].completed = isDoneColumn(columnId);
                         console.log(`🔧 [FIX] tasks配列内のタスクも更新: index=${taskIndex}, columnId=${columnId}`);
                     } else {
                         console.error(`❌ [FIX] tasks配列内にタスクが見つかりません: id=${draggedTask.id}`);
@@ -6588,8 +6659,8 @@
                     elapsedText = `${daysSinceCreated}d`;
                 }
                 
-                // 3日以上で完了していないタスクは停滞フラグ
-                if (daysSinceCreated >= 3 && task.columnId !== 'done') {
+                // 3日以上で完了していないタスクは停滞フラグ（完了カラム・ゴミ箱カラムは除外）
+                if (daysSinceCreated >= 3 && !isDoneColumn(task.columnId) && !isTrashColumn(task.columnId)) {
                     isStale = true;
                 }
             }
@@ -6692,14 +6763,14 @@
                 });
             }
             
-            const overdueCount = filteredTasks.filter(t => t.columnId !== 'done' && isOverdue(t.deadline, t.columnId)).length;
-            const todayCount = filteredTasks.filter(t => t.columnId !== 'done' && isToday(t.deadline, t.columnId)).length;
-            const completedCount = filteredTasks.filter(t => t.columnId === 'done').length;
-            
+            const overdueCount = filteredTasks.filter(t => !isDoneColumn(t.columnId) && isOverdue(t.deadline, t.columnId)).length;
+            const todayCount = filteredTasks.filter(t => !isDoneColumn(t.columnId) && isToday(t.deadline, t.columnId)).length;
+            const completedCount = filteredTasks.filter(t => isDoneColumn(t.columnId)).length;
+
             // 3日以上停滞しているタスクを検出
             const now = new Date();
             const staleTasks = filteredTasks.filter(t => {
-                if (t.columnId === 'done') return false;
+                if (isDoneColumn(t.columnId)) return false;
                 
                 // createdAtがない場合は今日作成されたものとして扱う（停滞判定から除外）
                 if (!t.createdAt) return false;
@@ -8458,6 +8529,35 @@
         // Firebase完全移行: データはFirestoreから読み込まれる
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // 🔒 【最重要】アプリバージョンチェック - 古いキャッシュを強制クリア
+            const APP_VERSION = '2025-11-20-v8-hide-management-id';
+            const storedVersion = localStorage.getItem('appVersion');
+            if (storedVersion !== APP_VERSION) {
+                console.log('🧹 [VERSION] 古いバージョン検出 - LocalStorage完全クリア');
+                console.log(`🧹 [VERSION] 旧: ${storedVersion || 'なし'} → 新: ${APP_VERSION}`);
+
+                // 重要なデータを保持するキーのリスト
+                const preserveKeys = ['currentSession']; // セッションは保持
+                const preserved = {};
+                preserveKeys.forEach(key => {
+                    const value = localStorage.getItem(key);
+                    if (value) preserved[key] = value;
+                });
+
+                // LocalStorage完全クリア
+                localStorage.clear();
+
+                // 保持するデータを復元
+                Object.entries(preserved).forEach(([key, value]) => {
+                    localStorage.setItem(key, value);
+                });
+
+                // 新バージョンを記録
+                localStorage.setItem('appVersion', APP_VERSION);
+                localStorage.setItem('projectsMigratedToFirebase', 'true');
+                console.log('✅ [VERSION] LocalStorageクリア完了 - 最新バージョンに更新');
+            }
+
             // 🔥 LocalStorageプロジェクトデータをクリア（Firebase完全移行のため）
             if (!localStorage.getItem('projectsMigratedToFirebase')) {
                 console.log('🧹 [INIT] LocalStorageプロジェクトデータをクリア中...');
@@ -8518,9 +8618,9 @@
             }
             
             // Firebase初期化状況をデバッグ
-            console.log('🚀 [INIT-DEBUG] DOMContentLoaded発火 - CACHE BUSTED 2025-09-02-17:35:', {
+            console.log('🚀 [INIT-DEBUG] DOMContentLoaded発火:', {
                 timestamp: new Date().toISOString(),
-                cacheVersion: '2025-09-02-17:35-FORCE-RELOAD',
+                cacheVersion: APP_VERSION,
                 device: navigator.platform,
                 userAgent: navigator.userAgent.substring(0, 50) + '...',
                 firebaseModules: {
@@ -8585,8 +8685,17 @@
                 // タイムアウト処理
                 setTimeout(() => {
                     if (!authRestored) {
-                        console.log('⏱️ [INIT] 認証待機タイムアウト - 認証なしで続行');
+                        console.log('🚫 [INIT] 認証待機タイムアウト - ログインページへリダイレクト');
                         if (unsubscribe) unsubscribe();
+
+                        // 🔒 【最重要】未認証時は強制的にログインページへリダイレクト
+                        // これにより古いキャッシュや未認証状態での表示を防止
+                        const currentPath = window.location.pathname;
+                        if (currentPath.includes('index-kanban.html') || currentPath.endsWith('/') || currentPath.endsWith('/sales-task-core/')) {
+                            console.log('🔄 [INIT] ログインページへ強制リダイレクト実行');
+                            window.location.href = 'login.html';
+                            return;
+                        }
                         resolve();
                     }
                 }, maxWaitTime);
@@ -12329,7 +12438,8 @@
             const now = new Date();
             const oneEightyDaysAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
 
-            const trashTasks = tasks.filter(t => t.columnId === 'trash');
+            // 通常タスクのゴミ箱とプロジェクトタスクのゴミ箱カラムの両方を対象
+            const trashTasks = tasks.filter(t => isTrashColumn(t.columnId));
             const expiredTasks = trashTasks.filter(t => {
                 if (!t.deletedAt) return false;
                 return new Date(t.deletedAt) < oneEightyDaysAgo;
@@ -12352,8 +12462,8 @@
                 }
             }
             
-            // ゴミ箱が20件を超えた場合の警告
-            const remainingTrashTasks = tasks.filter(t => t.columnId === 'trash');
+            // ゴミ箱が20件を超えた場合の警告（通常タスク・プロジェクトタスク両対応）
+            const remainingTrashTasks = tasks.filter(t => isTrashColumn(t.columnId));
             if (remainingTrashTasks.length > 20) {
                 console.log(`⚠️ ゴミ箱に${remainingTrashTasks.length}件のタスクがあります`);
             }
@@ -12895,23 +13005,37 @@
         // 🔧 デフォルトプロジェクトカラム
         const DEFAULT_PROJECT_COLUMNS = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
 
+        // 🔒 【必須カラム判定】完了とゴミ箱は削除不可
+        function isRequiredColumn(columnName) {
+            if (!columnName) return false;
+            const lower = columnName.toLowerCase();
+            return /完了|done|完成/i.test(columnName) || /ゴミ箱|trash|削除/i.test(columnName);
+        }
+
         // 🔧 新規プロジェクトのカラム管理関数
         function loadNewProjectColumns(columns = DEFAULT_PROJECT_COLUMNS) {
             const container = document.getElementById('newProjectColumnsContainer');
             if (!container) return;
 
-            container.innerHTML = columns.map((column, index) => `
+            container.innerHTML = columns.map((column, index) => {
+                const isRequired = isRequiredColumn(column);
+                return `
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <span style="cursor: move; color: #9ca3af; font-size: 1.2rem;" title="ドラッグして並び替え">⋮⋮</span>
                     <input type="text" value="${column}"
-                           style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;">
-                    <button type="button" onclick="removeNewProjectColumn(${index})"
-                            style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
-                            ${columns.length <= 1 ? 'disabled' : ''}>
-                        ✕
-                    </button>
+                           style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;"
+                           ${isRequired ? 'readonly' : ''}>
+                    ${isRequired ?
+                        `<span style="color: #666; font-size: 0.8rem; padding: 0.25rem 0.5rem; white-space: nowrap;">🔒 必須</span>` :
+                        `<button type="button" onclick="removeNewProjectColumn(${index})"
+                                style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
+                                ${columns.length <= 1 ? 'disabled' : ''}>
+                            ✕
+                        </button>`
+                    }
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function addNewProjectColumn() {
@@ -12926,6 +13050,14 @@
                 alert('最低1つのカラムが必要です');
                 return;
             }
+
+            // 🔒 必須カラムは削除不可
+            const columnToRemove = currentColumns[index];
+            if (isRequiredColumn(columnToRemove)) {
+                alert('「完了」と「ゴミ箱」カラムは必須のため削除できません。\n\nこれらのカラムはDONE/TRASHとして機能します。');
+                return;
+            }
+
             currentColumns.splice(index, 1);
             loadNewProjectColumns(currentColumns);
         }
@@ -12943,18 +13075,25 @@
             const container = document.getElementById('editProjectColumnsContainer');
             if (!container) return;
 
-            container.innerHTML = columns.map((column, index) => `
+            container.innerHTML = columns.map((column, index) => {
+                const isRequired = isRequiredColumn(column);
+                return `
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <span style="cursor: move; color: #9ca3af; font-size: 1.2rem;" title="ドラッグして並び替え">⋮⋮</span>
                     <input type="text" value="${column}"
-                           style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;">
-                    <button type="button" onclick="removeEditProjectColumn(${index})"
-                            style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
-                            ${columns.length <= 1 ? 'disabled' : ''}>
-                        ✕
-                    </button>
+                           style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;"
+                           ${isRequired ? 'readonly' : ''}>
+                    ${isRequired ?
+                        `<span style="color: #666; font-size: 0.8rem; padding: 0.25rem 0.5rem; white-space: nowrap;">🔒 必須</span>` :
+                        `<button type="button" onclick="removeEditProjectColumn(${index})"
+                                style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
+                                ${columns.length <= 1 ? 'disabled' : ''}>
+                            ✕
+                        </button>`
+                    }
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function addEditProjectColumn() {
@@ -12969,6 +13108,14 @@
                 alert('最低1つのカラムが必要です');
                 return;
             }
+
+            // 🔒 必須カラムは削除不可
+            const columnToRemove = currentColumns[index];
+            if (isRequiredColumn(columnToRemove)) {
+                alert('「完了」と「ゴミ箱」カラムは必須のため削除できません。\n\nこれらのカラムはDONE/TRASHとして機能します。');
+                return;
+            }
+
             currentColumns.splice(index, 1);
             loadEditProjectColumns(currentColumns);
         }
@@ -13029,6 +13176,21 @@
 
                 console.log('✅ [PROJECT CREATE] 重複チェック完了: 問題なし');
 
+                // 🔒 【必須カラム自動追加】完了・ゴミ箱カラムがなければ追加
+                const hasDone = columns.some(col => /完了|done|完成/i.test(col));
+                const hasTrash = columns.some(col => /ゴミ箱|trash|削除/i.test(col));
+
+                if (!hasDone) {
+                    columns.push("✅ 完了");
+                    console.log('🔧 [PROJECT CREATE] 完了カラムを自動追加');
+                }
+                if (!hasTrash) {
+                    columns.push("🗑️ ゴミ箱");
+                    console.log('🔧 [PROJECT CREATE] ゴミ箱カラムを自動追加');
+                }
+
+                console.log('✅ [PROJECT CREATE] カラム確定:', columns);
+
                 const newProject = {
                     id: 'project_' + Date.now(),
                     name: name,
@@ -13068,6 +13230,11 @@
                 loadNewProjectColumns(); // カラムをデフォルトにリセット
 
                 await loadProjectsList();
+
+                // 🔄 サイドバーのプロジェクトフィルターも更新
+                console.log('🔄 [PROJECT CREATE] サイドバー再レンダリング開始');
+                render();
+                console.log('✅ [PROJECT CREATE] サイドバー再レンダリング完了');
 
                 alert(`✅ プロジェクト「${name}」を作成しました！`);
 
@@ -13193,6 +13360,7 @@
         // プロジェクト編集モーダルを表示
         function showProjectEditModal(project) {
             const modal = document.createElement('div');
+            modal.id = 'projectEditModal';  // 🔧 モーダルにIDを付与
             modal.style.cssText = `
                 position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                 background: rgba(0,0,0,0.6); z-index: 2100;
@@ -13214,7 +13382,7 @@
                 <div style="background: white; border-radius: 12px; width: 100%; max-width: 600px; max-height: 80vh; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
                     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
                         <h3 style="margin: 0; font-size: 1.25rem;">✏️ プロジェクト編集</h3>
-                        <button onclick="this.closest('div').remove()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
+                        <button onclick="document.getElementById('projectEditModal').remove()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
                     </div>
                     
                     <div style="padding: 1.5rem; overflow-y: auto; max-height: 60vh;">
@@ -13263,7 +13431,7 @@
                         </div>
 
                         <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                            <button onclick="this.closest('div').remove()" style="background: #6b7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer;">
+                            <button onclick="document.getElementById('projectEditModal').remove()" style="background: #6b7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer;">
                                 キャンセル
                             </button>
                             <button onclick="saveProjectChanges('${project.id}', this.closest('div'))" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">
