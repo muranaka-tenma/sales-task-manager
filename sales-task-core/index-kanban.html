@@ -42,7 +42,7 @@
         });
     } catch (e) {}
     
-    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 20250903-0500-SLACK-TEST');
+    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 2025-11-20-v8-hide-management-id');
     </script>
     <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
     <!-- Firebase統合システム - マルチユーザー対応 -->
@@ -10035,24 +10035,24 @@
             preprocessImage(croppedCanvas).then(processedCanvas => {
                 // 新しいウィンドウで表示
                 const newWindow = window.open('', '_blank');
-                newWindow.document.write(`
-                    <html>
-                        <head><title>OCR前処理プレビュー</title></head>
-                        <body style="margin: 20px; font-family: Arial, sans-serif;">
-                            <h3>元画像 vs 処理後</h3>
-                            <div style="display: flex; gap: 20px;">
-                                <div>
-                                    <h4>元画像</h4>
-                                    <canvas id="original" style="border: 1px solid #ccc;"></canvas>
-                                </div>
-                                <div>
-                                    <h4>処理後</h4>
-                                    <canvas id="processed" style="border: 1px solid #ccc;"></canvas>
-                                </div>
-                            </div>
-                        </body>
-                    </html>
-                `);
+                newWindow.document.write(
+                    '<html>' +
+                    '<head><title>OCR前処理プレビュー<' + '/title><' + '/head>' +
+                    '<body style="margin: 20px; font-family: Arial, sans-serif;">' +
+                    '<h3>元画像 vs 処理後<' + '/h3>' +
+                    '<div style="display: flex; gap: 20px;">' +
+                    '<div>' +
+                    '<h4>元画像<' + '/h4>' +
+                    '<canvas id="original" style="border: 1px solid #ccc;"><' + '/canvas>' +
+                    '<' + '/div>' +
+                    '<div>' +
+                    '<h4>処理後<' + '/h4>' +
+                    '<canvas id="processed" style="border: 1px solid #ccc;"><' + '/canvas>' +
+                    '<' + '/div>' +
+                    '<' + '/div>' +
+                    '<' + '/body>' +
+                    '<' + '/html>'
+                );
                 
                 const originalCanvas = newWindow.document.getElementById('original');
                 const processedCanvasElement = newWindow.document.getElementById('processed');
