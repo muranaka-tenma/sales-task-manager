@@ -398,14 +398,14 @@
         }
 
         .right-panel-btn {
-            padding: 0.6rem 0.75rem;
+            padding: 0.75rem 1rem;
             border: none;
-            border-radius: 6px;
+            border-radius: 0;
             cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
+            font-size: 0.9rem;
+            font-weight: 600;
             text-align: center;
-            transition: all 0.2s;
+            transition: all 0.15s;
             width: 100%;
         }
 
@@ -440,18 +440,18 @@
 
         .project-card {
             background: white;
-            border-radius: 6px;
-            padding: 0.75rem;
+            border-radius: 0;
+            padding: 0.85rem;
             margin: 0.5rem;
             border: 1px solid #e1e4e8;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s;
         }
-        
+
         .project-card:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             border-color: #0097A7;
+            background: #fafbfc;
         }
         
         .project-card.active {
@@ -493,16 +493,17 @@
         }
         
         .column {
-            background: var(--column-bg, linear-gradient(135deg, #f8f9fb 0%, #ebecf0 100%));
-            border-radius: 8px;
-            min-width: 180px;
-            max-width: 200px;
-            width: 190px;
+            background: var(--column-bg, #f5f6f8);
+            border-radius: 0;
+            min-width: 260px;
+            max-width: 320px;
+            width: 280px;
             display: flex;
             flex-direction: column;
             max-height: 100%;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border: 1px solid var(--column-border, rgba(255,255,255,0.2));
+            box-shadow: none;
+            border: none;
+            border-right: 1px solid #e1e4e8;
         }
         
         /* アーカイブカラム専用スタイル */
@@ -524,16 +525,16 @@
         }
         
         .column-header {
-            padding: 0.5rem 0.75rem;
-            font-weight: 600;
-            font-size: 0.85rem;
+            padding: 0.75rem 1rem;
+            font-weight: 700;
+            font-size: 1rem;
             color: #172b4d;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #dfe1e6;
-            background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.6) 100%);
-            border-radius: 8px 8px 0 0;
+            border-bottom: 2px solid #e1e4e8;
+            background: #ffffff;
+            border-radius: 0;
         }
         
         .column-title {
@@ -543,32 +544,37 @@
         }
         
         .column-count {
-            background: rgba(0,0,0,0.1);
-            color: #5e6c84;
-            padding: 0.2rem 0.5rem;
-            border-radius: 10px;
-            font-size: 0.75rem;
+            background: #0097A7;
+            color: white;
+            padding: 0.25rem 0.6rem;
+            border-radius: 0;
+            font-size: 0.85rem;
+            font-weight: 600;
         }
         
         .column-content {
             flex: 1;
-            padding: 0.5rem;
+            padding: 0.75rem;
             overflow-y: auto;
             min-height: 100px;
+            background: #f5f6f8;
         }
         
         /* タスクカード */
         .task-card {
-            background: var(--card-bg, linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%));
-            border-radius: 6px;
-            padding: 0.5rem;
-            margin-bottom: 0.375rem;
+            background: var(--card-bg, #ffffff);
+            border-radius: 0;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(9,30,66,.15);
-            transition: all 0.2s ease;
-            border-left: 3px solid transparent;
-            border: 1px solid var(--card-border, rgba(0,0,0,0.05));
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            transition: all 0.15s ease;
+            border-left: 4px solid #0097A7;
+            border-top: 1px solid #e1e4e8;
+            border-right: 1px solid #e1e4e8;
+            border-bottom: 1px solid #e1e4e8;
             color: var(--card-text, inherit);
+            font-size: 0.95rem;
         }
         
         .dark-theme .task-card {
@@ -578,8 +584,8 @@
         }
         
         .task-card:hover {
-            box-shadow: 0 4px 8px rgba(9,30,66,.25);
-            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+            background: #fafbfc;
         }
         
         .task-card.dragging {
@@ -1513,7 +1519,7 @@
 
             <div class="right-panel-section">
                 <div class="right-panel-section-title">個人設定</div>
-                <button class="right-panel-btn right-panel-btn-outline" onclick="window.location.href='my-profile.html'">マイページ</button>
+                <button class="right-panel-btn right-panel-btn-outline" onclick="openMyProfileModal()">マイページ</button>
                 <button class="right-panel-btn right-panel-btn-outline" onclick="openSettingsModal()">設定</button>
             </div>
 
@@ -1529,7 +1535,7 @@
 
             <div class="right-panel-section" id="right-panel-admin-section" style="display: none;">
                 <div class="right-panel-section-title">管理機能</div>
-                <button class="right-panel-btn right-panel-btn-outline" onclick="window.location.href='user-management.html'">ユーザー管理</button>
+                <button class="right-panel-btn right-panel-btn-outline" onclick="openUserManagementModal()">ユーザー管理</button>
                 <button class="right-panel-btn right-panel-btn-outline" onclick="openAdminDashboardModal()">管理者ダッシュボード</button>
             </div>
         </div>
@@ -1887,6 +1893,18 @@
                                 <option value="public">[公開] 全員に公開</option>
                                 <option value="private">[非公開] メンバーのみ</option>
                             </select>
+
+                            <label style="font-size: 0.9rem; color: #6b7280; margin-top: 0.5rem;">プロジェクトカラー:</label>
+                            <div id="newProjectColorPicker" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button type="button" onclick="selectProjectColor('#0097A7')" data-color="#0097A7" style="width: 32px; height: 32px; border-radius: 50%; border: 3px solid #0097A7; background: #0097A7; cursor: pointer;" title="TERRA"></button>
+                                <button type="button" onclick="selectProjectColor('#3b82f6')" data-color="#3b82f6" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #3b82f6; cursor: pointer;" title="Blue"></button>
+                                <button type="button" onclick="selectProjectColor('#8b5cf6')" data-color="#8b5cf6" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #8b5cf6; cursor: pointer;" title="Purple"></button>
+                                <button type="button" onclick="selectProjectColor('#10b981')" data-color="#10b981" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #10b981; cursor: pointer;" title="Green"></button>
+                                <button type="button" onclick="selectProjectColor('#f59e0b')" data-color="#f59e0b" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #f59e0b; cursor: pointer;" title="Orange"></button>
+                                <button type="button" onclick="selectProjectColor('#ef4444')" data-color="#ef4444" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #ef4444; cursor: pointer;" title="Red"></button>
+                                <button type="button" onclick="selectProjectColor('#6b7280')" data-color="#6b7280" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #6b7280; cursor: pointer;" title="Gray"></button>
+                            </div>
+                            <input type="hidden" id="newProjectColor" value="#0097A7">
 
                             <label style="font-size: 0.9rem; color: #6b7280; margin-top: 0.5rem;">カラム設定:</label>
                             <div id="newProjectColumnsContainer" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
@@ -3942,30 +3960,27 @@
             const container = document.getElementById('assignees-container');
             container.innerHTML = '';
 
-            // assigneesが文字列配列の場合、getActiveUsers()からメールアドレスを取得して変換
+            // 🔧 修正: assignees変数ではなくgetActiveUsers()から直接ユーザーを取得
             const activeUsers = getActiveUsers();
-            const emailMap = {};
-            activeUsers.forEach(u => {
-                if (u.email && u.name) {
-                    emailMap[u.name] = u.email;
-                }
-            });
+            console.log(`👥 [ASSIGNEE-OPTIONS] アクティブユーザー数: ${activeUsers.length}`);
 
-            // assigneesがオブジェクト配列の場合と文字列配列の場合の両方に対応
-            assignees.forEach(assignee => {
+            // アクティブユーザーが空の場合、LocalStorageから取得を試行
+            let usersToShow = activeUsers;
+            if (usersToShow.length === 0) {
+                console.warn('⚠️ [ASSIGNEE-OPTIONS] アクティブユーザーが空 - systemUsersから取得試行');
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                usersToShow = systemUsers.filter(u => !u.isHidden && !u.isDisabled);
+                console.log(`👥 [ASSIGNEE-OPTIONS] systemUsersから取得: ${usersToShow.length}人`);
+            }
+
+            // ユーザーリストを表示
+            usersToShow.forEach(user => {
                 const checkboxWrapper = document.createElement('div');
                 checkboxWrapper.className = 'assignee-checkbox';
 
-                // オブジェクト配列の場合: {email, name}
-                // 文字列配列の場合: emailMapから取得、なければ仮のメールを生成
-                let email, name;
-                if (assignee.email) {
-                    email = assignee.email;
-                    name = assignee.name;
-                } else {
-                    name = assignee;
-                    email = emailMap[name] || (name.toLowerCase().replace(/\s+/g, '-') + '@temp.local');
-                }
+                // ユーザーオブジェクトからemail, nameを取得
+                const email = user.email || (user.name?.toLowerCase().replace(/\s+/g, '-') + '@temp.local');
+                const name = user.name || user.email || '不明';
                 const safeId = email.replace(/[@.]/g, '-'); // IDに使えない文字を置換
 
                 checkboxWrapper.innerHTML = `
@@ -8967,17 +8982,15 @@
                 // 🔐 【重要】権限整合性チェック・修正を実行
                 const permissionFixed = ensureUserPermissionsIntegrity();
                 console.log('✅ [INIT] 権限整合性チェック完了', permissionFixed ? '(修正あり)' : '(問題なし)');
-                
-                // 🔍 権限チェックを実行（UI制御含む）
-                setTimeout(() => {
-                    checkUserPermission();
-                    console.log('✅ [INIT] 権限チェック完了');
 
-                    // プロジェクトキャッシュの初期化
-                    updateProjectsCache().then(() => {
-                        console.log('✅ [INIT] プロジェクトキャッシュ初期化完了');
-                    });
-                }, 500); // 0.5秒後に実行
+                // 🔍 権限チェックを即座に実行（UI制御含む）- 遅延削除で管理機能表示を高速化
+                checkUserPermission();
+                console.log('✅ [INIT] 権限チェック完了');
+
+                // プロジェクトキャッシュの初期化
+                updateProjectsCache().then(() => {
+                    console.log('✅ [INIT] プロジェクトキャッシュ初期化完了');
+                });
                 
                 // 定期権限チェック開始
                 startPeriodicPermissionCheck();
@@ -11921,6 +11934,30 @@
             }
         }
 
+        // プロジェクトカラー選択
+        function selectProjectColor(color) {
+            // 隠しフィールドに値を設定
+            const colorInput = document.getElementById('newProjectColor');
+            if (colorInput) {
+                colorInput.value = color;
+            }
+
+            // ボタンの選択状態を更新
+            const container = document.getElementById('newProjectColorPicker');
+            if (container) {
+                container.querySelectorAll('button').forEach(btn => {
+                    const btnColor = btn.getAttribute('data-color');
+                    if (btnColor === color) {
+                        btn.style.border = `3px solid ${color}`;
+                        btn.style.transform = 'scale(1.1)';
+                    } else {
+                        btn.style.border = '2px solid transparent';
+                        btn.style.transform = 'scale(1)';
+                    }
+                });
+            }
+        }
+
         // 🔧 デフォルトプロジェクトカラム
         const DEFAULT_PROJECT_COLUMNS = ["TODO", "Phase1", "Phase2", "Phase3", "Done", "Archive"];
 
@@ -12110,11 +12147,14 @@
 
                 console.log('✅ [PROJECT CREATE] カラム確定:', columns);
 
+                const projectColor = document.getElementById('newProjectColor')?.value || '#0097A7';
+
                 const newProject = {
                     id: 'project_' + Date.now(),
                     name: name,
                     description: description,
                     visibility: visibility,
+                    color: projectColor,
                     columns: columns,
                     members: [currentUser.email], // 作成者は自動的にメンバーになる
                     createdBy: currentUser.email,
@@ -12146,6 +12186,8 @@
                 document.getElementById('newProjectName').value = '';
                 document.getElementById('newProjectDescription').value = '';
                 document.getElementById('newProjectVisibility').value = 'public';
+                document.getElementById('newProjectColor').value = '#0097A7';
+                selectProjectColor('#0097A7'); // 色選択をリセット
                 loadNewProjectColumns(); // カラムをデフォルトにリセット
 
                 await loadProjectsList();
