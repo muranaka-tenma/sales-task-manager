@@ -7035,19 +7035,31 @@
             document.body.appendChild(modalOverlay);
         }
 
+        // 現在のフィルター適用後のタスクを取得（統計バーと同じロジック）
+        function getFilteredTasks() {
+            const assigneeFilter = document.getElementById('assignee-filter')?.value || '';
+            let filteredTasks = tasks;
+
+            if (assigneeFilter) {
+                filteredTasks = tasks.filter(t => {
+                    if (t.assignees && Array.isArray(t.assignees)) {
+                        return t.assignees.includes(assigneeFilter);
+                    }
+                    return t.assignee === assigneeFilter;
+                });
+            }
+            return filteredTasks;
+        }
+
         // 期限切れタスクの詳細表示
         function showOverdueTasksDetail() {
             const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
 
-            // 期限切れタスクを抽出（完了・アーカイブを除く）
-            const overdueTasks = tasks.filter(task => {
-                if (!task.deadline) return false;
-                const column = columns.find(c => c.id === task.columnId);
-                if (!column) return false;
-                if (isDoneColumn(column.title) || isTrashColumn(column.title)) return false;
-                return task.deadline < todayStr;
-            });
+            // 統計バーと同じフィルタリングロジックを使用
+            const filteredTasks = getFilteredTasks();
+            const overdueTasks = filteredTasks.filter(t =>
+                t.deadline && !isDoneColumn(t.columnId) && isOverdue(t.deadline, t.columnId)
+            );
 
             if (overdueTasks.length === 0) {
                 alert('現在、期限切れのタスクはありません。');
@@ -7103,17 +7115,11 @@
 
         // 今日期限タスクの詳細表示
         function showTodayTasksDetail() {
-            const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
-
-            // 今日期限タスクを抽出（完了・アーカイブを除く）
-            const todayTasks = tasks.filter(task => {
-                if (!task.deadline) return false;
-                const column = columns.find(c => c.id === task.columnId);
-                if (!column) return false;
-                if (isDoneColumn(column.title) || isTrashColumn(column.title)) return false;
-                return task.deadline === todayStr;
-            });
+            // 統計バーと同じフィルタリングロジックを使用
+            const filteredTasks = getFilteredTasks();
+            const todayTasks = filteredTasks.filter(t =>
+                t.deadline && !isDoneColumn(t.columnId) && isToday(t.deadline, t.columnId)
+            );
 
             if (todayTasks.length === 0) {
                 alert('本日期限のタスクはありません。');
@@ -7167,12 +7173,9 @@
 
         // 完了タスクの詳細表示
         function showCompletedTasksDetail() {
-            // 完了タスクを抽出
-            const completedTasks = tasks.filter(task => {
-                const column = columns.find(c => c.id === task.columnId);
-                if (!column) return false;
-                return isDoneColumn(column.title);
-            });
+            // 統計バーと同じフィルタリングロジックを使用
+            const filteredTasks = getFilteredTasks();
+            const completedTasks = filteredTasks.filter(t => isDoneColumn(t.columnId));
 
             if (completedTasks.length === 0) {
                 alert('完了したタスクはありません。');
@@ -7233,17 +7236,15 @@
 
         // 期限遵守タスク（期限内に完了したタスク）の詳細表示
         function showComplianceTasksDetail() {
-            // 期限があり、期限内に完了したタスクを抽出
-            const complianceTasks = tasks.filter(task => {
-                if (!task.deadline) return false;
-                const column = columns.find(c => c.id === task.columnId);
-                if (!column) return false;
-                if (!isDoneColumn(column.title)) return false;
-
+            // 統計バーと同じフィルタリングロジックを使用
+            const filteredTasks = getFilteredTasks();
+            const complianceTasks = filteredTasks.filter(t => {
+                if (!t.deadline) return false;
+                if (!isDoneColumn(t.columnId)) return false;
                 // 完了日が期限以前かチェック
-                const completedDate = task.completedAt || task.updatedAt;
+                const completedDate = t.completedAt || t.updatedAt;
                 if (!completedDate) return true; // 完了日不明は期限遵守とみなす
-                return completedDate.split('T')[0] <= task.deadline;
+                return completedDate.split('T')[0] <= t.deadline;
             });
 
             if (complianceTasks.length === 0) {
