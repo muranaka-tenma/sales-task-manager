@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👤 マイページ - 営業タスク管理</title>
+    <title>👤 マイページ - Kanban Work</title>
     <style>
         * {
             margin: 0;
@@ -19,7 +19,7 @@
         }
         
         .header {
-            background: var(--theme-color, #026aa7);
+            background: linear-gradient(135deg, #00AEBB 0%, #008B94 100%);
             color: white;
             padding: 1rem 2rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -75,7 +75,7 @@
         .profile-avatar {
             width: 80px;
             height: 80px;
-            background: var(--theme-color, #026aa7);
+            background: #00AEBB;
             color: white;
             border-radius: 50%;
             display: flex;
@@ -134,7 +134,7 @@
         }
         
         .action-card:hover {
-            border-color: var(--theme-color, #026aa7);
+            border-color: #00AEBB;
             transform: translateY(-2px);
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
@@ -180,7 +180,7 @@
         .stat-number {
             font-size: 2rem;
             font-weight: bold;
-            color: var(--theme-color, #026aa7);
+            color: #00AEBB;
             margin-bottom: 0.5rem;
         }
         
@@ -221,7 +221,8 @@
         </div>
         
         <!-- 個人アクション -->
-        <div class="section-title">⚙️ 個人設定</div>
+        <div class="section-title">個人設定</div>
+
         <div class="action-grid">
             <div class="action-card" onclick="changePassword()">
                 <div class="action-icon">🔐</div>
@@ -323,22 +324,22 @@
         window.addEventListener('DOMContentLoaded', () => {
             const currentUser = checkAuthentication();
             if (!currentUser) return;
-            
+
             updateProfileInfo(currentUser);
             loadPersonalStats(currentUser);
-            
+
             // 開発者専用機能
             if (currentUser.role === 'developer') {
                 document.getElementById('developer-section').style.display = 'block';
             }
-            
+
             // URLハッシュが#development-logの場合、機能改善書を自動で開く
             if (window.location.hash === '#development-log' && currentUser.role === 'developer') {
                 setTimeout(() => {
                     showDevelopmentLog();
                 }, 500);
             }
-            
+
         });
         
         // プロフィール情報の更新
@@ -357,6 +358,7 @@
         function loadPersonalStats(user) {
             try {
                 // デフォルトは今週の統計を表示
+                // 親ウィンドウからデータが届くまでは空表示、届いたら自動更新される
                 calculatePersonalAnalytics(user, 'week');
             } catch (error) {
                 console.error('統計読み込みエラー:', error);
@@ -382,15 +384,35 @@
             calculatePersonalAnalytics(currentUser, period);
         }
         
+        // 親ウィンドウから受け取ったタスクデータを保持
+        let receivedTasks = null;
+
+        // 親ウィンドウからのメッセージを受信
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'TASKS_DATA') {
+                receivedTasks = event.data.tasks;
+                console.log('📨 [MY-PROFILE] 親ウィンドウからタスクデータ受信:', receivedTasks.length, '件');
+                // データ受信後に統計を再計算
+                const currentUser = getCurrentUser();
+                if (currentUser && currentUser.isLoggedIn) {
+                    calculatePersonalAnalytics(currentUser, 'week');
+                }
+            }
+        });
+
         // 個人統計の計算
         function calculatePersonalAnalytics(user, period = 'all') {
             try {
-                const tasks = JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
+                // 親ウィンドウから受け取ったタスクを使用（フォールバック: LocalStorage）
+                let tasks = receivedTasks || JSON.parse(localStorage.getItem('salesTasksKanban') || '[]');
                 
-                // 自分が担当者になっているタスクを抽出
-                let myTasks = tasks.filter(task => 
-                    task.assignees && task.assignees.includes(user.name)
-                );
+                // 自分が担当者になっているタスクを抽出（assignees優先、assigneeもフォールバック）
+                let myTasks = tasks.filter(task => {
+                    if (task.assignees && Array.isArray(task.assignees)) {
+                        return task.assignees.includes(user.name);
+                    }
+                    return task.assignee === user.name;
+                });
                 
                 // 期間フィルター
                 const now = new Date();
@@ -425,10 +447,23 @@
                     });
                 }
                 
+                // 完了・アーカイブカラム判定（プロジェクトタスク対応）
+                const isDoneColumn = (columnId) => {
+                    if (!columnId) return false;
+                    if (columnId === 'done') return true;
+                    // プロジェクトカラム名でパターンマッチ
+                    return /完了|done|完成/i.test(columnId);
+                };
+                const isTrashColumn = (columnId) => {
+                    if (!columnId) return false;
+                    if (columnId === 'trash') return true;
+                    return /ゴミ箱|trash|削除|アーカイブ|archive/i.test(columnId);
+                };
+
                 // 統計計算
                 const totalTasks = myTasks.length;
-                const completedTasks = myTasks.filter(task => task.columnId === 'done');
-                const pendingTasks = myTasks.filter(task => task.columnId !== 'done' && task.columnId !== 'trash');
+                const completedTasks = myTasks.filter(task => isDoneColumn(task.columnId));
+                const pendingTasks = myTasks.filter(task => !isDoneColumn(task.columnId) && !isTrashColumn(task.columnId));
                 
                 // 完了率
                 const completionRate = totalTasks > 0 ? Math.round((completedTasks.length / totalTasks) * 100) : 0;
@@ -440,13 +475,14 @@
                 
                 tasksWithDeadlines.forEach(task => {
                     const deadline = new Date(task.deadline);
-                    // 完了日は更新日時から推定（実際の完了日時がない場合）
-                    const completedAt = task.updatedAt ? new Date(task.updatedAt) : new Date();
-                    
+                    // 完了日時を取得（completedAt優先、なければupdatedAt、それもなければ現在日時）
+                    const completedAt = task.completedAt ? new Date(task.completedAt) :
+                                       (task.updatedAt ? new Date(task.updatedAt) : new Date());
+
                     if (completedAt <= deadline) {
                         onTimeCompletions++;
                     }
-                    
+
                     // 平均完了時間計算（作成日から完了日まで）
                     if (task.createdAt) {
                         const createdAt = new Date(task.createdAt);
@@ -798,7 +834,7 @@ ${remainingItems}
             const history = localStorage.getItem('developmentLogHistory') || '';
             const currentLog = localStorage.getItem('developmentLog') || '';
             
-            const summary = `# 営業タスク管理ツール - 開発引き継ぎサマリー
+            const summary = `# Kanban Work - 開発引き継ぎサマリー
 生成日時: ${timestamp}
 
 ## 🏗️ プロジェクト概要

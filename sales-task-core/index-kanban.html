@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>🎯 営業タスク管理 - Kanbanボード</title>
+    <title>Kanban Work</title>
     <!-- Deploy: 2025-09-03-05:00 - Slack通知テスト機能追加 -->
     <script>
     // 強制キャッシュクリア - 全て削除
@@ -42,9 +42,9 @@
         });
     } catch (e) {}
     
-    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 2025-11-20-v8-hide-management-id');
+    console.log('✅ [CACHE] キャッシュクリア完了 - バージョン: 2025-12-16-v1-recovery-kanban-work');
     </script>
-    <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
+    <!-- OCR機能削除: tesseract.js不要 -->
     <!-- Firebase統合システム - マルチユーザー対応 -->
     <script type="module" src="firebase-config-auth-fix-20250819-132508.js?v=20250902-1845-emergency"></script>
     <!-- 🔥 Firebase統合モード - 共有ユーザーデータベース読み込み無効化（セッション保護） -->
@@ -83,10 +83,10 @@
         }
         
         .header {
-            background: var(--theme-color, #026aa7);
+            background: linear-gradient(135deg, #00C9B7 0%, #0097A7 100%);
             color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 0.75rem 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             position: sticky;
             top: 0;
             z-index: 100;
@@ -167,8 +167,8 @@
         }
         
         .menu-item.active {
-            background: #e3f2fd;
-            color: #026aa7;
+            background: #e0f7f6;
+            color: #0097A7;
             font-weight: 600;
         }
         
@@ -181,7 +181,7 @@
         .user-menu-avatar {
             width: 48px;
             height: 48px;
-            background: var(--theme-color, #026aa7);
+            background: var(--theme-color, #0097A7);
             color: white;
             border-radius: 50%;
             display: flex;
@@ -218,32 +218,54 @@
             transform: scale(1.1);
         }
         
-        /* 統計表示 */
+        /* 統計表示 - カードスタイル */
         .stats-bar {
-            background: var(--stats-bg, linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%));
-            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #f8f9fb 0%, #ebecf0 100%);
+            padding: 0.75rem 1rem;
             border-bottom: 1px solid var(--border-color, #dfe1e6);
             display: flex;
-            gap: 1.5rem;
+            gap: 1rem;
             align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            justify-content: center;
         }
-        
+
         .stat-item {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 0.375rem;
-            font-size: 0.8rem;
+            justify-content: center;
+            gap: 0.25rem;
+            padding: 0.5rem 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            min-width: 80px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+        }
+
         .stat-number {
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 1.5rem;
+            line-height: 1;
         }
-        
-        .stat-overdue { color: #e53e3e; }
-        .stat-today { color: #d69e2e; }
-        .stat-completed { color: #38a169; }
+
+        .stat-item > span:last-child {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .stat-overdue { border-left: 3px solid #e53e3e; }
+        .stat-overdue .stat-number { color: #e53e3e; }
+        .stat-today { border-left: 3px solid #d69e2e; }
+        .stat-today .stat-number { color: #d69e2e; }
+        .stat-completed { border-left: 3px solid #38a169; }
+        .stat-completed .stat-number { color: #38a169; }
         
         /* 分析サマリーバー */
         .analytics-summary {
@@ -325,7 +347,7 @@
         .projects-header {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #026aa7;
+            color: #0097A7;
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
@@ -344,8 +366,78 @@
             flex: 1;
             min-width: 0;
         }
-        
-        
+
+        /* 右サイドパネル */
+        .right-panel {
+            width: 160px;
+            min-width: 160px;
+            background: linear-gradient(135deg, #f8f9fb 0%, #ebecf0 100%);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 100%;
+            overflow-y: auto;
+        }
+
+        .right-panel-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .right-panel-section-title {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 500;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .right-panel-btn {
+            padding: 0.6rem 0.75rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .right-panel-btn-primary {
+            background: #00C9B7;
+            color: white;
+        }
+
+        .right-panel-btn-primary:hover {
+            background: #00b3a3;
+        }
+
+        .right-panel-btn-secondary {
+            background: #0097A7;
+            color: white;
+        }
+
+        .right-panel-btn-secondary:hover {
+            background: #00838f;
+        }
+
+        .right-panel-btn-outline {
+            background: white;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .right-panel-btn-outline:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
         .project-card {
             background: white;
             border-radius: 6px;
@@ -359,12 +451,12 @@
         .project-card:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-            border-color: #026aa7;
+            border-color: #0097A7;
         }
         
         .project-card.active {
-            background: #e3f2fd;
-            border-color: #026aa7;
+            background: #e0f7f6;
+            border-color: #0097A7;
             box-shadow: 0 2px 8px rgba(2,106,167,0.2);
         }
         
@@ -384,7 +476,7 @@
         }
         
         .project-card-count {
-            background: #026aa7;
+            background: #0097A7;
             color: white;
             padding: 0.15rem 0.4rem;
             border-radius: 10px;
@@ -413,7 +505,7 @@
             border: 1px solid var(--column-border, rgba(255,255,255,0.2));
         }
         
-        /* ゴミ箱カラム専用スタイル */
+        /* アーカイブカラム専用スタイル */
         .column[data-column-id="trash"] {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border: 2px dashed #6c757d;
@@ -891,7 +983,7 @@
         }
         
         .assignee-checkbox.checked {
-            background: #e3f2fd;
+            background: #e0f7f6;
             color: #0079bf;
             font-weight: 500;
         }
@@ -948,7 +1040,7 @@
         
         .mention-suggestion:hover,
         .mention-suggestion.selected {
-            background: #e3f2fd;
+            background: #e0f7f6;
             color: #0079bf;
         }
         
@@ -957,7 +1049,7 @@
         }
         
         .mention {
-            background: #e3f2fd;
+            background: #e0f7f6;
             color: #0079bf;
             padding: 0.125rem 0.25rem;
             border-radius: 3px;
@@ -1043,7 +1135,7 @@
         }
         
         .btn-primary:hover {
-            background: var(--theme-color-dark, #026aa7);
+            background: var(--theme-color-dark, #0097A7);
         }
         
         .btn-secondary {
@@ -1307,14 +1399,19 @@
 
     <div class="header">
         <div style="display: flex; align-items: center; gap: 1rem;">
-            <!-- ハンバーガーメニューボタン -->
-            <button class="hamburger-btn" onclick="toggleHamburgerMenu()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem;" title="メニュー">
-                ☰
-            </button>
-            <div class="header-title">🎯 営業タスク管理 - Kanbanボード</div>
+            <!-- TERRAロゴ（白色SVG） -->
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg width="100" height="28" viewBox="0 0 200 56" fill="white">
+                    <path d="M25 8 L35 18 L25 28 L15 18 Z M25 28 L35 38 L25 48 L15 38 Z M5 18 L15 28 L5 38 L-5 28 Z" stroke="white" stroke-width="2" fill="none"/>
+                    <text x="50" y="38" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white">TERRA</text>
+                </svg>
+            </div>
+            <div class="header-title">Kanban Work</div>
         </div>
-        <div class="header-controls">
-            <button onclick="openSettingsModal()" class="settings-btn" title="設定" style="display: none;">⚙️</button>
+        <div class="header-controls" style="display: flex; align-items: center; gap: 1rem;">
+            <span id="header-user-name" style="color: white; font-size: 0.9rem;"></span>
+            <button onclick="openHelpModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1rem;" title="ヘルプ">?</button>
+            <button onclick="logout()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">ログアウト</button>
         </div>
     </div>
     
@@ -1331,21 +1428,23 @@
             <span>今日期限</span>
         </div>
         <div class="stat-item" style="color: #e77600;" onclick="showStaleTasksDetail()" title="3日以上同じステータスのタスク">
-            <span style="cursor: pointer;">🚨</span>
             <span class="stat-number" id="stale-count">0</span>
             <span style="cursor: pointer;">停滞中</span>
         </div>
-        <div class="stat-item" id="workload-item" style="color: #0052cc; display: none;" onclick="showWorkloadDetail()" title="チーム平均の1.2倍以上のタスクを担当">
-            <span style="cursor: pointer;">👥</span>
-            <span class="stat-number" id="overload-count">0</span>
-            <span style="cursor: pointer;">要調整</span>
+        <div class="stat-item" style="color: #10b981;" title="完了タスク / 全タスク">
+            <span class="stat-number" id="completion-rate">-</span>
+            <span>完了率</span>
+        </div>
+        <div class="stat-item" style="color: #0097A7;" title="期限内完了タスク / 完了タスク">
+            <span class="stat-number" id="compliance-rate">-</span>
+            <span>期限遵守率</span>
         </div>
     </div>
     
     <!-- フィルター・管理バー -->
     <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; gap: 1rem; align-items: center;">
-            <span style="font-weight: 600; color: #2d3748;">👥 表示対象:</span>
+            <span style="font-weight: 600; color: #2d3748;">表示対象:</span>
             <!-- 統合担当者・プロジェクトフィルター -->
             <div style="position: relative;" id="assignee-filter-container">
                 <button onclick="toggleAssigneeFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; min-width: 150px;">
@@ -1361,51 +1460,14 @@
             <!-- プロジェクトタスク作成ボタン廃止: 通常のタスク作成モーダルで統合 -->
             <!-- ユーザー管理ボタンをマイページに移植のため非表示 -->
             <button onclick="window.location.href='user-management.html'" style="display: none; padding: 0.5rem 0.75rem; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="ユーザー管理">
-                👥 ユーザー管理
+                ユーザー管理
             </button>
             <button onclick="showFilterHelp()" style="background: none; border: none; color: #4a5568; cursor: pointer; font-size: 1rem;" title="フィルターの説明">
-                ❓
+                ?
             </button>
         </div>
     </div>
     
-    <!-- 分析サマリーバー -->
-    <div class="analytics-summary" id="analytics-summary">
-        <div class="analytics-left">
-            <div class="analytics-metric">
-                <span style="font-weight: 600;">完了率:</span>
-                <span class="analytics-value" id="completion-rate-summary">0%</span>
-            </div>
-            <div class="analytics-metric">
-                <span style="font-weight: 600;">期限遵守率:</span>
-                <span class="analytics-value" id="compliance-rate-summary">0%</span>
-            </div>
-        </div>
-    </div>
-    </div>
-    
-    <!-- 分析サマリーバー -->
-    <div class="analytics-summary">
-        <div class="analytics-left">
-            <div class="analytics-metric">
-                <span>📈 完了率:</span>
-                <span class="analytics-value" style="color: #38a169;" id="summary-completion-rate">-</span>
-            </div>
-            <div class="analytics-metric">
-                <span>⏰ 期限遵守率:</span>
-                <span class="analytics-value" style="color: #4299e1;" id="summary-deadline-compliance">-</span>
-            </div>
-            <div class="analytics-metric">
-                <span>⚡ 平均完了時間:</span>
-                <span class="analytics-value" style="color: #9f7aea;" id="summary-avg-time">-</span>
-            </div>
-        </div>
-        <div class="analytics-actions">
-            <button onclick="createTaskUnified()" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-right: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">✨ 新規タスク</button>
-            <button onclick="toggleBulkMode()" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: bold; margin-right: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'">☑️ 複数選択</button>
-            <!-- 期間レポートボタンを削除: 詳細分析内に統合 -->
-        </div>
-    </div>
     
     <!-- バルク操作バー -->
     <div id="bulk-actions-bar" style="display: none; background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); color: white; padding: 0.75rem 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-bottom: 1px solid #e2e8f0;">
@@ -1419,8 +1481,8 @@
                 <select id="bulk-move-column" style="padding: 0.4rem; border: none; border-radius: 4px; font-size: 0.8rem;">
                     <option value="">移動先を選択</option>
                 </select>
-                <button onclick="bulkMoveSelected()" style="background: #38a169; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">📦 移動</button>
-                <button onclick="bulkDeleteSelected()" style="background: #e53e3e; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🗑️ 削除</button>
+                <button onclick="bulkMoveSelected()" style="background: #38a169; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">移動</button>
+                <button onclick="bulkDeleteSelected()" style="background: #e53e3e; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">削除</button>
                 <button onclick="toggleBulkMode()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✕ 終了</button>
             </div>
         </div>
@@ -1431,7 +1493,7 @@
         <!-- プロジェクト一覧サイドバー -->
         <div class="projects-sidebar">
             <div class="projects-header">
-                📁 プロジェクト一覧
+                プロジェクト一覧
             </div>
             <div class="projects-list" id="projects-list">
                 <!-- プロジェクト一覧がここに生成される -->
@@ -1442,6 +1504,35 @@
         <div class="kanban-area">
             <div class="kanban-board" id="kanban-board">
                 <!-- カラムがここに生成される -->
+            </div>
+        </div>
+
+        <!-- 右サイドパネル -->
+        <div class="right-panel" id="right-panel">
+            <div class="right-panel-section">
+                <button class="right-panel-btn right-panel-btn-primary" onclick="openModal()">新規タスク</button>
+                <button class="right-panel-btn right-panel-btn-secondary" onclick="toggleMultiSelect()">複数選択</button>
+            </div>
+
+            <div class="right-panel-section">
+                <div class="right-panel-section-title">個人設定</div>
+                <button class="right-panel-btn right-panel-btn-outline" onclick="window.location.href='my-profile.html'">マイページ</button>
+                <button class="right-panel-btn right-panel-btn-outline" onclick="openSettingsModal()">設定</button>
+            </div>
+
+            <div class="right-panel-section">
+                <div class="right-panel-section-title">タスク管理</div>
+                <button class="right-panel-btn right-panel-btn-outline" onclick="openTemplateModal()">テンプレート</button>
+            </div>
+
+            <div class="right-panel-section">
+                <div class="right-panel-section-title">プロジェクト</div>
+                <button class="right-panel-btn right-panel-btn-outline" onclick="openProjectManagementModal()">プロジェクト設定</button>
+            </div>
+
+            <div class="right-panel-section" id="right-panel-admin-section" style="display: none;">
+                <div class="right-panel-section-title">管理機能</div>
+                <button class="right-panel-btn right-panel-btn-outline" onclick="window.location.href='user-management.html'">ユーザー管理</button>
             </div>
         </div>
     </div>
@@ -1462,7 +1553,7 @@
                         
                         <!-- テンプレート選択 -->
                         <div class="form-group" style="background: #f8f9fa; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
-                            <label class="form-label" style="color: #495057;">📋 テンプレートから作成（任意）</label>
+                            <label class="form-label" style="color: #495057;">テンプレートから作成（任意）</label>
                             <select id="template-select" onchange="handleTemplateSelection(this.value)" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem;">
                                 <option value="">-- テンプレートを選択 --</option>
                             </select>
@@ -1507,7 +1598,7 @@
                         <div class="form-group" style="margin-bottom: 1rem;">
                             <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                                 <input type="checkbox" id="task-hidden-input" style="margin: 0;">
-                                🔒 このタスクを非表示にする（自分のみ）
+                                このタスクを非表示にする（自分のみ）
                             </label>
                             <small style="color: #666; display: block; margin-top: 0.25rem;">
                                 チェックすると自分以外のユーザーからは見えなくなります。担当者は自分のみに制限されます。
@@ -1532,7 +1623,7 @@
                             <label class="form-label">添付ファイル</label>
                             <input type="file" class="form-input" id="task-files-input" multiple accept="*/*">
                             <div class="file-drop-zone" id="file-drop-zone">
-                                📁 ここにファイルをドラッグ&ドロップ または 上記ボタンで選択
+                                ここにファイルをドラッグ&ドロップ または 上記ボタンで選択
                             </div>
                             <div id="attached-files-list" style="margin-top: 0.5rem;"></div>
                         </div>
@@ -1571,15 +1662,15 @@
     <div id="settingsModal" class="theme-modal" style="display: none;">
         <div class="theme-modal-content">
             <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid #dfe1e6; flex-shrink: 0;">
-                <h3 class="modal-title">⚙️ 設定</h3>
+                <h3 class="modal-title">設定</h3>
                 <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
             </div>
             
             <div class="settings-modal-body">
                 <!-- 設定画面の説明 -->
-                <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #026aa7;">
+                <div style="background: #e0f7f6; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #0097A7;">
                     <p style="margin: 0; color: #172b4d; font-size: 0.9rem;">
-                        💡 <strong>設定画面の使い方：</strong><br>
+                        <strong>設定画面の使い方：</strong><br>
                         • ステータス管理：ワークフローの段階を追加・編集・削除できます<br>
                         • カラー変更：各フェーズの色を変更してチーム識別を向上<br>
                         • アラート設定：期限通知のタイミングをカスタマイズ
@@ -1588,21 +1679,21 @@
                 
                 <!-- カラム・フェーズ管理 -->
                 <div class="setting-section" style="background: #f8fafc; padding: 2rem; border-radius: 12px; border: 1px solid #e2e8f0;">
-                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #026aa7;">📋 ステータス・フェーズ管理</h3>
+                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #0097A7;">ステータス・フェーズ管理</h3>
                     <div id="column-manager">
                         <div id="column-list" style="margin-bottom: 1rem;">
                             <!-- 既存のカラムリストがここに表示される -->
                         </div>
                         <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
                             <input type="text" id="new-column-name" placeholder="新しいカラム名（例：レビュー中、承認待ち）" style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
-                            <button onclick="addColumn()" style="padding: 0.5rem 1rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer;">追加</button>
+                            <button onclick="addColumn()" style="padding: 0.5rem 1rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer;">追加</button>
                         </div>
                     </div>
                 </div>
                 
                 <!-- アラート設定 -->
                 <div class="setting-section" style="margin-top: 2rem; background: #fef5e7; padding: 2rem; border-radius: 12px; border: 1px solid #fed7aa;">
-                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #f59e0b;">🔔 期限アラート設定</h3>
+                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #f59e0b;">期限アラート設定</h3>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                         <label style="display: flex; align-items: center; gap: 0.5rem;">
                             <input type="checkbox" id="alert-3hours" checked>
@@ -1622,7 +1713,7 @@
 
                 <!-- 表示設定 -->
                 <div class="setting-section" style="margin-top: 2rem; background: #f0fdf4; padding: 2rem; border-radius: 12px; border: 1px solid #bbf7d0;">
-                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #22c55e;">🎯 表示設定</h3>
+                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #22c55e;">表示設定</h3>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                         <label style="display: flex; align-items: center; gap: 0.5rem;">
                             <input type="checkbox" id="show-task-count" checked>
@@ -1636,9 +1727,9 @@
                 </div>
                 
                 <div class="setting-section" style="margin-top: 2rem; background: #fef2f2; padding: 2rem; border-radius: 12px; border: 1px solid #fecaca;">
-                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #ef4444;">🔄 データ管理</h3>
+                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #ef4444;">データ管理</h3>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <button onclick="clearAllData()" style="padding: 0.75rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ 全データを削除</button>
+                        <button onclick="clearAllData()" style="padding: 0.75rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">全データを削除</button>
                     </div>
                 </div>
                 
@@ -1650,7 +1741,7 @@
     <div id="analyticsModal" class="theme-modal" style="display: none;">
         <div class="theme-modal-content" style="max-width: 1000px;">
             <div class="modal-header" style="padding: 1rem 1.5rem; border-bottom: 1px solid #dfe1e6; flex-shrink: 0;">
-                <h3 class="modal-title">📊 分析・レポート</h3>
+                <h3 class="modal-title">分析・レポート</h3>
                 <button class="close-btn" onclick="closeAnalyticsModal()">&times;</button>
             </div>
             
@@ -1688,7 +1779,7 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
                     <!-- タスク完了率チャート -->
                     <div style="background: white; border: 1px solid #ddd; border-radius: 12px; padding: 1.5rem;">
-                        <h4 style="margin: 0 0 1rem 0; color: #172b4d;">📈 タスク完了状況</h4>
+                        <h4 style="margin: 0 0 1rem 0; color: #172b4d;">タスク完了状況</h4>
                         <div id="completion-chart" style="height: 200px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px;">
                             グラフを読み込み中...
                         </div>
@@ -1696,7 +1787,7 @@
                     
                     <!-- 期限遵守状況チャート -->
                     <div style="background: white; border: 1px solid #ddd; border-radius: 12px; padding: 1.5rem;">
-                        <h4 style="margin: 0 0 1rem 0; color: #172b4d;">⏰ 期限遵守状況</h4>
+                        <h4 style="margin: 0 0 1rem 0; color: #172b4d;">期限遵守状況</h4>
                         <div id="deadline-chart" style="height: 200px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px;">
                             グラフを読み込み中...
                         </div>
@@ -1705,7 +1796,7 @@
                 
                 <!-- 担当者別パフォーマンス -->
                 <div style="background: white; border: 1px solid #ddd; border-radius: 12px; padding: 1.5rem;">
-                    <h4 style="margin: 0 0 1rem 0; color: #172b4d;">👥 担当者別パフォーマンス</h4>
+                    <h4 style="margin: 0 0 1rem 0; color: #172b4d;">担当者別パフォーマンス</h4>
                     <div id="assignee-performance" style="min-height: 200px;">
                         データを読み込み中...
                     </div>
@@ -1719,8 +1810,7 @@
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: #fdf2f8; border-radius: 12px 12px 0 0;">
                 <h3 class="modal-title" style="color: #1f2937; font-size: 1.5rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    📝 タスクインポート
-                    <span style="font-size: 0.8rem; background: #ec4899; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-weight: 500;">テキスト・OCR</span>
+                    タスクインポート
                 </h3>
                 <button class="close-btn" onclick="closeTaskImportModal()" style="background: none; border: none; font-size: 1.5rem; color: #6b7280; cursor: pointer; padding: 0.25rem;">&times;</button>
             </div>
@@ -1731,108 +1821,27 @@
                     <textarea id="import-text-modal" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @田中部長 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @佐藤課長&#10;　資料準備済み（全角スペース）&#10;		会議室予約（タブ）&#10;C社フォローアップ" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
                     
                     <div style="display: flex; gap: 0.5rem;">
-                        <button onclick="processImportText(true)" style="flex: 1; padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">👁️ プレビュー</button>
-                        <button onclick="document.getElementById('import-text-modal').value = ''; hidePreviewModal();" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ クリア</button>
-                        <label for="ocr-file-input" style="padding: 0.75rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; display: inline-block;" title="GoogleTODOスクリーンショット対応！領域選択でタスク名・期限を自動ペア化">📸 OCR+タグ機能</label>
-                        <input type="file" id="ocr-file-input" accept="image/*" style="display: none;" onchange="handleOCRFileModal(this)">
-                    </div>
-                    
-                    <!-- OCR処理状況 -->
-                    <div id="ocr-status" style="display: none; margin-top: 1rem; padding: 0.75rem; border-radius: 4px; background: #e3f2fd; border: 1px solid #90caf9;">
-                        <div id="ocr-progress-text">📸 画像を解析中...</div>
-                        <div style="width: 100%; background: #f0f0f0; border-radius: 4px; height: 8px; margin-top: 0.5rem;">
-                            <div id="ocr-progress-bar" style="width: 0%; height: 100%; background: #2196f3; border-radius: 4px; transition: width 0.3s;"></div>
-                        </div>
-                        <!-- AI信頼度スコア表示 -->
-                        <div id="confidence-scores" style="display: none; margin-top: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; border: 1px solid #dee2e6;">
-                            <div style="font-size: 0.85rem; font-weight: bold; color: #495057; margin-bottom: 0.5rem;">🎯 AI信頼度スコア</div>
-                            <div id="confidence-list" style="font-size: 0.8rem; color: #666;"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- 画像プレビューと領域選択 -->
-                    <div id="image-preview-container" style="display: none; margin-top: 1rem; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
-                        <div style="padding: 1rem; border-bottom: 1px solid #ddd; background: #e8f5e8;">
-                            <h5 style="margin: 0; color: #172b4d;">🖼️ 画像プレビュー - 領域を選択してOCR</h5>
-                            <div style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-                                マウスでドラッグして選択領域を作成し、「OCR実行」でテキスト化
-                            </div>
-                        </div>
-                        <div id="image-preview-scroll-container" style="padding: 1rem; max-height: 600px; overflow: auto; position: relative;">
-                            <div id="image-canvas-container" style="position: relative; display: inline-block; border: 1px solid #ccc; transform-origin: top left;">
-                                <canvas id="image-canvas" style="cursor: crosshair;"></canvas>
-                                <!-- 選択領域を表示するオーバーレイ -->
-                                <div id="selection-overlay" style="position: absolute; top: 0; left: 0; pointer-events: none;"></div>
-                            </div>
-                        </div>
-                        <div style="padding: 1rem; border-top: 1px solid #ddd;">
-                            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
-                                <button onclick="processSelectedAreas()" style="padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">🔍 OCR実行</button>
-                                <button onclick="clearSelections()" style="padding: 0.75rem; background: #f59e0b; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ 選択クリア</button>
-                                <button onclick="hideImagePreview()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">閉じる</button>
-                                <span id="selection-count" style="margin-left: 1rem; color: #666; font-size: 0.9rem;">0個の領域を選択中</span>
-                            </div>
-                            <details style="background: #f8f9fa; padding: 0.5rem; border-radius: 4px;">
-                                <summary style="cursor: pointer; font-size: 0.85rem; color: #666;">🎯 OCR精度向上設定</summary>
-                                <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
-                                    <div style="margin-bottom: 0.5rem;">
-                                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: bold; color: #2563eb;">
-                                            <input type="checkbox" id="ocr-handwriting-mode" title="手書き文字に特化した高精度OCR"> ✍️ 手書き文字モード（高精度）
-                                        </label>
-                                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: bold; color: #dc2626;">
-                                            <input type="checkbox" id="ocr-complex-layout-mode" title="表・図・フォームなどの複雑レイアウト対応"> 🧩 複雑レイアウトモード（表・図対応）
-                                        </label>
-                                    </div>
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                                            <input type="checkbox" id="ocr-enhance-contrast"> コントラスト強化
-                                        </label>
-                                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                                            <input type="checkbox" id="ocr-upscale"> 2倍拡大処理
-                                        </label>
-                                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                                            <input type="checkbox" id="ocr-grayscale"> グレースケール化
-                                        </label>
-                                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;" title="①→ 1, ○→ 0, ●→ 1 など">
-                                            <input type="checkbox" id="ocr-cleanup-symbols" checked> 数字記号修正
-                                        </label>
-                                    </div>
-                                    <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">
-                                        <button onclick="previewProcessing()" style="padding: 0.5rem; background: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔍 処理プレビュー</button>
-                                        <button onclick="resetOCRSettings()" style="padding: 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔄 リセット</button>
-                                    <button onclick="testOCRDirectly()" style="margin-left: 0.5rem; padding: 0.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🔍 OCRテスト</button>
-                                    <button onclick="testHandwritingOCR()" style="padding: 0.5rem; background: #8b5cf6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✍️ 手書きテスト</button>
-                                    <button onclick="testComplexLayoutOCR()" style="padding: 0.5rem; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">🧩 レイアウトテスト</button>
-                                    </div>
-                                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: #d1ecf1; border-radius: 4px; font-size: 0.8rem; color: #0c5460;">
-                                        💡 ヒント: ①→ 1, ○→ 0 などの誤認識がある場合は「数字記号修正」を有効に
-                                    </div>
-                                </div>
-                            </details>
-                        </div>
+                        <button onclick="processImportText(true)" style="flex: 1; padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">プレビュー</button>
+                        <button onclick="document.getElementById('import-text-modal').value = ''; hidePreviewModal();" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">クリア</button>
                     </div>
                     
                     <!-- プレビューエリア - 拡大版 -->
                     <div id="import-preview" style="display: none; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
-                        <div style="padding: 1rem; border-bottom: 1px solid #ddd; background: #e3f2fd;">
-                            <h5 style="margin: 0; color: #172b4d;">📋 インポートプレビュー - ドラッグ&ドロップで編集可能</h5>
+                        <div style="padding: 1rem; border-bottom: 1px solid #ddd; background: #e0f7f6;">
+                            <h5 style="margin: 0; color: #172b4d;">インポートプレビュー - ドラッグ&ドロップで編集可能</h5>
                         </div>
                         <div id="preview-content" style="padding: 1rem; max-height: 500px; overflow-y: auto; overflow-x: auto;"></div>
                         <div style="padding: 1rem; border-top: 1px solid #ddd; display: flex; gap: 0.5rem;">
-                            <button onclick="executeImportFromModal()" style="flex: 1; padding: 0.75rem; background: #38a169; color: white; border: none; border-radius: 4px; cursor: pointer;">✅ インポート実行</button>
+                            <button onclick="executeImportFromModal()" style="flex: 1; padding: 0.75rem; background: #38a169; color: white; border: none; border-radius: 4px; cursor: pointer;">インポート実行</button>
                             <button onclick="hidePreviewModal()" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">キャンセル</button>
                         </div>
                     </div>
                     
                     <div style="font-size: 0.8rem; color: #6c757d; line-height: 1.4;">
-                        <strong>📝 シンプル形式:</strong><br>
-                        • <strong>・</strong>で主タスク開始<br>
-                        • <strong>行頭スペース</strong>でサブタスク（コメントに自動追加）<br>
-                        • <strong>@担当者</strong>、<strong>日付</strong>、<strong>!!!</strong>高優先度を自動認識<br><br>
-                        <strong>📸 OCR注意事項:</strong><br>
-                        • プリント文字のみ推奨（手書きは精度低）<br>
-                        • シンプルなレイアウトのみ（表・図は非推奨）<br>
-                        • 認識後は手動で確認・修正が必要
+                        <strong>シンプル形式:</strong><br>
+                        ・で主タスク開始<br>
+                        行頭スペースでサブタスク（コメントに自動追加）<br>
+                        @担当者、日付、!!! 高優先度を自動認識
                     </div>
                 </div>
             </div>
@@ -1844,7 +1853,7 @@
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 1000px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0;">
                 <h3 class="modal-title" style="color: white; font-size: 1.5rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    📂 プロジェクト管理
+                    プロジェクト管理
                 </h3>
                 <button class="close-btn" onclick="closeProjectManagementModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem; margin-left: auto;">&times;</button>
             </div>
@@ -1853,7 +1862,7 @@
                 <!-- プロジェクト作成セクション -->
                 <div style="margin-bottom: 2rem;">
                     <h4 style="color: #374151; margin: 0 0 1rem 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
-                        ➕ 新しいプロジェクト作成
+                        新しいプロジェクト作成
                     </h4>
                     <div style="display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 200px;">
@@ -1863,8 +1872,8 @@
                         <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: 200px;">
                             <label style="font-size: 0.9rem; color: #6b7280;">公開設定:</label>
                             <select id="newProjectVisibility" style="padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
-                                <option value="public">🌐 全員に公開</option>
-                                <option value="private">🔒 メンバーのみ</option>
+                                <option value="public">[公開] 全員に公開</option>
+                                <option value="private">[非公開] メンバーのみ</option>
                             </select>
 
                             <label style="font-size: 0.9rem; color: #6b7280; margin-top: 0.5rem;">カラム設定:</label>
@@ -1872,7 +1881,7 @@
                                 <!-- カラムがここに動的に挿入される -->
                             </div>
                             <button type="button" onclick="addNewProjectColumn()" style="background: #e5e7eb; color: #374151; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500; margin-bottom: 0.5rem;">
-                                ➕ カラム追加
+                                カラム追加
                             </button>
 
                             <button onclick="createNewProject()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">
@@ -1885,7 +1894,7 @@
                 <!-- 既存プロジェクト一覧 -->
                 <div>
                     <h4 style="color: #374151; margin: 0 0 1rem 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
-                        📋 既存プロジェクト一覧
+                        既存プロジェクト一覧
                     </h4>
                     <div id="projectsList" style="display: flex; flex-direction: column; gap: 1rem;">
                         <!-- プロジェクト一覧がここに動的に挿入される -->
@@ -1900,7 +1909,7 @@
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 1200px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0;">
                 <h3 class="modal-title" style="color: white; font-size: 1.5rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    📊 管理者ダッシュボード
+                    管理者ダッシュボード
                 </h3>
                 <button class="close-btn" onclick="closeAdminDashboardModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem; margin-left: auto;">&times;</button>
             </div>
@@ -1908,7 +1917,7 @@
             <div style="padding: 1.5rem 2rem; overflow-y: auto; flex: 1;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
                     <!-- 緊急対応アラート -->
-                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #026aa7;">
+                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #0097A7;">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
                             <span>🚨</span>
                             <h3 style="font-size: 1.2rem; font-weight: 600; color: #172b4d; margin: 0;">緊急対応が必要な項目</h3>
@@ -1924,20 +1933,20 @@
                     </div>
 
                     <!-- チーム生産性 -->
-                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #026aa7;">
+                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #0097A7;">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
-                            <span>📈</span>
+                            <span></span>
                             <h3 style="font-size: 1.2rem; font-weight: 600; color: #172b4d; margin: 0;">チーム生産性推移</h3>
                         </div>
                         <div style="height: 200px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #666;">
-                            📊 グラフ機能（開発中）
+                            グラフ機能（開発中）
                         </div>
                     </div>
 
                     <!-- メンバー別パフォーマンス -->
-                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #026aa7;">
+                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #0097A7;">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
-                            <span>👥</span>
+                            <span></span>
                             <h3 style="font-size: 1.2rem; font-weight: 600; color: #172b4d; margin: 0;">メンバー別パフォーマンス</h3>
                         </div>
                         <div id="dashboard-performance-content">
@@ -1946,22 +1955,22 @@
                     </div>
 
                     <!-- システム状況監視 -->
-                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #026aa7;">
+                    <div style="background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 2rem; border-left: 4px solid #0097A7;">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
-                            <span>🖥️</span>
+                            <span></span>
                             <h3 style="font-size: 1.2rem; font-weight: 600; color: #172b4d; margin: 0;">システム状況監視</h3>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0;">
                             <span>Firebase接続状態:</span>
-                            <span style="font-weight: 600; font-size: 1.1rem; color: #026aa7;" id="dashboard-firebase-status">確認中...</span>
+                            <span style="font-weight: 600; font-size: 1.1rem; color: #0097A7;" id="dashboard-firebase-status">確認中...</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0;">
                             <span>総タスク数:</span>
-                            <span style="font-weight: 600; font-size: 1.1rem; color: #026aa7;" id="dashboard-total-tasks">0</span>
+                            <span style="font-weight: 600; font-size: 1.1rem; color: #0097A7;" id="dashboard-total-tasks">0</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0;">
                             <span>アクティブユーザー:</span>
-                            <span style="font-weight: 600; font-size: 1.1rem; color: #026aa7;" id="dashboard-active-users">0</span>
+                            <span style="font-weight: 600; font-size: 1.1rem; color: #0097A7;" id="dashboard-active-users">0</span>
                         </div>
                     </div>
                 </div>
@@ -1974,7 +1983,7 @@
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 1400px; height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
                 <h3 class="modal-title" style="color: white; font-size: 1.5rem; font-weight: 700; margin: 0;">
-                    👥 ユーザー管理
+                    ユーザー管理
                 </h3>
                 <button class="close-btn" onclick="closeUserManagementModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
             </div>
@@ -1989,7 +1998,7 @@
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 1400px; height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
                 <h3 class="modal-title" style="color: white; font-size: 1.5rem; font-weight: 700; margin: 0;">
-                    👤 マイページ
+                    マイページ
                 </h3>
                 <button class="close-btn" onclick="closeMyProfileModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
             </div>
@@ -2004,7 +2013,7 @@
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: #f9fafb; border-radius: 12px 12px 0 0;">
                 <h3 class="modal-title" style="color: #1f2937; font-size: 1.5rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    📋 テンプレート管理
+                    テンプレート管理
                     <span style="font-size: 0.8rem; background: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 12px; font-weight: 500;">統合</span>
                 </h3>
                 <button class="close-btn" onclick="closeTemplateManagementModal()" style="background: none; border: none; font-size: 1.5rem; color: #6b7280; cursor: pointer; padding: 0.25rem;">&times;</button>
@@ -2014,9 +2023,9 @@
                 <!-- 左側：テンプレート一覧 -->
                 <div style="width: 350px; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column;">
                     <div style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb; background: #f9fafb;">
-                        <h4 style="margin: 0 0 1rem 0; color: #1f2937; font-weight: 600;">📋 作成済みテンプレート</h4>
+                        <h4 style="margin: 0 0 1rem 0; color: #1f2937; font-weight: 600;">作成済みテンプレート</h4>
                         <button onclick="showTemplateCreateForm()" style="width: 100%; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                            ➕ 新規テンプレート作成
+                            新規テンプレート作成
                         </button>
                     </div>
                     <div id="template-management-list" style="flex: 1; overflow-y: auto; padding: 1rem;">
@@ -2028,7 +2037,7 @@
                 <!-- 右側：テンプレート作成・編集フォーム -->
                 <div style="flex: 1; display: flex; flex-direction: column;">
                     <div id="template-welcome-screen" style="display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 1; color: #6b7280; text-align: center; padding: 2rem;">
-                        <div style="font-size: 4rem; margin-bottom: 1rem;">📋</div>
+                        <div style="font-size: 4rem; margin-bottom: 1rem;"></div>
                         <h3 style="margin: 0 0 0.5rem 0; color: #374151;">テンプレート管理</h3>
                         <p style="margin: 0; line-height: 1.6;">
                             左側のテンプレート一覧から選択するか、<br>
@@ -2052,9 +2061,9 @@
                                 <div>
                                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">優先度</label>
                                     <select id="mgmt-template-priority" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
-                                        <option value="high">🔴 最重要</option>
-                                        <option value="medium" selected>🟡 重要</option>
-                                        <option value="low">🟢 通常</option>
+                                        <option value="high">[高] 最重要</option>
+                                        <option value="medium" selected>[中] 重要</option>
+                                        <option value="low">[低] 通常</option>
                                     </select>
                                 </div>
                                 <div>
@@ -2082,10 +2091,10 @@
                                     キャンセル
                                 </button>
                                 <button type="submit" id="mgmt-save-template-btn" style="flex: 1; padding: 0.75rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
-                                    💾 保存
+                                    保存
                                 </button>
                                 <button type="button" id="mgmt-delete-template-btn" onclick="deleteCurrentTemplate()" style="display: none; padding: 0.75rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
-                                    🗑️ 削除
+                                    削除
                                 </button>
                             </div>
                         </form>
@@ -2455,42 +2464,12 @@
         }
         
         function displayUserInfo(user) {
-            // ヘッダーにユーザー情報を表示
-            const headerTitle = document.querySelector('.header-title');
-            if (headerTitle) {
-                headerTitle.innerHTML = `
-                    🎯 営業タスク管理 - Kanbanボード
-                    <span style="font-size: 0.8rem; font-weight: normal; margin-left: 1rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.5rem; border-radius: 4px;">
-                        ${user.name} (${getRoleDisplayName(user.role)})
-                    </span>
-                `;
+            // ヘッダーのユーザー名を更新
+            const headerUserName = document.getElementById('header-user-name');
+            if (headerUserName) {
+                headerUserName.textContent = `${user.name}`;
             }
-            
-            // ログアウトボタンを追加
-            const headerRight = document.querySelector('.header').children[1];
-            if (headerRight && !document.getElementById('logout-btn')) {
-                const logoutBtn = document.createElement('button');
-                logoutBtn.id = 'logout-btn';
-                logoutBtn.innerHTML = '🚪 ログアウト';
-                logoutBtn.style.cssText = `
-                    background: rgba(255,255,255,0.2);
-                    border: none;
-                    color: white;
-                    padding: 0.5rem 1rem;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    font-size: 0.9rem;
-                    margin-left: 1rem;
-                `;
-                logoutBtn.onclick = function() {
-                    if (confirm('ログアウトしますか？')) {
-                        localStorage.removeItem('currentSession');
-                        window.location.href = 'login.html';
-                    }
-                };
-                headerRight.appendChild(logoutBtn);
-            }
-            
+
             console.log('✅ ログイン確認:', user.name, user.role);
         }
         
@@ -2641,6 +2620,18 @@
                 } else {
                     adminSection.style.display = 'none';
                     console.log('🚫 管理機能: 非表示');
+                }
+            }
+
+            // 右サイドパネルの管理セクション表示制御
+            const rightPanelAdminSection = document.getElementById('right-panel-admin-section');
+            if (rightPanelAdminSection) {
+                if (role === 'developer' || role === 'admin') {
+                    rightPanelAdminSection.style.display = 'block';
+                    console.log('✅ 右パネル管理機能: 表示');
+                } else {
+                    rightPanelAdminSection.style.display = 'none';
+                    console.log('🚫 右パネル管理機能: 非表示');
                 }
             }
         }
@@ -2969,7 +2960,7 @@
                     const project = projectSettings[projectId];
                     if (!project.columns) {
                         // デフォルトカラムを設定
-                        project.columns = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+                        project.columns = DEFAULT_PROJECT_COLUMNS;
                         needsMigration = true;
                     }
                     if (!project.createdAt) {
@@ -3123,19 +3114,19 @@
         migrateSampleDataToRealUser();
         
         // カラム定義
-        let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"📋 TODO","color":"#667eea"},{"id":"inprogress","title":"⚡ 進行中","color":"#f59e0b"},{"id":"waiting","title":"⏳ 連絡待ち","color":"#8b5cf6"},{"id":"done","title":"✅ Done","color":"#10b981"},{"id":"trash","title":"🗑️ ゴミ箱","color":"#6c757d"}]');
+        let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"TODO","color":"#667eea"},{"id":"phase1","title":"Phase1","color":"#f59e0b"},{"id":"phase2","title":"Phase2","color":"#f97316"},{"id":"phase3","title":"Phase3","color":"#8b5cf6"},{"id":"done","title":"Done","color":"#10b981"},{"id":"trash","title":"Archive","color":"#6c757d"}]');
         
-        // ゴミ箱カラムが存在しない場合は強制追加
+        // アーカイブカラムが存在しない場合は強制追加
         const trashColumn = columns.find(c => c.id === 'trash');
-        console.log('🗑️ [TRASH] 現在のカラム:', columns.map(c => c.id));
-        console.log('🗑️ [TRASH] ゴミ箱カラム存在:', !!trashColumn);
+        console.log('📦 [ARCHIVE] 現在のカラム:', columns.map(c => c.id));
+        console.log('📦 [ARCHIVE] アーカイブカラム存在:', !!trashColumn);
         
         if (!trashColumn) {
-            columns.push({"id":"trash","title":"🗑️ ゴミ箱","color":"#6c757d"});
+            columns.push({"id":"trash","title":"Archive","color":"#6c757d"});
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
-            console.log('🗑️ ゴミ箱カラムを追加しました');
+            console.log('📦 アーカイブカラムを追加しました');
         } else {
-            console.log('🗑️ ゴミ箱カラムは既に存在します');
+            console.log('📦 アーカイブカラムは既に存在します');
         }
         
         // テンプレート管理（Firebase統合対応）
@@ -3220,7 +3211,8 @@
             const columnName = getColumnNameById(columnId);
             const lowerColumnName = columnName.toLowerCase();
 
-            return lowerColumnName.includes('ゴミ箱') ||
+            return lowerColumnName.includes('アーカイブ') ||
+                   lowerColumnName.includes('ゴミ箱') ||
                    lowerColumnName.includes('trash') ||
                    lowerColumnName.includes('削除');
         }
@@ -3642,7 +3634,7 @@
         function isOverdue(deadline, columnId) {
             // 完了カラム（通常タスク・プロジェクトタスク両対応）は期限切れ判定しない
             if (isDoneColumn(columnId)) return false;
-            // ゴミ箱カラム（通常タスク・プロジェクトタスク両対応）は期限切れ判定しない
+            // アーカイブカラム（通常タスク・プロジェクトタスク両対応）は期限切れ判定しない
             if (isTrashColumn(columnId)) return false;
             return new Date(deadline) < getCurrentDateTime();
         }
@@ -3650,7 +3642,7 @@
         function isToday(deadline, columnId) {
             // 完了カラム（通常タスク・プロジェクトタスク両対応）は本日期限判定しない
             if (isDoneColumn(columnId)) return false;
-            // ゴミ箱カラム（通常タスク・プロジェクトタスク両対応）は本日期限判定しない
+            // アーカイブカラム（通常タスク・プロジェクトタスク両対応）は本日期限判定しない
             if (isTrashColumn(columnId)) return false;
             const today = new Date();
             const deadlineDate = new Date(deadline);
@@ -3934,7 +3926,7 @@
                         hiddenGroup.innerHTML = `
                             <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                                 <input type="checkbox" id="task-hidden-input" style="margin: 0;">
-                                🔒 このタスクを非表示にする（自分のみ）
+                                このタスクを非表示にする（自分のみ）
                             </label>
                             <small style="color: #666; display: block; margin-top: 0.25rem;">
                                 チェックすると自分以外のユーザーからは見えなくなります。担当者は自分のみに制限されます。
@@ -4053,14 +4045,14 @@
                     if (result.success) {
                         const project = result.projects.find(p => p.id === projectId);
                         if (project) {
-                            projectColumns = project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+                            projectColumns = project.columns || DEFAULT_PROJECT_COLUMNS;
                         }
                     }
                 }
 
                 // デフォルトカラム
                 if (!projectColumns) {
-                    projectColumns = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+                    projectColumns = DEFAULT_PROJECT_COLUMNS;
                 }
 
                 // プロジェクト固有のカラムIDを生成
@@ -5751,73 +5743,62 @@
                 projectName: editingTask.projectName,
                 columnId: editingTask.columnId
             } : 'null');
-            
-            await saveTasks();
-            console.log('🔍 [EDIT SAVE] Tasks count after save:', tasks.length);
-            
+
+            // 🚀 楽観的UI更新: まずUIを即座に更新
+            console.log('🚀 [OPTIMISTIC] Rendering UI immediately');
+            render();
+            updateStats();
+
             // 🔒 セッション保護：タスク作成前にセッション状態をバックアップ
             const currentSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
             const currentUserBackup = localStorage.getItem('currentUser');
-            console.log('🔒 [SESSION-PROTECT] タスク作成前セッション保護:', {
-                hasSession: !!currentSession,
-                userName: currentSession?.user?.name,
-                userEmail: currentSession?.user?.email,
-                backupUser: currentUserBackup
-            });
+            const isEditing = !!editingTask;
+            const targetTaskForFirebase = editingTask || tasks[0];
 
-            // Firebase同期（新規タスクまたは編集タスク）
-            if (window.FirebaseDB && window.firebaseAuth?.currentUser) {
+            // 🔥 バックグラウンドでFirebase保存（awaitなし）
+            (async () => {
                 try {
-                    const targetTask = editingTask || tasks[0]; // 編集中または最新タスク（unshiftで先頭に追加されるため）
-                    if (targetTask) {
-                        console.log('🔥 [FIREBASE] タスクをFirebaseに同期中...', targetTask.title);
-                        
-                        if (editingTask) {
-                            // 編集の場合は更新
-                            const result = await window.FirebaseDB.updateTask(targetTask.id, targetTask);
+                    await saveTasks();
+                    console.log('🔍 [EDIT SAVE] Tasks count after save:', tasks.length);
+
+                    // 🔧 増殖バグ修正: saveTasks()で既にFirebaseに保存済みのため、編集の場合のみ個別更新
+                    // 新規タスクはsaveTasks()で保存されるため、createTask()を呼ばない
+                    if (window.FirebaseDB && window.firebaseAuth?.currentUser && isEditing) {
+                        if (targetTaskForFirebase) {
+                            console.log('🔥 [FIREBASE] タスク編集をFirebaseに同期中...', targetTaskForFirebase.title);
+                            const result = await window.FirebaseDB.updateTask(targetTaskForFirebase.id, targetTaskForFirebase);
                             if (result.success) {
-                                console.log('✅ [FIREBASE] タスク更新成功:', targetTask.id);
+                                console.log('✅ [FIREBASE] タスク更新成功:', targetTaskForFirebase.id);
                             } else {
                                 console.error('❌ [FIREBASE] タスク更新エラー:', result.error);
                             }
-                        } else {
-                            // 🔥 新規の場合は作成（Firebase完全依存）
-                            const result = await window.FirebaseDB.createTask(targetTask);
-                            if (result.success) {
-                                console.log('✅ [FIREBASE-ONLY] タスク作成成功:', result.id);
-                                // 🔧 LocalStorageへの保存は不要 - Firebaseリアルタイム同期で自動更新
-                            } else {
-                                console.error('❌ [FIREBASE] タスク作成エラー:', result.error);
+                        }
+                    } else if (!isEditing) {
+                        // 🔧 新規タスクはsaveTasks()で既に保存済み - createTask()を呼ばない（増殖バグ防止）
+                        console.log('✅ [FIREBASE] 新規タスクはsaveTasks()で保存済み - 個別createTaskはスキップ');
+                    }
+
+                    // 🔒 セッション保護：Firebase同期後にセッションが変更されていないか確認
+                    const sessionAfterSync = JSON.parse(localStorage.getItem('currentSession') || 'null');
+
+                    if (currentSession && sessionAfterSync) {
+                        if (currentSession.user?.email !== sessionAfterSync.user?.email) {
+                            console.warn('⚠️ [SESSION-PROTECT] セッション変更を検出！復元します');
+                            localStorage.setItem('currentSession', JSON.stringify(currentSession));
+                            if (currentUserBackup) {
+                                localStorage.setItem('currentUser', currentUserBackup);
                             }
                         }
                     }
+                    console.log('✅ [OPTIMISTIC] Background Firebase save completed');
                 } catch (error) {
-                    console.error('❌ [FIREBASE] 同期エラー:', error);
+                    console.error('❌ [OPTIMISTIC] Background save error:', error);
+                    // エラー時は再度Firebaseからデータを取得して同期
+                    loadTasks().then(() => render());
                 }
-            } else {
-                console.log('💾 [FIREBASE] Firebase未対応またはログアウト状態 - LocalStorageのみ');
-            }
+            })();
 
-            // 🔒 セッション保護：Firebase同期後にセッションが変更されていないか確認
-            const sessionAfterSync = JSON.parse(localStorage.getItem('currentSession') || 'null');
-            const userAfterSync = localStorage.getItem('currentUser');
-            
-            if (currentSession && sessionAfterSync) {
-                if (currentSession.user?.email !== sessionAfterSync.user?.email) {
-                    console.warn('⚠️ [SESSION-PROTECT] セッション変更を検出！復元します:', {
-                        before: currentSession.user?.email,
-                        after: sessionAfterSync.user?.email
-                    });
-                    localStorage.setItem('currentSession', JSON.stringify(currentSession));
-                    if (currentUserBackup) {
-                        localStorage.setItem('currentUser', currentUserBackup);
-                    }
-                }
-            }
-            
-            console.log('🎨 [EDIT SAVE] About to call render()');
-            render();
-            console.log('🎨 [EDIT SAVE] render() completed');
+            console.log('🎨 [EDIT SAVE] UI updated (optimistic), Firebase saving in background');
 
             // 🔄 プロジェクトタスク作成時はプロジェクトビューに自動切り替え
             if (!editingTask && isProjectTask && projectId) {
@@ -6007,16 +5988,16 @@
                         }
                     }
 
-                    // 🗑️ ゴミ箱カラムへの移動時は確認アラート（プロジェクトタスクも対応）
+                    // 🗑️ アーカイブカラムへの移動時は確認アラート（プロジェクトタスクも対応）
                     if (isTrashColumn(columnId)) {
                         const confirmTrash = confirm(
-                            `🗑️ タスクをゴミ箱に移動しますか？\n\n` +
+                            `タスクをアーカイブに移動しますか？\n\n` +
                             `「${draggedTask.title}」\n\n` +
-                            `※ ゴミ箱からドラッグ&ドロップで復元可能です\n` +
-                            `※ ゴミ箱で180日経過後に自動完全削除されます`
+                            `※ アーカイブからドラッグ&ドロップで復元可能です\n` +
+                            `※ アーカイブで180日経過後に自動完全削除されます`
                         );
                         if (!confirmTrash) {
-                            console.log(`❌ [TRASH] ユーザーがゴミ箱移動をキャンセル: ${draggedTask.title}`);
+                            console.log(`❌ [ARCHIVE] ユーザーがアーカイブ移動をキャンセル: ${draggedTask.title}`);
                             // ドラッグ状態をリセット
                             const draggingElement = document.querySelector('.dragging');
                             if (draggingElement) {
@@ -6025,7 +6006,7 @@
                             draggedTask = null;
                             return;
                         }
-                        // ゴミ箱移動時にdeletedAtを記録
+                        // アーカイブ移動時にdeletedAtを記録
                         draggedTask.deletedAt = new Date().toISOString();
                     }
 
@@ -6122,7 +6103,7 @@
                         }
                     }
 
-                    // ゴミ箱から復元する場合、deletedAtをクリア（プロジェクトタスクも対応）
+                    // アーカイブから復元する場合、deletedAtをクリア（プロジェクトタスクも対応）
                     if (isTrashColumn(draggedTask.columnId) && !isTrashColumn(columnId)) {
                         draggedTask.deletedAt = null;
                         // 🔧 tasks配列内も更新
@@ -6130,7 +6111,7 @@
                         if (taskIndex !== -1) {
                             tasks[taskIndex].deletedAt = null;
                         }
-                        console.log(`♻️ [RESTORE] ゴミ箱から復元: ${draggedTask.title}`);
+                        console.log(`♻️ [RESTORE] アーカイブから復元: ${draggedTask.title}`);
                     }
 
                     console.log(`🔍 [DROP DEBUG] Before column change - Tasks count: ${tasks.length}`);
@@ -6177,20 +6158,28 @@
                     console.log(`🔍 [DROP DEBUG] Before notification - Tasks count: ${tasks.length}`);
                     sendPJMoveNotification(draggedTask, columnId);
                     console.log(`🔍 [DROP DEBUG] After notification - Tasks count: ${tasks.length}`);
-                    
-                    console.log(`🔍 [DROP DEBUG] Before saveTasks() - Tasks count: ${tasks.length}`);
-                    await saveTasks();
-                    console.log(`🔍 [DROP DEBUG] After saveTasks() - Tasks count: ${tasks.length}`);
-                    
-                    console.log(`🔍 [DROP DEBUG] Before render() - Tasks count: ${tasks.length}`);
+
+                    // 🚀 楽観的UI更新: まずUIを即座に更新
+                    console.log(`🚀 [OPTIMISTIC] Before render() - Tasks count: ${tasks.length}`);
                     render();
-                    console.log(`🔍 [DROP DEBUG] After render() - Tasks count: ${tasks.length}`);
-                    
-                    console.log(`🔍 [DROP DEBUG] Before updateStats() - Tasks count: ${tasks.length}`);
                     updateStats();
-                    console.log(`🔍 [DROP DEBUG] After updateStats() - Tasks count: ${tasks.length}`);
-                    
-                    console.log(`✅ [MAIN] Task moved successfully to ${columnId}`);
+                    console.log(`🚀 [OPTIMISTIC] UI updated immediately`);
+
+                    // 🔥 バックグラウンドでFirebase保存（awaitなし）
+                    saveTasks().then(success => {
+                        if (success) {
+                            console.log(`✅ [OPTIMISTIC] Firebase save completed in background`);
+                        } else {
+                            console.error(`❌ [OPTIMISTIC] Firebase save failed - UI may be out of sync`);
+                            // エラー時は再度Firebaseからデータを取得して同期
+                            loadTasks().then(() => render());
+                        }
+                    }).catch(error => {
+                        console.error(`❌ [OPTIMISTIC] Firebase save error:`, error);
+                        loadTasks().then(() => render());
+                    });
+
+                    console.log(`✅ [MAIN] Task moved successfully to ${columnId} (optimistic update)`);
                 } else {
                     console.log(`⚠️ [MAIN] Same column, no move needed`);
                 }
@@ -6260,7 +6249,7 @@
                     cachedProjectsData[project.id] = {
                         name: project.name,
                         description: project.description || '',
-                        columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                        columns: project.columns || DEFAULT_PROJECT_COLUMNS
                     };
                 });
                 cacheTimestamp = Date.now();
@@ -6282,7 +6271,7 @@
                             isPublic: project.visibility === 'public',
                             createdAt: project.createdAt || new Date().toISOString(),
                             createdBy: project.createdBy || 'Unknown',
-                            columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                            columns: project.columns || DEFAULT_PROJECT_COLUMNS
                         }));
                     }
                 } catch (error) {
@@ -6612,7 +6601,7 @@
                 
                 const columnEl = document.createElement('div');
                 columnEl.className = 'column';
-                columnEl.setAttribute('data-column-id', column.id); // ゴミ箱スタイル用
+                columnEl.setAttribute('data-column-id', column.id); // アーカイブスタイル用
                 columnEl.innerHTML = `
                     <div class="column-header" style="background: ${column.color}; color: white;">
                         <div class="column-title">${column.title}</div>
@@ -6659,7 +6648,7 @@
                     elapsedText = `${daysSinceCreated}d`;
                 }
                 
-                // 3日以上で完了していないタスクは停滞フラグ（完了カラム・ゴミ箱カラムは除外）
+                // 3日以上で完了していないタスクは停滞フラグ（完了カラム・アーカイブカラムは除外）
                 if (daysSinceCreated >= 3 && !isDoneColumn(task.columnId) && !isTrashColumn(task.columnId)) {
                     isStale = true;
                 }
@@ -6785,9 +6774,9 @@
             let totalAssignedTasks = 0;
             let assigneeCount = 0;
             
-            // 全タスクで担当者別カウント（フィルタ前の全体から計算）
+            // 全タスクで担当者別カウント（フィルタ前の全体から計算、完了・アーカイブ済みを除く）
             tasks.forEach(task => {
-                if (task.columnId !== 'done') {
+                if (!isDoneColumn(task.columnId) && !isTrashColumn(task.columnId)) {
                     // 新しいassigneesフィールドの処理
                     if (task.assignees && Array.isArray(task.assignees)) {
                         task.assignees.forEach(assignee => {
@@ -6822,21 +6811,29 @@
             document.getElementById('overdue-count').textContent = overdueCount;
             document.getElementById('today-count').textContent = todayCount;
             document.getElementById('stale-count').textContent = staleTasks.length;
-            document.getElementById('overload-count').textContent = overloadedAssignees.length;
-            
-            // 管理者のみ要調整を表示
-            const workloadItem = document.getElementById('workload-item');
-            if (workloadItem) {
-                workloadItem.style.display = isAdmin() ? 'flex' : 'none';
-            }
-            
+
+            // 完了率を計算（アーカイブ除く）
+            const activeTasks = filteredTasks.filter(t => !isTrashColumn(t.columnId));
+            const totalActiveTasks = activeTasks.length;
+            const completionRate = totalActiveTasks > 0 ? Math.round((completedCount / totalActiveTasks) * 100) : 0;
+            document.getElementById('completion-rate').textContent = `${completionRate}%`;
+
+            // 期限遵守率を計算（完了タスクのうち期限内に完了した割合）
+            const completedTasks = filteredTasks.filter(t => isDoneColumn(t.columnId));
+            const onTimeCompletedTasks = completedTasks.filter(t => {
+                if (!t.completedAt || !t.deadline) return true; // 情報不足の場合は期限内とみなす
+                const completedDate = new Date(t.completedAt);
+                const deadlineDate = new Date(t.deadline);
+                return completedDate <= deadlineDate;
+            });
+            const complianceRate = completedTasks.length > 0 ? Math.round((onTimeCompletedTasks.length / completedTasks.length) * 100) : 0;
+            document.getElementById('compliance-rate').textContent = completedTasks.length > 0 ? `${complianceRate}%` : '-';
+
             // グローバル変数に保存（詳細表示用）
             window.staleTasks = staleTasks;
             window.overloadedAssignees = overloadedAssignees;
             window.avgTasksPerPerson = avgTasksPerPerson;
-            
-            // ワークフロー表示を削除: 管理者にとって用途が不明確なため
-            
+
             // 分析サマリーも更新
             updateAnalyticsSummary();
         }
@@ -6870,7 +6867,7 @@
                     title: column.title,
                     count: columnTasks.length,
                     avgDays: avgDays,
-                    color: column.color || '#026aa7'
+                    color: column.color || '#0097A7'
                 };
             });
             
@@ -7644,7 +7641,7 @@
             }
             
             tasks.forEach(task => {
-                if (task.columnId === 'done') return; // 完了済みは除外
+                if (isDoneColumn(task.columnId) || isTrashColumn(task.columnId)) return; // 完了済み・アーカイブは除外
                 
                 // 担当者チェック: 現在のユーザーが担当者でない場合は通知しない
                 if (task.assignees && task.assignees.length > 0) {
@@ -7764,7 +7761,7 @@
                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
                     <span style="flex: 1;">${column.title}</span>
                     <input type="color" value="${column.color}" onchange="updateColumnColor(${index}, this.value)" style="width: 40px; height: 30px; border: none; border-radius: 4px;">
-                    <button onclick="editColumnName(${index})" style="padding: 0.25rem 0.5rem; background: #026aa7; color: white; border: none; border-radius: 4px; cursor: pointer;">編集</button>
+                    <button onclick="editColumnName(${index})" style="padding: 0.25rem 0.5rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer;">編集</button>
                     ${columns.length > 2 ? `<button onclick="deleteColumn(${index})" style="padding: 0.25rem 0.5rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">削除</button>` : ''}
                 </div>
             `).join('');
@@ -7796,7 +7793,7 @@
             const newColumn = {
                 id: 'custom_' + Date.now(),
                 title: newColumnName,
-                color: '#026aa7'
+                color: '#0097A7'
             };
 
             columns.push(newColumn);
@@ -7976,7 +7973,7 @@
                 const newColumn = {
                     id: 'custom_' + Date.now(),
                     title: newColumnName,
-                    color: '#026aa7'
+                    color: '#0097A7'
                 };
 
                 columns.push(newColumn);
@@ -8443,7 +8440,7 @@
                     const headerTitle = document.querySelector('.header-title');
                     if (headerTitle) {
                         headerTitle.innerHTML = `
-                            🎯 営業タスク管理 - Kanbanボード
+                            Kanban Work
                             <span style="font-size: 0.8rem; font-weight: normal; margin-left: 1rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.5rem; border-radius: 4px;">
                                 ${currentSession.user.name}
                             </span>
@@ -8530,7 +8527,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             // 🔒 【最重要】アプリバージョンチェック - 古いキャッシュを強制クリア
-            const APP_VERSION = '2025-11-20-v8-hide-management-id';
+            const APP_VERSION = '2025-12-16-v3-emoji-removal';
             const storedVersion = localStorage.getItem('appVersion');
             if (storedVersion !== APP_VERSION) {
                 console.log('🧹 [VERSION] 古いバージョン検出 - LocalStorage完全クリア');
@@ -8860,1217 +8857,9 @@
             return results;
         }
 
-        // OCR結果のポストプロセッシング
-        function postprocessOCRText(text) {
-            let processed = text;
-            
-            // 囲み数字は常に修正（明らかな誤認識のため）
-            const circledNumbers = {
-                '①': '1', '②': '2', '③': '3', '④': '4', '⑤': '5',
-                '⑥': '6', '⑦': '7', '⑧': '8', '⑨': '9', '⑩': '10',
-                '⑪': '11', '⑫': '12', '⑬': '13', '⑭': '14', '⑮': '15',
-                '⑯': '16', '⑰': '17', '⑱': '18', '⑲': '19', '⑳': '20',
-                '❶': '1', '❷': '2', '❸': '3', '❹': '4', '❺': '5',
-                '❻': '6', '❼': '7', '❽': '8', '❾': '9', '❿': '10',
-                '⓪': '0', '⓫': '11', '⓬': '12', '⓭': '13', '⓮': '14',
-                '⓯': '15', '⓰': '16', '⓱': '17', '⓲': '18', '⓳': '19', '⓴': '20'
-            };
-            
-            // 囲み数字を通常の数字に変換（常に実行）
-            Object.keys(circledNumbers).forEach(circled => {
-                const regex = new RegExp(circled, 'g');
-                processed = processed.replace(regex, circledNumbers[circled]);
-            });
-            
-            // その他の記号クリーンアップ（オプション）
-            if (document.getElementById('ocr-cleanup-symbols').checked) {
-                // 全角数字→半角数字
-                processed = processed.replace(/[０-９]/g, (match) => 
-                    String.fromCharCode(match.charCodeAt(0) - 0xFEE0)
-                );
-                
-                // 明らかな誤認識のみ修正
-                processed = processed
-                    .replace(/\b[Oo]\.?\s*(?=\d)/g, '0') // O.数字 → 0数字
-                    .replace(/\b[Il]\s*(?=\d)/g, '1') // I数字 → 1数字
-                    .replace(/\b[Il]\b/g, '1') // 単体のIやl→ 1
-                    // 丸記号の変換
-                    .replace(/[○◯◌⚪]/g, '0') // 白丸→ 0
-                    .replace(/[●•⚫]/g, '1'); // 黒丸→ 1
-            }
-            
-            return processed.trim();
-        }
-        
-        async function performOCROnCanvas(canvas) {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    // 前処理を適用
-                    const processedCanvas = await preprocessImage(canvas);
-                    
-                    processedCanvas.toBlob(async (blob) => {
-                        try {
-                            const { data: { text } } = await Tesseract.recognize(
-                                blob,
-                                'jpn+eng',
-                                {
-                                    tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-                                    tessedit_char_whitelist: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZあ-ゖア-ヶ一-龯!@#$%^&*()_+-=[]{}|;:,.<>?/~ 　「」、。',
-                                    preserve_interword_spaces: '1'
-                                }
-                            );
-                            
-                            // ポストプロセッシングを適用
-                            const processedText = postprocessOCRText(text);
-                            resolve(processedText);
-                        } catch (error) {
-                            reject(error);
-                        }
-                    });
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        }
-        
-        // 期限専用OCR（より厳密な文字認識）
-        async function performDeadlineOCR(canvas) {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    // より厳密な前処理（期限用）
-                    const processedCanvas = await preprocessDeadlineImage(canvas);
-                    
-                    processedCanvas.toBlob(async (blob) => {
-                        try {
-                            // 日本語優先の設定でOCR実行
-                            const { data: { text } } = await Tesseract.recognize(
-                                blob,
-                                'jpn', // 日本語のみに変更（英語混在を避ける）
-                                {
-                                    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE, // 単一行モード
-                                    // 文字ホワイトリストを一時的に外して全文字認識
-                                    preserve_interword_spaces: '1',
-                                    tessedit_ocr_engine_mode: 3 // LSTM mode
-                                }
-                            );
-                            
-                            console.log('期限OCR生の結果:', text);
-                            
-                            // 期限専用ポストプロセッシング
-                            const processedText = postprocessDeadlineText(text);
-                            console.log('期限OCR処理後:', processedText);
-                            
-                            resolve(processedText);
-                        } catch (error) {
-                            console.error('期限OCRエラー:', error);
-                            reject(error);
-                        }
-                    });
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        }
-        
-        // 期限専用前処理
-        async function preprocessDeadlineImage(canvas) {
-            const ctx = canvas.getContext('2d');
-            
-            // 画像の内容を確認（デバッグ用）
-            console.log('期限画像サイズ:', canvas.width, 'x', canvas.height);
-            
-            // 反転検知（黒背景の場合）
-            const sampleData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            let blackPixels = 0;
-            let totalPixels = sampleData.data.length / 4;
-            
-            for (let i = 0; i < sampleData.data.length; i += 4) {
-                const gray = sampleData.data[i] * 0.299 + sampleData.data[i + 1] * 0.587 + sampleData.data[i + 2] * 0.114;
-                if (gray < 128) blackPixels++;
-            }
-            
-            const isInverted = blackPixels / totalPixels > 0.6;
-            console.log('背景判定:', isInverted ? '黒背景' : '白背景');
-            
-            // グレースケール + 適応的二値化
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            
-            for (let i = 0; i < data.length; i += 4) {
-                const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                
-                // 黒背景の場合は色を反転
-                let value;
-                if (isInverted) {
-                    value = gray < 128 ? 255 : 0;
-                } else {
-                    value = gray > 128 ? 255 : 0;
-                }
-                
-                data[i] = data[i + 1] = data[i + 2] = value;
-            }
-            ctx.putImageData(imageData, 0, 0);
-            
-            // 4倍拡大（Google TODO の小さい期限テキスト用）
-            const scaledCanvas = document.createElement('canvas');
-            const scaledCtx = scaledCanvas.getContext('2d');
-            scaledCanvas.width = canvas.width * 4;
-            scaledCanvas.height = canvas.height * 4;
-            
-            // バイリニア補間を使用（より滑らかな拡大）
-            scaledCtx.imageSmoothingEnabled = true;
-            scaledCtx.imageSmoothingQuality = 'high';
-            scaledCtx.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
-            
-            // 再度シャープニング
-            const finalData = scaledCtx.getImageData(0, 0, scaledCanvas.width, scaledCanvas.height);
-            const finalPixels = finalData.data;
-            
-            for (let i = 0; i < finalPixels.length; i += 4) {
-                const gray = finalPixels[i];
-                const sharpened = gray > 200 ? 255 : 0;
-                finalPixels[i] = finalPixels[i + 1] = finalPixels[i + 2] = sharpened;
-            }
-            scaledCtx.putImageData(finalData, 0, 0);
-            
-            return scaledCanvas;
-        }
-        
-        // 期限専用ポストプロセッシング
-        function postprocessDeadlineText(text) {
-            let processed = text.trim();
-            
-            // 囲み数字を通常数字に変換
-            const circledNumbers = {
-                '①': '1', '②': '2', '③': '3', '④': '4', '⑤': '5',
-                '⑥': '6', '⑦': '7', '⑧': '8', '⑨': '9', '⑩': '10',
-                '⑪': '11', '⑫': '12', '⑬': '13', '⑭': '14', '⑮': '15',
-                '⑯': '16', '⑰': '17', '⑱': '18', '⑲': '19', '⑳': '20',
-                '㉑': '21', '㉒': '22', '㉓': '23', '㉔': '24', '㉕': '25',
-                '㉖': '26', '㉗': '27', '㉘': '28', '㉙': '29', '㉚': '30', '㉛': '31'
-            };
-            
-            Object.keys(circledNumbers).forEach(circled => {
-                const regex = new RegExp(circled, 'g');
-                processed = processed.replace(regex, circledNumbers[circled]);
-            });
-            
-            // 期限特有の誤認識を修正
-            processed = processed
-                .replace(/[oO]/g, '0') // o,O → 0
-                .replace(/[lI]/g, '1') // l,I → 1
-                .replace(/[S]/g, '5') // S → 5
-                .replace(/[Zz]/g, '2') // Z,z → 2
-                .replace(/[B]/g, '8') // B → 8
-                .replace(/[G]/g, '6') // G → 6
-                // 全角数字を半角に
-                .replace(/[０-９]/g, (match) => 
-                    String.fromCharCode(match.charCodeAt(0) - 0xFEE0)
-                )
-                // 不要な記号を除去（期限に必要な文字以外）
-                .replace(/[^\d月日\(\)火水木金土,:\ ]/g, '')
-                // 複数スペースを単一スペースに
-                .replace(/\s+/g, ' ');
-            
-            return processed.trim();
-        }
-        
-        // 手書き文字対応OCR（高精度モード）
-        async function performHandwritingOCR(canvas) {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    console.log('手書き文字OCR開始:', canvas.width, 'x', canvas.height);
-                    
-                    // 手書き専用前処理
-                    const processedCanvas = await preprocessHandwritingImage(canvas);
-                    
-                    processedCanvas.toBlob(async (blob) => {
-                        try {
-                            // 手書き文字に最適化された設定でOCR実行
-                            const { data: { text, confidence } } = await Tesseract.recognize(
-                                blob,
-                                'jpn', // 日本語のみに特化
-                                {
-                                    tessedit_pageseg_mode: Tesseract.PSM.AUTO, // 自動セグメンテーション
-                                    tessedit_ocr_engine_mode: 3, // LSTM Neural Network
-                                    // 手書き文字用の設定
-                                    tessedit_char_whitelist: '0123456789月日火水木金土日(),:：　 ', // 期限に必要な文字のみ
-                                    c_min_confidence: 30, // 信頼度を下げて手書きも認識
-                                    preserve_interword_spaces: '1',
-                                    // 手書き文字認識強化パラメータ
-                                    textord_heavy_nr: '1',
-                                    textord_min_linesize: '2.5',
-                                    edges_max_children_per_outline: '40'
-                                }
-                            );
-                            
-                            console.log('手書きOCR結果:', text);
-                            console.log('手書きOCR信頼度:', confidence);
-                            
-                            // 手書き専用ポストプロセッシング
-                            const processedText = postprocessHandwritingText(text);
-                            console.log('手書きOCR処理後:', processedText);
-                            
-                            resolve({ text: processedText, confidence: confidence });
-                        } catch (error) {
-                            console.error('手書きOCRエラー:', error);
-                            reject(error);
-                        }
-                    });
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        }
-        
-        // 手書き文字専用前処理
-        async function preprocessHandwritingImage(canvas) {
-            const newCanvas = document.createElement('canvas');
-            const ctx = newCanvas.getContext('2d');
-            newCanvas.width = canvas.width;
-            newCanvas.height = canvas.height;
-            
-            ctx.drawImage(canvas, 0, 0);
-            
-            // 手書き文字用の特別な前処理
-            const imageData = ctx.getImageData(0, 0, newCanvas.width, newCanvas.height);
-            const data = imageData.data;
-            
-            // 1. エッジ強化（手書きの薄い線を強調）
-            const edgeData = new Uint8ClampedArray(data);
-            for (let y = 1; y < newCanvas.height - 1; y++) {
-                for (let x = 1; x < newCanvas.width - 1; x++) {
-                    const idx = (y * newCanvas.width + x) * 4;
-                    
-                    // 周囲のピクセルとの差分を計算
-                    const center = data[idx];
-                    const top = data[((y-1) * newCanvas.width + x) * 4];
-                    const bottom = data[((y+1) * newCanvas.width + x) * 4];
-                    const left = data[(y * newCanvas.width + (x-1)) * 4];
-                    const right = data[(y * newCanvas.width + (x+1)) * 4];
-                    
-                    const edge = Math.abs(center - top) + Math.abs(center - bottom) + 
-                                Math.abs(center - left) + Math.abs(center - right);
-                    
-                    const enhanced = Math.min(255, center + edge * 0.3);
-                    edgeData[idx] = edgeData[idx + 1] = edgeData[idx + 2] = enhanced;
-                }
-            }
-            
-            // 2. ガウシアンフィルタでノイズ除去
-            const filtered = applyGaussianFilter(edgeData, newCanvas.width, newCanvas.height);
-            
-            // 3. 適応的二値化（手書きの濃度ムラに対応）
-            for (let i = 0; i < filtered.length; i += 4) {
-                const gray = filtered[i];
-                // 手書き文字用の閾値調整
-                const threshold = 140; // 手書きは通常より低い閾値
-                const value = gray > threshold ? 255 : 0;
-                filtered[i] = filtered[i + 1] = filtered[i + 2] = value;
-            }
-            
-            const processedImageData = new ImageData(filtered, newCanvas.width, newCanvas.height);
-            ctx.putImageData(processedImageData, 0, 0);
-            
-            // 4. 拡大処理（手書きの細かい特徴を保持）
-            const scaledCanvas = document.createElement('canvas');
-            const scaledCtx = scaledCanvas.getContext('2d');
-            scaledCanvas.width = newCanvas.width * 3;
-            scaledCanvas.height = newCanvas.height * 3;
-            
-            scaledCtx.imageSmoothingEnabled = false; // 手書きの特徴を保持
-            scaledCtx.drawImage(newCanvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
-            
-            return scaledCanvas;
-        }
-        
-        // ガウシアンフィルタ（ノイズ除去用）
-        function applyGaussianFilter(data, width, height) {
-            const filtered = new Uint8ClampedArray(data.length);
-            const kernel = [1, 2, 1, 2, 4, 2, 1, 2, 1]; // 3x3ガウシアンカーネル
-            const kernelSum = 16;
-            
-            for (let y = 1; y < height - 1; y++) {
-                for (let x = 1; x < width - 1; x++) {
-                    const idx = (y * width + x) * 4;
-                    let sum = 0;
-                    
-                    for (let ky = -1; ky <= 1; ky++) {
-                        for (let kx = -1; kx <= 1; kx++) {
-                            const pixelIdx = ((y + ky) * width + (x + kx)) * 4;
-                            const kernelIdx = (ky + 1) * 3 + (kx + 1);
-                            sum += data[pixelIdx] * kernel[kernelIdx];
-                        }
-                    }
-                    
-                    const filteredValue = sum / kernelSum;
-                    filtered[idx] = filtered[idx + 1] = filtered[idx + 2] = filteredValue;
-                    filtered[idx + 3] = 255; // Alpha
-                }
-            }
-            
-            return filtered;
-        }
-        
-        // 手書き文字専用ポストプロセッシング
-        function postprocessHandwritingText(text) {
-            let processed = text.trim();
-            
-            // 手書き文字特有の誤認識パターンを修正
-            const handwritingCorrections = {
-                // 数字の誤認識
-                'o': '0', 'O': '0', '〇': '0', '○': '0',
-                'l': '1', 'I': '1', '|': '1', '｜': '1',
-                'Z': '2', 'z': '2', 'ア': '2',
-                'ゴ': '5', 'S': '5', 's': '5',
-                'b': '6', 'G': '6', 'ロ': '6',
-                'T': '7', '7': '7', '？': '7',
-                'B': '8', '8': '8', 'お': '8',
-                'g': '9', 'q': '9', 'り': '9',
-                
-                // 曜日の誤認識
-                '火曜': '火', '水曜': '水', '木曜': '木', '金曜': '金', '土曜': '土', '日曜': '日', '月曜': '月',
-                'ひ': '火', 'み': '水', 'き': '木', 'きん': '金', 'ど': '土', 'にち': '日', 'げつ': '月',
-                
-                // 記号の誤認識
-                '：': ':', '。': ',', '、': ',', '～': '',
-                '／': '/', '＼': '\\', '［': '(', '］': ')'
-            };
-            
-            // 誤認識修正を適用
-            Object.keys(handwritingCorrections).forEach(wrong => {
-                const regex = new RegExp(wrong, 'g');
-                processed = processed.replace(regex, handwritingCorrections[wrong]);
-            });
-            
-            // 手書きノイズの除去
-            processed = processed
-                .replace(/[^\d月日\(\)月火水木金土日,:：　 ]/g, '') // 期限に必要な文字以外を除去
-                .replace(/\s+/g, ' ') // 連続空白を1つに
-                .trim();
-            
-            console.log('手書き文字ポストプロセッシング:', processed);
-            return processed;
-        }
-        
-        // OCR設定リセット
-        function resetOCRSettings() {
-            document.getElementById('ocr-enhance-contrast').checked = false;
-            document.getElementById('ocr-upscale').checked = false;
-            document.getElementById('ocr-grayscale').checked = false;
-            document.getElementById('ocr-cleanup-symbols').checked = false;
-            document.getElementById('ocr-handwriting-mode').checked = false;
-            document.getElementById('ocr-complex-layout-mode').checked = false;
-        }
-        
-        // 複雑レイアウトOCRテスト関数
-        async function testComplexLayoutOCR() {
-            if (selectedAreas.length === 0) {
-                alert('OCR対象の領域がありません。複雑レイアウトテスト用の領域を選択してください。');
-                return;
-            }
-            
-            console.log('=== 複雑レイアウトOCRテスト開始 ===');
-            
-            for (let i = 0; i < selectedAreas.length; i++) {
-                const area = selectedAreas[i];
-                console.log(`\n🧩 複雑レイアウト領域 ${i + 1} テスト:`);
-                
-                // 領域を切り抜き
-                const croppedCanvas = document.createElement('canvas');
-                const ctx = croppedCanvas.getContext('2d');
-                croppedCanvas.width = area.width;
-                croppedCanvas.height = area.height;
-                
-                const img = document.getElementById('selected-image');
-                const scaleX = img.naturalWidth / img.width;
-                const scaleY = img.naturalHeight / img.height;
-                
-                const realX = area.x * scaleX;
-                const realY = area.y * scaleY;
-                const realWidth = area.width * scaleX;
-                const realHeight = area.height * scaleY;
-                
-                ctx.drawImage(img, realX, realY, realWidth, realHeight, 0, 0, area.width, area.height);
-                
-                try {
-                    // 複雑レイアウトOCR実行
-                    const complexResult = await performComplexLayoutOCR(croppedCanvas);
-                    console.log('🧩 複雑レイアウトOCR結果:', complexResult);
-                    
-                    // 比較用に通常OCRも実行
-                    const normalText = await performOCROnCanvas(croppedCanvas);
-                    console.log('📄 通常OCR結果:', normalText);
-                    
-                    // 結果比較
-                    console.log(`\n📊 結果比較:`);
-                    console.log(`複雑レイアウトモード: "${complexResult.text}" (タイプ: ${complexResult.type}, 信頼度: ${complexResult.confidence?.toFixed(1)}%)`);
-                    console.log(`通常モード: "${normalText}"`);
-                    
-                    // 構造解析結果（もしあれば）
-                    if (complexResult.structure) {
-                        console.log('📐 構造解析:', complexResult.structure);
-                    }
-                    
-                } catch (error) {
-                    console.error('複雑レイアウトOCRエラー:', error);
-                }
-            }
-            
-            console.log('\n=== 複雑レイアウトOCRテスト終了 ===');
-            alert('複雑レイアウトOCRテストを実行しました。コンソール（F12）で詳細な結果を確認してください。');
-        }
-        
-        // 手書きOCRテスト関数
-        async function testHandwritingOCR() {
-            const handwritingAreas = selectedAreas.filter(area => area.tag === 'deadline');
-            if (handwritingAreas.length === 0) {
-                alert('期限タグが設定された領域がありません。手書きテスト用の領域を選択してください。');
-                return;
-            }
-            
-            console.log('=== 手書きOCRテスト開始 ===');
-            
-            for (let i = 0; i < handwritingAreas.length; i++) {
-                const area = handwritingAreas[i];
-                console.log(`\n✍️ 手書き領域 ${i + 1} テスト:`);
-                
-                // 領域を切り抜き
-                const croppedCanvas = document.createElement('canvas');
-                const ctx = croppedCanvas.getContext('2d');
-                croppedCanvas.width = area.width;
-                croppedCanvas.height = area.height;
-                
-                const img = document.getElementById('selected-image');
-                const scaleX = img.naturalWidth / img.width;
-                const scaleY = img.naturalHeight / img.height;
-                
-                const realX = area.x * scaleX;
-                const realY = area.y * scaleY;
-                const realWidth = area.width * scaleX;
-                const realHeight = area.height * scaleY;
-                
-                ctx.drawImage(img, realX, realY, realWidth, realHeight, 0, 0, area.width, area.height);
-                
-                try {
-                    // 手書きOCR実行
-                    const handwritingResult = await performHandwritingOCR(croppedCanvas);
-                    console.log('✍️ 手書きOCR結果:', handwritingResult.text);
-                    console.log('🎯 手書きOCR信頼度:', handwritingResult.confidence);
-                    console.log('📅 期限解析結果:', parseDeadlineText(handwritingResult.text));
-                    
-                    // 比較用に通常OCRも実行
-                    const normalText = await performOCROnCanvas(croppedCanvas);
-                    console.log('📄 通常OCR結果:', normalText);
-                    console.log('📅 通常OCR期限解析:', parseDeadlineText(normalText));
-                    
-                    // 精度比較
-                    const handwritingSuccess = parseDeadlineText(handwritingResult.text) !== null;
-                    const normalSuccess = parseDeadlineText(normalText) !== null;
-                    
-                    console.log(`\n📊 結果比較:`);
-                    console.log(`手書きモード: ${handwritingSuccess ? '成功 ✅' : '失敗 ❌'} (信頼度: ${handwritingResult.confidence}%)`);
-                    console.log(`通常モード: ${normalSuccess ? '成功 ✅' : '失敗 ❌'}`);
-                    
-                } catch (error) {
-                    console.error('手書きOCRエラー:', error);
-                }
-            }
-            
-            console.log('\n=== 手書きOCRテスト終了 ===');
-            alert('手書きOCRテストを実行しました。コンソール（F12）で詳細な結果を確認してください。');
-        }
-        
-        // 複雑レイアウト解析OCR（表・図対応）
-        async function performComplexLayoutOCR(canvas) {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    console.log('複雑レイアウトOCR開始:', canvas.width, 'x', canvas.height);
-                    
-                    // レイアウト自動検出
-                    const layoutType = detectLayoutType(canvas);
-                    console.log('検出されたレイアウト:', layoutType);
-                    
-                    let result;
-                    switch (layoutType) {
-                        case 'table':
-                            result = await performTableOCR(canvas);
-                            break;
-                        case 'list':
-                            result = await performListOCR(canvas);
-                            break;
-                        case 'form':
-                            result = await performFormOCR(canvas);
-                            break;
-                        default:
-                            result = await performAdvancedOCR(canvas);
-                    }
-                    
-                    console.log('複雑レイアウトOCR結果:', result);
-                    resolve(result);
-                    
-                } catch (error) {
-                    console.error('複雑レイアウトOCRエラー:', error);
-                    reject(error);
-                }
-            });
-        }
-        
-        // レイアウトタイプ自動検出
-        function detectLayoutType(canvas) {
-            const ctx = canvas.getContext('2d');
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            
-            // 線の検出（縦線・横線の多さで判定）
-            let horizontalLines = 0;
-            let verticalLines = 0;
-            
-            // 横線検出
-            for (let y = 0; y < canvas.height; y += 5) {
-                let linePixels = 0;
-                for (let x = 0; x < canvas.width; x++) {
-                    const idx = (y * canvas.width + x) * 4;
-                    const gray = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
-                    if (gray < 128) linePixels++;
-                }
-                if (linePixels > canvas.width * 0.7) horizontalLines++;
-            }
-            
-            // 縦線検出
-            for (let x = 0; x < canvas.width; x += 5) {
-                let linePixels = 0;
-                for (let y = 0; y < canvas.height; y++) {
-                    const idx = (y * canvas.width + x) * 4;
-                    const gray = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
-                    if (gray < 128) linePixels++;
-                }
-                if (linePixels > canvas.height * 0.7) verticalLines++;
-            }
-            
-            console.log(`線検出結果: 横線=${horizontalLines}, 縦線=${verticalLines}`);
-            
-            // レイアウト判定
-            if (horizontalLines >= 3 && verticalLines >= 2) {
-                return 'table'; // 表形式
-            } else if (horizontalLines >= 3) {
-                return 'list'; // リスト形式
-            } else if (verticalLines >= 2) {
-                return 'form'; // フォーム形式
-            } else {
-                return 'mixed'; // 混合レイアウト
-            }
-        }
-        
-        // 表形式OCR
-        async function performTableOCR(canvas) {
-            console.log('表形式OCR実行中...');
-            
-            // セル単位に分割してOCR実行
-            const cells = detectTableCells(canvas);
-            const results = [];
-            
-            for (let i = 0; i < cells.length; i++) {
-                const cell = cells[i];
-                const cellCanvas = extractCellCanvas(canvas, cell);
-                
-                try {
-                    const { data: { text, confidence } } = await Tesseract.recognize(
-                        cellCanvas,
-                        'jpn+eng',
-                        {
-                            tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
-                            tessedit_char_whitelist: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZあ-ゖア-ヶ一-龯(),:：月日火水木金土日 　',
-                            preserve_interword_spaces: '1'
-                        }
-                    );
-                    
-                    results.push({
-                        row: cell.row,
-                        col: cell.col,
-                        text: text.trim(),
-                        confidence: confidence
-                    });
-                } catch (error) {
-                    console.error(`セル[${cell.row},${cell.col}]のOCRエラー:`, error);
-                }
-            }
-            
-            return formatTableResults(results);
-        }
-        
-        // リスト形式OCR
-        async function performListOCR(canvas) {
-            console.log('リスト形式OCR実行中...');
-            
-            // 行単位に分割
-            const lines = detectListLines(canvas);
-            const results = [];
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                const lineCanvas = extractLineCanvas(canvas, line);
-                
-                try {
-                    const { data: { text, confidence } } = await Tesseract.recognize(
-                        lineCanvas,
-                        'jpn+eng',
-                        {
-                            tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE,
-                            preserve_interword_spaces: '1'
-                        }
-                    );
-                    
-                    results.push({
-                        line: i + 1,
-                        text: text.trim(),
-                        confidence: confidence
-                    });
-                } catch (error) {
-                    console.error(`行${i + 1}のOCRエラー:`, error);
-                }
-            }
-            
-            return formatListResults(results);
-        }
-        
-        // フォーム形式OCR
-        async function performFormOCR(canvas) {
-            console.log('フォーム形式OCR実行中...');
-            
-            // フィールド単位に分割
-            const fields = detectFormFields(canvas);
-            const results = [];
-            
-            for (let i = 0; i < fields.length; i++) {
-                const field = fields[i];
-                const fieldCanvas = extractFieldCanvas(canvas, field);
-                
-                try {
-                    const { data: { text, confidence } } = await Tesseract.recognize(
-                        fieldCanvas,
-                        'jpn+eng',
-                        {
-                            tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-                            preserve_interword_spaces: '1'
-                        }
-                    );
-                    
-                    results.push({
-                        field: field.label || `フィールド${i + 1}`,
-                        text: text.trim(),
-                        confidence: confidence
-                    });
-                } catch (error) {
-                    console.error(`フィールド${i + 1}のOCRエラー:`, error);
-                }
-            }
-            
-            return formatFormResults(results);
-        }
-        
-        // 高度OCR（混合レイアウト）
-        async function performAdvancedOCR(canvas) {
-            console.log('高度OCR実行中...');
-            
-            try {
-                const { data: { text, confidence, lines, words } } = await Tesseract.recognize(
-                    canvas,
-                    'jpn+eng',
-                    {
-                        tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-                        tessedit_ocr_engine_mode: 3, // LSTM
-                        preserve_interword_spaces: '1',
-                        // 複雑レイアウト用設定
-                        textord_heavy_nr: '1',
-                        textord_tabfind_show_vlines: '1',
-                        textord_tablefind_good_width: '3',
-                        textord_tablefind_good_height: '3'
-                    }
-                );
-                
-                return {
-                    type: 'advanced',
-                    text: text,
-                    confidence: confidence,
-                    structure: analyzeTextStructure(lines, words)
-                };
-            } catch (error) {
-                console.error('高度OCRエラー:', error);
-                throw error;
-            }
-        }
-        
-        // 表セル検出（簡易版）
-        function detectTableCells(canvas) {
-            // 実装簡略化 - 実際は画像解析で罫線を検出
-            const cells = [];
-            const rows = 3, cols = 3; // 仮の3x3表
-            
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    cells.push({
-                        row: r,
-                        col: c,
-                        x: (canvas.width / cols) * c,
-                        y: (canvas.height / rows) * r,
-                        width: canvas.width / cols,
-                        height: canvas.height / rows
-                    });
-                }
-            }
-            
-            return cells;
-        }
-        
-        // リスト行検出
-        function detectListLines(canvas) {
-            const lines = [];
-            const lineHeight = canvas.height / 5; // 仮に5行
-            
-            for (let i = 0; i < 5; i++) {
-                lines.push({
-                    x: 0,
-                    y: lineHeight * i,
-                    width: canvas.width,
-                    height: lineHeight
-                });
-            }
-            
-            return lines;
-        }
-        
-        // フォームフィールド検出
-        function detectFormFields(canvas) {
-            const fields = [];
-            const fieldHeight = canvas.height / 3;
-            
-            for (let i = 0; i < 3; i++) {
-                fields.push({
-                    label: `フィールド${i + 1}`,
-                    x: 0,
-                    y: fieldHeight * i,
-                    width: canvas.width,
-                    height: fieldHeight
-                });
-            }
-            
-            return fields;
-        }
-        
-        // キャンバス抽出関数群
-        function extractCellCanvas(canvas, cell) {
-            const cellCanvas = document.createElement('canvas');
-            const ctx = cellCanvas.getContext('2d');
-            cellCanvas.width = cell.width;
-            cellCanvas.height = cell.height;
-            ctx.drawImage(canvas, cell.x, cell.y, cell.width, cell.height, 0, 0, cell.width, cell.height);
-            return cellCanvas;
-        }
-        
-        function extractLineCanvas(canvas, line) {
-            const lineCanvas = document.createElement('canvas');
-            const ctx = lineCanvas.getContext('2d');
-            lineCanvas.width = line.width;
-            lineCanvas.height = line.height;
-            ctx.drawImage(canvas, line.x, line.y, line.width, line.height, 0, 0, line.width, line.height);
-            return lineCanvas;
-        }
-        
-        function extractFieldCanvas(canvas, field) {
-            const fieldCanvas = document.createElement('canvas');
-            const ctx = fieldCanvas.getContext('2d');
-            fieldCanvas.width = field.width;
-            fieldCanvas.height = field.height;
-            ctx.drawImage(canvas, field.x, field.y, field.width, field.height, 0, 0, field.width, field.height);
-            return fieldCanvas;
-        }
-        
-        // 結果フォーマット関数群
-        function formatTableResults(results) {
-            let formatted = '【表形式データ】\n';
-            const maxRow = Math.max(...results.map(r => r.row));
-            const maxCol = Math.max(...results.map(r => r.col));
-            
-            for (let r = 0; r <= maxRow; r++) {
-                const rowData = [];
-                for (let c = 0; c <= maxCol; c++) {
-                    const cell = results.find(result => result.row === r && result.col === c);
-                    rowData.push(cell ? cell.text : '');
-                }
-                formatted += rowData.join(' | ') + '\n';
-            }
-            
-            return { type: 'table', text: formatted, confidence: results.reduce((sum, r) => sum + r.confidence, 0) / results.length };
-        }
-        
-        function formatListResults(results) {
-            let formatted = '【リスト形式データ】\n';
-            results.forEach(result => {
-                formatted += `• ${result.text}\n`;
-            });
-            
-            return { type: 'list', text: formatted, confidence: results.reduce((sum, r) => sum + r.confidence, 0) / results.length };
-        }
-        
-        function formatFormResults(results) {
-            let formatted = '【フォーム形式データ】\n';
-            results.forEach(result => {
-                formatted += `${result.field}: ${result.text}\n`;
-            });
-            
-            return { type: 'form', text: formatted, confidence: results.reduce((sum, r) => sum + r.confidence, 0) / results.length };
-        }
-        
-        // テキスト構造解析
-        function analyzeTextStructure(lines, words) {
-            return {
-                lineCount: lines ? lines.length : 0,
-                wordCount: words ? words.length : 0,
-                avgConfidence: words ? words.reduce((sum, w) => sum + w.confidence, 0) / words.length : 0
-            };
-        }
-        
-        // 期限詳細デバッグ機能
-        async function deepDeadlineDebug() {
-            const deadlineAreas = selectedAreas.filter(area => area.tag === 'deadline');
-            if (deadlineAreas.length === 0) {
-                alert('期限タグが設定された領域がありません。期限領域を選択してデバッグを実行してください。');
-                return;
-            }
-            
-            console.log('🔬=== 期限詳細デバッグ開始 ===');
-            
-            for (let i = 0; i < deadlineAreas.length; i++) {
-                const area = deadlineAreas[i];
-                console.log(`\n🎯 期限領域 ${i + 1} 詳細解析:`);
-                
-                // 領域を切り抜き
-                const croppedCanvas = document.createElement('canvas');
-                const ctx = croppedCanvas.getContext('2d');
-                croppedCanvas.width = area.width;
-                croppedCanvas.height = area.height;
-                
-                const img = document.getElementById('selected-image');
-                const scaleX = img.naturalWidth / img.width;
-                const scaleY = img.naturalHeight / img.height;
-                
-                const realX = area.x * scaleX;
-                const realY = area.y * scaleY;
-                const realWidth = area.width * scaleX;
-                const realHeight = area.height * scaleY;
-                
-                ctx.drawImage(img, realX, realY, realWidth, realHeight, 0, 0, area.width, area.height);
-                
-                try {
-                    console.log('📐 領域情報:', { width: area.width, height: area.height, x: area.x, y: area.y });
-                    
-                    // 1. 全種類のOCRを実行して比較
-                    console.log('\n🔍 各種OCR結果比較:');
-                    
-                    // 通常OCR
-                    const normalResult = await performOCROnCanvas(croppedCanvas);
-                    console.log('📄 通常OCR:', normalResult);
-                    console.log('📅 通常OCR期限解析:', parseDeadlineText(normalResult));
-                    
-                    // 期限専用OCR  
-                    const deadlineResult = await performDeadlineOCR(croppedCanvas);
-                    console.log('⏰ 期限専用OCR:', deadlineResult);
-                    console.log('📅 期限専用OCR期限解析:', parseDeadlineText(deadlineResult));
-                    
-                    // 手書きOCR
-                    try {
-                        const handwritingResult = await performHandwritingOCR(croppedCanvas);
-                        console.log('✍️ 手書きOCR:', handwritingResult.text, `(信頼度: ${handwritingResult.confidence}%)`);
-                        console.log('📅 手書きOCR期限解析:', parseDeadlineText(handwritingResult.text));
-                    } catch (error) {
-                        console.log('✍️ 手書きOCRエラー:', error.message);
-                    }
-                    
-                    // 2. 絶対参照変換のステップバイステップ確認
-                    console.log('\n🔄 絶対参照変換詳細:');
-                    console.log('生OCR結果:', normalResult);
-                    const convertedText = convertToAbsoluteReference(normalResult);
-                    console.log('絶対参照変換後:', convertedText);
-                    const parseResult = parseDeadlineText(normalResult);
-                    console.log('最終解析結果:', parseResult);
-                    
-                    // 3. 画像解析（コントラスト・ノイズ状況）
-                    console.log('\n🖼️ 画像品質解析:');
-                    const imageStats = analyzeImageQuality(croppedCanvas);
-                    console.log('コントラスト:', imageStats.contrast);
-                    console.log('ノイズレベル:', imageStats.noise);
-                    console.log('文字密度:', imageStats.textDensity);
-                    
-                    // 4. 推奨改善方法
-                    console.log('\n💡 推奨改善方法:');
-                    const recommendations = getDeadlineRecommendations(normalResult, deadlineResult, imageStats);
-                    recommendations.forEach(rec => console.log(`- ${rec}`));
-                    
-                } catch (error) {
-                    console.error('期限詳細デバッグエラー:', error);
-                }
-            }
-            
-            console.log('\n🔬=== 期限詳細デバッグ終了 ===');
-            alert('期限詳細デバッグを実行しました。コンソール（F12）で詳細な解析結果を確認してください。');
-        }
-        
-        // 画像品質解析
-        function analyzeImageQuality(canvas) {
-            const ctx = canvas.getContext('2d');
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            
-            let minBrightness = 255;
-            let maxBrightness = 0;
-            let totalBrightness = 0;
-            let darkPixels = 0;
-            
-            for (let i = 0; i < data.length; i += 4) {
-                const brightness = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-                minBrightness = Math.min(minBrightness, brightness);
-                maxBrightness = Math.max(maxBrightness, brightness);
-                totalBrightness += brightness;
-                
-                if (brightness < 128) darkPixels++;
-            }
-            
-            const totalPixels = data.length / 4;
-            const avgBrightness = totalBrightness / totalPixels;
-            const contrast = maxBrightness - minBrightness;
-            const textDensity = darkPixels / totalPixels;
-            
-            // ノイズレベル推定（隣接ピクセル間の差分）
-            let noiseSum = 0;
-            let noiseCount = 0;
-            for (let y = 1; y < canvas.height - 1; y++) {
-                for (let x = 1; x < canvas.width - 1; x++) {
-                    const idx = (y * canvas.width + x) * 4;
-                    const current = data[idx];
-                    const right = data[idx + 4];
-                    const bottom = data[idx + canvas.width * 4];
-                    
-                    noiseSum += Math.abs(current - right) + Math.abs(current - bottom);
-                    noiseCount += 2;
-                }
-            }
-            const noise = noiseSum / noiseCount;
-            
-            return {
-                contrast: contrast,
-                noise: noise,
-                textDensity: textDensity,
-                avgBrightness: avgBrightness
-            };
-        }
-        
-        // デバッグ結果に基づく推奨事項
-        function getDeadlineRecommendations(normalOCR, deadlineOCR, imageStats) {
-            const recommendations = [];
-            
-            // OCR結果分析
-            if (!normalOCR || normalOCR.trim().length === 0) {
-                recommendations.push('通常OCRで文字が認識されていません。コントラスト強化・拡大処理を試してください');
-            }
-            
-            if (!deadlineOCR || deadlineOCR.trim().length === 0) {
-                recommendations.push('期限専用OCRでも認識失敗。手書きモードまたは複雑レイアウトモードを試してください');
-            }
-            
-            if (!parseDeadlineText(normalOCR) && !parseDeadlineText(deadlineOCR)) {
-                recommendations.push('期限パターンにマッチしません。以下を確認してください:');
-                recommendations.push('  - フォーマット: mm月dd日(曜日), hh:mm');
-                recommendations.push('  - 囲み数字: ①②③ → 123 変換が必要か');
-                recommendations.push('  - ノイズ: 枠線や背景が混入していないか');
-            }
-            
-            // 画像品質分析
-            if (imageStats.contrast < 100) {
-                recommendations.push('コントラストが低いです。「コントラスト強化」設定を有効にしてください');
-            }
-            
-            if (imageStats.noise > 20) {
-                recommendations.push('ノイズが多いです。「グレースケール化」設定を有効にしてください');
-            }
-            
-            if (imageStats.textDensity < 0.1) {
-                recommendations.push('文字密度が低いです。領域選択を文字部分のみに絞ってください');
-            }
-            
-            if (imageStats.textDensity > 0.8) {
-                recommendations.push('背景が暗すぎます。領域選択時に余白も含めてください');
-            }
-            
-            // 具体的な対処法
-            recommendations.push('【推奨順序】');
-            recommendations.push('1. 領域選択を期限文字部分のみに調整');
-            recommendations.push('2. 手書き文字モードを有効化');
-            recommendations.push('3. コントラスト強化 + 2倍拡大処理を有効化');
-            recommendations.push('4. それでも失敗する場合は画像自体の撮影・切り取りを見直し');
-            
-            return recommendations;
-        }
-        
-        // 期限解析テスト
-        function testDeadlineParsing() {
-            const testTexts = [
-                // 標準GoogleTODOフォーマット
-                '12月15日(月), 14:30',
-                '12月15日(月)',
-                '12月15日, 14:30',
-                '12月15日',
-                
-                // 囲み数字テスト（GoogleTODO特有）
-                '③月②⑤日(木), ①④:③⓪',
-                '①②月③⓪日(金), ②③:⑤⑨',
-                '⑫月㉛日(日), ⓪⑨:③⓪',
-                
-                // 全角数字テスト
-                '１２月１５日(月), １４:３０',
-                '０３月０７日(水)',
-                
-                // ノイズ混入テスト（枠線・記号）
-                '|12月15日(月), 14:30|',
-                '□12月15日(月)■',
-                '～12月15日(月), 14:30～',
-                'ノイズ｜12月15日(月), 14:30｜ノイズ',
-                
-                // 複雑なノイズパターン
-                '｜□③月②⑤日(木)■～, ①④:③⓪｜',
-                '認識エラー１２月１５日(月曜日), １４:３０誤認識',
-                
-                // エラーパターン
-                '14:30', // 時刻のみ
-                '無効な期限テキスト',
-                ''
-            ];
-            
-            console.log('=== GoogleTODO期限解析テスト開始 ===');
-            testTexts.forEach((text, index) => {
-                console.log(`\n📝 テスト ${index + 1}: "${text}"`);
-                
-                // 絶対参照変換のテスト
-                const converted = convertToAbsoluteReference(text);
-                console.log(`🔄 絶対参照変換: "${converted}"`);
-                
-                // 期限解析のテスト
-                const result = parseDeadlineText(text);
-                console.log(`📅 解析結果: ${result}`);
-                console.log(`✅ 成功: ${result ? '○' : '×'}`);
-            });
-            console.log('=== GoogleTODO期限解析テスト終了 ===');
-            
-            alert('期限解析テストを実行しました。コンソール（F12）で結果を確認してください。');
-        }
-        
-        // 直接OCRテスト（選択した期限領域で）
-        async function testOCRDirectly() {
-            const deadlineAreas = selectedAreas.filter(area => area.tag === 'deadline');
-            if (deadlineAreas.length === 0) {
-                alert('期限タグが設定された領域がありません。');
-                return;
-            }
-            
-            console.log('=== 期限領域OCRテスト開始 ===');
-            
-            for (let i = 0; i < deadlineAreas.length; i++) {
-                const area = deadlineAreas[i];
-                console.log(`\n期限領域 ${i + 1} テスト:`);
-                
-                // 領域を切り抜き
-                const croppedCanvas = document.createElement('canvas');
-                const croppedCtx = croppedCanvas.getContext('2d');
-                
-                croppedCanvas.width = area.width;
-                croppedCanvas.height = area.height;
-                
-                croppedCtx.drawImage(
-                    currentImage,
-                    area.x, area.y, area.width, area.height,
-                    0, 0, area.width, area.height
-                );
-                
-                try {
-                    // 期限用OCR
-                    const deadlineText = await performDeadlineOCR(croppedCanvas);
-                    console.log('期限用OCR結果:', deadlineText);
-                    console.log('期限解析結果:', parseDeadlineText(deadlineText));
-                    
-                    // 通常OCR
-                    const normalText = await performOCROnCanvas(croppedCanvas);
-                    console.log('通常OCR結果:', normalText);
-                    console.log('期限解析結果:', parseDeadlineText(normalText));
-                } catch (error) {
-                    console.error('OCRエラー:', error);
-                }
-            }
-            
-            console.log('\n=== 期限領域OCRテスト終了 ===');
-            alert('期限領域のOCRテストを実行しました。コンソール（F12）で結果を確認してください。');
-        }
-        
-        // 処理プレビュー（最初の選択領域でテスト）
-        function previewProcessing() {
-            if (selectedAreas.length === 0) {
-                alert('選択領域がありません。まず領域を選択してください。');
-                return;
-            }
-            
-            const area = selectedAreas[0];
-            const croppedCanvas = document.createElement('canvas');
-            const croppedCtx = croppedCanvas.getContext('2d');
-            
-            croppedCanvas.width = area.width;
-            croppedCanvas.height = area.height;
-            
-            croppedCtx.imageSmoothingEnabled = false;
-            croppedCtx.drawImage(
-                currentImage,
-                area.x, area.y, area.width, area.height,
-                0, 0, area.width, area.height
-            );
-            
-            // 前処理を適用
-            preprocessImage(croppedCanvas).then(processedCanvas => {
-                // 新しいウィンドウで表示
-                const newWindow = window.open('', '_blank');
-                newWindow.document.write(
-                    '<html>' +
-                    '<head><title>OCR前処理プレビュー<' + '/title><' + '/head>' +
-                    '<body style="margin: 20px; font-family: Arial, sans-serif;">' +
-                    '<h3>元画像 vs 処理後<' + '/h3>' +
-                    '<div style="display: flex; gap: 20px;">' +
-                    '<div>' +
-                    '<h4>元画像<' + '/h4>' +
-                    '<canvas id="original" style="border: 1px solid #ccc;"><' + '/canvas>' +
-                    '<' + '/div>' +
-                    '<div>' +
-                    '<h4>処理後<' + '/h4>' +
-                    '<canvas id="processed" style="border: 1px solid #ccc;"><' + '/canvas>' +
-                    '<' + '/div>' +
-                    '<' + '/div>' +
-                    '<' + '/body>' +
-                    '<' + '/html>'
-                );
-                
-                const originalCanvas = newWindow.document.getElementById('original');
-                const processedCanvasElement = newWindow.document.getElementById('processed');
-                
-                // 元画像を表示
-                originalCanvas.width = croppedCanvas.width;
-                originalCanvas.height = croppedCanvas.height;
-                const originalCtx = originalCanvas.getContext('2d');
-                originalCtx.drawImage(croppedCanvas, 0, 0);
-                
-                // 処理後を表示
-                processedCanvasElement.width = processedCanvas.width;
-                processedCanvasElement.height = processedCanvas.height;
-                const processedCtx = processedCanvasElement.getContext('2d');
-                processedCtx.drawImage(processedCanvas, 0, 0);
-            });
-        }
-        
+        // 🔥 OCR機能は削除されました（2025-12-16）
+        // OCR関連の約1,200行のコードを削除
+
         // 分析・レポート機能
         function showAnalytics() {
             const modal = document.getElementById('analyticsModal');
@@ -10146,14 +8935,14 @@
             const totalTasks = filteredTasks.length;
             document.getElementById('total-tasks').textContent = totalTasks;
             
-            // 完了タスク数と完了率
-            const completedTasks = filteredTasks.filter(task => task.columnId === 'done').length;
+            // 完了タスク数と完了率（isDoneColumn関数で判定）
+            const completedTasks = filteredTasks.filter(task => isDoneColumn(task.columnId)).length;
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             document.getElementById('completion-rate').textContent = completionRate + '%';
             
             // 期限遵守率を計算（フィルター済みタスクのうち、期限内に完了したタスクの割合）
             const completedOnTime = filteredTasks.filter(task => {
-                if (task.columnId === 'done' && task.deadline && task.completedAt) {
+                if (isDoneColumn(task.columnId) && task.deadline && task.completedAt) {
                     const deadline = new Date(task.deadline);
                     const completedDate = new Date(task.completedAt);
                     return completedDate <= deadline;
@@ -10172,8 +8961,8 @@
             document.getElementById('deadline-compliance').textContent = deadlineCompliance + '%';
             
             // 平均完了時間を計算
-            const completedWithTime = tasks.filter(task => 
-                task.columnId === 'done' && task.createdAt && task.completedAt
+            const completedWithTime = tasks.filter(task =>
+                isDoneColumn(task.columnId) && task.createdAt && task.completedAt
             );
             
             if (completedWithTime.length > 0) {
@@ -10236,8 +9025,8 @@
         function drawDeadlineChart() {
             const chartContainer = document.getElementById('deadline-chart');
             
-            // 期限状況を集計（Doneカラムを除く）
-            const activeTasks = tasks.filter(task => task.columnId !== 'done');
+            // 期限状況を集計（Doneカラム・Trashカラムを除く）
+            const activeTasks = tasks.filter(task => !isDoneColumn(task.columnId) && !isTrashColumn(task.columnId));
             const now = new Date();
             
             const deadlineStatus = {
@@ -10311,12 +9100,12 @@
             
             assignees.forEach(assignee => {
                 const assigneeTasks = tasks.filter(task => task.assignee === assignee);
-                const completed = assigneeTasks.filter(task => task.columnId === 'done').length;
+                const completed = assigneeTasks.filter(task => isDoneColumn(task.columnId)).length;
                 const total = assigneeTasks.length;
-                
+
                 // 期限遵守率
-                const completedWithDeadline = assigneeTasks.filter(task => 
-                    task.columnId === 'done' && task.deadline && task.completedAt
+                const completedWithDeadline = assigneeTasks.filter(task =>
+                    isDoneColumn(task.columnId) && task.deadline && task.completedAt
                 );
                 const onTime = completedWithDeadline.filter(task => {
                     const deadline = new Date(task.deadline);
@@ -10382,26 +9171,26 @@
         // 分析サマリー更新
         function updateAnalyticsSummary() {
             const totalTasks = tasks.length;
-            const completedTasks = tasks.filter(task => task.columnId === 'done').length;
+            const completedTasks = tasks.filter(task => isDoneColumn(task.columnId)).length;
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-            
+
             // 期限遵守率（全タスクのうち期限内に完了したタスクの割合）
             const completedOnTime = tasks.filter(task => {
-                if (task.columnId === 'done' && task.deadline && task.completedAt) {
+                if (isDoneColumn(task.columnId) && task.deadline && task.completedAt) {
                     const deadline = new Date(task.deadline);
                     const completedDate = new Date(task.completedAt);
                     return completedDate <= deadline;
                 }
                 return false;
             }).length;
-            
-            const deadlineCompliance = totalTasks > 0 
-                ? Math.round((completedOnTime / totalTasks) * 100) 
+
+            const deadlineCompliance = totalTasks > 0
+                ? Math.round((completedOnTime / totalTasks) * 100)
                 : 100;
-            
+
             // 平均完了時間
-            const completedWithTime = tasks.filter(task => 
-                task.columnId === 'done' && task.createdAt && task.completedAt
+            const completedWithTime = tasks.filter(task =>
+                isDoneColumn(task.columnId) && task.createdAt && task.completedAt
             );
             let avgTimeText = '-';
             if (completedWithTime.length > 0) {
@@ -10460,7 +9249,7 @@
             });
             
             const completedInPeriod = periodTasks.filter(task => {
-                if (task.columnId !== 'done' || !task.completedAt) return false;
+                if (!isDoneColumn(task.columnId) || !task.completedAt) return false;
                 const completedDate = new Date(task.completedAt);
                 return completedDate >= startDate && completedDate < endDate;
             });
@@ -11256,256 +10045,9 @@
                 executeImportFromModal();
             }
         }
-        
-        
-        // ============ モーダル用高機能OCR関数群 ============
-        let selectedAreasModal = [];
-        let isSelectingModal = false;
-        let startXModal = 0, startYModal = 0;
-        let currentImageModal = null;
-        
-        // ファイル選択時の処理（モーダル版）- DOMContentLoaded後に設定
-        function initOCRModalEventListeners() {
-            const ocrInput = document.getElementById('ocr-file-input-modal');
-            if (ocrInput) {
-                ocrInput.addEventListener('change', function(e) {
-                    handleOCRFileModal(this);
-                });
-            }
-        }
-        
-        function handleOCRFileModal(input) {
-            const file = input.files[0];
-            if (!file) return;
-            
-            if (!file.type.startsWith('image/')) {
-                alert('画像ファイルを選択してください');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                currentImageModal = new Image();
-                currentImageModal.onload = function() {
-                    showImagePreviewModal(this);
-                };
-                currentImageModal.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-        
-        function showImagePreviewModal(img) {
-            const container = document.getElementById('image-preview-container-modal');
-            const canvas = document.getElementById('image-canvas-modal');
-            const ctx = canvas.getContext('2d');
-            
-            // キャンバスサイズを画像に合わせる
-            canvas.width = img.width;
-            canvas.height = img.height;
-            
-            // 画像を描画
-            ctx.drawImage(img, 0, 0);
-            
-            // 選択領域をクリア
-            selectedAreasModal = [];
-            updateSelectionCountModal();
-            
-            // コンテナを表示
-            container.style.display = 'block';
-            
-            // マウスイベントを設定
-            setupCanvasEventsModal(canvas);
-        }
-        
-        function setupCanvasEventsModal(canvas) {
-            canvas.onmousedown = function(e) {
-                isSelectingModal = true;
-                const rect = canvas.getBoundingClientRect();
-                startXModal = e.clientX - rect.left;
-                startYModal = e.clientY - rect.top;
-            };
-            
-            canvas.onmousemove = function(e) {
-                if (!isSelectingModal) return;
-                
-                const rect = canvas.getBoundingClientRect();
-                const currentX = e.clientX - rect.left;
-                const currentY = e.clientY - rect.top;
-                
-                // 選択領域を描画
-                drawSelectionRectModal(startXModal, startYModal, currentX, currentY);
-            };
-            
-            canvas.onmouseup = function(e) {
-                if (!isSelectingModal) return;
-                
-                isSelectingModal = false;
-                const rect = canvas.getBoundingClientRect();
-                const endX = e.clientX - rect.left;
-                const endY = e.clientY - rect.top;
-                
-                // 選択領域を保存
-                const area = {
-                    x: Math.min(startXModal, endX),
-                    y: Math.min(startYModal, endY),
-                    width: Math.abs(endX - startXModal),
-                    height: Math.abs(endY - startYModal)
-                };
-                
-                if (area.width > 10 && area.height > 10) {
-                    selectedAreasModal.push(area);
-                    updateSelectionCountModal();
-                    drawAllSelectionsModal();
-                }
-            };
-        }
-        
-        function drawSelectionRectModal(x1, y1, x2, y2) {
-            const canvas = document.getElementById('image-canvas-modal');
-            const ctx = canvas.getContext('2d');
-            
-            // 画像を再描画
-            ctx.drawImage(currentImageModal, 0, 0);
-            
-            // 既存の選択領域を描画
-            drawAllSelectionsModal();
-            
-            // 現在の選択領域を描画
-            ctx.strokeStyle = '#ff0000';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
-            ctx.strokeRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
-        }
-        
-        function drawAllSelectionsModal() {
-            const canvas = document.getElementById('image-canvas-modal');
-            const ctx = canvas.getContext('2d');
-            
-            ctx.setLineDash([]);
-            selectedAreasModal.forEach((area, index) => {
-                ctx.strokeStyle = '#00ff00';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(area.x, area.y, area.width, area.height);
-                
-                // 領域番号を表示
-                ctx.fillStyle = '#00ff00';
-                ctx.font = '16px Arial';
-                ctx.fillText((index + 1).toString(), area.x + 5, area.y + 20);
-            });
-        }
-        
-        function updateSelectionCountModal() {
-            document.getElementById('selection-count-modal').textContent = `${selectedAreasModal.length}個の領域を選択中`;
-        }
-        
-        function clearSelectionsModal() {
-            selectedAreasModal = [];
-            updateSelectionCountModal();
-            
-            if (currentImageModal) {
-                const canvas = document.getElementById('image-canvas-modal');
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(currentImageModal, 0, 0);
-            }
-        }
-        
-        function hideImagePreviewModal() {
-            document.getElementById('image-preview-container-modal').style.display = 'none';
-            selectedAreasModal = [];
-            currentImageModal = null;
-        }
-        
-        async function processSelectedAreasModal() {
-            if (selectedAreasModal.length === 0) {
-                alert('まず領域を選択してください');
-                return;
-            }
-            
-            showOCRProgressModal();
-            let allText = '';
-            
-            try {
-                for (let i = 0; i < selectedAreasModal.length; i++) {
-                    const area = selectedAreasModal[i];
-                    updateOCRProgressModal(10 + (i * 80 / selectedAreasModal.length), `領域 ${i + 1}/${selectedAreasModal.length} を処理中...`);
-                    
-                    // 選択領域を切り出し
-                    const croppedCanvas = document.createElement('canvas');
-                    const croppedCtx = croppedCanvas.getContext('2d');
-                    croppedCanvas.width = area.width;
-                    croppedCanvas.height = area.height;
-                    
-                    croppedCtx.drawImage(currentImageModal, area.x, area.y, area.width, area.height, 0, 0, area.width, area.height);
-                    
-                    // OCR実行
-                    const { data: { text } } = await Tesseract.recognize(croppedCanvas, 'jpn+eng', {
-                        logger: m => {
-                            if (m.status === 'recognizing text') {
-                                const progress = 10 + (i * 80 / selectedAreasModal.length) + (m.progress * 80 / selectedAreasModal.length);
-                                updateOCRProgressModal(progress, `領域 ${i + 1}: ${Math.round(m.progress * 100)}%`);
-                            }
-                        }
-                    });
-                    
-                    if (text.trim()) {
-                        allText += text.trim() + '\n';
-                    }
-                }
-                
-                updateOCRProgressModal(100, '✅ OCR完了！');
-                
-                // テキストをインポートエリアに設定
-                document.getElementById('import-text-modal').value = allText;
-                
-                hideOCRProgressModal();
-                hideImagePreviewModal();
-                
-                if (allText.trim()) {
-                    alert(`OCRが完了しました！\n${selectedAreasModal.length}個の領域からテキストを抽出しました。`);
-                } else {
-                    alert('テキストを認識できませんでした。画像の品質を確認してください。');
-                }
-                
-            } catch (error) {
-                console.error('OCR Error:', error);
-                alert('OCR処理でエラーが発生しました: ' + error.message);
-                hideOCRProgressModal();
-            }
-        }
-        
-        function showOCRProgressModal() {
-            document.getElementById('ocr-status-modal').style.display = 'block';
-            updateOCRProgressModal(0, '📸 OCR処理を開始中...');
-        }
-        
-        function updateOCRProgressModal(percentage, message) {
-            document.getElementById('ocr-progress-bar-modal').style.width = percentage + '%';
-            document.getElementById('ocr-progress-text-modal').textContent = message;
-        }
-        
-        function hideOCRProgressModal() {
-            setTimeout(() => {
-                document.getElementById('ocr-status-modal').style.display = 'none';
-            }, 2000);
-        }
-        
-        function resetOCRSettingsModal() {
-            document.getElementById('ocr-handwriting-mode-modal').checked = false;
-            document.getElementById('ocr-complex-layout-mode-modal').checked = false;
-            document.getElementById('ocr-enhance-contrast-modal').checked = false;
-            document.getElementById('ocr-upscale-modal').checked = false;
-            document.getElementById('ocr-grayscale-modal').checked = false;
-            document.getElementById('ocr-cleanup-symbols-modal').checked = true;
-        }
-        
-        function previewProcessingModal() {
-            alert('処理プレビュー機能は実装予定です');
-        }
-        
-        function testOCRDirectlyModal() {
-            alert('OCRテスト機能は実装予定です');
-        }
-        
+
+        // 🔥 OCRモーダル関連機能は削除されました（2025-12-16）
+
         // 【元の完全な機能を復元】ドラッグ&ドロップ・3列表示・期限編集
         
         function displayLineByLinePreviewModal() {
@@ -11743,7 +10285,7 @@
         function handleDragEnterModal(event) {
             event.preventDefault();
             if (event.target.closest('[id^="preview-item-modal-"]')) {
-                event.target.closest('[id^="preview-item-modal-"]').style.backgroundColor = '#e3f2fd';
+                event.target.closest('[id^="preview-item-modal-"]').style.backgroundColor = '#e0f7f6';
             }
         }
         
@@ -12385,7 +10927,7 @@
             }
         }
         
-        // タスク削除機能（ゴミ箱移動）
+        // タスク削除機能（アーカイブ移動）
         async function deleteTask(taskId) {
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
@@ -12402,14 +10944,14 @@
             }
             
             const result = confirm(
-                `🗑️ タスクをゴミ箱に移動しますか？\n\n` +
+                `タスクをアーカイブに移動しますか？\n\n` +
                 `タスク: ${task.title}\n\n` +
-                `※ ゴミ箱からドラッグ&ドロップで復元可能です\n` +
-                `※ ゴミ箱で180日経過後に自動完全削除されます`
+                `※ アーカイブからドラッグ&ドロップで復元可能です\n` +
+                `※ アーカイブで180日経過後に自動完全削除されます`
             );
             
             if (result) {
-                // ゴミ箱に移動
+                // アーカイブに移動
                 const previousColumn = task.columnId;
                 task.columnId = 'trash';
                 task.deletedAt = new Date().toISOString();
@@ -12419,26 +10961,26 @@
                 render();
                 updateStats();
                 
-                // ゴミ箱の自動削除チェック
+                // アーカイブの自動削除チェック
                 cleanupTrash();
                 
-                console.log(`🗑️ タスク「${task.title}」をゴミ箱に移動しました`);
-                
+                console.log(`🗑️ タスク「${task.title}」をアーカイブに移動しました`);
+
                 // 削除通知
                 showNotification(
-                    '🗑️ タスク削除',
-                    `「${task.title}」をゴミ箱に移動しました`,
+                    'タスクアーカイブ',
+                    `「${task.title}」をアーカイブに移動しました`,
                     { tag: `delete-${Date.now()}` }
                 );
             }
         }
         
-        // ゴミ箱の自動クリーンアップ機能
+        // アーカイブの自動クリーンアップ機能
         function cleanupTrash() {
             const now = new Date();
             const oneEightyDaysAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
 
-            // 通常タスクのゴミ箱とプロジェクトタスクのゴミ箱カラムの両方を対象
+            // 通常タスクのアーカイブとプロジェクトタスクのアーカイブカラムの両方を対象
             const trashTasks = tasks.filter(t => isTrashColumn(t.columnId));
             const expiredTasks = trashTasks.filter(t => {
                 if (!t.deletedAt) return false;
@@ -12450,22 +10992,22 @@
                 tasks = tasks.filter(t => !expiredTasks.includes(t));
                 saveTasks();
 
-                console.log(`🧹 ゴミ箱から${expiredTasks.length}件のタスクを自動削除しました`);
+                console.log(`🧹 アーカイブから${expiredTasks.length}件のタスクを自動削除しました`);
 
                 // 削除通知
                 if (expiredTasks.length > 0) {
                     showNotification(
-                        '🧹 自動クリーンアップ',
-                        `ゴミ箱から${expiredTasks.length}件のタスクを自動削除しました（180日経過）`,
+                        '自動クリーンアップ',
+                        `アーカイブから${expiredTasks.length}件のタスクを自動削除しました（180日経過）`,
                         { tag: `cleanup-${Date.now()}` }
                     );
                 }
             }
             
-            // ゴミ箱が20件を超えた場合の警告（通常タスク・プロジェクトタスク両対応）
+            // アーカイブが20件を超えた場合の警告（通常タスク・プロジェクトタスク両対応）
             const remainingTrashTasks = tasks.filter(t => isTrashColumn(t.columnId));
             if (remainingTrashTasks.length > 20) {
-                console.log(`⚠️ ゴミ箱に${remainingTrashTasks.length}件のタスクがあります`);
+                console.log(`⚠️ アーカイブに${remainingTrashTasks.length}件のタスクがあります`);
             }
         }
         
@@ -12575,7 +11117,68 @@
                 window.location.href = 'login.html';
             }
         }
-        
+
+        // ヘルプモーダル
+        function openHelpModal() {
+            const modal = document.createElement('div');
+            modal.id = 'help-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2 style="margin: 0; color: #1a202c;">Kanban Work ヘルプ</h2>
+                        <button onclick="document.getElementById('help-modal').remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #718096;">&times;</button>
+                    </div>
+                    <div style="color: #4a5568; line-height: 1.8;">
+                        <h3 style="color: #2d3748; margin-top: 0;">基本操作</h3>
+                        <ul style="padding-left: 1.5rem;">
+                            <li><strong>タスク作成:</strong> 右パネルの「新規タスク」ボタンをクリック</li>
+                            <li><strong>タスク移動:</strong> カードをドラッグ&ドロップで移動</li>
+                            <li><strong>タスク編集:</strong> カードをクリックして詳細表示</li>
+                            <li><strong>複数選択:</strong> 右パネルの「複数選択」モードで一括操作</li>
+                        </ul>
+                        <h3 style="color: #2d3748;">カラムについて</h3>
+                        <ul style="padding-left: 1.5rem;">
+                            <li><strong>TODO:</strong> 未着手のタスク</li>
+                            <li><strong>Phase 1-3:</strong> 進行中のフェーズ</li>
+                            <li><strong>Done:</strong> 完了タスク（統計に反映）</li>
+                            <li><strong>Archive:</strong> アーカイブ済み（統計対象外）</li>
+                        </ul>
+                        <h3 style="color: #2d3748;">統計カード</h3>
+                        <ul style="padding-left: 1.5rem;">
+                            <li><strong>期限切れ:</strong> 期限を過ぎたタスク数</li>
+                            <li><strong>今日期限:</strong> 本日が期限のタスク数</li>
+                            <li><strong>停滞中:</strong> 3日以上同じステータスのタスク</li>
+                        </ul>
+                        <h3 style="color: #2d3748;">プロジェクト機能</h3>
+                        <ul style="padding-left: 1.5rem;">
+                            <li>左パネルからプロジェクトを選択</li>
+                            <li>プロジェクトごとにカラムをカスタマイズ可能</li>
+                            <li>担当者でフィルタリング可能</li>
+                        </ul>
+                    </div>
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <button onclick="document.getElementById('help-modal').remove()" style="background: #00C9B7; color: white; border: none; padding: 0.75rem 2rem; border-radius: 6px; cursor: pointer; font-size: 1rem;">閉じる</button>
+                    </div>
+                </div>
+            `;
+            modal.onclick = function(e) {
+                if (e.target === modal) modal.remove();
+            };
+            document.body.appendChild(modal);
+        }
+
         // 🔥 機能改善書は削除済み
 
         // ファイルインポート処理
@@ -12671,59 +11274,9 @@
             };
             reader.readAsText(file);
         }
-        
-        // 画像OCRインポート処理
-        function importImageWithOCR(file) {
-            if (typeof Tesseract === 'undefined') {
-                alert('画像読み取り機能が利用できません');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imageData = e.target.result;
-                
-                // OCR処理のローディング表示
-                const loadingMsg = alert('画像からテキストを読み取り中...');
-                
-                Tesseract.recognize(imageData, 'jpn+eng')
-                    .then(result => {
-                        const text = result.data.text.trim();
-                        if (text) {
-                            // 読み取ったテキストからタスクを作成
-                            const newTask = {
-                                id: Date.now(),
-                                title: `📷 ${file.name}から読み取り`,
-                                deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                                priority: 'medium',
-                                assignees: [getCurrentUser().name],
-                                assignee: getCurrentUser().name,
-                                memo: `画像から読み取ったテキスト:\n${text}`,
-                                columnId: 'todo',
-                                completed: false,
-                                createdAt: new Date().toISOString(),
-                                comments: [],
-                                attachments: [],
-                                // タスク非表示機能
-                                isHidden: false
-                            };
-                            
-                            tasks.unshift(newTask);
-                            saveTasks();
-                            render();
-                            alert(`画像からタスクを作成しました:\n${text.substring(0, 100)}...`);
-                        } else {
-                            alert('画像からテキストを読み取れませんでした');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('OCR error:', error);
-                        alert('画像の読み取りに失敗しました');
-                    });
-            };
-            reader.readAsDataURL(file);
-        }
-        
+
+        // 🔥 importImageWithOCR関数は削除されました（2025-12-16）
+
         // グローバル関数として公開
         window.checkTaskEvidence = checkTaskEvidence;
         window.promptForEvidence = promptForEvidence;
@@ -12793,16 +11346,16 @@
                 // ユーザーを取得
                 const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
 
-                // 期限切れタスク
+                // 期限切れタスク（完了・アーカイブ済みを除く）
                 const now = new Date();
                 const overdueTasks = tasks.filter(task =>
-                    task.deadline && new Date(task.deadline) < now && task.columnId !== 'done'
+                    task.deadline && new Date(task.deadline) < now && !isDoneColumn(task.columnId) && !isTrashColumn(task.columnId)
                 );
 
-                // 停滞タスク（3日以上同じステータス）
+                // 停滞タスク（3日以上同じステータス、完了・アーカイブ済みを除く）
                 const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
                 const staleTasks = tasks.filter(task =>
-                    task.lastMovedAt && new Date(task.lastMovedAt) < threeDaysAgo && task.columnId !== 'done'
+                    task.lastMovedAt && new Date(task.lastMovedAt) < threeDaysAgo && !isDoneColumn(task.columnId) && !isTrashColumn(task.columnId)
                 );
 
                 // UI更新
@@ -12825,7 +11378,7 @@
                             userStats[task.assignee] = { total: 0, completed: 0 };
                         }
                         userStats[task.assignee].total++;
-                        if (task.columnId === 'done') {
+                        if (isDoneColumn(task.columnId)) {
                             userStats[task.assignee].completed++;
                         }
                     }
@@ -12837,7 +11390,7 @@
                         return `
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #f0f0f0;">
                                 <span>${user}:</span>
-                                <span style="font-weight: 600; font-size: 1.1rem; color: #026aa7;">${completion}% (${stats.completed}/${stats.total})</span>
+                                <span style="font-weight: 600; font-size: 1.1rem; color: #0097A7;">${completion}% (${stats.completed}/${stats.total})</span>
                             </div>
                         `;
                     }).join('');
@@ -12972,7 +11525,7 @@
                                             ✏️ 編集
                                         </button>
                                         <button onclick="deleteProject('${project.id}')" style="background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer;">
-                                            🗑️ 削除
+                                            削除
                                         </button>
                                     ` : ''}
                                 </div>
@@ -13003,13 +11556,13 @@
         }
 
         // 🔧 デフォルトプロジェクトカラム
-        const DEFAULT_PROJECT_COLUMNS = ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"];
+        const DEFAULT_PROJECT_COLUMNS = ["TODO", "Phase1", "Phase2", "Phase3", "Done", "Archive"];
 
-        // 🔒 【必須カラム判定】完了とゴミ箱は削除不可
+        // 🔒 【必須カラム判定】完了とアーカイブは削除不可
         function isRequiredColumn(columnName) {
             if (!columnName) return false;
             const lower = columnName.toLowerCase();
-            return /完了|done|完成/i.test(columnName) || /ゴミ箱|trash|削除/i.test(columnName);
+            return /完了|done|完成/i.test(columnName) || /アーカイブ|ゴミ箱|trash|削除/i.test(columnName);
         }
 
         // 🔧 新規プロジェクトのカラム管理関数
@@ -13054,7 +11607,7 @@
             // 🔒 必須カラムは削除不可
             const columnToRemove = currentColumns[index];
             if (isRequiredColumn(columnToRemove)) {
-                alert('「完了」と「ゴミ箱」カラムは必須のため削除できません。\n\nこれらのカラムはDONE/TRASHとして機能します。');
+                alert('「完了」と「アーカイブ」カラムは必須のため削除できません。');
                 return;
             }
 
@@ -13112,7 +11665,7 @@
             // 🔒 必須カラムは削除不可
             const columnToRemove = currentColumns[index];
             if (isRequiredColumn(columnToRemove)) {
-                alert('「完了」と「ゴミ箱」カラムは必須のため削除できません。\n\nこれらのカラムはDONE/TRASHとして機能します。');
+                alert('「完了」と「アーカイブ」カラムは必須のため削除できません。');
                 return;
             }
 
@@ -13176,17 +11729,17 @@
 
                 console.log('✅ [PROJECT CREATE] 重複チェック完了: 問題なし');
 
-                // 🔒 【必須カラム自動追加】完了・ゴミ箱カラムがなければ追加
+                // 🔒 【必須カラム自動追加】完了・アーカイブカラムがなければ追加
                 const hasDone = columns.some(col => /完了|done|完成/i.test(col));
-                const hasTrash = columns.some(col => /ゴミ箱|trash|削除/i.test(col));
+                const hasTrash = columns.some(col => /アーカイブ|ゴミ箱|trash|削除/i.test(col));
 
                 if (!hasDone) {
-                    columns.push("✅ 完了");
+                    columns.push("Done");
                     console.log('🔧 [PROJECT CREATE] 完了カラムを自動追加');
                 }
                 if (!hasTrash) {
-                    columns.push("🗑️ ゴミ箱");
-                    console.log('🔧 [PROJECT CREATE] ゴミ箱カラムを自動追加');
+                    columns.push("Archive");
+                    console.log('🔧 [PROJECT CREATE] アーカイブカラムを自動追加');
                 }
 
                 console.log('✅ [PROJECT CREATE] カラム確定:', columns);
@@ -13426,7 +11979,7 @@
                                 <!-- カラムがここに動的に挿入される -->
                             </div>
                             <button type="button" onclick="addEditProjectColumn()" style="background: #e5e7eb; color: #374151; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer; font-weight: 500;">
-                                ➕ カラム追加
+                                カラム追加
                             </button>
                         </div>
 
@@ -13785,7 +12338,7 @@
                                         description: project.description || '',
                                         createdAt: project.createdAt,
                                         createdBy: project.createdBy || (currentUser ? currentUser.name : 'Unknown'),
-                                        columns: project.columns || ["📋 TODO", "🔄 進行中", "✅ 完了", "🗑️ ゴミ箱"]
+                                        columns: project.columns || DEFAULT_PROJECT_COLUMNS
                                     };
                                 });
                                 console.log('🔥 [PJ-MODAL] Firebase projects converted:', Object.keys(projectSettings).length);
@@ -13987,6 +12540,7 @@
         window.toggleHamburgerMenu = toggleHamburgerMenu;
         window.updateHamburgerMenu = updateHamburgerMenu;
         window.logout = logout;
+        window.openHelpModal = openHelpModal;
         window.handleFileImport = handleFileImport;
         window.processImportText = processImportText;
         window.executeImportFromModal = executeImportFromModal;
@@ -14047,7 +12601,7 @@
         <div class="menu-section" id="admin-menu-section" style="display: none;">
             <div class="menu-section-title">管理機能</div>
             <a href="javascript:void(0);" id="user-management-link" class="menu-item" onclick="toggleHamburgerMenu(); openUserManagementModal();">
-                <span>👥</span>
+                <span></span>
                 <span>ユーザー管理</span>
             </a>
             <a href="javascript:void(0);" id="admin-dashboard-link" class="menu-item" onclick="toggleHamburgerMenu(); openAdminDashboardModal();">
@@ -14094,8 +12648,8 @@
                         <!-- プロジェクト選択 -->
                         <div class="form-group">
                             <label class="form-label">📂 プロジェクト選択 *</label>
-                            <div style="background: #e3f2fd; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #2196f3;">
-                                <div style="font-size: 0.9rem; color: #1565c0;">
+                            <div style="background: #e0f7f6; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border-left: 4px solid #0097A7;">
+                                <div style="font-size: 0.9rem; color: #00796B;">
                                     💡 <strong>新規プロジェクト作成について</strong><br>
                                     新しいプロジェクトを作成する場合は、先に「<strong>プロジェクト設定</strong>」ページでプロジェクトを作成してください。<br>
                                     作成後、このページでそのプロジェクトを選択してタスクを追加できます。
