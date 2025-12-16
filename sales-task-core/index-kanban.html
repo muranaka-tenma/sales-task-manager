@@ -560,12 +560,15 @@
         }
         
         .column-count {
-            background: #0097A7;
-            color: white;
-            padding: 0.25rem 0.6rem;
-            border-radius: 0;
-            font-size: 0.85rem;
-            font-weight: 600;
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%);
+            color: #333;
+            padding: 0.2rem 0.65rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            min-width: 24px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
         
         .column-content {
@@ -3663,13 +3666,14 @@
         
         function updateAssigneeFilterText() {
             const textElement = document.getElementById('assignee-filter-text');
-            
+            if (!textElement) return; // 要素が存在しない場合は何もしない
+
             if (selectedProjectFilters.length > 0) {
                 // プロジェクト名を取得
                 const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
                 const project = projectSettings[selectedProjectFilters[0]];
                 const projectName = project ? project.name : 'プロジェクト';
-                
+
                 if (selectedAssigneeFilters.length > 0) {
                     textElement.textContent = `${projectName} - ${selectedAssigneeFilters[0]}`;
                 } else {
@@ -7199,15 +7203,20 @@
                 .filter(([assignee, count]) => count > overloadThreshold)
                 .map(([assignee, count]) => ({ assignee, count }));
             
-            document.getElementById('overdue-count').textContent = overdueCount;
-            document.getElementById('today-count').textContent = todayCount;
-            document.getElementById('stale-count').textContent = staleTasks.length;
+            // 統計DOM要素の安全な更新（要素が存在しない場合のエラー防止）
+            const overdueEl = document.getElementById('overdue-count');
+            const todayEl = document.getElementById('today-count');
+            const staleEl = document.getElementById('stale-count');
+            if (overdueEl) overdueEl.textContent = overdueCount;
+            if (todayEl) todayEl.textContent = todayCount;
+            if (staleEl) staleEl.textContent = staleTasks.length;
 
             // 完了率を計算（アーカイブ除く）
             const activeTasks = filteredTasks.filter(t => !isTrashColumn(t.columnId));
             const totalActiveTasks = activeTasks.length;
             const completionRate = totalActiveTasks > 0 ? Math.round((completedCount / totalActiveTasks) * 100) : 0;
-            document.getElementById('completion-rate').textContent = `${completionRate}%`;
+            const completionRateEl = document.getElementById('completion-rate');
+            if (completionRateEl) completionRateEl.textContent = `${completionRate}%`;
 
             // 期限遵守率を計算（完了タスクのうち期限内に完了した割合）
             const completedTasks = filteredTasks.filter(t => isDoneColumn(t.columnId));
@@ -7218,7 +7227,8 @@
                 return completedDate <= deadlineDate;
             });
             const complianceRate = completedTasks.length > 0 ? Math.round((onTimeCompletedTasks.length / completedTasks.length) * 100) : 0;
-            document.getElementById('compliance-rate').textContent = completedTasks.length > 0 ? `${complianceRate}%` : '-';
+            const complianceRateEl = document.getElementById('compliance-rate');
+            if (complianceRateEl) complianceRateEl.textContent = completedTasks.length > 0 ? `${complianceRate}%` : '-';
 
             // グローバル変数に保存（詳細表示用）
             window.staleTasks = staleTasks;
@@ -9906,12 +9916,14 @@
             
             // 総タスク数
             const totalTasks = filteredTasks.length;
-            document.getElementById('total-tasks').textContent = totalTasks;
-            
+            const totalTasksEl = document.getElementById('total-tasks');
+            if (totalTasksEl) totalTasksEl.textContent = totalTasks;
+
             // 完了タスク数と完了率（isDoneColumn関数で判定）
             const completedTasks = filteredTasks.filter(task => isDoneColumn(task.columnId)).length;
             const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-            document.getElementById('completion-rate').textContent = completionRate + '%';
+            const completionRateEl2 = document.getElementById('completion-rate');
+            if (completionRateEl2) completionRateEl2.textContent = completionRate + '%';
             
             // 期限遵守率を計算（フィルター済みタスクのうち、期限内に完了したタスクの割合）
             const completedOnTime = filteredTasks.filter(task => {
@@ -9930,29 +9942,31 @@
             console.log(`📊 [COMPLIANCE] Period: ${period}, Total tasks: ${totalTasks}`);
             console.log(`📊 [COMPLIANCE] Completed on time: ${completedOnTime}`);
             console.log(`📊 [COMPLIANCE] Compliance rate: ${deadlineCompliance}%`);
-            
-            document.getElementById('deadline-compliance').textContent = deadlineCompliance + '%';
-            
+
+            const deadlineComplianceEl = document.getElementById('deadline-compliance');
+            if (deadlineComplianceEl) deadlineComplianceEl.textContent = deadlineCompliance + '%';
+
             // 平均完了時間を計算
             const completedWithTime = tasks.filter(task =>
                 isDoneColumn(task.columnId) && task.createdAt && task.completedAt
             );
-            
+
+            const avgCompletionTimeEl = document.getElementById('avg-completion-time');
             if (completedWithTime.length > 0) {
                 const totalTime = completedWithTime.reduce((sum, task) => {
                     const created = new Date(task.createdAt);
                     const completed = new Date(task.completedAt);
                     return sum + (completed - created);
                 }, 0);
-                
+
                 const avgTime = totalTime / completedWithTime.length;
                 const days = Math.floor(avgTime / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((avgTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                
-                document.getElementById('avg-completion-time').textContent = 
+
+                if (avgCompletionTimeEl) avgCompletionTimeEl.textContent =
                     days > 0 ? `${days}日${hours}時間` : `${hours}時間`;
             } else {
-                document.getElementById('avg-completion-time').textContent = '-';
+                if (avgCompletionTimeEl) avgCompletionTimeEl.textContent = '-';
             }
         }
         
@@ -10178,10 +10192,13 @@
                 avgTimeText = days > 0 ? `${days}日${hours}h` : `${hours}h`;
             }
             
-            // 表示更新
-            document.getElementById('summary-completion-rate').textContent = completionRate + '%';
-            document.getElementById('summary-deadline-compliance').textContent = deadlineCompliance + '%';
-            document.getElementById('summary-avg-time').textContent = avgTimeText;
+            // 表示更新（要素存在チェック付き）
+            const summaryCompletionEl = document.getElementById('summary-completion-rate');
+            const summaryDeadlineEl = document.getElementById('summary-deadline-compliance');
+            const summaryAvgTimeEl = document.getElementById('summary-avg-time');
+            if (summaryCompletionEl) summaryCompletionEl.textContent = completionRate + '%';
+            if (summaryDeadlineEl) summaryDeadlineEl.textContent = deadlineCompliance + '%';
+            if (summaryAvgTimeEl) summaryAvgTimeEl.textContent = avgTimeText;
         }
         
         // 期間レポート機能
@@ -12364,7 +12381,7 @@
             const modal = document.getElementById('userManagementModal');
             const iframe = document.getElementById('userManagementFrame');
             if (modal && iframe) {
-                iframe.src = 'user-management.html';
+                iframe.src = 'user-management.html?embedded=true';
                 modal.style.display = 'flex';
             }
         }

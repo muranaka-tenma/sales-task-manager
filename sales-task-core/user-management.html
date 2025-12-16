@@ -331,9 +331,19 @@
     </style>
 </head>
 <body>
+    <script>
+        // iframe埋め込み時はヘッダーを非表示
+        if (window.location.search.includes('embedded=true')) {
+            document.addEventListener('DOMContentLoaded', () => {
+                const header = document.querySelector('.header');
+                if (header) header.style.display = 'none';
+                document.body.style.padding = '0';
+            });
+        }
+    </script>
     <div class="container">
         <div class="header">
-            <h1>👥 ユーザー管理</h1>
+            <h1>ユーザー管理</h1>
             <div style="display: flex; gap: 1rem; align-items: center;">
                 <button id="disabled-users-btn" onclick="openDisabledUsersModal()" style="display: none; padding: 0.5rem 1rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
                     🔒 無効化されたユーザー

@@ -647,6 +647,7 @@
         async function saveProject(event) {
             console.log('🔍 [PJ SAVE] Function called');
             event.preventDefault();
+            try {
 
             // 🔥 プロジェクトIDは自動生成（編集時は既存ID、新規時はタイムスタンプ）
             const projectId = currentEditingProjectId || `project_${Date.now()}`;
@@ -668,31 +669,53 @@
                 return;
             }
 
-            // 🔒 【必須カラム自動追加】完了・アーカイブカラムがなければ追加
-            const hasDone = columns.some(col => REQUIRED_COLUMNS.done.pattern.test(col));
-            const hasTrash = columns.some(col => REQUIRED_COLUMNS.trash.pattern.test(col));
+            // 🔒 重複カラムの除去（必須カラムは種類ごとに1つだけ残す）
+            const uniqueColumns = [];
+            const seenNames = new Set();
+            let hasDone = false;
+            let hasTrash = false;
+
+            columns.forEach(col => {
+                const normalizedName = col.toLowerCase().trim();
+                const isDoneColumn = REQUIRED_COLUMNS.done.pattern.test(col);
+                const isTrashColumn = REQUIRED_COLUMNS.trash.pattern.test(col);
+
+                // 必須カラム（完了・アーカイブ）は種類ごとに最初の1つだけ保持
+                if (isDoneColumn) {
+                    if (!hasDone) {
+                        hasDone = true;
+                        uniqueColumns.push(col);
+                    } else {
+                        console.log('🔧 [PJ SAVE] 重複完了カラムをスキップ:', col);
+                    }
+                } else if (isTrashColumn) {
+                    if (!hasTrash) {
+                        hasTrash = true;
+                        uniqueColumns.push(col);
+                    } else {
+                        console.log('🔧 [PJ SAVE] 重複アーカイブカラムをスキップ:', col);
+                    }
+                } else {
+                    // 通常カラムは名前で重複チェック
+                    if (!seenNames.has(normalizedName)) {
+                        seenNames.add(normalizedName);
+                        uniqueColumns.push(col);
+                    }
+                }
+            });
 
             console.log('🔍 [PJ SAVE] 必須カラムチェック - 完了:', hasDone, ', アーカイブ:', hasTrash);
 
+            // 必須カラムがなければ追加
             if (!hasDone) {
-                columns.push(REQUIRED_COLUMNS.done.default);
+                uniqueColumns.push(REQUIRED_COLUMNS.done.default);
                 console.log('🔧 [PJ SAVE] 完了カラムを自動追加');
             }
             if (!hasTrash) {
-                columns.push(REQUIRED_COLUMNS.trash.default);
+                uniqueColumns.push(REQUIRED_COLUMNS.trash.default);
                 console.log('🔧 [PJ SAVE] アーカイブカラムを自動追加');
             }
 
-            // 🔒 重複カラムの除去（同じ名前のカラムは1つだけ残す）
-            const uniqueColumns = [];
-            const seenNames = new Set();
-            columns.forEach(col => {
-                const normalizedName = col.toLowerCase().trim();
-                if (!seenNames.has(normalizedName)) {
-                    seenNames.add(normalizedName);
-                    uniqueColumns.push(col);
-                }
-            });
             const finalColumns = uniqueColumns;
 
             console.log('✅ [PJ SAVE] All validations passed (columns:', finalColumns, ')');
@@ -718,7 +741,6 @@
 
             if (result.success) {
                 console.log('✅ [PJ SAVE] Firebase保存完了');
-                closeModal();
                 await loadProjects(); // Firebase再読み込み
                 const action = currentEditingProjectId ? '更新' : '作成';
                 alert(`プロジェクト「${name}」を${action}しました`);
@@ -726,8 +748,15 @@
                 console.error('❌ [PJ SAVE] Firebase保存失敗:', result.error);
                 alert('保存に失敗しました: ' + result.error);
             }
+            } catch (error) {
+                console.error('❌ [PJ SAVE] 予期せぬエラー:', error);
+                alert('保存中にエラーが発生しました: ' + error.message);
+            } finally {
+                // 成功・失敗に関わらずモーダルを閉じる
+                closeModal();
+            }
         }
-        
+
         // プロジェクト削除（Firebase対応）
         async function deleteProject(projectId) {
             const currentUser = getCurrentUser();
@@ -795,23 +824,33 @@
 
             console.log('🗑️ [DELETE] Firebase削除成功:', projectId);
 
-            // 紐づくタスクのプロジェクト情報をクリア
+            // 🚀 楽観的UI更新：UIからプロジェクトを即座に削除
+            const projectElement = document.querySelector(`[onclick="deleteProject('${projectId}')"]`)?.closest('.project-item');
+            if (projectElement) {
+                projectElement.remove();
+                // プロジェクト数を更新
+                const projectCount = document.getElementById('project-count');
+                const currentCount = parseInt(projectCount.textContent) || 0;
+                projectCount.textContent = `${Math.max(0, currentCount - 1)} プロジェクト`;
+            }
+
+            // 紐づくタスクのプロジェクト情報をクリア（バックグラウンド処理）
             if (projectTasks.length > 0) {
-                for (const task of projectTasks) {
-                    const taskId = task.firebaseId || task.id;
-                    // タスクのプロジェクト情報をクリア
-                    await window.FirebaseDB.updateTask(taskId, {
-                        projectId: null,
-                        isPJTask: false,
-                        columnId: 'todo', // 個人タスクのデフォルトカラム
-                        updatedAt: new Date().toISOString()
-                    });
-                }
-                console.log(`🔄 [DELETE] ${projectTasks.length}件のタスクのプロジェクト情報をクリア`);
+                (async () => {
+                    for (const task of projectTasks) {
+                        const taskId = task.firebaseId || task.id;
+                        await window.FirebaseDB.updateTask(taskId, {
+                            projectId: null,
+                            isPJTask: false,
+                            columnId: 'todo',
+                            updatedAt: new Date().toISOString()
+                        });
+                    }
+                    console.log(`🔄 [DELETE] ${projectTasks.length}件のタスクのプロジェクト情報をクリア`);
+                })();
             }
 
             alert(`プロジェクト「${project.name}」を削除しました`);
-            await loadProjects(true); // 強制リフレッシュ（キャッシュを使用しない）
         }
         
         // 権限チェック（全ユーザーアクセス可能）
