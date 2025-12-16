@@ -349,21 +349,20 @@
         }
         
         .projects-header {
-            font-size: 1.1rem;
+            font-size: 0.9rem;
             font-weight: 600;
             color: #0097A7;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e5e7eb;
         }
-        
+
         .projects-list {
             flex: 1;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.25rem;
         }
         
         .kanban-area {
@@ -397,9 +396,9 @@
         .right-panel-section {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.4rem;
             width: 100%;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
         }
 
         .right-panel-section-title {
@@ -454,47 +453,53 @@
         .project-card {
             background: white;
             border-radius: 0;
-            padding: 0.85rem;
-            margin: 0.5rem;
-            border: 1px solid #e1e4e8;
+            padding: 0.5rem 0.6rem;
+            margin: 0;
+            border: none;
+            border-left: 3px solid transparent;
             cursor: pointer;
             transition: all 0.15s;
         }
 
         .project-card:hover {
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border-color: #0097A7;
-            background: #fafbfc;
+            background: #f3f4f6;
+            border-left-color: #0097A7;
         }
-        
+
         .project-card.active {
             background: #e0f7f6;
-            border-color: #0097A7;
-            box-shadow: 0 2px 8px rgba(2,106,167,0.2);
+            border-left-color: #0097A7;
         }
-        
+
         .project-card-name {
-            font-weight: 600;
+            font-weight: 500;
             color: #172b4d;
-            margin-bottom: 0.25rem;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        
+
         .project-card-meta {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #6b778c;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            justify-content: flex-end;
+            margin-top: 0.15rem;
         }
-        
+
         .project-card-count {
+            background: #e5e7eb;
+            color: #374151;
+            padding: 0.1rem 0.35rem;
+            border-radius: 8px;
+            font-size: 0.65rem;
+            font-weight: 500;
+        }
+
+        .project-card.active .project-card-count {
             background: #0097A7;
             color: white;
-            padding: 0.15rem 0.4rem;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            font-weight: 600;
         }
         
         .kanban-board {
@@ -567,7 +572,7 @@
         
         .column-content {
             flex: 1;
-            padding: 0.5rem;
+            padding: 0.25rem 0;
             overflow-y: auto;
             min-height: 100px;
             background: #f5f6f8;
@@ -577,17 +582,17 @@
         .task-card {
             background: var(--card-bg, #ffffff);
             border-radius: 0;
-            padding: 0.6rem 0.75rem;
-            margin-bottom: 0.4rem;
+            padding: 0.5rem 0.6rem;
+            margin: 0 0 2px 0;
             cursor: pointer;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            box-shadow: none;
             transition: all 0.15s ease;
             border-left: 4px solid #0097A7;
-            border-top: 1px solid #e1e4e8;
-            border-right: 1px solid #e1e4e8;
-            border-bottom: 1px solid #e1e4e8;
+            border-top: none;
+            border-right: none;
+            border-bottom: 1px solid #e5e7eb;
             color: var(--card-text, inherit);
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             width: 100%;
             box-sizing: border-box;
         }
@@ -1176,6 +1181,80 @@
             margin-top: 2rem;
         }
         
+        /* カラム右クリックメニュー */
+        .column-context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #e1e4e8;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 3000;
+            min-width: 160px;
+            display: none;
+        }
+
+        .column-context-menu.show {
+            display: block;
+        }
+
+        .context-menu-item {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .context-menu-item:hover {
+            background: #f3f4f6;
+        }
+
+        .context-menu-item.disabled {
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .context-menu-item.disabled:hover {
+            background: transparent;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 0.25rem 0;
+        }
+
+        .context-menu-colors {
+            padding: 0.5rem;
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .context-menu-color-btn {
+            width: 22px;
+            height: 22px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .context-menu-color-btn:hover {
+            transform: scale(1.15);
+        }
+
+        .context-menu-color-btn.active {
+            border-color: #374151;
+        }
+
         /* テーマ選択モーダル */
         .theme-modal {
             position: fixed;
@@ -1555,7 +1634,25 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- カラム右クリックメニュー -->
+    <div id="columnContextMenu" class="column-context-menu">
+        <div class="context-menu-colors" id="contextMenuColors">
+            <button class="context-menu-color-btn" style="background: #0097A7;" onclick="setColumnColorFromContext('#0097A7')" title="TERRA"></button>
+            <button class="context-menu-color-btn" style="background: #3b82f6;" onclick="setColumnColorFromContext('#3b82f6')" title="Blue"></button>
+            <button class="context-menu-color-btn" style="background: #10b981;" onclick="setColumnColorFromContext('#10b981')" title="Green"></button>
+            <button class="context-menu-color-btn" style="background: #f59e0b;" onclick="setColumnColorFromContext('#f59e0b')" title="Orange"></button>
+            <button class="context-menu-color-btn" style="background: #ef4444;" onclick="setColumnColorFromContext('#ef4444')" title="Red"></button>
+            <button class="context-menu-color-btn" style="background: #8b5cf6;" onclick="setColumnColorFromContext('#8b5cf6')" title="Purple"></button>
+            <button class="context-menu-color-btn" style="background: #6b7280;" onclick="setColumnColorFromContext('#6b7280')" title="Gray"></button>
+        </div>
+        <div class="context-menu-item" id="moveColumnLeft" onclick="moveColumnLeft()">← 左に移動</div>
+        <div class="context-menu-item" id="moveColumnRight" onclick="moveColumnRight()">→ 右に移動</div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="editColumnFromContext()">名前を変更</div>
+        <div class="context-menu-item" style="color: #ef4444;" onclick="deleteColumnFromContext()">削除</div>
+    </div>
+
     <!-- タスク編集モーダル -->
     <div class="modal" id="task-modal">
         <div class="modal-content">
@@ -6675,7 +6772,7 @@
                 columnEl.className = 'column';
                 columnEl.setAttribute('data-column-id', column.id); // アーカイブスタイル用
                 columnEl.innerHTML = `
-                    <div class="column-header" style="background: ${column.color}; color: white;">
+                    <div class="column-header" style="background: ${column.color}; color: white; cursor: context-menu;" oncontextmenu="showColumnContextMenu(event, '${column.id}')">
                         <div class="column-title">${column.title}</div>
                         <div class="column-count">${columnTasks.length}</div>
                     </div>
@@ -8254,6 +8351,139 @@
             alert('✅ 全カラムにTERRAカラー(#0097A7)を適用しました');
         }
 
+        // ===== カラム右クリックメニュー機能 =====
+        let contextMenuColumnIndex = -1;
+
+        function showColumnContextMenu(event, columnId) {
+            event.preventDefault();
+
+            // カラムのインデックスを取得
+            contextMenuColumnIndex = columns.findIndex(c => c.id === columnId);
+            if (contextMenuColumnIndex === -1) return;
+
+            const menu = document.getElementById('columnContextMenu');
+            const column = columns[contextMenuColumnIndex];
+
+            // 左右移動ボタンの有効/無効
+            const leftBtn = document.getElementById('moveColumnLeft');
+            const rightBtn = document.getElementById('moveColumnRight');
+
+            if (contextMenuColumnIndex === 0) {
+                leftBtn.classList.add('disabled');
+            } else {
+                leftBtn.classList.remove('disabled');
+            }
+
+            if (contextMenuColumnIndex === columns.length - 1) {
+                rightBtn.classList.add('disabled');
+            } else {
+                rightBtn.classList.remove('disabled');
+            }
+
+            // 現在の色をハイライト
+            document.querySelectorAll('.context-menu-color-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.style.background === column.color || btn.style.backgroundColor === column.color) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // メニュー位置を設定
+            menu.style.left = event.clientX + 'px';
+            menu.style.top = event.clientY + 'px';
+            menu.classList.add('show');
+
+            // 画面外に出ないよう調整
+            const rect = menu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) {
+                menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
+            }
+            if (rect.bottom > window.innerHeight) {
+                menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+            }
+        }
+
+        function hideColumnContextMenu() {
+            document.getElementById('columnContextMenu').classList.remove('show');
+            contextMenuColumnIndex = -1;
+        }
+
+        // クリックでメニューを閉じる
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.column-context-menu')) {
+                hideColumnContextMenu();
+            }
+        });
+
+        function setColumnColorFromContext(color) {
+            if (contextMenuColumnIndex === -1) return;
+
+            const currentUser = getCurrentUser();
+            if (currentUser.role !== 'developer') {
+                alert('⚠️ カラム色の変更はdeveloper権限が必要です');
+                return;
+            }
+
+            columns[contextMenuColumnIndex].color = color;
+            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            saveColumnsToFirestore();
+            render();
+            hideColumnContextMenu();
+        }
+
+        function moveColumnLeft() {
+            if (contextMenuColumnIndex <= 0) return;
+
+            const currentUser = getCurrentUser();
+            if (currentUser.role !== 'developer') {
+                alert('⚠️ カラムの並び替えはdeveloper権限が必要です');
+                return;
+            }
+
+            // 左のカラムと入れ替え
+            const temp = columns[contextMenuColumnIndex];
+            columns[contextMenuColumnIndex] = columns[contextMenuColumnIndex - 1];
+            columns[contextMenuColumnIndex - 1] = temp;
+
+            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            saveColumnsToFirestore();
+            render();
+            hideColumnContextMenu();
+        }
+
+        function moveColumnRight() {
+            if (contextMenuColumnIndex === -1 || contextMenuColumnIndex >= columns.length - 1) return;
+
+            const currentUser = getCurrentUser();
+            if (currentUser.role !== 'developer') {
+                alert('⚠️ カラムの並び替えはdeveloper権限が必要です');
+                return;
+            }
+
+            // 右のカラムと入れ替え
+            const temp = columns[contextMenuColumnIndex];
+            columns[contextMenuColumnIndex] = columns[contextMenuColumnIndex + 1];
+            columns[contextMenuColumnIndex + 1] = temp;
+
+            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            saveColumnsToFirestore();
+            render();
+            hideColumnContextMenu();
+        }
+
+        function editColumnFromContext() {
+            if (contextMenuColumnIndex === -1) return;
+            hideColumnContextMenu();
+            editColumnName(contextMenuColumnIndex);
+        }
+
+        function deleteColumnFromContext() {
+            if (contextMenuColumnIndex === -1) return;
+            hideColumnContextMenu();
+            deleteColumn(contextMenuColumnIndex);
+        }
+        // ===== カラム右クリックメニュー機能 ここまで =====
+
         function deleteColumn(index) {
             if (columns.length <= 2) {
                 alert('最低2つのカラムが必要です');
@@ -8952,7 +9182,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             // アプリバージョンチェック - 古いキャッシュを強制クリア
-            const APP_VERSION = '2025-12-16-v9-ui-refinement';
+            const APP_VERSION = '2025-12-16-v10-context-menu';
             const storedVersion = localStorage.getItem('appVersion');
             if (storedVersion !== APP_VERSION) {
                 console.log('🧹 [VERSION] 古いバージョン検出 - LocalStorage完全クリア');
