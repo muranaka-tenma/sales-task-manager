@@ -369,8 +369,8 @@
 
         /* 右サイドパネル */
         .right-panel {
-            width: 200px;
-            min-width: 200px;
+            width: 220px;
+            min-width: 220px;
             background: linear-gradient(135deg, #f8f9fb 0%, #ebecf0 100%);
             border-radius: 8px;
             padding: 1rem;
@@ -387,6 +387,8 @@
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
+            width: 100%;
+            margin-bottom: 1rem;
         }
 
         .right-panel-section-title {
@@ -1730,20 +1732,6 @@
                     </div>
                 </div>
 
-                <!-- テーマカラー設定 -->
-                <div class="setting-section" style="margin-top: 2rem; background: #e0f7f6; padding: 2rem; border-radius: 12px; border: 1px solid #80cbc4;">
-                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #0097A7;">テーマカラー</h3>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                        <button onclick="setThemeColor('#0097A7')" style="width: 50px; height: 50px; background: #0097A7; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="TERRAティール（デフォルト）" id="theme-color-teal"></button>
-                        <button onclick="setThemeColor('#667eea')" style="width: 50px; height: 50px; background: #667eea; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="パープルブルー" id="theme-color-purple"></button>
-                        <button onclick="setThemeColor('#10b981')" style="width: 50px; height: 50px; background: #10b981; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="エメラルド" id="theme-color-emerald"></button>
-                        <button onclick="setThemeColor('#f59e0b')" style="width: 50px; height: 50px; background: #f59e0b; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="アンバー" id="theme-color-amber"></button>
-                        <button onclick="setThemeColor('#ef4444')" style="width: 50px; height: 50px; background: #ef4444; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="レッド" id="theme-color-red"></button>
-                        <button onclick="setThemeColor('#8b5cf6')" style="width: 50px; height: 50px; background: #8b5cf6; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="バイオレット" id="theme-color-violet"></button>
-                    </div>
-                    <p style="margin-top: 1rem; font-size: 0.85rem; color: #6b7280;">選択したカラーがヘッダーとアクセントカラーに適用されます</p>
-                </div>
-                
                 <div class="setting-section" style="margin-top: 2rem; background: #fef2f2; padding: 2rem; border-radius: 12px; border: 1px solid #fecaca;">
                     <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #ef4444;">データ管理</h3>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
@@ -1888,13 +1876,7 @@
                             <textarea id="newProjectDescription" placeholder="プロジェクトの説明" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem; height: 80px; resize: vertical;"></textarea>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: 200px;">
-                            <label style="font-size: 0.9rem; color: #6b7280;">公開設定:</label>
-                            <select id="newProjectVisibility" style="padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
-                                <option value="public">[公開] 全員に公開</option>
-                                <option value="private">[非公開] メンバーのみ</option>
-                            </select>
-
-                            <label style="font-size: 0.9rem; color: #6b7280; margin-top: 0.5rem;">プロジェクトカラー:</label>
+                            <label style="font-size: 0.9rem; color: #6b7280;">プロジェクトカラー:</label>
                             <div id="newProjectColorPicker" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                 <button type="button" onclick="selectProjectColor('#0097A7')" data-color="#0097A7" style="width: 32px; height: 32px; border-radius: 50%; border: 3px solid #0097A7; background: #0097A7; cursor: pointer;" title="TERRA"></button>
                                 <button type="button" onclick="selectProjectColor('#3b82f6')" data-color="#3b82f6" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #3b82f6; cursor: pointer;" title="Blue"></button>
@@ -6431,8 +6413,7 @@
                     <div class="project-card ${isSelected ? 'active' : ''}" onclick="selectProject('${project.id}')">
                         <div class="project-card-name">${project.name}</div>
                         <div class="project-card-meta">
-                            <span>${project.isPublic ? '[公開]' : '[非公開]'}</span>
-                            <span class="project-card-count">${taskCount}</span>
+                            <span class="project-card-count">${taskCount}タスク</span>
                         </div>
                     </div>
                 `;
@@ -8138,13 +8119,32 @@
 
             const columnList = document.getElementById('column-list');
             columnList.innerHTML = columns.map((column, index) => `
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px;">
-                    <span style="flex: 1;">${column.title}</span>
-                    <input type="color" value="${column.color}" onchange="updateColumnColor(${index}, this.value)" style="width: 40px; height: 30px; border: none; border-radius: 4px;">
-                    <button onclick="editColumnName(${index})" style="padding: 0.25rem 0.5rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer;">編集</button>
-                    ${columns.length > 2 ? `<button onclick="deleteColumn(${index})" style="padding: 0.25rem 0.5rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer;">削除</button>` : ''}
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid ${column.color};">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="flex: 1; font-weight: 600;">${column.title}</span>
+                        <button onclick="editColumnName(${index})" style="padding: 0.25rem 0.5rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">名前変更</button>
+                        ${columns.length > 2 ? `<button onclick="deleteColumn(${index})" style="padding: 0.25rem 0.5rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">削除</button>` : ''}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <span style="font-size: 0.75rem; color: #6b7280;">色:</span>
+                        <button onclick="updateColumnColor(${index}, '#0097A7')" style="width: 24px; height: 24px; background: #0097A7; border: ${column.color === '#0097A7' ? '3px solid #005f6b' : '2px solid transparent'}; cursor: pointer;" title="TERRA"></button>
+                        <button onclick="updateColumnColor(${index}, '#3b82f6')" style="width: 24px; height: 24px; background: #3b82f6; border: ${column.color === '#3b82f6' ? '3px solid #1d4ed8' : '2px solid transparent'}; cursor: pointer;" title="Blue"></button>
+                        <button onclick="updateColumnColor(${index}, '#10b981')" style="width: 24px; height: 24px; background: #10b981; border: ${column.color === '#10b981' ? '3px solid #047857' : '2px solid transparent'}; cursor: pointer;" title="Green"></button>
+                        <button onclick="updateColumnColor(${index}, '#f59e0b')" style="width: 24px; height: 24px; background: #f59e0b; border: ${column.color === '#f59e0b' ? '3px solid #d97706' : '2px solid transparent'}; cursor: pointer;" title="Orange"></button>
+                        <button onclick="updateColumnColor(${index}, '#ef4444')" style="width: 24px; height: 24px; background: #ef4444; border: ${column.color === '#ef4444' ? '3px solid #dc2626' : '2px solid transparent'}; cursor: pointer;" title="Red"></button>
+                        <button onclick="updateColumnColor(${index}, '#8b5cf6')" style="width: 24px; height: 24px; background: #8b5cf6; border: ${column.color === '#8b5cf6' ? '3px solid #6d28d9' : '2px solid transparent'}; cursor: pointer;" title="Purple"></button>
+                        <button onclick="updateColumnColor(${index}, '#6b7280')" style="width: 24px; height: 24px; background: #6b7280; border: ${column.color === '#6b7280' ? '3px solid #4b5563' : '2px solid transparent'}; cursor: pointer;" title="Gray"></button>
+                        <input type="color" value="${column.color}" onchange="updateColumnColor(${index}, this.value)" style="width: 24px; height: 24px; border: none; cursor: pointer; padding: 0;" title="カスタム色">
+                    </div>
                 </div>
             `).join('');
+
+            // TERRAカラー一括適用ボタンを追加
+            const applyAllBtn = document.createElement('div');
+            applyAllBtn.innerHTML = `
+                <button onclick="applyTerraColorToAllColumns()" style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">全カラムにTERRAカラーを適用</button>
+            `;
+            columnList.appendChild(applyAllBtn);
         }
         
         function addColumn() {
@@ -8214,6 +8214,31 @@
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
             saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
             render(); // 即座に反映
+        }
+
+        // 全カラムにTERRAカラーを適用
+        function applyTerraColorToAllColumns() {
+            const terraColor = '#0097A7';
+
+            // 🔒 権限チェック（developer権限必要）
+            const currentUser = getCurrentUser();
+            if (currentUser.role !== 'developer') {
+                alert('⚠️ カラム色の一括変更はdeveloper権限が必要です');
+                return;
+            }
+
+            // 全カラムにTERRAカラーを適用
+            columns.forEach((column, index) => {
+                column.color = terraColor;
+            });
+
+            // 保存と再描画
+            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            saveColumnsToFirestore(); // Firestore同期
+            loadColumnManager(); // 設定画面更新
+            render(); // 即座に反映
+
+            alert('✅ 全カラムにTERRAカラー(#0097A7)を適用しました');
         }
 
         function deleteColumn(index) {
@@ -8914,7 +8939,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             // アプリバージョンチェック - 古いキャッシュを強制クリア
-            const APP_VERSION = '2025-12-16-v6-theme-color';
+            const APP_VERSION = '2025-12-16-v7-ui-improvements';
             const storedVersion = localStorage.getItem('appVersion');
             if (storedVersion !== APP_VERSION) {
                 console.log('🧹 [VERSION] 古いバージョン検出 - LocalStorage完全クリア');
@@ -12089,7 +12114,6 @@
             try {
                 const name = document.getElementById('newProjectName').value.trim();
                 const description = document.getElementById('newProjectDescription').value.trim();
-                const visibility = document.getElementById('newProjectVisibility').value;
                 const columns = getNewProjectColumns();
                 const currentUser = getCurrentUser();
 
@@ -12153,7 +12177,7 @@
                     id: 'project_' + Date.now(),
                     name: name,
                     description: description,
-                    visibility: visibility,
+                    visibility: 'public', // 常に公開（全員アクセス可）
                     color: projectColor,
                     columns: columns,
                     members: [currentUser.email], // 作成者は自動的にメンバーになる
@@ -12185,7 +12209,6 @@
                 // フォームをクリアして一覧を再読み込み
                 document.getElementById('newProjectName').value = '';
                 document.getElementById('newProjectDescription').value = '';
-                document.getElementById('newProjectVisibility').value = 'public';
                 document.getElementById('newProjectColor').value = '#0097A7';
                 selectProjectColor('#0097A7'); // 色選択をリセット
                 loadNewProjectColumns(); // カラムをデフォルトにリセット
@@ -12358,14 +12381,6 @@
                         </div>
                         
                         <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">公開設定</label>
-                            <select id="editProjectVisibility" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
-                                <option value="public" ${project.visibility === 'public' ? 'selected' : ''}>🌐 全員に公開</option>
-                                <option value="private" ${project.visibility === 'private' ? 'selected' : ''}>🔒 メンバーのみ</option>
-                            </select>
-                        </div>
-                        
-                        <div style="margin-bottom: 1rem;">
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">ステータス</label>
                             <select id="editProjectStatus" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
                                 <option value="active" ${project.status === 'active' ? 'selected' : ''}>🟢 アクティブ</option>
@@ -12415,7 +12430,6 @@
             try {
                 const name = document.getElementById('editProjectName').value.trim();
                 const description = document.getElementById('editProjectDescription').value.trim();
-                const visibility = document.getElementById('editProjectVisibility').value;
                 const status = document.getElementById('editProjectStatus').value;
                 const columns = getEditProjectColumns();
 
@@ -12459,7 +12473,7 @@
                     ...existingProject,
                     name: name,
                     description: description,
-                    visibility: visibility,
+                    visibility: 'public', // 常に公開（全員アクセス可）
                     status: status,
                     columns: columns,
                     members: members,
