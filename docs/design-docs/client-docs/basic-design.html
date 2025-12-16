@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基本設計書 - タスク管理ツール</title>
+    <style>
+        /* 画面表示用スタイル */
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --border-color: #e2e8f0;
+            --bg-gray: #f8fafc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', 'Meiryo', sans-serif;
+            line-height: 1.8;
+            color: #1e293b;
+            background: #ffffff;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* ヘッダー */
+        .document-header {
+            text-align: center;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 30px;
+            margin-bottom: 40px;
+        }
+
+        .document-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .document-subtitle {
+            font-size: 1.5em;
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+        }
+
+        .document-meta {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--bg-gray);
+            border-radius: 8px;
+        }
+
+        .meta-item {
+            text-align: center;
+        }
+
+        .meta-label {
+            font-size: 0.85em;
+            color: var(--secondary-color);
+            margin-bottom: 5px;
+        }
+
+        .meta-value {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        /* 目次 */
+        .toc {
+            background: var(--bg-gray);
+            padding: 30px;
+            border-radius: 8px;
+            margin: 40px 0;
+        }
+
+        .toc-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        .toc-list {
+            list-style: none;
+        }
+
+        .toc-item {
+            padding: 8px 0;
+            border-bottom: 1px dotted var(--border-color);
+        }
+
+        .toc-item:last-child {
+            border-bottom: none;
+        }
+
+        .toc-link {
+            text-decoration: none;
+            color: #1e293b;
+            display: flex;
+            justify-content: space-between;
+            transition: color 0.2s;
+        }
+
+        .toc-link:hover {
+            color: var(--primary-color);
+        }
+
+        .toc-number {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        /* セクション */
+        .section {
+            margin: 50px 0;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: var(--primary-color);
+            border-left: 5px solid var(--primary-color);
+            padding-left: 15px;
+            margin-bottom: 25px;
+        }
+
+        .subsection-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #334155;
+            margin: 30px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .subsubsection-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #475569;
+            margin: 20px 0 10px 0;
+        }
+
+        /* テーブル */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #1e40af;
+        }
+
+        td {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) {
+            background: var(--bg-gray);
+        }
+
+        /* リスト */
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        /* 強調ボックス */
+        .info-box {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            background: #eff6ff;
+        }
+
+        .warning-box {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #dc2626;
+            background: #fef2f2;
+        }
+
+        .success-box {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #16a34a;
+            background: #f0fdf4;
+        }
+
+        /* 図 */
+        .diagram {
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .diagram-title {
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        /* コードブロック */
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        /* 承認欄 */
+        .approval-section {
+            margin-top: 60px;
+            padding: 30px;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            page-break-inside: avoid;
+        }
+
+        .approval-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .approval-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .approval-table th {
+            background: var(--bg-gray);
+            color: #1e293b;
+            width: 20%;
+        }
+
+        .approval-table td {
+            height: 80px;
+            vertical-align: middle;
+        }
+
+        /* 印刷用スタイル */
+        @media print {
+            body {
+                font-size: 11pt;
+                line-height: 1.6;
+            }
+
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+
+            .document-header {
+                page-break-after: always;
+            }
+
+            .toc {
+                page-break-after: always;
+            }
+
+            .section {
+                page-break-before: auto;
+                page-break-after: auto;
+                page-break-inside: avoid;
+            }
+
+            .section-title {
+                page-break-after: avoid;
+            }
+
+            table {
+                page-break-inside: avoid;
+            }
+
+            .approval-section {
+                page-break-before: always;
+            }
+
+            .code-block {
+                background: #f8fafc;
+                color: #1e293b;
+                border: 1px solid var(--border-color);
+            }
+
+            /* ページヘッダー・フッター */
+            @page {
+                margin: 20mm;
+                @top-center {
+                    content: "基本設計書 - タスク管理ツール";
+                    font-size: 9pt;
+                    color: #64748b;
+                }
+                @bottom-right {
+                    content: "ページ " counter(page);
+                    font-size: 9pt;
+                    color: #64748b;
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <div class="document-header">
+            <div class="document-title">基本設計書</div>
+            <div class="document-subtitle">タスク管理ツール<br>LocalStorage → Firebase 移行プロジェクト</div>
+
+            <div class="document-meta">
+                <div class="meta-item">
+                    <div class="meta-label">文書番号</div>
+                    <div class="meta-value">BD-001</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">バージョン</div>
+                    <div class="meta-value">1.0</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">作成日</div>
+                    <div class="meta-value">2025-11-11</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">最終更新日</div>
+                    <div class="meta-value">2025-11-11</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">作成者</div>
+                    <div class="meta-value">muranaka-tenma</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 目次 -->
+        <div class="toc">
+            <div class="toc-title">目次</div>
+            <ul class="toc-list">
+                <li class="toc-item">
+                    <a href="#section1" class="toc-link">
+                        <span><span class="toc-number">1.</span>プロジェクト概要</span>
+                        <span>1</span>
+                    </a>
+                </li>
+                <li class="toc-item">
+                    <a href="#section2" class="toc-link">
+                        <span><span class="toc-number">2.</span>システム概要</span>
+                        <span>2</span>
+                    </a>
+                </li>
+                <li class="toc-item">
+                    <a href="#section3" class="toc-link">
+                        <span><span class="toc-number">3.</span>システムアーキテクチャ</span>
+                        <span>3</span>
+                    </a>
+                </li>
+                <li class="toc-item">
+                    <a href="#section4" class="toc-link">
+                        <span><span class="toc-number">4.</span>データベース設計</span>
+                        <span>5</span>
+                    </a>
+                </li>
+                <li class="toc-item">
+                    <a href="#section5" class="toc-link">
+                        <span><span class="toc-number">5.</span>機能設計</span>
+                        <span>7</span>
+                    </a>
+                </li>
+                <li class="toc-item">
+                    <a href="#section6" class="toc-link">
+                        <span><span class="toc-number">6.</span>セキュリティ設計</span>
+                        <span>10</span>
+                    </a>
+                </li>
+                <li class="toc-item">
+                    <a href="#section7" class="toc-link">
+                        <span><span class="toc-number">7.</span>デプロイ戦略</span>
+                        <span>12</span>
+                    </a>
+                </li>
+                <li class="toc-item">
+                    <a href="#section8" class="toc-link">
+                        <span><span class="toc-number">8.</span>リスク管理</span>
+                        <span>14</span>
+                    </a>
+                </li>
+                <li class="toc-item">
+                    <a href="#section9" class="toc-link">
+                        <span><span class="toc-number">9.</span>成功基準</span>
+                        <span>16</span>
+                    </a>
+                </li>
+                <li class="toc-item">
+                    <a href="#section10" class="toc-link">
+                        <span><span class="toc-number">10.</span>承認</span>
+                        <span>17</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 1. プロジェクト概要 -->
+        <div id="section1" class="section">
+            <h1 class="section-title">1. プロジェクト概要</h1>
+
+            <h2 class="subsection-title">1.1 プロジェクト名</h2>
+            <p>タスク管理ツール データストレージ移行プロジェクト</p>
+
+            <h2 class="subsection-title">1.2 プロジェクト目的</h2>
+            <p>本プロジェクトは、現行のタスク管理システムにおけるデータ保存方式を、ブラウザのLocalStorageからGoogle Firebase Firestoreへ移行することを目的としています。これにより、以下の目標を達成します：</p>
+
+            <ul>
+                <li><strong>データの永続性向上</strong>：ブラウザのキャッシュクリアによるデータ損失を防止</li>
+                <li><strong>セキュリティ強化</strong>：LocalStorage改ざんによる権限昇格脆弱性の修正</li>
+                <li><strong>マルチデバイス対応</strong>：複数デバイス間でのデータ同期を可能に</li>
+                <li><strong>スケーラビリティ向上</strong>：将来的なユーザー増加に対応</li>
+            </ul>
+
+            <h2 class="subsection-title">1.3 開発期間</h2>
+            <table>
+                <tr>
+                    <th>項目</th>
+                    <th>開始予定</th>
+                    <th>完了予定</th>
+                    <th>期間</th>
+                </tr>
+                <tr>
+                    <td>要件定義</td>
+                    <td>2025-11-04</td>
+                    <td>2025-11-07</td>
+                    <td>完了</td>
+                </tr>
+                <tr>
+                    <td>基本設計</td>
+                    <td>2025-11-07</td>
+                    <td>2025-11-11</td>
+                    <td>完了</td>
+                </tr>
+                <tr>
+                    <td>詳細設計</td>
+                    <td>未定</td>
+                    <td>未定</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>実装</td>
+                    <td>未定</td>
+                    <td>未定</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>テスト</td>
+                    <td>未定</td>
+                    <td>未定</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>デプロイ</td>
+                    <td>未定</td>
+                    <td>未定</td>
+                    <td>-</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">1.4 開発体制</h2>
+            <table>
+                <tr>
+                    <th>役割</th>
+                    <th>担当者</th>
+                    <th>責任範囲</th>
+                </tr>
+                <tr>
+                    <td>プロジェクトマネージャー</td>
+                    <td>muranaka-tenma</td>
+                    <td>プロジェクト全体の統括、進捗管理</td>
+                </tr>
+                <tr>
+                    <td>システムアーキテクト</td>
+                    <td>muranaka-tenma</td>
+                    <td>システム設計、技術選定</td>
+                </tr>
+                <tr>
+                    <td>開発リード</td>
+                    <td>muranaka-tenma</td>
+                    <td>実装、コードレビュー</td>
+                </tr>
+                <tr>
+                    <td>QAエンジニア</td>
+                    <td>TBD</td>
+                    <td>テスト計画、品質保証</td>
+                </tr>
+                <tr>
+                    <td>デプロイ担当</td>
+                    <td>muranaka-tenma</td>
+                    <td>本番環境デプロイ、監視</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">1.5 プロジェクトスコープ</h2>
+
+            <div class="info-box">
+                <h3>変更対象（11箇所）</h3>
+                <p><strong>プロジェクト管理機能：10箇所</strong></p>
+                <ol>
+                    <li>プロジェクト一覧取得</li>
+                    <li>プロジェクト作成</li>
+                    <li>プロジェクト更新</li>
+                    <li>プロジェクト削除</li>
+                    <li>プロジェクトメンバー管理</li>
+                    <li>プロジェクト検索</li>
+                    <li>プロジェクト統計</li>
+                    <li>プロジェクト設定</li>
+                    <li>プロジェクトアーカイブ</li>
+                    <li>プロジェクトインポート/エクスポート</li>
+                </ol>
+                <p><strong>セキュリティ修正：1箇所</strong></p>
+                <ul>
+                    <li>isAdmin()関数の脆弱性修正（LocalStorage改ざん対策）</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 2. システム概要 -->
+        <div id="section2" class="section">
+            <h1 class="section-title">2. システム概要</h1>
+
+            <h2 class="subsection-title">2.1 システム名称</h2>
+            <p>タスク管理ツール（Task Management System）</p>
+
+            <h2 class="subsection-title">2.2 システム目的</h2>
+            <p>個人およびチームでのタスク管理を効率化するWebベースのシステムです。プロジェクトごとにタスクを管理し、進捗状況を可視化することで、生産性の向上を支援します。</p>
+
+            <h2 class="subsection-title">2.3 主要機能</h2>
+            <table>
+                <tr>
+                    <th>機能分類</th>
+                    <th>機能名</th>
+                    <th>概要</th>
+                </tr>
+                <tr>
+                    <td rowspan="4">プロジェクト管理</td>
+                    <td>プロジェクト作成・編集・削除</td>
+                    <td>プロジェクトの基本的なCRUD操作</td>
+                </tr>
+                <tr>
+                    <td>メンバー管理</td>
+                    <td>プロジェクトへのメンバー追加・削除</td>
+                </tr>
+                <tr>
+                    <td>検索・フィルター</td>
+                    <td>プロジェクトの検索および絞り込み</td>
+                </tr>
+                <tr>
+                    <td>統計・レポート</td>
+                    <td>プロジェクトの進捗状況の可視化</td>
+                </tr>
+                <tr>
+                    <td rowspan="3">タスク管理</td>
+                    <td>タスク作成・編集・削除</td>
+                    <td>タスクの基本的なCRUD操作</td>
+                </tr>
+                <tr>
+                    <td>ステータス管理</td>
+                    <td>タスクのステータス変更（未着手/進行中/完了）</td>
+                </tr>
+                <tr>
+                    <td>優先度設定</td>
+                    <td>タスクの優先度設定（高/中/低）</td>
+                </tr>
+                <tr>
+                    <td rowspan="2">ユーザー管理</td>
+                    <td>ユーザー認証</td>
+                    <td>ログイン・ログアウト</td>
+                </tr>
+                <tr>
+                    <td>権限管理</td>
+                    <td>管理者権限の制御</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">2.4 想定ユーザー</h2>
+            <ul>
+                <li><strong>一般ユーザー</strong>：個人またはチームでタスク管理を行うユーザー</li>
+                <li><strong>管理者</strong>：システム全体の設定や管理を行うユーザー</li>
+            </ul>
+
+            <h2 class="subsection-title">2.5 ユーザー数想定</h2>
+            <table>
+                <tr>
+                    <th>時期</th>
+                    <th>想定ユーザー数</th>
+                    <th>備考</th>
+                </tr>
+                <tr>
+                    <td>Phase 1（開発者のみ）</td>
+                    <td>1名</td>
+                    <td>開発者による実環境テスト</td>
+                </tr>
+                <tr>
+                    <td>Phase 2（管理者）</td>
+                    <td>2-3名</td>
+                    <td>管理者による先行利用</td>
+                </tr>
+                <tr>
+                    <td>Phase 3（全ユーザー）</td>
+                    <td>10-50名</td>
+                    <td>正式リリース後</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 3. システムアーキテクチャ -->
+        <div id="section3" class="section">
+            <h1 class="section-title">3. システムアーキテクチャ</h1>
+
+            <h2 class="subsection-title">3.1 システム構成図</h2>
+            <div class="diagram">
+                <div class="diagram-title">システム全体構成</div>
+                <pre style="text-align: left; font-family: monospace;">
+┌────────────────────────────────────────────────────────────┐
+│                        ユーザー                              │
+│                     （Webブラウザ）                          │
+└───────────────────────┬────────────────────────────────────┘
+                        │ HTTPS
+                        ↓
+┌────────────────────────────────────────────────────────────┐
+│                    Netlify（CDN）                            │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │          フロントエンド（React + TypeScript）        │  │
+│  │  - UIコンポーネント                                  │  │
+│  │  - 状態管理（Zustand想定）                           │  │
+│  │  - ルーティング                                      │  │
+│  └──────────────────────────────────────────────────────┘  │
+└───────────────────────┬────────────────────────────────────┘
+                        │ Firebase SDK
+                        ↓
+┌────────────────────────────────────────────────────────────┐
+│              Google Firebase（Backend）                     │
+│  ┌──────────────────┐  ┌──────────────────┐                │
+│  │ Authentication   │  │   Firestore      │                │
+│  │  - Email/Pass    │  │  - projects      │                │
+│  │  - 権限管理      │  │  - tasks         │                │
+│  └──────────────────┘  │  - users         │                │
+│                        └──────────────────┘                │
+└────────────────────────────────────────────────────────────┘
+                </pre>
+            </div>
+
+            <h2 class="subsection-title">3.2 技術スタック</h2>
+
+            <h3 class="subsubsection-title">3.2.1 フロントエンド</h3>
+            <table>
+                <tr>
+                    <th>カテゴリ</th>
+                    <th>技術</th>
+                    <th>バージョン</th>
+                    <th>用途</th>
+                </tr>
+                <tr>
+                    <td>言語</td>
+                    <td>TypeScript</td>
+                    <td>5.x</td>
+                    <td>型安全な開発</td>
+                </tr>
+                <tr>
+                    <td>フレームワーク</td>
+                    <td>React</td>
+                    <td>18.x</td>
+                    <td>UIコンポーネント構築</td>
+                </tr>
+                <tr>
+                    <td>ビルドツール</td>
+                    <td>Vite / Webpack</td>
+                    <td>Latest</td>
+                    <td>バンドリング、開発サーバー</td>
+                </tr>
+                <tr>
+                    <td>状態管理</td>
+                    <td>Zustand（想定）</td>
+                    <td>4.x</td>
+                    <td>グローバル状態管理</td>
+                </tr>
+                <tr>
+                    <td>スタイリング</td>
+                    <td>CSS Modules / Tailwind</td>
+                    <td>-</td>
+                    <td>スタイル定義</td>
+                </tr>
+            </table>
+
+            <h3 class="subsubsection-title">3.2.2 バックエンド</h3>
+            <table>
+                <tr>
+                    <th>カテゴリ</th>
+                    <th>技術</th>
+                    <th>用途</th>
+                </tr>
+                <tr>
+                    <td>データベース</td>
+                    <td>Firebase Firestore</td>
+                    <td>NoSQLデータベース</td>
+                </tr>
+                <tr>
+                    <td>認証</td>
+                    <td>Firebase Authentication</td>
+                    <td>ユーザー認証管理</td>
+                </tr>
+                <tr>
+                    <td>ホスティング</td>
+                    <td>Netlify</td>
+                    <td>静的サイトホスティング、CDN</td>
+                </tr>
+            </table>
+
+            <h3 class="subsubsection-title">3.2.3 開発ツール</h3>
+            <table>
+                <tr>
+                    <th>カテゴリ</th>
+                    <th>ツール</th>
+                    <th>用途</th>
+                </tr>
+                <tr>
+                    <td>バージョン管理</td>
+                    <td>Git + GitHub</td>
+                    <td>ソースコード管理</td>
+                </tr>
+                <tr>
+                    <td>CI/CD</td>
+                    <td>Netlify自動デプロイ</td>
+                    <td>継続的インテグレーション</td>
+                </tr>
+                <tr>
+                    <td>パッケージ管理</td>
+                    <td>npm</td>
+                    <td>依存関係管理</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">3.3 開発環境</h2>
+            <div class="code-block">
+開発環境要件：
+- Node.js: 18.x 以上
+- npm: 9.x 以上
+- Git: 2.x 以上
+- エディタ: VS Code推奨
+
+必要な環境変数：
+FIREBASE_API_KEY=xxxxx
+FIREBASE_AUTH_DOMAIN=xxxxx
+FIREBASE_PROJECT_ID=xxxxx
+FIREBASE_STORAGE_BUCKET=xxxxx
+FIREBASE_MESSAGING_SENDER_ID=xxxxx
+FIREBASE_APP_ID=xxxxx
+            </div>
+
+            <h2 class="subsection-title">3.4 本番環境</h2>
+            <table>
+                <tr>
+                    <th>項目</th>
+                    <th>内容</th>
+                </tr>
+                <tr>
+                    <td>ホスティング</td>
+                    <td>Netlify（CDN経由配信）</td>
+                </tr>
+                <tr>
+                    <td>データベース</td>
+                    <td>Firebase Firestore（asia-northeast1リージョン推奨）</td>
+                </tr>
+                <tr>
+                    <td>SSL/TLS</td>
+                    <td>Netlify提供の自動SSL（Let's Encrypt）</td>
+                </tr>
+                <tr>
+                    <td>ドメイン</td>
+                    <td>https://[project-name].netlify.app（カスタムドメイン設定可能）</td>
+                </tr>
+                <tr>
+                    <td>バックアップ</td>
+                    <td>Firebase自動バックアップ + 日次手動バックアップ</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 4. データベース設計 -->
+        <div id="section4" class="section">
+            <h1 class="section-title">4. データベース設計</h1>
+
+            <h2 class="subsection-title">4.1 移行概要</h2>
+            <div class="info-box">
+                <p><strong>移行方式：</strong> LocalStorage（ブラウザ内保存） → Firebase Firestore（クラウドDB）</p>
+                <p><strong>移行理由：</strong></p>
+                <ul>
+                    <li>LocalStorageは容量制限（5-10MB）があり拡張性に乏しい</li>
+                    <li>ブラウザキャッシュクリアでデータが消失するリスク</li>
+                    <li>LocalStorageは改ざん可能でセキュリティリスクが高い</li>
+                    <li>マルチデバイス・マルチブラウザでの同期が不可能</li>
+                </ul>
+            </div>
+
+            <h2 class="subsection-title">4.2 LocalStorage構成（移行前）</h2>
+
+            <h3 class="subsubsection-title">データ構造例</h3>
+            <div class="code-block">
+// LocalStorageに保存されていたデータ構造（JSON文字列）
+
+localStorage.setItem('projects', JSON.stringify([
+  {
+    id: 'proj-001',
+    name: 'プロジェクトA',
+    description: '説明',
+    members: ['user-001', 'user-002'],
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-10T12:00:00Z'
+  }
+]));
+
+localStorage.setItem('tasks', JSON.stringify([
+  {
+    id: 'task-001',
+    projectId: 'proj-001',
+    title: 'タスク1',
+    status: 'in_progress',
+    priority: 'high',
+    assignee: 'user-001',
+    createdAt: '2025-01-02T10:00:00Z'
+  }
+]));
+
+localStorage.setItem('isAdmin', 'false'); // セキュリティリスク！
+            </div>
+
+            <h3 class="subsubsection-title">LocalStorageの問題点</h3>
+            <table>
+                <tr>
+                    <th>問題</th>
+                    <th>影響</th>
+                    <th>重大度</th>
+                </tr>
+                <tr>
+                    <td>容量制限（5-10MB）</td>
+                    <td>大量データを扱えない</td>
+                    <td>中</td>
+                </tr>
+                <tr>
+                    <td>データ永続性なし</td>
+                    <td>キャッシュクリアで消失</td>
+                    <td>高</td>
+                </tr>
+                <tr>
+                    <td>クライアント側で改ざん可能</td>
+                    <td>権限昇格、データ改ざん</td>
+                    <td>Critical</td>
+                </tr>
+                <tr>
+                    <td>同期機能なし</td>
+                    <td>マルチデバイス不可</td>
+                    <td>中</td>
+                </tr>
+                <tr>
+                    <td>クエリ機能なし</td>
+                    <td>全データ読み込みが必要</td>
+                    <td>低</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">4.3 Firebase Firestore構成（移行後）</h2>
+
+            <h3 class="subsubsection-title">コレクション設計</h3>
+            <div class="diagram">
+                <div class="diagram-title">Firestoreコレクション構造</div>
+                <pre style="text-align: left;">
+Firestore
+├── users (collection)
+│   └── {userId} (document)
+│       ├── email: string
+│       ├── displayName: string
+│       ├── role: 'user' | 'admin'
+│       ├── createdAt: timestamp
+│       └── updatedAt: timestamp
+│
+├── projects (collection)
+│   └── {projectId} (document)
+│       ├── name: string
+│       ├── description: string
+│       ├── members: array&lt;string&gt;
+│       ├── ownerId: string
+│       ├── status: 'active' | 'archived'
+│       ├── createdAt: timestamp
+│       └── updatedAt: timestamp
+│
+└── tasks (collection)
+    └── {taskId} (document)
+        ├── projectId: string
+        ├── title: string
+        ├── description: string
+        ├── status: 'todo' | 'in_progress' | 'done'
+        ├── priority: 'low' | 'medium' | 'high'
+        ├── assignee: string
+        ├── dueDate: timestamp
+        ├── createdAt: timestamp
+        └── updatedAt: timestamp
+                </pre>
+            </div>
+
+            <h3 class="subsubsection-title">Firestoreセキュリティルール</h3>
+            <div class="code-block">
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ユーザーコレクション
+    match /users/{userId} {
+      // 自分のドキュメントのみ読み書き可能
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // 管理者は全ユーザー閲覧可能
+      allow read: if request.auth != null &&
+                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // プロジェクトコレクション
+    match /projects/{projectId} {
+      // メンバーまたはオーナーのみ読み取り可能
+      allow read: if request.auth != null &&
+                     (request.auth.uid in resource.data.members ||
+                      request.auth.uid == resource.data.ownerId);
+
+      // オーナーのみ更新・削除可能
+      allow update, delete: if request.auth != null &&
+                               request.auth.uid == resource.data.ownerId;
+
+      // 認証済みユーザーは作成可能
+      allow create: if request.auth != null &&
+                       request.resource.data.ownerId == request.auth.uid;
+    }
+
+    // タスクコレクション
+    match /tasks/{taskId} {
+      // プロジェクトメンバーのみアクセス可能
+      allow read, write: if request.auth != null &&
+                            request.auth.uid in get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.members;
+    }
+  }
+}
+            </div>
+
+            <h2 class="subsection-title">4.4 データ移行計画</h2>
+            <table>
+                <tr>
+                    <th>ステップ</th>
+                    <th>作業内容</th>
+                    <th>担当</th>
+                </tr>
+                <tr>
+                    <td>1. バックアップ取得</td>
+                    <td>全ユーザーのLocalStorageデータをJSON形式でエクスポート</td>
+                    <td>各ユーザー（スクリプト提供）</td>
+                </tr>
+                <tr>
+                    <td>2. Firebase初期化</td>
+                    <td>Firestoreコレクション作成、セキュリティルール設定</td>
+                    <td>システム管理者</td>
+                </tr>
+                <tr>
+                    <td>3. コード実装</td>
+                    <td>LocalStorage → Firestore APIに置き換え（11箇所）</td>
+                    <td>開発チーム</td>
+                </tr>
+                <tr>
+                    <td>4. テスト</td>
+                    <td>機能テスト、セキュリティテスト、パフォーマンステスト</td>
+                    <td>QAチーム</td>
+                </tr>
+                <tr>
+                    <td>5. デプロイ</td>
+                    <td>3段階カナリアデプロイ（開発者→管理者→全ユーザー）</td>
+                    <td>デプロイ担当</td>
+                </tr>
+                <tr>
+                    <td>6. データ復旧（必要時）</td>
+                    <td>バックアップからのリストア</td>
+                    <td>システム管理者</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 5. 機能設計 -->
+        <div id="section5" class="section">
+            <h1 class="section-title">5. 機能設計</h1>
+
+            <h2 class="subsection-title">5.1 変更箇所一覧（11箇所）</h2>
+            <table>
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 25%;">機能</th>
+                    <th style="width: 30%;">変更前（LocalStorage）</th>
+                    <th style="width: 30%;">変更後（Firebase）</th>
+                    <th style="width: 10%;">影響度</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>プロジェクト一覧取得</td>
+                    <td>localStorage.getItem('projects')</td>
+                    <td>firestore.collection('projects').get()</td>
+                    <td>High</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>プロジェクト作成</td>
+                    <td>localStorage.setItem('projects', data)</td>
+                    <td>firestore.collection('projects').add(data)</td>
+                    <td>High</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>プロジェクト更新</td>
+                    <td>localStorage.setItem('projects', updated)</td>
+                    <td>firestore.doc('projects/{id}').update(data)</td>
+                    <td>High</td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>プロジェクト削除</td>
+                    <td>localStorage.removeItem('projects')</td>
+                    <td>firestore.doc('projects/{id}').delete()</td>
+                    <td>High</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>メンバー管理</td>
+                    <td>配列操作 + setItem()</td>
+                    <td>firestore.arrayUnion() / arrayRemove()</td>
+                    <td>Medium</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>プロジェクト検索</td>
+                    <td>全データ読込 + filter()</td>
+                    <td>firestore.where('name', '==', query)</td>
+                    <td>Medium</td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td>プロジェクト統計</td>
+                    <td>全データ読込 + 集計</td>
+                    <td>firestore集計クエリ</td>
+                    <td>Low</td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td>プロジェクト設定</td>
+                    <td>localStorage操作</td>
+                    <td>firestore.update(settings)</td>
+                    <td>Medium</td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td>アーカイブ機能</td>
+                    <td>フラグ変更</td>
+                    <td>firestore.update({status: 'archived'})</td>
+                    <td>Low</td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td>インポート/エクスポート</td>
+                    <td>JSON変換</td>
+                    <td>firestore batch操作</td>
+                    <td>Medium</td>
+                </tr>
+                <tr>
+                    <td>11</td>
+                    <td>isAdmin()セキュリティ修正</td>
+                    <td>localStorage.getItem('isAdmin')</td>
+                    <td>firestore.doc('users/{uid}').data.role</td>
+                    <td>Critical</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">5.2 プロジェクト管理機能の詳細</h2>
+
+            <h3 class="subsubsection-title">5.2.1 プロジェクト一覧取得（変更#1）</h3>
+            <div class="code-block">
+// 変更前（LocalStorage）
+export const getProjects = (): Project[] => {
+  const data = localStorage.getItem('projects');
+  return data ? JSON.parse(data) : [];
+};
+
+// 変更後（Firebase）
+export const getProjects = async (): Promise&lt;Project[]&gt; => {
+  const snapshot = await firebase
+    .firestore()
+    .collection('projects')
+    .where('members', 'array-contains', currentUser.uid)
+    .get();
+
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as Project));
+};
+            </div>
+
+            <h3 class="subsubsection-title">5.2.2 プロジェクト作成（変更#2）</h3>
+            <div class="code-block">
+// 変更前（LocalStorage）
+export const createProject = (project: Project): void => {
+  const projects = getProjects();
+  projects.push(project);
+  localStorage.setItem('projects', JSON.stringify(projects));
+};
+
+// 変更後（Firebase）
+export const createProject = async (project: Omit&lt;Project, 'id'&gt;): Promise&lt;string&gt; => {
+  const docRef = await firebase
+    .firestore()
+    .collection('projects')
+    .add({
+      ...project,
+      ownerId: currentUser.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+  return docRef.id;
+};
+            </div>
+
+            <h3 class="subsubsection-title">5.2.3 その他の機能（変更#3〜10）</h3>
+            <p>変更#3（プロジェクト更新）、#4（削除）、#5（メンバー管理）、#6（検索）、#7（統計）、#8（設定）、#9（アーカイブ）、#10（インポート/エクスポート）についても、同様にLocalStorageからFirestore APIへの置き換えを実施します。</p>
+            <p>詳細な実装仕様は、詳細設計書にて記載します。</p>
+        </div>
+
+        <!-- 6. セキュリティ設計 -->
+        <div id="section6" class="section">
+            <h1 class="section-title">6. セキュリティ設計</h1>
+
+            <h2 class="subsection-title">6.1 isAdmin()脆弱性修正（変更#11）</h2>
+
+            <div class="warning-box">
+                <h3>⚠️ 重大な脆弱性</h3>
+                <p><strong>脆弱性の内容：</strong></p>
+                <p>現行システムでは、管理者権限の判定をLocalStorageの値で行っているため、悪意あるユーザーがブラウザのコンソールから以下のコードを実行するだけで、管理者権限を取得できてしまいます。</p>
+                <div class="code-block">
+// 悪意あるユーザーがコンソールで実行
+localStorage.setItem('isAdmin', 'true');
+// → 即座に管理者権限取得！
+                </div>
+            </div>
+
+            <h3 class="subsubsection-title">6.1.1 現行の問題コード</h3>
+            <div class="code-block">
+// 問題のあるコード（変更前）
+export const isAdmin = (): boolean => {
+  return localStorage.getItem('isAdmin') === 'true';
+};
+
+// 管理者画面での使用例
+if (isAdmin()) {
+  // 管理者専用機能を実行（脆弱！）
+  deleteAllUsers();
+}
+            </div>
+
+            <h3 class="subsubsection-title">6.1.2 修正後のコード</h3>
+            <div class="code-block">
+// 修正後（Firebase Authentication + Firestore）
+export const isAdmin = async (): Promise&lt;boolean&gt; => {
+  const user = firebase.auth().currentUser;
+  if (!user) return false;
+
+  // Firestoreのユーザードキュメントから権限を取得
+  const userDoc = await firebase
+    .firestore()
+    .collection('users')
+    .doc(user.uid)
+    .get();
+
+  const userData = userDoc.data();
+  return userData?.role === 'admin';
+};
+
+// 使用例
+if (await isAdmin()) {
+  // Firestoreセキュリティルールでも二重チェックされる
+  deleteUser(targetUserId);
+}
+            </div>
+
+            <h3 class="subsubsection-title">6.1.3 セキュリティ改善効果</h3>
+            <table>
+                <tr>
+                    <th>改善項目</th>
+                    <th>改善前</th>
+                    <th>改善後</th>
+                </tr>
+                <tr>
+                    <td>権限情報の保存場所</td>
+                    <td>LocalStorage（クライアント側、改ざん可能）</td>
+                    <td>Firebase Firestore（サーバー側、改ざん不可）</td>
+                </tr>
+                <tr>
+                    <td>権限チェック</td>
+                    <td>フロントエンドのみ（回避可能）</td>
+                    <td>フロントエンド + Firestoreセキュリティルール（二重チェック）</td>
+                </tr>
+                <tr>
+                    <td>監査ログ</td>
+                    <td>なし</td>
+                    <td>Firebase自動記録（いつ誰がアクセスしたか記録）</td>
+                </tr>
+                <tr>
+                    <td>攻撃耐性</td>
+                    <td>❌ 極めて脆弱</td>
+                    <td>✅ 強固</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">6.2 Firebase認証</h2>
+            <table>
+                <tr>
+                    <th>認証方式</th>
+                    <th>対応状況</th>
+                    <th>備考</th>
+                </tr>
+                <tr>
+                    <td>メール/パスワード</td>
+                    <td>✅ 対応</td>
+                    <td>基本的な認証方式</td>
+                </tr>
+                <tr>
+                    <td>Google OAuth</td>
+                    <td>❌ 未対応（将来対応予定）</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>GitHub OAuth</td>
+                    <td>❌ 未対応（将来対応予定）</td>
+                    <td>-</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">6.3 アクセス制御</h2>
+            <table>
+                <tr>
+                    <th>リソース</th>
+                    <th>一般ユーザー</th>
+                    <th>プロジェクトオーナー</th>
+                    <th>管理者</th>
+                </tr>
+                <tr>
+                    <td>自分のプロジェクト</td>
+                    <td>読取・編集</td>
+                    <td>読取・編集・削除</td>
+                    <td>読取・編集・削除</td>
+                </tr>
+                <tr>
+                    <td>他人のプロジェクト</td>
+                    <td>❌</td>
+                    <td>❌</td>
+                    <td>読取のみ</td>
+                </tr>
+                <tr>
+                    <td>ユーザー情報</td>
+                    <td>自分のみ</td>
+                    <td>自分のみ</td>
+                    <td>全ユーザー</td>
+                </tr>
+                <tr>
+                    <td>システム設定</td>
+                    <td>❌</td>
+                    <td>❌</td>
+                    <td>✅</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 7. デプロイ戦略 -->
+        <div id="section7" class="section">
+            <h1 class="section-title">7. デプロイ戦略</h1>
+
+            <h2 class="subsection-title">7.1 デプロイフロー</h2>
+            <div class="diagram">
+                <div class="diagram-title">デプロイ全体フロー</div>
+                <pre style="text-align: left;">
+開発完了
+    ↓
+ローカルテスト（単体・統合）
+    ↓
+コードレビュー
+    ↓
+Gitプッシュ（main branch）
+    ↓
+Netlify自動ビルド
+    ↓
+Phase 1: 開発者のみデプロイ（1-2時間テスト）
+    ↓ 問題なし？
+Phase 2: 管理者のみデプロイ（24時間テスト）
+    ↓ 問題なし？
+Phase 3: 全ユーザーに公開
+    ↓
+48時間監視
+    ↓
+デプロイ完了
+                </pre>
+            </div>
+
+            <h2 class="subsection-title">7.2 3段階カナリアデプロイ（推奨）</h2>
+
+            <h3 class="subsubsection-title">Phase 1: 開発者のみ（1-2時間）</h3>
+            <table>
+                <tr>
+                    <th>項目</th>
+                    <th>内容</th>
+                </tr>
+                <tr>
+                    <td>目的</td>
+                    <td>実環境での最終動作確認</td>
+                </tr>
+                <tr>
+                    <td>デプロイ先</td>
+                    <td>Netlifyブランチデプロイ（deploy-test）</td>
+                </tr>
+                <tr>
+                    <td>テスター</td>
+                    <td>muranaka-tenma（開発者）</td>
+                </tr>
+                <tr>
+                    <td>確認項目</td>
+                    <td>
+                        ✓ 全機能動作確認<br>
+                        ✓ データ整合性確認<br>
+                        ✓ パフォーマンス測定<br>
+                        ✓ セキュリティテスト<br>
+                        ✓ ブラウザ互換性テスト
+                    </td>
+                </tr>
+                <tr>
+                    <td>判断基準</td>
+                    <td>全項目合格 → Phase 2へ<br>問題発見 → 修正して再テスト</td>
+                </tr>
+            </table>
+
+            <h3 class="subsubsection-title">Phase 2: 管理者のみ（24時間）</h3>
+            <table>
+                <tr>
+                    <th>項目</th>
+                    <th>内容</th>
+                </tr>
+                <tr>
+                    <td>目的</td>
+                    <td>複数ユーザーでの動作確認</td>
+                </tr>
+                <tr>
+                    <td>デプロイ先</td>
+                    <td>本番環境（main branch）</td>
+                </tr>
+                <tr>
+                    <td>テスター</td>
+                    <td>kato-jun, asahi-keiichi（想定管理者）</td>
+                </tr>
+                <tr>
+                    <td>確認項目</td>
+                    <td>
+                        ✓ マルチユーザー動作確認<br>
+                        ✓ データ競合確認<br>
+                        ✓ 長時間稼働確認<br>
+                        ✓ エラーログ監視
+                    </td>
+                </tr>
+                <tr>
+                    <td>判断基準</td>
+                    <td>24時間問題なし + 管理者全員承認 → Phase 3へ</td>
+                </tr>
+            </table>
+
+            <h3 class="subsubsection-title">Phase 3: 全ユーザー公開</h3>
+            <table>
+                <tr>
+                    <th>項目</th>
+                    <th>内容</th>
+                </tr>
+                <tr>
+                    <td>目的</td>
+                    <td>正式リリース</td>
+                </tr>
+                <tr>
+                    <td>手順</td>
+                    <td>
+                        1. 全ユーザーに変更内容通知<br>
+                        2. サポート体制強化（即座対応可能にする）<br>
+                        3. 48時間の集中監視
+                    </td>
+                </tr>
+                <tr>
+                    <td>監視期間</td>
+                    <td>48時間（特に最初の24時間は重点監視）</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">7.3 ロールバック計画</h2>
+
+            <div class="info-box">
+                <h3>ロールバックの種類と所要時間</h3>
+                <table>
+                    <tr>
+                        <th>方法</th>
+                        <th>所要時間</th>
+                        <th>使用シーン</th>
+                    </tr>
+                    <tr>
+                        <td>Netlify即座ロールバック</td>
+                        <td>30秒</td>
+                        <td>Critical障害（データ損失・全機能停止）</td>
+                    </tr>
+                    <tr>
+                        <td>Git revert</td>
+                        <td>1-2分</td>
+                        <td>High障害（主要機能停止）</td>
+                    </tr>
+                    <tr>
+                        <td>手動ロールバック</td>
+                        <td>5分</td>
+                        <td>特定ファイルのみ戻す必要がある場合</td>
+                    </tr>
+                </table>
+            </div>
+
+            <h3 class="subsubsection-title">緊急ロールバック手順</h3>
+            <div class="code-block">
+# 方法1: Netlify CLI（最速）
+netlify rollback
+
+# 方法2: Git revert
+git revert HEAD --no-edit
+git push origin main
+
+# 方法3: Netlify管理画面
+# 1. https://app.netlify.com/sites/[your-site]/deploys
+# 2. 前回の成功デプロイの「...」メニュー
+# 3. 「Publish deploy」をクリック
+            </div>
+        </div>
+
+        <!-- 8. リスク管理 -->
+        <div id="section8" class="section">
+            <h1 class="section-title">8. リスク管理</h1>
+
+            <h2 class="subsection-title">8.1 リスクアセスメント</h2>
+
+            <h3 class="subsubsection-title">高リスク項目</h3>
+            <table>
+                <tr>
+                    <th style="width: 20%;">リスク</th>
+                    <th style="width: 15%;">発生確率</th>
+                    <th style="width: 15%;">影響度</th>
+                    <th style="width: 25%;">軽減策</th>
+                    <th style="width: 25%;">残存リスク</th>
+                </tr>
+                <tr>
+                    <td>データ損失</td>
+                    <td>低</td>
+                    <td>Critical</td>
+                    <td>
+                        • デプロイ前バックアップ取得<br>
+                        • Firebase自動バックアップ<br>
+                        • ロールバック手順準備
+                    </td>
+                    <td>Very Low</td>
+                </tr>
+                <tr>
+                    <td>データ不整合</td>
+                    <td>中</td>
+                    <td>High</td>
+                    <td>
+                        • データ整合性検証スクリプト<br>
+                        • デプロイ直後の徹底テスト<br>
+                        • ユーザーフィードバック体制
+                    </td>
+                    <td>Low</td>
+                </tr>
+                <tr>
+                    <td>パフォーマンス低下</td>
+                    <td>低</td>
+                    <td>Medium</td>
+                    <td>
+                        • Firestoreインデックス最適化<br>
+                        • キャッシュ戦略実装<br>
+                        • ローディング状態表示
+                    </td>
+                    <td>Very Low</td>
+                </tr>
+            </table>
+
+            <h3 class="subsubsection-title">中リスク項目</h3>
+            <table>
+                <tr>
+                    <th style="width: 20%;">リスク</th>
+                    <th style="width: 15%;">発生確率</th>
+                    <th style="width: 15%;">影響度</th>
+                    <th style="width: 25%;">軽減策</th>
+                    <th style="width: 25%;">残存リスク</th>
+                </tr>
+                <tr>
+                    <td>セキュリティホール</td>
+                    <td>低</td>
+                    <td>High</td>
+                    <td>
+                        • Firebaseセキュリティルールレビュー<br>
+                        • 最小権限の原則適用<br>
+                        • アクセスログ監視
+                    </td>
+                    <td>Low</td>
+                </tr>
+                <tr>
+                    <td>UI/UX変更による混乱</td>
+                    <td>中</td>
+                    <td>Low</td>
+                    <td>
+                        • ユーザーガイド作成<br>
+                        • 変更内容の事前通知
+                    </td>
+                    <td>Low</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">8.2 バックアップ計画</h2>
+
+            <h3 class="subsubsection-title">バックアップポリシー</h3>
+            <table>
+                <tr>
+                    <th>種類</th>
+                    <th>頻度</th>
+                    <th>保存期間</th>
+                    <th>保存先</th>
+                </tr>
+                <tr>
+                    <td>日次バックアップ</td>
+                    <td>毎日深夜2時</td>
+                    <td>30日</td>
+                    <td>Google Cloud Storage</td>
+                </tr>
+                <tr>
+                    <td>週次バックアップ</td>
+                    <td>毎週日曜深夜3時</td>
+                    <td>1年</td>
+                    <td>Google Cloud Storage</td>
+                </tr>
+                <tr>
+                    <td>月次バックアップ</td>
+                    <td>毎月1日深夜4時</td>
+                    <td>3年</td>
+                    <td>Google Cloud Storage</td>
+                </tr>
+                <tr>
+                    <td>イベントバックアップ</td>
+                    <td>デプロイ前後</td>
+                    <td>3ヶ月</td>
+                    <td>Google Cloud Storage</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">8.3 緊急対応体制</h2>
+
+            <h3 class="subsubsection-title">障害レベル定義</h3>
+            <table>
+                <tr>
+                    <th>レベル</th>
+                    <th>症状</th>
+                    <th>対応時間</th>
+                    <th>対応者</th>
+                </tr>
+                <tr>
+                    <td>P0（緊急）</td>
+                    <td>サービス全停止、データ損失</td>
+                    <td>即座（30秒）</td>
+                    <td>デプロイ担当者</td>
+                </tr>
+                <tr>
+                    <td>P1（重大）</td>
+                    <td>主要機能停止、セキュリティホール</td>
+                    <td>5分以内</td>
+                    <td>開発チーム</td>
+                </tr>
+                <tr>
+                    <td>P2（中程度）</td>
+                    <td>一部機能不全、パフォーマンス低下</td>
+                    <td>30分以内</td>
+                    <td>開発チーム</td>
+                </tr>
+                <tr>
+                    <td>P3（軽微）</td>
+                    <td>表示崩れ、非重要機能の問題</td>
+                    <td>次回デプロイ</td>
+                    <td>開発チーム</td>
+                </tr>
+            </table>
+
+            <h3 class="subsubsection-title">緊急連絡先</h3>
+            <table>
+                <tr>
+                    <th>役割</th>
+                    <th>担当者</th>
+                    <th>連絡手段</th>
+                    <th>エスカレーション時間</th>
+                </tr>
+                <tr>
+                    <td>Level 1（即座対応）</td>
+                    <td>muranaka-tenma</td>
+                    <td>Slack, Email, 電話</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td>Level 2（5分以内応答なし）</td>
+                    <td>kato-jun</td>
+                    <td>Slack, 電話</td>
+                    <td>5分</td>
+                </tr>
+                <tr>
+                    <td>Level 3（15分以内応答なし）</td>
+                    <td>asahi-keiichi</td>
+                    <td>Slack, 電話</td>
+                    <td>15分</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 9. 成功基準 -->
+        <div id="section9" class="section">
+            <h1 class="section-title">9. 成功基準</h1>
+
+            <h2 class="subsection-title">9.1 機能要件</h2>
+            <table>
+                <tr>
+                    <th style="width: 10%;">優先度</th>
+                    <th style="width: 40%;">要件</th>
+                    <th style="width: 50%;">合格基準</th>
+                </tr>
+                <tr>
+                    <td>必須</td>
+                    <td>サイトにアクセスできる</td>
+                    <td>全ブラウザ（Chrome, Firefox, Safari, Edge）でアクセス可能</td>
+                </tr>
+                <tr>
+                    <td>必須</td>
+                    <td>ログイン・ログアウトができる</td>
+                    <td>Firebase Authenticationによる正常な認証</td>
+                </tr>
+                <tr>
+                    <td>必須</td>
+                    <td>既存データが全て表示される</td>
+                    <td>移行前のデータ件数と一致、内容が正しい</td>
+                </tr>
+                <tr>
+                    <td>必須</td>
+                    <td>CRUD操作ができる</td>
+                    <td>プロジェクト・タスクの作成・読取・更新・削除が正常動作</td>
+                </tr>
+                <tr>
+                    <td>必須</td>
+                    <td>エラーなし</td>
+                    <td>ブラウザコンソールに重大なエラーなし（警告はOK）</td>
+                </tr>
+                <tr>
+                    <td>必須</td>
+                    <td>セキュリティテスト合格</td>
+                    <td>isAdmin()改ざん無効、Firestoreセキュリティルール適用</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">9.2 非機能要件</h2>
+            <table>
+                <tr>
+                    <th style="width: 20%;">カテゴリ</th>
+                    <th style="width: 30%;">要件</th>
+                    <th style="width: 25%;">目標値</th>
+                    <th style="width: 25%;">測定方法</th>
+                </tr>
+                <tr>
+                    <td>パフォーマンス</td>
+                    <td>ページ読み込み時間</td>
+                    <td>3秒以内</td>
+                    <td>Chrome DevTools Performance</td>
+                </tr>
+                <tr>
+                    <td>パフォーマンス</td>
+                    <td>API応答時間</td>
+                    <td>1秒以内</td>
+                    <td>Chrome DevTools Network</td>
+                </tr>
+                <tr>
+                    <td>可用性</td>
+                    <td>稼働率</td>
+                    <td>99.9%</td>
+                    <td>Netlify / Firebase監視</td>
+                </tr>
+                <tr>
+                    <td>セキュリティ</td>
+                    <td>SSL/TLS</td>
+                    <td>A+評価</td>
+                    <td>SSL Labs テスト</td>
+                </tr>
+                <tr>
+                    <td>ユーザビリティ</td>
+                    <td>Lighthouseスコア</td>
+                    <td>80点以上</td>
+                    <td>Chrome Lighthouse</td>
+                </tr>
+            </table>
+
+            <h2 class="subsection-title">9.3 監視メトリクス（24時間監視）</h2>
+            <table>
+                <tr>
+                    <th>メトリクス</th>
+                    <th>目標</th>
+                    <th>アラート閾値</th>
+                    <th>対応</th>
+                </tr>
+                <tr>
+                    <td>エラー率</td>
+                    <td>0%</td>
+                    <td>&gt; 1%</td>
+                    <td>即座にログ確認、必要に応じてロールバック</td>
+                </tr>
+                <tr>
+                    <td>平均応答時間</td>
+                    <td>&lt; 1秒</td>
+                    <td>&gt; 3秒</td>
+                    <td>パフォーマンスプロファイリング実施</td>
+                </tr>
+                <tr>
+                    <td>アクティブユーザー数</td>
+                    <td>変動なし</td>
+                    <td>50%以上減少</td>
+                    <td>ユーザーヒアリング、原因調査</td>
+                </tr>
+                <tr>
+                    <td>Firebase読み取り回数</td>
+                    <td>予測範囲内</td>
+                    <td>予測の2倍以上</td>
+                    <td>クエリ最適化、キャッシュ戦略見直し</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 10. 承認欄 -->
+        <div id="section10" class="section">
+            <div class="approval-section">
+                <h1 class="approval-title">承認</h1>
+
+                <table class="approval-table">
+                    <tr>
+                        <th>役割</th>
+                        <th>氏名</th>
+                        <th>承認日</th>
+                        <th>署名</th>
+                    </tr>
+                    <tr>
+                        <td>作成者</td>
+                        <td>muranaka-tenma</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>レビュー担当</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>承認者</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </table>
+
+                <h2 style="margin-top: 40px; font-size: 1.3em; color: #334155;">改訂履歴</h2>
+                <table>
+                    <tr>
+                        <th style="width: 15%;">バージョン</th>
+                        <th style="width: 20%;">改訂日</th>
+                        <th style="width: 45%;">改訂内容</th>
+                        <th style="width: 20%;">改訂者</th>
+                    </tr>
+                    <tr>
+                        <td>1.0</td>
+                        <td>2025-11-11</td>
+                        <td>初版作成</td>
+                        <td>muranaka-tenma</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </table>
+
+                <h2 style="margin-top: 40px; font-size: 1.3em; color: #334155;">関連ドキュメント</h2>
+                <table>
+                    <tr>
+                        <th>文書名</th>
+                        <th>文書番号</th>
+                        <th>備考</th>
+                    </tr>
+                    <tr>
+                        <td>LocalStorage → Firebase 移行サマリー</td>
+                        <td>MIGRATION_SUMMARY.md</td>
+                        <td>変更内容の詳細</td>
+                    </tr>
+                    <tr>
+                        <td>デプロイチェックリスト</td>
+                        <td>DEPLOYMENT_CHECKLIST.md</td>
+                        <td>デプロイ手順</td>
+                    </tr>
+                    <tr>
+                        <td>緊急ロールバック計画</td>
+                        <td>ROLLBACK_PLAN.md</td>
+                        <td>ロールバック手順</td>
+                    </tr>
+                    <tr>
+                        <td>緊急時対応マニュアル</td>
+                        <td>EMERGENCY_RESPONSE.md</td>
+                        <td>障害対応手順</td>
+                    </tr>
+                    <tr>
+                        <td>バックアップ・復旧手順</td>
+                        <td>BACKUP_RECOVERY.md</td>
+                        <td>データバックアップ</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- フッター -->
+        <div style="text-align: center; margin-top: 60px; padding-top: 30px; border-top: 2px solid var(--border-color); color: var(--secondary-color); font-size: 0.9em;">
+            <p><strong>基本設計書 - タスク管理ツール</strong></p>
+            <p>文書番号: BD-001 | バージョン: 1.0 | 作成日: 2025-11-11</p>
+            <p style="margin-top: 10px;">
+                <strong>機密区分:</strong> 社外秘<br>
+                本ドキュメントの無断複製・転載を禁じます
+            </p>
+        </div>
+    </div>
+</body>
+</html>

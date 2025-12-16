@@ -93,6 +93,11 @@ onAuthStateChanged(auth, async (user) => {
             if (window.updateHamburgerMenu) {
                 window.updateHamburgerMenu();
             }
+            // ヘッダーのユーザー名を更新
+            const headerUserName = document.getElementById('header-user-name');
+            if (headerUserName) {
+                headerUserName.textContent = displayName;
+            }
         }, 100);
     } else {
         window.currentFirebaseUser = null;

@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>👥 ユーザー管理 - 営業タスク管理 (Updated: 2025-08-21-12:49)</title>
+    <title>👥 ユーザー管理 - Kanban Work</title>
     <style>
         * {
             margin: 0;
@@ -740,7 +740,7 @@
                 // Firebase統合 - ユーザー作成
                 if (window.FirebaseAuth && window.FirebaseDB) {
                     console.log('🔥 [USER-MGMT] Firebase Authでユーザーを作成中...', email);
-                    
+
                     // Firebase Authでユーザー作成
                     const authResult = await window.FirebaseAuth.createUser(email, password, name);
                     
