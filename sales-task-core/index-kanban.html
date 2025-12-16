@@ -325,15 +325,19 @@
         /* カンバンボード */
         .board-container {
             display: flex;
-            gap: 0.75rem;
-            padding: 0.25rem;
+            gap: 0;
+            padding: 0;
             height: calc(100vh - 120px);
-            overflow-x: auto;
+            overflow: hidden;
         }
-        
+
         .projects-sidebar {
-            min-width: 250px;
-            max-width: 300px;
+            position: sticky;
+            left: 0;
+            min-width: 180px;
+            max-width: 180px;
+            flex-shrink: 0;
+            z-index: 10;
             background: linear-gradient(135deg, #f8f9fb 0%, #ebecf0 100%);
             border-radius: 8px;
             padding: 1rem;
@@ -365,20 +369,27 @@
         .kanban-area {
             flex: 1;
             min-width: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 0.5rem;
         }
 
         /* 右サイドパネル */
         .right-panel {
-            width: 220px;
-            min-width: 220px;
+            position: sticky;
+            right: 0;
+            width: 200px;
+            min-width: 200px;
+            flex-shrink: 0;
+            z-index: 10;
             background: linear-gradient(135deg, #f8f9fb 0%, #ebecf0 100%);
-            border-radius: 8px;
+            border-radius: 0;
             padding: 1rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+            border: none;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.75rem;
             max-height: 100%;
             overflow-y: auto;
         }
@@ -388,7 +399,7 @@
             flex-direction: column;
             gap: 0.5rem;
             width: 100%;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }
 
         .right-panel-section-title {
@@ -400,15 +411,16 @@
         }
 
         .right-panel-btn {
-            padding: 0.75rem 1rem;
+            padding: 0.6rem 0.75rem;
             border: none;
-            border-radius: 0;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
             text-align: center;
             transition: all 0.15s;
             width: 100%;
+            margin-bottom: 0.25rem;
         }
 
         .right-panel-btn-primary {
@@ -497,15 +509,15 @@
         .column {
             background: var(--column-bg, #f5f6f8);
             border-radius: 0;
-            min-width: 260px;
-            max-width: 320px;
-            width: 280px;
+            min-width: 160px;
+            max-width: 240px;
+            flex: 0 0 180px;
             display: flex;
             flex-direction: column;
             max-height: 100%;
             box-shadow: none;
             border: none;
-            border-right: 1px solid #e1e4e8;
+            margin-right: 2px;
         }
         
         /* アーカイブカラム専用スタイル */
@@ -3183,7 +3195,7 @@
 
                     // UIを再描画
                     if (typeof renderBoard === 'function') {
-                        renderBoard();
+                        render();
                     }
                 } else {
                     console.log('[COLUMNS] Firestoreにデータなし、LocalStorage使用');
@@ -8181,7 +8193,7 @@
             saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
             document.getElementById('new-column-name').value = '';
             loadColumnManager();
-            renderBoard();
+            render();
         }
 
         function editColumnName(index) {
@@ -8198,7 +8210,7 @@
                 localStorage.setItem('kanbanColumns', JSON.stringify(columns));
                 saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
                 loadColumnManager();
-                renderBoard();
+                render();
             }
         }
 
@@ -8939,7 +8951,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             // アプリバージョンチェック - 古いキャッシュを強制クリア
-            const APP_VERSION = '2025-12-16-v7-ui-improvements';
+            const APP_VERSION = '2025-12-16-v8-layout-fix';
             const storedVersion = localStorage.getItem('appVersion');
             if (storedVersion !== APP_VERSION) {
                 console.log('🧹 [VERSION] 古いバージョン検出 - LocalStorage完全クリア');
