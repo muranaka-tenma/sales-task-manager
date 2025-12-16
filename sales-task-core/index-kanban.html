@@ -1652,7 +1652,6 @@
         <div class="context-menu-item" id="moveColumnRight" onclick="moveColumnRight()">→ 右に移動</div>
         <div class="context-menu-divider"></div>
         <div class="context-menu-item" onclick="editColumnFromContext()">名前を変更</div>
-        <div class="context-menu-item" style="color: #ef4444;" onclick="deleteColumnFromContext()">削除</div>
     </div>
 
     <!-- タスク編集モーダル -->
@@ -3261,15 +3260,27 @@
         migrateSampleDataToRealUser();
         
         // カラム定義（LocalStorageから初期読み込み、後でFirestoreから上書き）
-        let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"TODO","color":"#667eea"},{"id":"phase1","title":"Phase1","color":"#f59e0b"},{"id":"phase2","title":"Phase2","color":"#f97316"},{"id":"phase3","title":"Phase3","color":"#8b5cf6"},{"id":"done","title":"Done","color":"#10b981"},{"id":"trash","title":"Archive","color":"#6c757d"}]');
+        // カラム定義（type属性で完了/アーカイブを固定化）
+        // type: 'normal'=通常, 'done'=完了, 'archive'=アーカイブ
+        let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"TODO","color":"#667eea","type":"normal"},{"id":"phase1","title":"Phase1","color":"#f59e0b","type":"normal"},{"id":"phase2","title":"Phase2","color":"#f97316","type":"normal"},{"id":"phase3","title":"Phase3","color":"#8b5cf6","type":"normal"},{"id":"done","title":"Done","color":"#10b981","type":"done"},{"id":"trash","title":"Archive","color":"#6c757d","type":"archive"}]');
+
+        // 既存カラムにtype属性がない場合は付与（マイグレーション）
+        columns = columns.map(col => {
+            if (!col.type) {
+                if (col.id === 'done') col.type = 'done';
+                else if (col.id === 'trash') col.type = 'archive';
+                else col.type = 'normal';
+            }
+            return col;
+        });
 
         // アーカイブカラムが存在しない場合は強制追加
-        const trashColumn = columns.find(c => c.id === 'trash');
-        console.log('[ARCHIVE] 現在のカラム:', columns.map(c => c.id));
+        const trashColumn = columns.find(c => c.type === 'archive' || c.id === 'trash');
+        console.log('[ARCHIVE] 現在のカラム:', columns.map(c => `${c.id}(${c.type})`));
         console.log('[ARCHIVE] アーカイブカラム存在:', !!trashColumn);
 
         if (!trashColumn) {
-            columns.push({"id":"trash","title":"Archive","color":"#6c757d"});
+            columns.push({"id":"trash","title":"Archive","color":"#6c757d","type":"archive"});
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
             console.log('[ARCHIVE] アーカイブカラムを追加しました');
         } else {
@@ -3384,36 +3395,46 @@
         }
 
         // カラムIDまたはカラム名からDONEカラムかどうかを判定
+        // カラム判定（type属性ベース - 位置に依存しない）
         function isDoneColumn(columnId) {
             if (!columnId) return false;
 
-            // 通常タスクのDONEカラム
+            // type属性で判定（最優先）
+            const column = columns.find(c => c.id === columnId);
+            if (column && column.type === 'done') return true;
+
+            // 固定ID判定（フォールバック）
             if (columnId === 'done') return true;
 
-            // プロジェクトカラムの場合は名前を取得してから判定
-            const columnName = getColumnNameById(columnId);
-            const lowerColumnName = columnName.toLowerCase();
+            // プロジェクトカラムの場合（pj_xxx_n形式）
+            if (columnId.startsWith('pj_')) {
+                const columnName = getColumnNameById(columnId);
+                const lowerName = columnName.toLowerCase();
+                return lowerName.includes('完了') || lowerName.includes('done');
+            }
 
-            return lowerColumnName.includes('完了') ||
-                   lowerColumnName.includes('done') ||
-                   lowerColumnName.includes('完成');
+            return false;
         }
 
-        // カラムIDまたはカラム名からTRASHカラムかどうかを判定
+        // アーカイブカラム判定（type属性ベース - 位置に依存しない）
         function isTrashColumn(columnId) {
             if (!columnId) return false;
 
-            // 通常タスクのTRASHカラム
+            // type属性で判定（最優先）
+            const column = columns.find(c => c.id === columnId);
+            if (column && column.type === 'archive') return true;
+
+            // 固定ID判定（フォールバック）
             if (columnId === 'trash') return true;
 
-            // プロジェクトカラムの場合は名前を取得してから判定
-            const columnName = getColumnNameById(columnId);
-            const lowerColumnName = columnName.toLowerCase();
+            // プロジェクトカラムの場合（pj_xxx_n形式）
+            if (columnId.startsWith('pj_')) {
+                const columnName = getColumnNameById(columnId);
+                const lowerName = columnName.toLowerCase();
+                return lowerName.includes('アーカイブ') || lowerName.includes('archive');
+            }
 
-            return lowerColumnName.includes('アーカイブ') ||
-                   lowerColumnName.includes('ゴミ箱') ||
-                   lowerColumnName.includes('trash') ||
-                   lowerColumnName.includes('削除');
+            return false;
         }
 
 
