@@ -11484,6 +11484,15 @@
             if (modal && iframe) {
                 iframe.src = 'my-profile.html';
                 modal.style.display = 'flex';
+
+                // 2025-12-16復旧: iframeが読み込まれたらタスクデータを送信
+                iframe.onload = () => {
+                    iframe.contentWindow.postMessage({
+                        type: 'TASKS_DATA',
+                        tasks: window.tasks || tasks || []
+                    }, '*');
+                    console.log('[MYPAGE] タスクデータをiframeに送信しました');
+                };
             }
         }
 
