@@ -8702,7 +8702,6 @@
             // ハンバーガーメニューを初期化（少し遅延させて確実に実行）
             setTimeout(() => {
                 updateHamburgerMenu();
-                console.log('🍔 ハンバーガーメニュー更新完了');
             }, 100);
 
             // プロジェクト選択変更リスナーを設定
@@ -11067,37 +11066,25 @@
         
         // ハンバーガーメニューの切り替え
         function toggleHamburgerMenu() {
-            console.log('🍔 ハンバーガーメニュー切り替え開始...');
-            
             const hamburgerMenu = document.getElementById('hamburger-menu');
             const menuOverlay = document.getElementById('menu-overlay');
-            
-            if (!hamburgerMenu) {
-                console.error('❌ hamburger-menu要素が見つかりません');
-                return;
-            }
-            if (!menuOverlay) {
-                console.error('❌ menu-overlay要素が見つかりません');
-                return;
-            }
-            
+
+            if (!hamburgerMenu || !menuOverlay) return;
+
             const isActive = hamburgerMenu.classList.contains('active');
-            
+
             if (isActive) {
                 hamburgerMenu.classList.remove('active');
                 menuOverlay.classList.remove('active');
-                console.log('🍔 メニューを閉じました');
             } else {
                 hamburgerMenu.classList.add('active');
                 menuOverlay.classList.add('active');
-                console.log('🍔 メニューを開きました');
             }
         }
-        
+
         // ハンバーガーメニューの更新
         function updateHamburgerMenu() {
             const currentUser = getCurrentUser();
-            console.log('🍔 ハンバーガーメニュー更新中:', currentUser);
             
             // ユーザー情報を表示
             const avatar = document.getElementById('user-menu-avatar');
