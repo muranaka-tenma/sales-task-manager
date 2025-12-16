@@ -1723,6 +1723,20 @@
                         </label>
                     </div>
                 </div>
+
+                <!-- テーマカラー設定 -->
+                <div class="setting-section" style="margin-top: 2rem; background: #e0f7f6; padding: 2rem; border-radius: 12px; border: 1px solid #80cbc4;">
+                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #0097A7;">テーマカラー</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                        <button onclick="setThemeColor('#0097A7')" style="width: 50px; height: 50px; background: #0097A7; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="TERRAティール（デフォルト）" id="theme-color-teal"></button>
+                        <button onclick="setThemeColor('#667eea')" style="width: 50px; height: 50px; background: #667eea; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="パープルブルー" id="theme-color-purple"></button>
+                        <button onclick="setThemeColor('#10b981')" style="width: 50px; height: 50px; background: #10b981; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="エメラルド" id="theme-color-emerald"></button>
+                        <button onclick="setThemeColor('#f59e0b')" style="width: 50px; height: 50px; background: #f59e0b; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="アンバー" id="theme-color-amber"></button>
+                        <button onclick="setThemeColor('#ef4444')" style="width: 50px; height: 50px; background: #ef4444; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="レッド" id="theme-color-red"></button>
+                        <button onclick="setThemeColor('#8b5cf6')" style="width: 50px; height: 50px; background: #8b5cf6; border: 3px solid transparent; border-radius: 8px; cursor: pointer;" title="バイオレット" id="theme-color-violet"></button>
+                    </div>
+                    <p style="margin-top: 1rem; font-size: 0.85rem; color: #6b7280;">選択したカラーがヘッダーとアクセントカラーに適用されます</p>
+                </div>
                 
                 <div class="setting-section" style="margin-top: 2rem; background: #fef2f2; padding: 2rem; border-radius: 12px; border: 1px solid #fecaca;">
                     <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #ef4444;">データ管理</h3>
@@ -7786,7 +7800,40 @@
             document.getElementById('settingsModal').style.display = 'none';
             saveAlertSettings();
         }
-        
+
+        // テーマカラー設定
+        function setThemeColor(color) {
+            // ヘッダーの背景色を変更
+            const header = document.querySelector('.header');
+            if (header) {
+                header.style.background = color;
+            }
+
+            // CSS変数を更新（アクセントカラー）
+            document.documentElement.style.setProperty('--theme-color', color);
+
+            // LocalStorageに保存
+            localStorage.setItem('themeColor', color);
+
+            // ボタンの選択状態を更新
+            document.querySelectorAll('[id^="theme-color-"]').forEach(btn => {
+                btn.style.border = '3px solid transparent';
+            });
+            event.target.style.border = '3px solid #1a202c';
+
+            console.log('[THEME] テーマカラー変更:', color);
+        }
+
+        // テーマカラー初期化
+        function initThemeColor() {
+            const savedColor = localStorage.getItem('themeColor') || '#0097A7';
+            const header = document.querySelector('.header');
+            if (header) {
+                header.style.background = savedColor;
+            }
+            document.documentElement.style.setProperty('--theme-color', savedColor);
+        }
+
         // カラム管理機能
         function loadColumnManager() {
             // 🔒 権限チェック：developer権限がない場合は非表示
@@ -8584,7 +8631,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             // アプリバージョンチェック - 古いキャッシュを強制クリア
-            const APP_VERSION = '2025-12-16-v5-columns-firestore';
+            const APP_VERSION = '2025-12-16-v6-theme-color';
             const storedVersion = localStorage.getItem('appVersion');
             if (storedVersion !== APP_VERSION) {
                 console.log('🧹 [VERSION] 古いバージョン検出 - LocalStorage完全クリア');
@@ -8704,6 +8751,9 @@
             setTimeout(() => {
                 updateHamburgerMenu();
             }, 100);
+
+            // テーマカラーを初期化
+            initThemeColor();
 
             // プロジェクト選択変更リスナーを設定
             setupProjectSelectListener();
