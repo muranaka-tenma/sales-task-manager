@@ -3110,20 +3110,72 @@
         // マイグレーション実行
         migrateSampleDataToRealUser();
         
-        // カラム定義
+        // カラム定義（LocalStorageから初期読み込み、後でFirestoreから上書き）
         let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"TODO","color":"#667eea"},{"id":"phase1","title":"Phase1","color":"#f59e0b"},{"id":"phase2","title":"Phase2","color":"#f97316"},{"id":"phase3","title":"Phase3","color":"#8b5cf6"},{"id":"done","title":"Done","color":"#10b981"},{"id":"trash","title":"Archive","color":"#6c757d"}]');
-        
+
         // アーカイブカラムが存在しない場合は強制追加
         const trashColumn = columns.find(c => c.id === 'trash');
-        console.log('📦 [ARCHIVE] 現在のカラム:', columns.map(c => c.id));
-        console.log('📦 [ARCHIVE] アーカイブカラム存在:', !!trashColumn);
-        
+        console.log('[ARCHIVE] 現在のカラム:', columns.map(c => c.id));
+        console.log('[ARCHIVE] アーカイブカラム存在:', !!trashColumn);
+
         if (!trashColumn) {
             columns.push({"id":"trash","title":"Archive","color":"#6c757d"});
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
-            console.log('📦 アーカイブカラムを追加しました');
+            console.log('[ARCHIVE] アーカイブカラムを追加しました');
         } else {
-            console.log('📦 アーカイブカラムは既に存在します');
+            console.log('[ARCHIVE] アーカイブカラムは既に存在します');
+        }
+
+        // 2025-12-16復旧: Firestoreカラム設定連携
+        async function saveColumnsToFirestore() {
+            try {
+                if (window.FirebaseDB && window.FirebaseDB.saveColumns && window.firebaseAuth?.currentUser) {
+                    const result = await window.FirebaseDB.saveColumns(columns);
+                    if (result.success) {
+                        console.log('[COLUMNS] Firestore保存成功');
+                    }
+                }
+            } catch (error) {
+                console.error('[COLUMNS] Firestore保存エラー:', error);
+            }
+        }
+
+        // 2025-12-16復旧: Firestoreからカラム設定を初期化
+        async function initColumnsFromFirestore() {
+            try {
+                if (!window.FirebaseDB || !window.FirebaseDB.getColumns || !window.firebaseAuth?.currentUser) {
+                    console.log('[COLUMNS] Firebase未準備、LocalStorage使用');
+                    return;
+                }
+
+                // まずマイグレーションを試行
+                await window.FirebaseDB.migrateColumnsToFirestore();
+
+                // Firestoreからカラム設定を取得
+                const result = await window.FirebaseDB.getColumns();
+                if (result.success && result.columns && Array.isArray(result.columns)) {
+                    columns = result.columns;
+                    localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+                    console.log('[COLUMNS] Firestoreから読み込み完了:', columns.length + '件');
+
+                    // done/trashカラムの存在チェック
+                    if (!columns.find(c => c.id === 'done')) {
+                        columns.push({"id":"done","title":"Done","color":"#10b981"});
+                    }
+                    if (!columns.find(c => c.id === 'trash')) {
+                        columns.push({"id":"trash","title":"Archive","color":"#6c757d"});
+                    }
+
+                    // UIを再描画
+                    if (typeof renderBoard === 'function') {
+                        renderBoard();
+                    }
+                } else {
+                    console.log('[COLUMNS] Firestoreにデータなし、LocalStorage使用');
+                }
+            } catch (error) {
+                console.error('[COLUMNS] Firestore初期化エラー:', error);
+            }
         }
         
         // テンプレート管理（Firebase統合対応）
@@ -7795,11 +7847,12 @@
 
             columns.push(newColumn);
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
             document.getElementById('new-column-name').value = '';
             loadColumnManager();
             renderBoard();
         }
-        
+
         function editColumnName(index) {
             // 🔒 権限チェック（developer権限必要）
             const currentUser = getCurrentUser();
@@ -7812,11 +7865,12 @@
             if (newName && newName.trim()) {
                 columns[index].title = newName.trim();
                 localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+                saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
                 loadColumnManager();
                 renderBoard();
             }
         }
-        
+
         function updateColumnColor(index, color) {
             // 🔒 権限チェック（developer権限必要）
             const currentUser = getCurrentUser();
@@ -7827,9 +7881,10 @@
 
             columns[index].color = color;
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
             render(); // 即座に反映
         }
-        
+
         function deleteColumn(index) {
             if (columns.length <= 2) {
                 alert('最低2つのカラムが必要です');
@@ -7874,12 +7929,13 @@
             
             columns.splice(index, 1);
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
             saveTasks();
             loadColumnManager();
             render();
         }
 
-        // 🔒 カラム追加ボタンの状態を更新
+        // カラム追加ボタンの状態を更新
         function updateColumnAddButtonState() {
             const btn = document.getElementById('quick-add-column-btn');
             if (!btn) return;
@@ -8051,11 +8107,13 @@
                 if (newName && newName.trim()) {
                     column.title = newName.trim();
                     localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+                    saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
                     render();
                 }
             }
         }
-        
+
+
         async function deleteColumnInline(columnId) {
             // プロジェクト表示中かチェック
             if (selectedProjectFilters.length > 0) {
@@ -8181,12 +8239,13 @@
                 if (confirm(`カラム「${columnToDelete.title}」を削除しますか？`)) {
                     columns.splice(columnIndex, 1);
                     localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+                    saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
                     saveTasks();
                     render();
                 }
             }
         }
-        
+
         function loadAlertSettings() {
             const settings = JSON.parse(localStorage.getItem('alertSettings') || '{"3hours": true, "1day": false, "overdue": true}');
             document.getElementById('alert-3hours').checked = settings['3hours'];
@@ -8523,8 +8582,8 @@
         // Firebase完全移行: データはFirestoreから読み込まれる
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // 🔒 【最重要】アプリバージョンチェック - 古いキャッシュを強制クリア
-            const APP_VERSION = '2025-12-16-v4-terra-branding';
+            // アプリバージョンチェック - 古いキャッシュを強制クリア
+            const APP_VERSION = '2025-12-16-v5-columns-firestore';
             const storedVersion = localStorage.getItem('appVersion');
             if (storedVersion !== APP_VERSION) {
                 console.log('🧹 [VERSION] 古いバージョン検出 - LocalStorage完全クリア');
@@ -8663,11 +8722,15 @@
                 let unsubscribe = null;
                 
                 if (window.firebaseAuth?.onAuthStateChanged) {
-                    unsubscribe = window.firebaseAuth.onAuthStateChanged((user) => {
+                    unsubscribe = window.firebaseAuth.onAuthStateChanged(async (user) => {
                         if (user) {
-                            console.log('✅ [INIT] Firebase認証復元完了:', user.email);
+                            console.log('[INIT] Firebase認証復元完了:', user.email);
                             authRestored = true;
                             if (unsubscribe) unsubscribe();
+
+                            // 2025-12-16復旧: Firestoreからカラム設定を初期化
+                            await initColumnsFromFirestore();
+
                             resolve();
                         }
                     });
@@ -8718,11 +8781,7 @@
             } catch (error) {
                 console.error('❌ 初期化エラー:', error);
             }
-            
-            // OCRモーダルのイベントリスナーを初期化
-            initOCRModalEventListeners();
-            
-            
+
             const assigneeSelect = document.getElementById('task-assignee-input');
             if (assigneeSelect) {
                 assigneeSelect.addEventListener('change', function() {
@@ -9918,10 +9977,8 @@
             hidePreviewModal();
             // テキストエリアをクリア
             document.getElementById('import-text-modal').value = '';
-            const ocrInput = document.getElementById('ocr-file-input');
-            if (ocrInput) ocrInput.value = '';
         }
-        
+
         function closeTaskImportModal() {
             document.getElementById('taskImportModal').style.display = 'none';
             hidePreviewModal();
@@ -11195,11 +11252,8 @@
                 } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
                     // Excelファイル処理
                     alert('Excel形式のインポートは現在対応していません。CSV形式でエクスポートしてください。');
-                } else if (fileType.startsWith('image/')) {
-                    // 画像ファイル処理（OCR）
-                    importImageWithOCR(file);
                 } else {
-                    alert(`サポートされていないファイル形式です: ${file.name}`);
+                    alert(`サポートされていないファイル形式です: ${file.name}\n対応形式: CSV, TXT`);
                 }
             }
             
@@ -12577,9 +12631,9 @@
                 <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テンプレート表示・作成・編集・削除</div>
             </a>
             <a href="#" class="menu-item" onclick="openTaskImportModal(); toggleHamburgerMenu(); return false;">
-                <span>📝</span>
-                <span>テキスト・OCRインポート</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テキスト・画像からタスク作成</div>
+                <span>[+]</span>
+                <span>テキストインポート</span>
+                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テキスト・CSVからタスク一括作成</div>
             </a>
         </div>
         

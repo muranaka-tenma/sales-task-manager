@@ -622,6 +622,99 @@ window.FirebaseDB = {
             console.error('❌ Auth削除処理エラー:', error);
             return { success: false, error: error.message };
         }
+    },
+
+    // カラム設定取得（2025-12-16復旧: kanbanColumns Firestore移行）
+    async getColumns(userId) {
+        try {
+            const targetUserId = userId || window.currentFirebaseUser?.uid;
+            if (!targetUserId) {
+                return { success: false, error: '認証が必要です', columns: null };
+            }
+
+            const columnsDocRef = doc(db, 'users', targetUserId, 'settings', 'columns');
+            const columnsDoc = await getDoc(columnsDocRef);
+
+            if (columnsDoc.exists()) {
+                const data = columnsDoc.data();
+                return { success: true, columns: data.columns || null, updatedAt: data.updatedAt };
+            }
+
+            return { success: true, columns: null };
+        } catch (error) {
+            console.error('❌ [COLUMNS] 取得エラー:', error);
+            return { success: false, error: error.message, columns: null };
+        }
+    },
+
+    // カラム設定保存（2025-12-16復旧: kanbanColumns Firestore移行）
+    async saveColumns(columns, userId) {
+        try {
+            const user = window.getCurrentUser();
+            const targetUserId = userId || user?.id;
+            if (!targetUserId) {
+                return { success: false, error: '認証が必要です' };
+            }
+
+            const columnsDocRef = doc(db, 'users', targetUserId, 'settings', 'columns');
+            await setDoc(columnsDocRef, {
+                columns: columns,
+                updatedAt: new Date().toISOString(),
+                updatedBy: user?.email || 'unknown'
+            });
+
+            console.log('[COLUMNS] Firestore保存完了:', columns.length + '件');
+            return { success: true };
+        } catch (error) {
+            console.error('❌ [COLUMNS] 保存エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // LocalStorage→Firestoreマイグレーション（2025-12-16復旧）
+    async migrateColumnsToFirestore() {
+        try {
+            const user = window.getCurrentUser();
+            if (!user?.id) {
+                return { success: false, error: '認証が必要です' };
+            }
+
+            // LocalStorageからカラム設定を取得
+            const localColumns = localStorage.getItem('kanbanColumns');
+            if (!localColumns) {
+                console.log('[COLUMNS] LocalStorageにカラム設定なし、マイグレーション不要');
+                return { success: true, migrated: false };
+            }
+
+            // Firestoreに既存設定があるか確認
+            const existingResult = await this.getColumns(user.id);
+            if (existingResult.success && existingResult.columns) {
+                console.log('[COLUMNS] Firestoreに既存設定あり、マイグレーションスキップ');
+                return { success: true, migrated: false, reason: 'already_exists' };
+            }
+
+            // LocalStorageの設定をFirestoreに保存
+            const columns = JSON.parse(localColumns);
+
+            // 「ゴミ箱」→「アーカイブ」への自動リネーム
+            const migratedColumns = columns.map(col => {
+                if (col.id === 'trash' && col.title === 'ゴミ箱') {
+                    return { ...col, title: 'アーカイブ' };
+                }
+                return col;
+            });
+
+            const saveResult = await this.saveColumns(migratedColumns, user.id);
+            if (saveResult.success) {
+                console.log('[COLUMNS] LocalStorage→Firestoreマイグレーション完了');
+                return { success: true, migrated: true };
+            }
+
+            return { success: false, error: saveResult.error };
+        } catch (error) {
+            console.error('❌ [COLUMNS] マイグレーションエラー:', error);
+            return { success: false, error: error.message };
+        }
     }
 };
 
