@@ -3314,6 +3314,94 @@
             }
         }
 
+        // 全データ削除（Firebase完全移行対応）
+        async function clearAllData() {
+            const confirmMessage =
+                '警告: すべてのデータを完全削除します\n\n' +
+                '以下のデータが削除されます:\n' +
+                '・全タスク（Firebase + LocalStorage）\n' +
+                '・全プロジェクト（Firebase + LocalStorage）\n' +
+                '・ローカルストレージのすべてのデータ\n\n' +
+                'この操作は取り消せません\n\n' +
+                '本当に削除しますか？';
+
+            if (!confirm(confirmMessage)) {
+                console.log('[CLEAR-ALL] ユーザーがキャンセル');
+                return;
+            }
+
+            // 二重確認
+            const doubleConfirm = prompt('削除を実行するには「削除」と入力してください:');
+            if (doubleConfirm !== '削除') {
+                alert('キャンセルしました。');
+                console.log('[CLEAR-ALL] 二重確認でキャンセル');
+                return;
+            }
+
+            console.log('[CLEAR-ALL] 全データ削除開始...');
+
+            try {
+                let deletedTasksCount = 0;
+                let deletedProjectsCount = 0;
+
+                // 1. Firebase の全タスクを削除
+                const tasksResult = await window.FirebaseDB.getTasks();
+                if (tasksResult.success && tasksResult.tasks.length > 0) {
+                    console.log(`[CLEAR-ALL] ${tasksResult.tasks.length}件のタスクを削除中...`);
+                    for (const task of tasksResult.tasks) {
+                        const taskId = task.firebaseId || task.id;
+                        await window.FirebaseDB.deleteTask(taskId);
+                        deletedTasksCount++;
+                    }
+                    console.log(`[CLEAR-ALL] ${deletedTasksCount}件のタスクを削除完了`);
+                }
+
+                // 2. Firebase の全プロジェクトを削除
+                const projectsResult = await window.FirebaseDB.getProjects();
+                if (projectsResult.success && projectsResult.projects.length > 0) {
+                    console.log(`[CLEAR-ALL] ${projectsResult.projects.length}件のプロジェクトを削除中...`);
+                    for (const project of projectsResult.projects) {
+                        await window.FirebaseDB.deleteProject(project.id);
+                        deletedProjectsCount++;
+                    }
+                    console.log(`[CLEAR-ALL] ${deletedProjectsCount}件のプロジェクトを削除完了`);
+                }
+
+                // 3. LocalStorage をクリア（セッション情報以外）
+                const currentSession = localStorage.getItem('currentSession');
+                const currentUser = localStorage.getItem('currentUser');
+                const systemUsers = localStorage.getItem('systemUsers');
+
+                console.log('[CLEAR-ALL] LocalStorageをクリア中...');
+                localStorage.clear();
+
+                // セッション情報は保持
+                if (currentSession) localStorage.setItem('currentSession', currentSession);
+                if (currentUser) localStorage.setItem('currentUser', currentUser);
+                if (systemUsers) localStorage.setItem('systemUsers', systemUsers);
+                console.log('[CLEAR-ALL] LocalStorageクリア完了（セッション情報は保持）');
+
+                // 4. 完了メッセージ
+                alert(
+                    `全データ削除が完了しました\n\n` +
+                    `削除されたデータ:\n` +
+                    `・タスク: ${deletedTasksCount}件\n` +
+                    `・プロジェクト: ${deletedProjectsCount}件\n` +
+                    `・LocalStorageデータ: クリア完了\n\n` +
+                    `ページをリロードします。`
+                );
+
+                console.log('[CLEAR-ALL] 全データ削除完了');
+                console.log(`[CLEAR-ALL] 削除統計: タスク ${deletedTasksCount}件, プロジェクト ${deletedProjectsCount}件`);
+
+                // 5. ページリロード
+                location.reload();
+            } catch (error) {
+                console.error('[CLEAR-ALL] 削除エラー:', error);
+                alert(`削除中にエラーが発生しました:\n${error.message}\n\n一部のデータが残っている可能性があります。`);
+            }
+        }
+
         // 2025-12-16復旧: Firestoreからカラム設定を初期化
         async function initColumnsFromFirestore() {
             try {
@@ -8353,13 +8441,7 @@
                 `;
             }).join('');
 
-            // TERRAカラー一括適用ボタンを追加
-            const applyAllBtn = document.createElement('div');
-            applyAllBtn.innerHTML = `
-                <button onclick="applyTerraColorToAllColumns()" style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.85rem;">全カラムにTERRAカラーを適用</button>
-            `;
-            columnList.appendChild(applyAllBtn);
-        }
+            }
         
         function addColumn() {
             const newColumnName = document.getElementById('new-column-name').value.trim();
