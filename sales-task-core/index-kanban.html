@@ -1993,7 +1993,7 @@
         <div style="background: white; border-radius: 12px; width: 100%; max-width: 1000px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
             <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0;">
                 <h3 class="modal-title" style="color: white; font-size: 1.5rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    プロジェクト管理
+                    プロジェクト設定・管理
                 </h3>
                 <button class="close-btn" onclick="closeProjectManagementModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem; margin-left: auto;">&times;</button>
             </div>
@@ -3265,14 +3265,21 @@
         let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"TODO","color":"#667eea","type":"normal"},{"id":"phase1","title":"Phase1","color":"#f59e0b","type":"normal"},{"id":"phase2","title":"Phase2","color":"#f97316","type":"normal"},{"id":"phase3","title":"Phase3","color":"#8b5cf6","type":"normal"},{"id":"done","title":"Done","color":"#10b981","type":"done"},{"id":"trash","title":"Archive","color":"#6c757d","type":"archive"}]');
 
         // 既存カラムにtype属性がない場合は付与（マイグレーション）
+        let typeUpdated = false;
         columns = columns.map(col => {
             if (!col.type) {
+                typeUpdated = true;
                 if (col.id === 'done') col.type = 'done';
                 else if (col.id === 'trash') col.type = 'archive';
                 else col.type = 'normal';
             }
             return col;
         });
+        // マイグレーションが発生した場合は保存
+        if (typeUpdated) {
+            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            console.log('[COLUMNS] type属性マイグレーション完了');
+        }
 
         // アーカイブカラムが存在しない場合は強制追加
         const trashColumn = columns.find(c => c.type === 'archive' || c.id === 'trash');
@@ -8304,12 +8311,26 @@
             }
 
             const columnList = document.getElementById('column-list');
-            columnList.innerHTML = columns.map((column, index) => `
-                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid ${column.color};">
+            columnList.innerHTML = columns.map((column, index) => {
+                // 完了/アーカイブカラムは削除不可（type属性+タイトルで判定）
+                const isDone = column.type === 'done' || /完了|done|完成/i.test(column.title);
+                const isArchive = column.type === 'archive' || /アーカイブ|archive|ゴミ箱|trash/i.test(column.title);
+                const isProtected = isDone || isArchive;
+                const protectedLabel = isDone ? '[完了]' : (isArchive ? '[アーカイブ]' : '');
+                const canDelete = columns.length > 2 && !isProtected;
+
+                return `
+                <div class="settings-column-item" draggable="true" data-index="${index}"
+                     style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid ${column.color};"
+                     ondragstart="onSettingsColumnDragStart(event, ${index})"
+                     ondragover="onSettingsColumnDragOver(event)"
+                     ondrop="onSettingsColumnDrop(event, ${index})">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="cursor: grab; color: #9ca3af; font-size: 1rem;">⋮⋮</span>
                         <span style="flex: 1; font-weight: 600;">${column.title}</span>
+                        ${protectedLabel ? `<span style="font-size: 0.7rem; color: #666; background: #e5e7eb; padding: 0.1rem 0.4rem; border-radius: 3px;">${protectedLabel}</span>` : ''}
                         <button onclick="editColumnName(${index})" style="padding: 0.25rem 0.5rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">名前変更</button>
-                        ${columns.length > 2 ? `<button onclick="deleteColumn(${index})" style="padding: 0.25rem 0.5rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">削除</button>` : ''}
+                        ${canDelete ? `<button onclick="deleteColumn(${index})" style="padding: 0.25rem 0.5rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">削除</button>` : ''}
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                         <span style="font-size: 0.75rem; color: #6b7280;">色:</span>
@@ -8323,7 +8344,8 @@
                         <input type="color" value="${column.color}" onchange="updateColumnColor(${index}, this.value)" style="width: 24px; height: 24px; border: none; cursor: pointer; padding: 0;" title="カスタム色">
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
 
             // TERRAカラー一括適用ボタンを追加
             const applyAllBtn = document.createElement('div');
@@ -8424,7 +8446,43 @@
             loadColumnManager(); // 設定画面更新
             render(); // 即座に反映
 
-            alert('✅ 全カラムにTERRAカラー(#0097A7)を適用しました');
+            alert('全カラムにTERRAカラー(#0097A7)を適用しました');
+        }
+
+        // ===== 設定画面カラムのドラッグ&ドロップ =====
+        let settingsColumnDragIndex = -1;
+
+        function onSettingsColumnDragStart(event, index) {
+            settingsColumnDragIndex = index;
+            event.dataTransfer.effectAllowed = 'move';
+            event.target.style.opacity = '0.5';
+        }
+
+        function onSettingsColumnDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        function onSettingsColumnDrop(event, targetIndex) {
+            event.preventDefault();
+            event.target.style.opacity = '1';
+
+            if (settingsColumnDragIndex === -1 || settingsColumnDragIndex === targetIndex) {
+                settingsColumnDragIndex = -1;
+                return;
+            }
+
+            // カラムの並び替え
+            const [movedColumn] = columns.splice(settingsColumnDragIndex, 1);
+            columns.splice(targetIndex, 0, movedColumn);
+
+            // 保存と再描画
+            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            saveColumnsToFirestore();
+            loadColumnManager();
+            render();
+
+            settingsColumnDragIndex = -1;
         }
 
         // ===== カラム右クリックメニュー機能 =====
@@ -8584,24 +8642,38 @@
 
             const columnToDelete = columns[index];
 
-            // 🔒 完了カラム（done）は削除不可
-            if (columnToDelete.id === 'done') {
-                alert('⚠️ 完了カラムはシステムで使用されているため削除できません');
+            // 🔒 完了カラム・アーカイブカラムは削除不可（type属性+タイトルで判定）
+            const isDoneColumn = columnToDelete.type === 'done' ||
+                                 /完了|done|完成/i.test(columnToDelete.title);
+            const isArchiveColumn = columnToDelete.type === 'archive' ||
+                                    /アーカイブ|archive|ゴミ箱|trash/i.test(columnToDelete.title);
+
+            if (isDoneColumn) {
+                alert('完了カラムはシステムで使用されているため削除できません');
+                return;
+            }
+            if (isArchiveColumn) {
+                alert('アーカイブカラムはシステムで使用されているため削除できません');
                 return;
             }
 
             const tasksInColumn = tasks.filter(task => task.columnId === columnToDelete.id);
-            
+
             if (tasksInColumn.length > 0) {
                 const moveToColumn = prompt(`このカラムには${tasksInColumn.length}個のタスクがあります。\n移動先のカラムIDを入力してください (${columns.filter((_, i) => i !== index).map(c => c.id).join(', ')}):`);
                 if (!moveToColumn) return;
-                
+
                 // タスクを移動
                 tasksInColumn.forEach(task => {
                     task.columnId = moveToColumn;
                 });
+            } else {
+                // タスクがない場合も確認
+                if (!confirm(`カラム「${columnToDelete.title}」を削除しますか？`)) {
+                    return;
+                }
             }
-            
+
             columns.splice(index, 1);
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
             saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
@@ -12019,10 +12091,11 @@
             const modal = document.getElementById('projectManagementModal');
             if (modal) {
                 modal.style.display = 'none';
-                // フォームをクリア
-                document.getElementById('newProjectName').value = '';
-                document.getElementById('newProjectDescription').value = '';
-                document.getElementById('newProjectVisibility').value = 'public';
+                // フォームをクリア（存在する場合のみ）
+                const nameInput = document.getElementById('newProjectName');
+                const descInput = document.getElementById('newProjectDescription');
+                if (nameInput) nameInput.value = '';
+                if (descInput) descInput.value = '';
             }
         }
 
@@ -12225,8 +12298,9 @@
                     const visibilityIcon = project.visibility === 'public' ? '[公開]' : '[非公開]';
                     const statusIcon = project.status === 'active' ? '[進行中]' : project.status === 'completed' ? '[完了]' : '[アーカイブ]';
                     
+                    const projectColor = project.color || '#0097A7';
                     return `
-                        <div style="border: 2px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div style="border: 2px solid #e5e7eb; border-left: 5px solid ${projectColor}; border-radius: 12px; padding: 1.5rem; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                             <div style="display: flex; justify-content: between; align-items: flex-start; margin-bottom: 1rem;">
                                 <div style="flex: 1;">
                                     <h5 style="margin: 0 0 0.5rem 0; color: #1f2937; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -12256,12 +12330,12 @@
                             <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
                                 <div style="font-size: 0.8rem; color: #6b7280; margin-bottom: 0.5rem;">プロジェクトメンバー:</div>
                                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                    ${membersArray.map(email => {
+                                    ${membersArray.filter(email => email).map(email => {
                                         const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                                         const user = systemUsers.find(u => u.email === email);
-                                        const userName = user ? user.name : email;
+                                        const userName = user?.name || email || '不明';
                                         return `<span style="background: #f3f4f6; color: #374151; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">${userName}</span>`;
-                                    }).join('')}
+                                    }).join('') || '<span style="color: #9ca3af; font-size: 0.8rem;">メンバーなし</span>'}
                                 </div>
                             </div>
                         </div>
@@ -12302,7 +12376,28 @@
             }
         }
 
-        // 🔧 デフォルトプロジェクトカラム
+        // プロジェクト編集時のカラー選択
+        function selectEditProjectColor(color) {
+            const colorInput = document.getElementById('editProjectColor');
+            if (colorInput) {
+                colorInput.value = color;
+            }
+            const container = document.getElementById('editProjectColorPicker');
+            if (container) {
+                container.querySelectorAll('button').forEach(btn => {
+                    const btnColor = btn.getAttribute('data-color');
+                    if (btnColor === color) {
+                        btn.style.border = `3px solid ${color}`;
+                        btn.style.transform = 'scale(1.1)';
+                    } else {
+                        btn.style.border = '2px solid transparent';
+                        btn.style.transform = 'scale(1)';
+                    }
+                });
+            }
+        }
+
+        // デフォルトプロジェクトカラム
         const DEFAULT_PROJECT_COLUMNS = ["TODO", "Phase1", "Phase2", "Phase3", "Done", "Archive"];
 
         // 🔒 【必須カラム判定】完了とアーカイブは削除不可
@@ -12338,7 +12433,8 @@
             if (!container) return;
 
             container.innerHTML = newProjectColumnsData.map((col, index) => {
-                const isRequired = isRequiredColumn(col.name);
+                const isRequired = isRequiredColumn(col.name) || col.type === 'done' || col.type === 'archive';
+                const typeLabel = col.type === 'done' ? '[完了]' : (col.type === 'archive' ? '[アーカイブ]' : '');
                 return `
                 <div class="project-column-item" draggable="true" data-index="${index}"
                      style="display: flex; gap: 0.5rem; align-items: center; padding: 0.25rem; background: #f9fafb; border-radius: 4px; margin-bottom: 0.25rem;"
@@ -12349,10 +12445,9 @@
                     <button type="button" onclick="showProjectColumnColorPicker('new', ${index}, this)"
                             style="width: 24px; height: 24px; border-radius: 4px; border: 2px solid #e5e7eb; background: ${col.color}; cursor: pointer; flex-shrink: 0;"></button>
                     <input type="text" value="${col.name}" onchange="updateNewProjectColumnName(${index}, this.value)"
-                           style="flex: 1; padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem;"
-                           ${isRequired ? 'readonly' : ''}>
+                           style="flex: 1; padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem;">
                     ${isRequired ?
-                        `<span style="color: #666; font-size: 0.75rem; padding: 0.2rem 0.4rem; white-space: nowrap;">必須</span>` :
+                        `<span style="color: #666; font-size: 0.7rem; padding: 0.2rem 0.4rem; white-space: nowrap; background: #e5e7eb; border-radius: 3px;">${typeLabel || '必須'}</span>` :
                         `<button type="button" onclick="removeNewProjectColumn(${index})"
                                 style="background: #ef4444; color: white; border: none; padding: 0.3rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
                             ✕
@@ -12736,12 +12831,12 @@
 
             if (project) {
                 // ヘッダーにプロジェクト情報を表示
-                const header = document.querySelector('.header h1');
+                const header = document.querySelector('.header-title');
                 if (header) {
-                    header.innerHTML = `📂 ${project.name} - タスク管理`;
+                    header.innerHTML = `${project.name} - タスク管理`;
                 }
 
-                console.log(`📂 プロジェクト「${project.name}」のタスクを表示中`);
+                console.log('[PROJECT] プロジェクト「' + project.name + '」のタスクを表示中');
             }
         }
         
@@ -12795,21 +12890,10 @@
                 display: flex; align-items: center; justify-content: center; padding: 20px;
             `;
             
-            const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-            const memberOptions = systemUsers.map(user => {
-                const isSelected = project.members.includes(user.email);
-                return `
-                    <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: ${isSelected ? '#dbeafe' : '#f9fafb'}; border-radius: 6px; margin-bottom: 0.5rem;">
-                        <input type="checkbox" value="${user.email}" ${isSelected ? 'checked' : ''} style="margin: 0;">
-                        <span>${user.name} (${user.email})</span>
-                    </label>
-                `;
-            }).join('');
-            
             modal.innerHTML = `
                 <div style="background: white; border-radius: 12px; width: 100%; max-width: 600px; max-height: 80vh; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
                     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="margin: 0; font-size: 1.25rem;">✏️ プロジェクト編集</h3>
+                        <h3 style="margin: 0; font-size: 1.25rem;">プロジェクト編集</h3>
                         <button onclick="document.getElementById('projectEditModal').remove()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
                     </div>
                     
@@ -12827,17 +12911,24 @@
                         <div style="margin-bottom: 1rem;">
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">ステータス</label>
                             <select id="editProjectStatus" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 1rem;">
-                                <option value="active" ${project.status === 'active' ? 'selected' : ''}>🟢 アクティブ</option>
-                                <option value="completed" ${project.status === 'completed' ? 'selected' : ''}>✅ 完了</option>
-                                <option value="archived" ${project.status === 'archived' ? 'selected' : ''}>📁 アーカイブ</option>
+                                <option value="active" ${project.status === 'active' ? 'selected' : ''}>[進行中]</option>
+                                <option value="completed" ${project.status === 'completed' ? 'selected' : ''}>[完了]</option>
+                                <option value="archived" ${project.status === 'archived' ? 'selected' : ''}>[アーカイブ]</option>
                             </select>
                         </div>
-                        
-                        <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">プロジェクトメンバー</label>
-                            <div id="membersList" style="max-height: 200px; overflow-y: auto; border: 2px solid #e5e7eb; border-radius: 8px; padding: 1rem;">
-                                ${memberOptions}
+
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">プロジェクトカラー</label>
+                            <div id="editProjectColorPicker" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button type="button" onclick="selectEditProjectColor('#0097A7')" data-color="#0097A7" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#0097A7' ? '3px solid #005f6b' : '2px solid transparent'}; background: #0097A7; cursor: pointer;"></button>
+                                <button type="button" onclick="selectEditProjectColor('#3b82f6')" data-color="#3b82f6" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#3b82f6' ? '3px solid #1d4ed8' : '2px solid transparent'}; background: #3b82f6; cursor: pointer;"></button>
+                                <button type="button" onclick="selectEditProjectColor('#8b5cf6')" data-color="#8b5cf6" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#8b5cf6' ? '3px solid #6d28d9' : '2px solid transparent'}; background: #8b5cf6; cursor: pointer;"></button>
+                                <button type="button" onclick="selectEditProjectColor('#10b981')" data-color="#10b981" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#10b981' ? '3px solid #047857' : '2px solid transparent'}; background: #10b981; cursor: pointer;"></button>
+                                <button type="button" onclick="selectEditProjectColor('#f59e0b')" data-color="#f59e0b" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#f59e0b' ? '3px solid #d97706' : '2px solid transparent'}; background: #f59e0b; cursor: pointer;"></button>
+                                <button type="button" onclick="selectEditProjectColor('#ef4444')" data-color="#ef4444" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#ef4444' ? '3px solid #dc2626' : '2px solid transparent'}; background: #ef4444; cursor: pointer;"></button>
+                                <button type="button" onclick="selectEditProjectColor('#6b7280')" data-color="#6b7280" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#6b7280' ? '3px solid #4b5563' : '2px solid transparent'}; background: #6b7280; cursor: pointer;"></button>
                             </div>
+                            <input type="hidden" id="editProjectColor" value="${project.color || '#0097A7'}">
                         </div>
 
                         <div style="margin-bottom: 1.5rem;">
@@ -12875,13 +12966,8 @@
                 const name = document.getElementById('editProjectName').value.trim();
                 const description = document.getElementById('editProjectDescription').value.trim();
                 const status = document.getElementById('editProjectStatus').value;
+                const color = document.getElementById('editProjectColor')?.value || '#0097A7';
                 const columns = getEditProjectColumns();
-
-                // メンバーリストを取得
-                const memberCheckboxes = modalElement.querySelectorAll('#membersList input[type="checkbox"]');
-                const members = Array.from(memberCheckboxes)
-                    .filter(cb => cb.checked)
-                    .map(cb => cb.value);
 
                 if (!name) {
                     alert('プロジェクト名を入力してください');
@@ -12890,11 +12976,6 @@
 
                 if (columns.length === 0) {
                     alert('最低1つのカラムを設定してください');
-                    return;
-                }
-
-                if (members.length === 0) {
-                    alert('少なくとも1人のメンバーを選択してください');
                     return;
                 }
 
@@ -12912,15 +12993,15 @@
                     return;
                 }
 
-                // プロジェクト情報を更新
+                // プロジェクト情報を更新（メンバーは既存のまま保持）
                 const updatedProject = {
                     ...existingProject,
                     name: name,
                     description: description,
                     visibility: 'public', // 常に公開（全員アクセス可）
                     status: status,
+                    color: color,
                     columns: columns,
-                    members: members,
                     updatedAt: new Date().toISOString()
                 };
 
