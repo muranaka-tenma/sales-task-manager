@@ -1416,23 +1416,23 @@
     
     <!-- 統計バー -->
     <div class="stats-bar" id="stats-bar">
-        <div class="stat-item stat-overdue">
+        <div class="stat-item stat-overdue" onclick="showOverdueTasksDetail()" style="cursor: pointer;" title="クリックで期限切れタスク一覧を表示">
             <span class="stat-number" id="overdue-count">0</span>
             <span>期限切れ</span>
         </div>
-        <div class="stat-item stat-today">
+        <div class="stat-item stat-today" onclick="showTodayTasksDetail()" style="cursor: pointer;" title="クリックで今日期限タスク一覧を表示">
             <span class="stat-number" id="today-count">0</span>
             <span>今日期限</span>
         </div>
-        <div class="stat-item" style="color: #e77600;" onclick="showStaleTasksDetail()" title="3日以上同じステータスのタスク">
+        <div class="stat-item" style="color: #e77600; cursor: pointer;" onclick="showStaleTasksDetail()" title="3日以上同じステータスのタスク（クリックで一覧表示）">
             <span class="stat-number" id="stale-count">0</span>
-            <span style="cursor: pointer;">停滞中</span>
+            <span>停滞中</span>
         </div>
-        <div class="stat-item" style="color: #10b981;" title="完了タスク / 全タスク">
+        <div class="stat-item" style="color: #10b981; cursor: pointer;" onclick="showCompletedTasksDetail()" title="完了タスク / 全タスク（クリックで完了タスク一覧表示）">
             <span class="stat-number" id="completion-rate">-</span>
             <span>完了率</span>
         </div>
-        <div class="stat-item" style="color: #0097A7;" title="期限内完了タスク / 完了タスク">
+        <div class="stat-item" style="color: #0097A7; cursor: pointer;" onclick="showComplianceTasksDetail()" title="期限内完了タスク / 完了タスク（クリックで期限内完了タスク一覧表示）">
             <span class="stat-number" id="compliance-rate">-</span>
             <span>期限遵守率</span>
         </div>
@@ -1507,8 +1507,8 @@
         <!-- 右サイドパネル -->
         <div class="right-panel" id="right-panel">
             <div class="right-panel-section">
-                <button class="right-panel-btn right-panel-btn-primary" onclick="openModal()">新規タスク</button>
-                <button class="right-panel-btn right-panel-btn-secondary" onclick="toggleMultiSelect()">複数選択</button>
+                <button class="right-panel-btn right-panel-btn-primary" onclick="createTaskUnified()">新規タスク</button>
+                <button class="right-panel-btn right-panel-btn-secondary" onclick="toggleBulkMode()">複数選択</button>
             </div>
 
             <div class="right-panel-section">
@@ -1519,7 +1519,7 @@
 
             <div class="right-panel-section">
                 <div class="right-panel-section-title">タスク管理</div>
-                <button class="right-panel-btn right-panel-btn-outline" onclick="openTemplateModal()">テンプレート</button>
+                <button class="right-panel-btn right-panel-btn-outline" onclick="openTemplateManagementModal()">テンプレート</button>
             </div>
 
             <div class="right-panel-section">
@@ -6400,7 +6400,7 @@
             }).length;
             projectsHTML += `
                 <div class="project-card ${isNormalTasksSelected ? 'active' : ''}" onclick="showNormalTasks()">
-                    <div class="project-card-name">📋 通常タスク</div>
+                    <div class="project-card-name">通常タスク</div>
                     <div class="project-card-meta">
                         <span>個人・共通タスク</span>
                         <span class="project-card-count">${normalTasksCount}</span>
@@ -6416,7 +6416,7 @@
                     <div class="project-card ${isSelected ? 'active' : ''}" onclick="selectProject('${project.id}')">
                         <div class="project-card-name">${project.name}</div>
                         <div class="project-card-meta">
-                            <span>${project.isPublic ? '🌐 公開' : '🔒 非公開'}</span>
+                            <span>${project.isPublic ? '[公開]' : '[非公開]'}</span>
                             <span class="project-card-count">${taskCount}</span>
                         </div>
                     </div>
@@ -6426,7 +6426,6 @@
             if (projects.length === 0) {
                 projectsHTML = `
                     <div style="text-align: center; color: #6b778c; padding: 2rem 1rem;">
-                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">📁</div>
                         <div>プロジェクトがありません</div>
                         <div style="font-size: 0.8rem; margin-top: 0.5rem;">設定からプロジェクトを作成してください</div>
                     </div>
@@ -7035,7 +7034,275 @@
             
             document.body.appendChild(modalOverlay);
         }
-        
+
+        // 期限切れタスクの詳細表示
+        function showOverdueTasksDetail() {
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+
+            // 期限切れタスクを抽出（完了・アーカイブを除く）
+            const overdueTasks = tasks.filter(task => {
+                if (!task.deadline) return false;
+                const column = columns.find(c => c.id === task.columnId);
+                if (!column) return false;
+                if (isDoneColumn(column.title) || isTrashColumn(column.title)) return false;
+                return task.deadline < todayStr;
+            });
+
+            if (overdueTasks.length === 0) {
+                alert('現在、期限切れのタスクはありません。');
+                return;
+            }
+
+            const taskListHtml = overdueTasks.map(task => {
+                const column = columns.find(c => c.id === task.columnId);
+                const assigneesText = task.assignees?.join(', ') || task.assignee || '未設定';
+                const deadlineDate = new Date(task.deadline);
+                const daysPast = Math.floor((now - deadlineDate) / (1000 * 60 * 60 * 24));
+
+                return `
+                    <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">${task.title}</div>
+                        <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #5e6c84;">
+                            <span>担当: ${assigneesText}</span>
+                            <span>カラム: ${column?.title || '-'}</span>
+                            <span style="color: #e53e3e;">期限: ${deadlineDate.toLocaleDateString('ja-JP')} (${daysPast}日超過)</span>
+                        </div>
+                        <button onclick="editTask('${task.id}')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                            確認・編集
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+            modalOverlay.id = 'overdue-tasks-modal';
+
+            modalOverlay.innerHTML = `
+                <div style="background: white; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0; background: #fef2f2;">
+                        <h2 style="margin: 0; font-size: 1.25rem; color: #dc2626;">期限切れタスク（${overdueTasks.length}件）</h2>
+                        <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">早急な対応が必要なタスクです</p>
+                    </div>
+                    <div>${taskListHtml}</div>
+                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
+                        <button onclick="document.getElementById('overdue-tasks-modal').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                            閉じる
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) modalOverlay.remove();
+            });
+
+            document.body.appendChild(modalOverlay);
+        }
+
+        // 今日期限タスクの詳細表示
+        function showTodayTasksDetail() {
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+
+            // 今日期限タスクを抽出（完了・アーカイブを除く）
+            const todayTasks = tasks.filter(task => {
+                if (!task.deadline) return false;
+                const column = columns.find(c => c.id === task.columnId);
+                if (!column) return false;
+                if (isDoneColumn(column.title) || isTrashColumn(column.title)) return false;
+                return task.deadline === todayStr;
+            });
+
+            if (todayTasks.length === 0) {
+                alert('本日期限のタスクはありません。');
+                return;
+            }
+
+            const taskListHtml = todayTasks.map(task => {
+                const column = columns.find(c => c.id === task.columnId);
+                const assigneesText = task.assignees?.join(', ') || task.assignee || '未設定';
+
+                return `
+                    <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">${task.title}</div>
+                        <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #5e6c84;">
+                            <span>担当: ${assigneesText}</span>
+                            <span>カラム: ${column?.title || '-'}</span>
+                            <span style="color: #f59e0b;">本日期限</span>
+                        </div>
+                        <button onclick="editTask('${task.id}')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                            確認・編集
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+            modalOverlay.id = 'today-tasks-modal';
+
+            modalOverlay.innerHTML = `
+                <div style="background: white; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0; background: #fffbeb;">
+                        <h2 style="margin: 0; font-size: 1.25rem; color: #d97706;">本日期限タスク（${todayTasks.length}件）</h2>
+                        <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">本日中に完了が必要なタスクです</p>
+                    </div>
+                    <div>${taskListHtml}</div>
+                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
+                        <button onclick="document.getElementById('today-tasks-modal').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                            閉じる
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) modalOverlay.remove();
+            });
+
+            document.body.appendChild(modalOverlay);
+        }
+
+        // 完了タスクの詳細表示
+        function showCompletedTasksDetail() {
+            // 完了タスクを抽出
+            const completedTasks = tasks.filter(task => {
+                const column = columns.find(c => c.id === task.columnId);
+                if (!column) return false;
+                return isDoneColumn(column.title);
+            });
+
+            if (completedTasks.length === 0) {
+                alert('完了したタスクはありません。');
+                return;
+            }
+
+            // 完了日で降順ソート
+            completedTasks.sort((a, b) => {
+                const dateA = a.completedAt || a.updatedAt || a.createdAt || '';
+                const dateB = b.completedAt || b.updatedAt || b.createdAt || '';
+                return dateB.localeCompare(dateA);
+            });
+
+            const taskListHtml = completedTasks.slice(0, 20).map(task => {
+                const assigneesText = task.assignees?.join(', ') || task.assignee || '未設定';
+                const completedDate = task.completedAt || task.updatedAt || task.createdAt;
+
+                return `
+                    <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">${task.title}</div>
+                        <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #5e6c84;">
+                            <span>担当: ${assigneesText}</span>
+                            ${completedDate ? `<span>完了: ${new Date(completedDate).toLocaleDateString('ja-JP')}</span>` : ''}
+                            ${task.deadline ? `<span>期限: ${new Date(task.deadline).toLocaleDateString('ja-JP')}</span>` : ''}
+                        </div>
+                        <button onclick="editTask('${task.id}')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                            詳細
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+            modalOverlay.id = 'completed-tasks-modal';
+
+            modalOverlay.innerHTML = `
+                <div style="background: white; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0; background: #ecfdf5;">
+                        <h2 style="margin: 0; font-size: 1.25rem; color: #059669;">完了タスク（${completedTasks.length}件）</h2>
+                        <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">最新20件を表示しています</p>
+                    </div>
+                    <div>${taskListHtml}</div>
+                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
+                        <button onclick="document.getElementById('completed-tasks-modal').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                            閉じる
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) modalOverlay.remove();
+            });
+
+            document.body.appendChild(modalOverlay);
+        }
+
+        // 期限遵守タスク（期限内に完了したタスク）の詳細表示
+        function showComplianceTasksDetail() {
+            // 期限があり、期限内に完了したタスクを抽出
+            const complianceTasks = tasks.filter(task => {
+                if (!task.deadline) return false;
+                const column = columns.find(c => c.id === task.columnId);
+                if (!column) return false;
+                if (!isDoneColumn(column.title)) return false;
+
+                // 完了日が期限以前かチェック
+                const completedDate = task.completedAt || task.updatedAt;
+                if (!completedDate) return true; // 完了日不明は期限遵守とみなす
+                return completedDate.split('T')[0] <= task.deadline;
+            });
+
+            if (complianceTasks.length === 0) {
+                alert('期限内に完了したタスクはありません。');
+                return;
+            }
+
+            // 完了日で降順ソート
+            complianceTasks.sort((a, b) => {
+                const dateA = a.completedAt || a.updatedAt || a.createdAt || '';
+                const dateB = b.completedAt || b.updatedAt || b.createdAt || '';
+                return dateB.localeCompare(dateA);
+            });
+
+            const taskListHtml = complianceTasks.slice(0, 20).map(task => {
+                const assigneesText = task.assignees?.join(', ') || task.assignee || '未設定';
+                const completedDate = task.completedAt || task.updatedAt;
+
+                return `
+                    <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">${task.title}</div>
+                        <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #5e6c84;">
+                            <span>担当: ${assigneesText}</span>
+                            <span>期限: ${new Date(task.deadline).toLocaleDateString('ja-JP')}</span>
+                            ${completedDate ? `<span style="color: #0097A7;">完了: ${new Date(completedDate).toLocaleDateString('ja-JP')}</span>` : ''}
+                        </div>
+                        <button onclick="editTask('${task.id}')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                            詳細
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;';
+            modalOverlay.id = 'compliance-tasks-modal';
+
+            modalOverlay.innerHTML = `
+                <div style="background: white; border-radius: 8px; max-width: 600px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0; background: #e0f2fe;">
+                        <h2 style="margin: 0; font-size: 1.25rem; color: #0097A7;">期限遵守タスク（${complianceTasks.length}件）</h2>
+                        <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">期限内に完了したタスク（最新20件）</p>
+                    </div>
+                    <div>${taskListHtml}</div>
+                    <div style="padding: 1rem; border-top: 1px solid #e2e8f0; text-align: right;">
+                        <button onclick="document.getElementById('compliance-tasks-modal').remove()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">
+                            閉じる
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) modalOverlay.remove();
+            });
+
+            document.body.appendChild(modalOverlay);
+        }
+
         // チーム平均1.2倍以上の負荷担当者の詳細表示
         function showWorkloadDetail() {
             if (!window.overloadedAssignees || window.overloadedAssignees.length === 0) {
@@ -11580,7 +11847,7 @@
                 if (projects.length === 0) {
                     projectsList.innerHTML = `
                         <div style="text-align: center; color: #6b7280; padding: 2rem; background: #f9fafb; border-radius: 8px; border: 2px dashed #e5e7eb;">
-                            📂 まだプロジェクトがありません<br>
+                            まだプロジェクトがありません<br>
                             <span style="font-size: 0.9rem;">新しいプロジェクトを作成してチーム作業を始めましょう</span>
                         </div>
                     `;
@@ -11597,8 +11864,8 @@
                     
                     if (!canView) return '';
                     
-                    const visibilityIcon = project.visibility === 'public' ? '🌐' : '🔒';
-                    const statusIcon = project.status === 'active' ? '🟢' : project.status === 'completed' ? '✅' : '📁';
+                    const visibilityIcon = project.visibility === 'public' ? '[公開]' : '[非公開]';
+                    const statusIcon = project.status === 'active' ? '[進行中]' : project.status === 'completed' ? '[完了]' : '[アーカイブ]';
                     
                     return `
                         <div style="border: 2px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -11616,11 +11883,11 @@
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-left: 1rem;">
                                     <button onclick="viewProjectTasks('${project.id}')" style="background: #3b82f6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer;">
-                                        📋 タスク表示
+                                        タスク表示
                                     </button>
                                     ${(isOwner || currentUser.role === 'developer') ? `
                                         <button onclick="editProject('${project.id}')" style="background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer;">
-                                            ✏️ 編集
+                                            編集
                                         </button>
                                         <button onclick="deleteProject('${project.id}')" style="background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; cursor: pointer;">
                                             削除
