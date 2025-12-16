@@ -3274,17 +3274,27 @@
             console.log('[COLUMNS] type属性マイグレーション完了');
         }
 
-        // アーカイブカラムの重複削除（グレー色の古いカラムを削除）
+        // アーカイブカラムの重複削除（最初の1つだけ残す）
         const archiveColumns = columns.filter(c => c.type === 'archive' || c.id === 'trash' || /アーカイブ|archive/i.test(c.title));
         if (archiveColumns.length > 1) {
-            console.log('[ARCHIVE] 重複アーカイブカラムを検出:', archiveColumns.length);
-            // グレー色(#6c757d)のカラムを削除対象にする
-            const grayArchive = archiveColumns.find(c => c.color === '#6c757d');
-            if (grayArchive && archiveColumns.length > 1) {
-                columns = columns.filter(c => c !== grayArchive);
-                localStorage.setItem('kanbanColumns', JSON.stringify(columns));
-                console.log('[ARCHIVE] グレー色の重複アーカイブカラムを削除しました');
-            }
+            console.log('[ARCHIVE] 重複アーカイブカラムを検出:', archiveColumns.length, archiveColumns.map(c => `${c.id}(${c.color})`));
+            // 最初のアーカイブカラム以外を削除
+            const keepArchive = archiveColumns[0];
+            const removeArchives = archiveColumns.slice(1);
+            columns = columns.filter(c => !removeArchives.includes(c));
+            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            console.log('[ARCHIVE] 重複アーカイブカラムを削除しました。残したカラム:', keepArchive.id);
+        }
+
+        // 完了カラムの重複削除（最初の1つだけ残す）
+        const doneColumns = columns.filter(c => c.type === 'done' || c.id === 'done' || /完了|done/i.test(c.title));
+        if (doneColumns.length > 1) {
+            console.log('[DONE] 重複完了カラムを検出:', doneColumns.length);
+            const keepDone = doneColumns[0];
+            const removeDones = doneColumns.slice(1);
+            columns = columns.filter(c => !removeDones.includes(c));
+            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            console.log('[DONE] 重複完了カラムを削除しました。残したカラム:', keepDone.id);
         }
 
         // アーカイブカラムが存在しない場合は強制追加
@@ -3417,19 +3427,58 @@
                 const result = await window.FirebaseDB.getColumns();
                 if (result.success && result.columns && Array.isArray(result.columns)) {
                     columns = result.columns;
-                    localStorage.setItem('kanbanColumns', JSON.stringify(columns));
                     console.log('[COLUMNS] Firestoreから読み込み完了:', columns.length + '件');
 
-                    // done/trashカラムの存在チェック
-                    if (!columns.find(c => c.id === 'done')) {
-                        columns.push({"id":"done","title":"Done","color":"#10b981"});
+                    // type属性がない場合は付与
+                    let needsSave = false;
+                    columns = columns.map(col => {
+                        if (!col.type) {
+                            needsSave = true;
+                            if (col.id === 'done' || /完了|done/i.test(col.title)) col.type = 'done';
+                            else if (col.id === 'trash' || /アーカイブ|archive/i.test(col.title)) col.type = 'archive';
+                            else col.type = 'normal';
+                        }
+                        return col;
+                    });
+
+                    // アーカイブカラムの重複削除
+                    const archiveCols = columns.filter(c => c.type === 'archive' || c.id === 'trash' || /アーカイブ|archive/i.test(c.title));
+                    if (archiveCols.length > 1) {
+                        console.log('[COLUMNS] 重複アーカイブカラム検出:', archiveCols.map(c => c.id));
+                        const keepArchive = archiveCols[0];
+                        columns = columns.filter(c => c === keepArchive || !archiveCols.includes(c));
+                        needsSave = true;
                     }
-                    if (!columns.find(c => c.id === 'trash')) {
-                        columns.push({"id":"trash","title":"Archive","color":"#6c757d"});
+
+                    // 完了カラムの重複削除
+                    const doneCols = columns.filter(c => c.type === 'done' || c.id === 'done' || /完了|done/i.test(c.title));
+                    if (doneCols.length > 1) {
+                        console.log('[COLUMNS] 重複完了カラム検出:', doneCols.map(c => c.id));
+                        const keepDone = doneCols[0];
+                        columns = columns.filter(c => c === keepDone || !doneCols.includes(c));
+                        needsSave = true;
+                    }
+
+                    // done/trashカラムの存在チェック
+                    if (!columns.find(c => c.type === 'done')) {
+                        columns.push({"id":"done","title":"Done","color":"#10b981","type":"done"});
+                        needsSave = true;
+                    }
+                    if (!columns.find(c => c.type === 'archive')) {
+                        columns.push({"id":"trash","title":"Archive","color":"#6c757d","type":"archive"});
+                        needsSave = true;
+                    }
+
+                    localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+
+                    // 変更があればFirestoreにも保存
+                    if (needsSave) {
+                        await saveColumnsToFirestore();
+                        console.log('[COLUMNS] 重複削除/type属性修正をFirestoreに保存');
                     }
 
                     // UIを再描画
-                    if (typeof renderBoard === 'function') {
+                    if (typeof render === 'function') {
                         render();
                     }
                 } else {
