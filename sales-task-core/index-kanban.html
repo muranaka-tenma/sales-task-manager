@@ -582,19 +582,20 @@
         .task-card {
             background: var(--card-bg, #ffffff);
             border-radius: 0;
-            padding: 0.5rem 0.6rem;
-            margin: 0 0 2px 0;
+            padding: 0.35rem 0.5rem;
+            margin: 0 0 1px 0;
             cursor: pointer;
             box-shadow: none;
             transition: all 0.15s ease;
-            border-left: 4px solid #0097A7;
+            border-left: 3px solid #0097A7;
             border-top: none;
             border-right: none;
             border-bottom: 1px solid #e5e7eb;
             color: var(--card-text, inherit);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             width: 100%;
             box-sizing: border-box;
+            line-height: 1.3;
         }
         
         .dark-theme .task-card {
@@ -647,10 +648,10 @@
         
         .task-title {
             font-weight: 600;
-            margin-bottom: 0.375rem;
+            margin-bottom: 0.2rem;
             color: var(--title-color, #172b4d);
-            font-size: 0.8rem;
-            line-height: 1.25;
+            font-size: 0.75rem;
+            line-height: 1.2;
         }
         
         .dark-theme .task-title {
@@ -660,10 +661,10 @@
         .task-meta {
             display: flex;
             align-items: center;
-            gap: 0.25rem;
-            margin-bottom: 0.25rem;
+            gap: 0.15rem;
+            margin-bottom: 0.15rem;
             flex-wrap: wrap;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
         }
         
         .task-deadline {
@@ -708,8 +709,9 @@
         
         .task-badges {
             display: flex;
-            gap: 0.3rem;
+            gap: 0.2rem;
             align-items: center;
+            font-size: 0.65rem;
         }
         
         .attachment-icon {
@@ -1827,6 +1829,29 @@
                 </div>
                 
 
+                <!-- タスク作成設定 -->
+                <div class="setting-section" style="margin-top: 2rem; background: #eff6ff; padding: 2rem; border-radius: 12px; border: 1px solid #bfdbfe;">
+                    <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #3b82f6;">タスク作成設定</h3>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">デフォルト期限（日数）</label>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="number" id="default-deadline-days" min="0" max="365" value="7" style="width: 80px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                <span>日後</span>
+                                <button onclick="saveDefaultDeadline()" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 1rem;">保存</button>
+                            </div>
+                            <p style="font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem;">タスク作成時のデフォルト期限を設定します（0=今日）</p>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">デフォルト時刻</label>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="time" id="default-deadline-time" value="18:00" style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                                <button onclick="saveDefaultDeadlineTime()" style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 1rem;">保存</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 表示設定 -->
                 <div class="setting-section" style="margin-top: 2rem; background: #f0fdf4; padding: 2rem; border-radius: 12px; border: 1px solid #bbf7d0;">
                     <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #22c55e;">表示設定</h3>
@@ -2749,7 +2774,7 @@
             const rightPanelAdminSection = document.getElementById('right-panel-admin-section');
             if (rightPanelAdminSection) {
                 if (role === 'developer' || role === 'admin') {
-                    rightPanelAdminSection.style.display = 'block';
+                    rightPanelAdminSection.style.display = 'flex';
                     console.log('✅ 右パネル管理機能: 表示');
                 } else {
                     rightPanelAdminSection.style.display = 'none';
@@ -6828,13 +6853,10 @@
             else if (isTodayTask) cardClass += ' today';
             
             let deadlineClass = 'task-deadline';
-            let deadlineIcon = '📅';
             if (isOverdueTask) {
                 deadlineClass += ' overdue';
-                deadlineIcon = '🚨';
             } else if (isTodayTask) {
                 deadlineClass += ' today';
-                deadlineIcon = '⏰';
             }
 
             // 優先度機能削除
@@ -6855,31 +6877,26 @@
                      ${!isBulkMode ? `ondragstart="handleDragStart(event, '${task.id}')" ondragend="handleDragEnd(event)"` : ''}
                      onclick="${isBulkMode ? `toggleTaskSelection('${task.id}')` : `editTask('${task.id}')`}"
                      style="position: relative; cursor: ${isBulkMode ? 'pointer' : 'move'}; ${isOverdueTask ? 'border-left: 4px solid #dc2626 !important; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3) !important;' : ''}${isStale && !isOverdueTask ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
-                     title="${isOverdueTask ? '🚨 期限切れタスクです' : ''}${isStale ? ' ⚠️ 3日以上停滞中' : ''}">
+                     title="${isOverdueTask ? '期限切れ' : ''}">
                     ${checkboxHtml}
                     <div class="task-title">
                         <span>
-                            ${task.isRecurring ? '<span style="color: #2d3748; margin-right: 0.25rem;" title="定期タスク">🔄</span>' : ''}
-                            ${task.projectId ? '<span style="color: #2b6cb0; margin-right: 0.25rem;" title="PJタスク">👥</span>' : ''}
+                            ${task.isRecurring ? '<span style="color: #2d3748; margin-right: 0.25rem; font-size: 0.7rem;" title="定期タスク">[定期]</span>' : ''}
+                            ${task.projectId ? '<span style="color: #2b6cb0; margin-right: 0.25rem; font-size: 0.7rem;" title="PJタスク">[PJ]</span>' : ''}
                             ${task.title}
                         </span>
                     </div>
                     <div class="task-meta">
                         <div style="margin-bottom: 0.25rem;">
                             <span class="${deadlineClass}">
-                                ${deadlineIcon} ${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
+                                ${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}
                             </span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                            ${elapsedText ? `<span style="font-size: 0.75rem; color: ${isStale ? '#e53e3e' : '#718096'}; font-weight: ${isStale ? '600' : '400'};">⏱️ ${elapsedText}</span>` : ''}
-                            ${isStale ? '<span style="font-size: 0.75rem; color: #e53e3e;">🚨 停滞中</span>' : ''}
-                        </div>
                     </div>
-                    ${task.memo ? `<div class="task-memo">${task.memo}</div>` : ''}
                     <div class="task-badges">
-                        ${task.memo ? '<span class="attachment-icon">📝</span>' : ''}
+                        ${task.memo ? '<span class="attachment-icon" style="font-size: 0.7rem;">[memo]</span>' : ''}
                         ${task.attachments && task.attachments.length > 0 ? `<span class="attachment-badge">${task.attachments.length}</span>` : ''}
-                        <span style="font-size: 0.7rem; color: #5e6c84;">👤 ${getAssigneeDisplayText(task)}</span>
+                        <span style="font-size: 0.7rem; color: #5e6c84;">${getAssigneeDisplayText(task)}</span>
                     </div>
                 </div>
             `;
@@ -8138,6 +8155,44 @@
             loadAlertSettings();
             loadColumnManager();
             loadImportDefaults();
+            loadDefaultDeadlineSettings();
+        }
+
+        // デフォルト期限設定の読み込み
+        function loadDefaultDeadlineSettings() {
+            const savedDays = localStorage.getItem('defaultDeadlineDays');
+            const savedTime = localStorage.getItem('defaultDeadlineTime');
+            if (savedDays !== null) {
+                document.getElementById('default-deadline-days').value = savedDays;
+            }
+            if (savedTime) {
+                document.getElementById('default-deadline-time').value = savedTime;
+            }
+        }
+
+        // デフォルト期限日数の保存
+        function saveDefaultDeadline() {
+            const days = document.getElementById('default-deadline-days').value;
+            localStorage.setItem('defaultDeadlineDays', days);
+            alert('デフォルト期限を ' + days + ' 日後に設定しました');
+        }
+
+        // デフォルト期限時刻の保存
+        function saveDefaultDeadlineTime() {
+            const time = document.getElementById('default-deadline-time').value;
+            localStorage.setItem('defaultDeadlineTime', time);
+            alert('デフォルト時刻を ' + time + ' に設定しました');
+        }
+
+        // デフォルト期限を取得（タスク作成時に使用）
+        function getDefaultDeadline() {
+            const days = parseInt(localStorage.getItem('defaultDeadlineDays') || '7');
+            const time = localStorage.getItem('defaultDeadlineTime') || '18:00';
+            const deadline = new Date();
+            deadline.setDate(deadline.getDate() + days);
+            const [hours, minutes] = time.split(':');
+            deadline.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            return deadline;
         }
         
         // インポート設定の初期化
@@ -8490,18 +8545,18 @@
                 return;
             }
 
-            // 🔒 権限チェック（個人用カラムもdeveloper権限必要）
+            // 🔒 権限チェック（admin/developerのみ削除可能）
             const currentUser = getCurrentUser();
             if (selectedProjectFilters.length > 0) {
                 // プロジェクトカラムの場合：admin権限必要
-                if (currentUser.role !== 'admin') {
-                    alert('⚠️ プロジェクトのカラム削除は管理者のみ可能です');
+                if (currentUser.role !== 'admin' && currentUser.role !== 'developer') {
+                    alert('プロジェクトのカラム削除は管理者のみ可能です');
                     return;
                 }
             } else {
-                // 個人用カラムの場合：developer権限必要
-                if (currentUser.role !== 'developer') {
-                    alert('⚠️ 個人用カラムの削除はdeveloper権限が必要です');
+                // 個人用カラムの場合：admin/developer権限必要
+                if (currentUser.role !== 'admin' && currentUser.role !== 'developer') {
+                    alert('カラムの削除は管理者権限が必要です');
                     return;
                 }
             }
@@ -9182,7 +9237,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             // アプリバージョンチェック - 古いキャッシュを強制クリア
-            const APP_VERSION = '2025-12-16-v10-context-menu';
+            const APP_VERSION = '2025-12-16-v13-admin-gap-fix';
             const storedVersion = localStorage.getItem('appVersion');
             if (storedVersion !== APP_VERSION) {
                 console.log('🧹 [VERSION] 古いバージョン検出 - LocalStorage完全クリア');
@@ -12237,23 +12292,48 @@
         }
 
         // 🔧 新規プロジェクトのカラム管理関数
+        // プロジェクトカラムデータ（名前と色）
+        let newProjectColumnsData = [];
+        let editProjectColumnsData = [];
+        const PROJECT_COLUMN_COLORS = ['#0097A7', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6b7280'];
+
         function loadNewProjectColumns(columns = DEFAULT_PROJECT_COLUMNS) {
             const container = document.getElementById('newProjectColumnsContainer');
             if (!container) return;
 
-            container.innerHTML = columns.map((column, index) => {
-                const isRequired = isRequiredColumn(column);
+            // 文字列配列をオブジェクト配列に変換
+            newProjectColumnsData = columns.map((col, i) => {
+                if (typeof col === 'string') {
+                    return { name: col, color: PROJECT_COLUMN_COLORS[i % PROJECT_COLUMN_COLORS.length] };
+                }
+                return col;
+            });
+
+            renderNewProjectColumns();
+        }
+
+        function renderNewProjectColumns() {
+            const container = document.getElementById('newProjectColumnsContainer');
+            if (!container) return;
+
+            container.innerHTML = newProjectColumnsData.map((col, index) => {
+                const isRequired = isRequiredColumn(col.name);
                 return `
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <span style="cursor: move; color: #9ca3af; font-size: 1.2rem;" title="ドラッグして並び替え">⋮⋮</span>
-                    <input type="text" value="${column}"
-                           style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;"
+                <div class="project-column-item" draggable="true" data-index="${index}"
+                     style="display: flex; gap: 0.5rem; align-items: center; padding: 0.25rem; background: #f9fafb; border-radius: 4px; margin-bottom: 0.25rem;"
+                     ondragstart="onProjectColumnDragStart(event, 'new', ${index})"
+                     ondragover="onProjectColumnDragOver(event)"
+                     ondrop="onProjectColumnDrop(event, 'new', ${index})">
+                    <span style="cursor: grab; color: #9ca3af; font-size: 1rem;">⋮⋮</span>
+                    <button type="button" onclick="showProjectColumnColorPicker('new', ${index}, this)"
+                            style="width: 24px; height: 24px; border-radius: 4px; border: 2px solid #e5e7eb; background: ${col.color}; cursor: pointer; flex-shrink: 0;"></button>
+                    <input type="text" value="${col.name}" onchange="updateNewProjectColumnName(${index}, this.value)"
+                           style="flex: 1; padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem;"
                            ${isRequired ? 'readonly' : ''}>
                     ${isRequired ?
-                        `<span style="color: #666; font-size: 0.8rem; padding: 0.25rem 0.5rem; white-space: nowrap;">🔒 必須</span>` :
+                        `<span style="color: #666; font-size: 0.75rem; padding: 0.2rem 0.4rem; white-space: nowrap;">必須</span>` :
                         `<button type="button" onclick="removeNewProjectColumn(${index})"
-                                style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
-                                ${columns.length <= 1 ? 'disabled' : ''}>
+                                style="background: #ef4444; color: white; border: none; padding: 0.3rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
                             ✕
                         </button>`
                     }
@@ -12262,36 +12342,116 @@
             }).join('');
         }
 
+        function updateNewProjectColumnName(index, name) {
+            if (newProjectColumnsData[index]) {
+                newProjectColumnsData[index].name = name;
+            }
+        }
+
         function addNewProjectColumn() {
-            const currentColumns = getNewProjectColumns();
-            currentColumns.push('新しいカラム');
-            loadNewProjectColumns(currentColumns);
+            newProjectColumnsData.push({ name: '新しいカラム', color: '#0097A7' });
+            renderNewProjectColumns();
         }
 
         function removeNewProjectColumn(index) {
-            const currentColumns = getNewProjectColumns();
-            if (currentColumns.length <= 1) {
+            if (newProjectColumnsData.length <= 1) {
                 alert('最低1つのカラムが必要です');
                 return;
             }
-
-            // 🔒 必須カラムは削除不可
-            const columnToRemove = currentColumns[index];
-            if (isRequiredColumn(columnToRemove)) {
+            if (isRequiredColumn(newProjectColumnsData[index].name)) {
                 alert('「完了」と「アーカイブ」カラムは必須のため削除できません。');
                 return;
             }
-
-            currentColumns.splice(index, 1);
-            loadNewProjectColumns(currentColumns);
+            newProjectColumnsData.splice(index, 1);
+            renderNewProjectColumns();
         }
 
         function getNewProjectColumns() {
-            const container = document.getElementById('newProjectColumnsContainer');
-            if (!container) return DEFAULT_PROJECT_COLUMNS;
+            return newProjectColumnsData.map(col => col.name);
+        }
 
-            const inputs = container.querySelectorAll('input[type="text"]');
-            return Array.from(inputs).map(input => input.value.trim()).filter(val => val);
+        function getNewProjectColumnsWithColors() {
+            return newProjectColumnsData;
+        }
+
+        // ドラッグ&ドロップ
+        let draggedColumnIndex = -1;
+        let draggedColumnType = '';
+
+        function onProjectColumnDragStart(event, type, index) {
+            draggedColumnIndex = index;
+            draggedColumnType = type;
+            event.dataTransfer.effectAllowed = 'move';
+            event.target.style.opacity = '0.5';
+        }
+
+        function onProjectColumnDragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        function onProjectColumnDrop(event, type, dropIndex) {
+            event.preventDefault();
+            event.target.closest('.project-column-item')?.style.removeProperty('opacity');
+
+            if (draggedColumnType !== type || draggedColumnIndex === dropIndex) return;
+
+            const data = type === 'new' ? newProjectColumnsData : editProjectColumnsData;
+            const [moved] = data.splice(draggedColumnIndex, 1);
+            data.splice(dropIndex, 0, moved);
+
+            if (type === 'new') {
+                renderNewProjectColumns();
+            } else {
+                renderEditProjectColumns();
+            }
+            draggedColumnIndex = -1;
+        }
+
+        // 色設定ポップアップ
+        function showProjectColumnColorPicker(type, index, btn) {
+            // 既存のポップアップを削除
+            document.querySelectorAll('.project-column-color-popup').forEach(el => el.remove());
+
+            const popup = document.createElement('div');
+            popup.className = 'project-column-color-popup';
+            popup.style.cssText = 'position: absolute; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 3000; display: flex; gap: 0.25rem; flex-wrap: wrap; width: 140px;';
+
+            PROJECT_COLUMN_COLORS.forEach(color => {
+                const colorBtn = document.createElement('button');
+                colorBtn.type = 'button';
+                colorBtn.style.cssText = `width: 28px; height: 28px; border-radius: 4px; border: 2px solid ${color}; background: ${color}; cursor: pointer;`;
+                colorBtn.onclick = () => {
+                    setProjectColumnColor(type, index, color);
+                    popup.remove();
+                };
+                popup.appendChild(colorBtn);
+            });
+
+            const rect = btn.getBoundingClientRect();
+            popup.style.left = rect.left + 'px';
+            popup.style.top = (rect.bottom + 4) + 'px';
+            document.body.appendChild(popup);
+
+            // クリックで閉じる
+            setTimeout(() => {
+                document.addEventListener('click', function closePopup(e) {
+                    if (!popup.contains(e.target)) {
+                        popup.remove();
+                        document.removeEventListener('click', closePopup);
+                    }
+                });
+            }, 10);
+        }
+
+        function setProjectColumnColor(type, index, color) {
+            if (type === 'new') {
+                newProjectColumnsData[index].color = color;
+                renderNewProjectColumns();
+            } else {
+                editProjectColumnsData[index].color = color;
+                renderEditProjectColumns();
+            }
         }
 
         // 🔧 編集モーダル用のカラム管理関数
@@ -12299,19 +12459,39 @@
             const container = document.getElementById('editProjectColumnsContainer');
             if (!container) return;
 
-            container.innerHTML = columns.map((column, index) => {
-                const isRequired = isRequiredColumn(column);
+            // 文字列配列をオブジェクト配列に変換
+            editProjectColumnsData = columns.map((col, i) => {
+                if (typeof col === 'string') {
+                    return { name: col, color: PROJECT_COLUMN_COLORS[i % PROJECT_COLUMN_COLORS.length] };
+                }
+                return col;
+            });
+
+            renderEditProjectColumns();
+        }
+
+        function renderEditProjectColumns() {
+            const container = document.getElementById('editProjectColumnsContainer');
+            if (!container) return;
+
+            container.innerHTML = editProjectColumnsData.map((col, index) => {
+                const isRequired = isRequiredColumn(col.name);
                 return `
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <span style="cursor: move; color: #9ca3af; font-size: 1.2rem;" title="ドラッグして並び替え">⋮⋮</span>
-                    <input type="text" value="${column}"
-                           style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;"
+                <div class="project-column-item" draggable="true" data-index="${index}"
+                     style="display: flex; gap: 0.5rem; align-items: center; padding: 0.25rem; background: #f9fafb; border-radius: 4px; margin-bottom: 0.25rem;"
+                     ondragstart="onProjectColumnDragStart(event, 'edit', ${index})"
+                     ondragover="onProjectColumnDragOver(event)"
+                     ondrop="onProjectColumnDrop(event, 'edit', ${index})">
+                    <span style="cursor: grab; color: #9ca3af; font-size: 1rem;">⋮⋮</span>
+                    <button type="button" onclick="showProjectColumnColorPicker('edit', ${index}, this)"
+                            style="width: 24px; height: 24px; border-radius: 4px; border: 2px solid #e5e7eb; background: ${col.color}; cursor: pointer; flex-shrink: 0;"></button>
+                    <input type="text" value="${col.name}" onchange="updateEditProjectColumnName(${index}, this.value)"
+                           style="flex: 1; padding: 0.4rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem;"
                            ${isRequired ? 'readonly' : ''}>
                     ${isRequired ?
-                        `<span style="color: #666; font-size: 0.8rem; padding: 0.25rem 0.5rem; white-space: nowrap;">🔒 必須</span>` :
+                        `<span style="color: #666; font-size: 0.75rem; padding: 0.2rem 0.4rem; white-space: nowrap;">必須</span>` :
                         `<button type="button" onclick="removeEditProjectColumn(${index})"
-                                style="background: #ef4444; color: white; border: none; padding: 0.5rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;"
-                                ${columns.length <= 1 ? 'disabled' : ''}>
+                                style="background: #ef4444; color: white; border: none; padding: 0.3rem 0.5rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem;">
                             ✕
                         </button>`
                     }
@@ -12320,36 +12500,36 @@
             }).join('');
         }
 
+        function updateEditProjectColumnName(index, name) {
+            if (editProjectColumnsData[index]) {
+                editProjectColumnsData[index].name = name;
+            }
+        }
+
         function addEditProjectColumn() {
-            const currentColumns = getEditProjectColumns();
-            currentColumns.push('新しいカラム');
-            loadEditProjectColumns(currentColumns);
+            editProjectColumnsData.push({ name: '新しいカラム', color: '#0097A7' });
+            renderEditProjectColumns();
         }
 
         function removeEditProjectColumn(index) {
-            const currentColumns = getEditProjectColumns();
-            if (currentColumns.length <= 1) {
+            if (editProjectColumnsData.length <= 1) {
                 alert('最低1つのカラムが必要です');
                 return;
             }
-
-            // 🔒 必須カラムは削除不可
-            const columnToRemove = currentColumns[index];
-            if (isRequiredColumn(columnToRemove)) {
+            if (isRequiredColumn(editProjectColumnsData[index].name)) {
                 alert('「完了」と「アーカイブ」カラムは必須のため削除できません。');
                 return;
             }
-
-            currentColumns.splice(index, 1);
-            loadEditProjectColumns(currentColumns);
+            editProjectColumnsData.splice(index, 1);
+            renderEditProjectColumns();
         }
 
         function getEditProjectColumns() {
-            const container = document.getElementById('editProjectColumnsContainer');
-            if (!container) return DEFAULT_PROJECT_COLUMNS;
+            return editProjectColumnsData.map(col => col.name);
+        }
 
-            const inputs = container.querySelectorAll('input[type="text"]');
-            return Array.from(inputs).map(input => input.value.trim()).filter(val => val);
+        function getEditProjectColumnsWithColors() {
+            return editProjectColumnsData;
         }
 
         // 新しいプロジェクトを作成
