@@ -333,7 +333,22 @@
                     <label class="form-label">説明</label>
                     <textarea id="project-description" class="form-textarea" placeholder="プロジェクトの概要や目的を入力してください"></textarea>
                 </div>
-                
+
+                <div class="form-group">
+                    <label class="form-label">プロジェクトカラー</label>
+                    <div id="color-selector" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" class="color-btn" data-color="#0097A7" style="width: 36px; height: 36px; background: #0097A7; border: 3px solid transparent; border-radius: 6px; cursor: pointer;" onclick="selectProjectColor('#0097A7')" title="TERRA"></button>
+                        <button type="button" class="color-btn" data-color="#3b82f6" style="width: 36px; height: 36px; background: #3b82f6; border: 3px solid transparent; border-radius: 6px; cursor: pointer;" onclick="selectProjectColor('#3b82f6')" title="Blue"></button>
+                        <button type="button" class="color-btn" data-color="#10b981" style="width: 36px; height: 36px; background: #10b981; border: 3px solid transparent; border-radius: 6px; cursor: pointer;" onclick="selectProjectColor('#10b981')" title="Green"></button>
+                        <button type="button" class="color-btn" data-color="#f59e0b" style="width: 36px; height: 36px; background: #f59e0b; border: 3px solid transparent; border-radius: 6px; cursor: pointer;" onclick="selectProjectColor('#f59e0b')" title="Orange"></button>
+                        <button type="button" class="color-btn" data-color="#ef4444" style="width: 36px; height: 36px; background: #ef4444; border: 3px solid transparent; border-radius: 6px; cursor: pointer;" onclick="selectProjectColor('#ef4444')" title="Red"></button>
+                        <button type="button" class="color-btn" data-color="#8b5cf6" style="width: 36px; height: 36px; background: #8b5cf6; border: 3px solid transparent; border-radius: 6px; cursor: pointer;" onclick="selectProjectColor('#8b5cf6')" title="Purple"></button>
+                        <button type="button" class="color-btn" data-color="#ec4899" style="width: 36px; height: 36px; background: #ec4899; border: 3px solid transparent; border-radius: 6px; cursor: pointer;" onclick="selectProjectColor('#ec4899')" title="Pink"></button>
+                        <button type="button" class="color-btn" data-color="#6b7280" style="width: 36px; height: 36px; background: #6b7280; border: 3px solid transparent; border-radius: 6px; cursor: pointer;" onclick="selectProjectColor('#6b7280')" title="Gray"></button>
+                    </div>
+                    <input type="hidden" id="project-color" value="#0097A7">
+                </div>
+
                 <div class="form-group">
                     <label class="form-label">カラム設定</label>
                     <div id="columns-container" class="columns-container">
@@ -377,7 +392,28 @@
             return REQUIRED_COLUMNS.done.pattern.test(columnName) ||
                    REQUIRED_COLUMNS.trash.pattern.test(columnName);
         }
-        
+
+        // プロジェクトカラー選択（視覚的フィードバック付き）
+        function selectProjectColor(color) {
+            // 隠しフィールドに値を設定
+            document.getElementById('project-color').value = color;
+
+            // 全てのカラーボタンから選択状態を解除
+            document.querySelectorAll('#color-selector .color-btn').forEach(btn => {
+                btn.style.border = '3px solid transparent';
+                btn.style.boxShadow = 'none';
+            });
+
+            // 選択されたボタンをハイライト
+            const selectedBtn = document.querySelector(`#color-selector .color-btn[data-color="${color}"]`);
+            if (selectedBtn) {
+                selectedBtn.style.border = '3px solid #333';
+                selectedBtn.style.boxShadow = '0 0 8px rgba(0,0,0,0.3)';
+            }
+
+            console.log('🎨 [COLOR] プロジェクトカラー選択:', color);
+        }
+
         // 🔥 getProjectSettings()とsaveProjectSettings()は削除（Firebase化により不要）
         // 🔥 validateProjectId()関数は削除（タイムスタンプIDは検証不要）
 
@@ -501,6 +537,8 @@
             document.getElementById('project-name').value = '';
             document.getElementById('project-description').value = '';
             loadDefaultColumns();
+            // カラー選択をデフォルト（TERRA）にリセット
+            selectProjectColor('#0097A7');
             document.getElementById('project-modal').classList.add('active');
             console.log('🔍 [CREATE MODAL] Modal should be visible now');
         }
@@ -530,6 +568,8 @@
             document.getElementById('project-name').value = project.name;
             document.getElementById('project-description').value = project.description || '';
             loadColumns(project.columns);
+            // 既存のカラーを読み込む（なければデフォルト）
+            selectProjectColor(project.color || '#0097A7');
             document.getElementById('project-modal').classList.add('active');
         }
         
@@ -632,6 +672,8 @@
             const hasDone = columns.some(col => REQUIRED_COLUMNS.done.pattern.test(col));
             const hasTrash = columns.some(col => REQUIRED_COLUMNS.trash.pattern.test(col));
 
+            console.log('🔍 [PJ SAVE] 必須カラムチェック - 完了:', hasDone, ', アーカイブ:', hasTrash);
+
             if (!hasDone) {
                 columns.push(REQUIRED_COLUMNS.done.default);
                 console.log('🔧 [PJ SAVE] 完了カラムを自動追加');
@@ -641,21 +683,38 @@
                 console.log('🔧 [PJ SAVE] アーカイブカラムを自動追加');
             }
 
-            console.log('✅ [PJ SAVE] All validations passed (columns with required:', columns, ')');
+            // 🔒 重複カラムの除去（同じ名前のカラムは1つだけ残す）
+            const uniqueColumns = [];
+            const seenNames = new Set();
+            columns.forEach(col => {
+                const normalizedName = col.toLowerCase().trim();
+                if (!seenNames.has(normalizedName)) {
+                    seenNames.add(normalizedName);
+                    uniqueColumns.push(col);
+                }
+            });
+            const finalColumns = uniqueColumns;
+
+            console.log('✅ [PJ SAVE] All validations passed (columns:', finalColumns, ')');
 
             const currentUser = getCurrentUser();
             console.log('🔍 [PJ SAVE] Current user:', currentUser);
             console.log('🔍 [PJ SAVE] Current editing ID:', currentEditingProjectId);
 
             // 🔥 Firebase保存に変更
+            const projectColor = document.getElementById('project-color').value || '#0097A7';
+            // emailがない場合は空配列を渡す（Firebaseで補完される）
+            const memberEmail = currentUser.email || currentUser.name;
             const result = await window.FirebaseDB.saveProject({
                 id: projectId,
                 name: name,
                 description: description,
                 visibility: document.getElementById('project-visibility')?.value || 'public',
-                members: [currentUser.email],
-                columns: columns
+                members: memberEmail ? [memberEmail] : [],
+                columns: finalColumns,
+                color: projectColor
             });
+            console.log('🎨 [PJ SAVE] プロジェクトカラー:', projectColor);
 
             if (result.success) {
                 console.log('✅ [PJ SAVE] Firebase保存完了');

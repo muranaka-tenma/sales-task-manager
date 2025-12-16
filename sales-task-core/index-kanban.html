@@ -527,13 +527,11 @@
         /* アーカイブカラム専用スタイル */
         .column[data-column-id="trash"] {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border: 2px dashed #6c757d;
-            opacity: 0.8;
+            opacity: 0.9;
         }
-        
+
         .column[data-column-id="trash"]:hover {
             opacity: 1;
-            border-color: #dc3545;
             background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
         }
         
@@ -720,7 +718,7 @@
         }
         
         .attachment-badge {
-            background: #0079bf;
+            background: #0097A7;
             color: white;
             padding: 0.15rem 0.4rem;
             border-radius: 10px;
@@ -753,7 +751,7 @@
         
         .file-preview-item:hover {
             background: #ebecf0;
-            border-color: #0079bf;
+            border-color: #0097A7;
         }
         
         .file-preview-thumbnail {
@@ -775,16 +773,16 @@
         }
         
         .file-drop-zone.drag-over {
-            border-color: #0079bf;
+            border-color: #0097A7;
             background: rgba(0, 121, 191, 0.05);
-            color: #0079bf;
+            color: #0097A7;
         }
         
         .notification-test {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #0079bf;
+            background: #0097A7;
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 5px;
@@ -796,7 +794,7 @@
         /* ドロップゾーン */
         .column-content.drag-over {
             background: rgba(0, 121, 191, 0.1);
-            border: 2px dashed #0079bf;
+            border: 2px dashed #0097A7;
             border-radius: 3px;
         }
         
@@ -959,7 +957,7 @@
         }
         
         .btn-comment {
-            background: #0079bf;
+            background: #0097A7;
             color: white;
             border: none;
             border-radius: 3px;
@@ -968,9 +966,9 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        
+
         .btn-comment:hover {
-            background: #005a8b;
+            background: #00838F;
         }
         
         /* 担当者選択関連 */
@@ -1012,7 +1010,7 @@
         
         .assignee-checkbox.checked {
             background: #e0f7f6;
-            color: #0079bf;
+            color: #0097A7;
             font-weight: 500;
         }
         
@@ -1024,7 +1022,7 @@
         }
         
         .assignee-tag {
-            background: #0079bf;
+            background: #0097A7;
             color: white;
             padding: 0.25rem 0.5rem;
             border-radius: 12px;
@@ -1069,7 +1067,7 @@
         .mention-suggestion:hover,
         .mention-suggestion.selected {
             background: #e0f7f6;
-            color: #0079bf;
+            color: #0097A7;
         }
         
         .mention-suggestion:last-child {
@@ -1078,7 +1076,7 @@
         
         .mention {
             background: #e0f7f6;
-            color: #0079bf;
+            color: #0097A7;
             padding: 0.125rem 0.25rem;
             border-radius: 3px;
             font-weight: 500;
@@ -1116,7 +1114,7 @@
         
         .form-input:focus, .form-select:focus, .form-textarea:focus {
             outline: none;
-            border-color: #0079bf;
+            border-color: #0097A7;
         }
 
         /* 期限日・時刻入力の拡大スタイル */
@@ -1158,7 +1156,7 @@
         }
         
         .btn-primary {
-            background: var(--theme-color, #0079bf);
+            background: var(--theme-color, #0097A7);
             color: white;
         }
         
@@ -1961,7 +1959,7 @@
                     <textarea id="import-text-modal" placeholder="シンプル形式でタスクを入力してください&#10;例:&#10;A社への提案書作成 @田中部長 2024-08-05&#10;  詳細確認事項（半角スペース2個）&#10;  見積もり調整&#10;B社打ち合わせ!!! @佐藤課長&#10;　資料準備済み（全角スペース）&#10;		会議室予約（タブ）&#10;C社フォローアップ" style="width: 100%; height: 120px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 0.9rem; resize: vertical;"></textarea>
                     
                     <div style="display: flex; gap: 0.5rem;">
-                        <button onclick="processImportText(true)" style="flex: 1; padding: 0.75rem; background: #0079bf; color: white; border: none; border-radius: 4px; cursor: pointer;">プレビュー</button>
+                        <button onclick="processImportText(true)" style="flex: 1; padding: 0.75rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer;">プレビュー</button>
                         <button onclick="document.getElementById('import-text-modal').value = ''; hidePreviewModal();" style="padding: 0.75rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">クリア</button>
                     </div>
                     
@@ -4024,23 +4022,28 @@
         }
         
         function getDefaultDeadlineString() {
-            // 日付は今日を設定（ローカル日付基準）
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = (now.getMonth() + 1).toString().padStart(2, '0');
-            const day = now.getDate().toString().padStart(2, '0');
+            // LocalStorageから設定を読み込む（デフォルトは7日後）
+            const days = parseInt(localStorage.getItem('defaultDeadlineDays') || '7');
+            const deadline = new Date();
+            deadline.setDate(deadline.getDate() + days);
+
+            const year = deadline.getFullYear();
+            const month = (deadline.getMonth() + 1).toString().padStart(2, '0');
+            const day = deadline.getDate().toString().padStart(2, '0');
+            console.log(`📅 [DEADLINE] デフォルト期限: ${days}日後 = ${year}-${month}-${day}`);
             return `${year}-${month}-${day}`;
         }
         
         function getDefaultTimeString() {
-            // 現在時刻+3時間をデフォルト時刻として設定
-            const now = new Date();
-            const futureDate = new Date(now.getTime() + (3 * 60 * 60 * 1000)); // 3時間後
-            
-            const hours = futureDate.getHours();
-            const minutes = futureDate.getMinutes();
-            
-            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            // LocalStorageから設定を読み込む（デフォルトは18:00）
+            const savedTime = localStorage.getItem('defaultDeadlineTime');
+            if (savedTime) {
+                console.log(`⏰ [DEADLINE] デフォルト時刻: ${savedTime}（設定から）`);
+                return savedTime;
+            }
+            // 設定がない場合は18:00を返す
+            console.log('⏰ [DEADLINE] デフォルト時刻: 18:00（初期値）');
+            return '18:00';
         }
         
         function getDefaultDateTimeAfter3Hours() {
@@ -4313,7 +4316,7 @@
             // 新規追加ボタン
             const addButton = document.createElement('div');
             addButton.className = 'assignee-checkbox';
-            addButton.style.cssText = 'color: #0079bf; font-weight: 500;';
+            addButton.style.cssText = 'color: #0097A7; font-weight: 500;';
             addButton.innerHTML = '+ 新しい担当者を追加';
             addButton.onclick = addNewAssignee;
             container.appendChild(addButton);
@@ -4447,6 +4450,21 @@
                     const selectedProjectId = this.value;
                     console.log('📂 [PROJECT-SELECT] プロジェクト選択変更:', selectedProjectId || '個人タスク');
                     await updateColumnOptionsForProject(selectedProjectId);
+
+                    // 🔒 相互排他: プロジェクト選択時は非表示を無効化
+                    const hiddenCheckbox = document.getElementById('task-hidden-input');
+                    if (hiddenCheckbox) {
+                        if (selectedProjectId) {
+                            hiddenCheckbox.disabled = true;
+                            hiddenCheckbox.checked = false;
+                            hiddenCheckbox.parentElement.style.opacity = '0.5';
+                            console.log('🔒 [MUTUAL-EXCLUSION] 非表示を無効化（プロジェクトタスク）');
+                        } else {
+                            hiddenCheckbox.disabled = false;
+                            hiddenCheckbox.parentElement.style.opacity = '1';
+                            console.log('🔓 [MUTUAL-EXCLUSION] 非表示を有効化');
+                        }
+                    }
                 });
                 console.log('✅ [SETUP] プロジェクト選択リスナー設定完了');
             }
@@ -4556,6 +4574,21 @@
             hiddenCheckbox.addEventListener('change', function() {
                 const isHidden = this.checked;
                 console.log(`🔒 [HIDDEN-VALIDATION] 非表示チェック変更: ${isHidden}`);
+
+                // 🔒 相互排他: 非表示選択時はプロジェクト選択を無効化
+                const projectSelect = document.getElementById('task-project-select');
+                if (projectSelect) {
+                    if (isHidden) {
+                        projectSelect.disabled = true;
+                        projectSelect.value = '';
+                        projectSelect.style.opacity = '0.5';
+                        console.log('🔒 [MUTUAL-EXCLUSION] プロジェクト選択を無効化（非表示タスク）');
+                    } else {
+                        projectSelect.disabled = false;
+                        projectSelect.style.opacity = '1';
+                        console.log('🔓 [MUTUAL-EXCLUSION] プロジェクト選択を有効化');
+                    }
+                }
 
                 // メールアドレスでユーザーを識別（根本治療）
                 const currentUserEmail = getCurrentUserEmail();
@@ -6169,8 +6202,12 @@
 
             // 🔄 プロジェクトタスク作成時はプロジェクトビューに自動切り替え
             if (!editingTask && isProjectTask && projectId) {
-                console.log('🔄 [AUTO-SWITCH] プロジェクトビューに自動切り替え:', projectId, projectName);
-                await selectProject(projectId);
+                try {
+                    console.log('🔄 [AUTO-SWITCH] プロジェクトビューに自動切り替え:', projectId, projectName);
+                    await selectProject(projectId);
+                } catch (e) {
+                    console.warn('⚠️ [AUTO-SWITCH] プロジェクトビュー切り替えエラー（タスクは保存済み）:', e);
+                }
             }
 
             // 編集保存時の通知処理（ファイル添付は既に通知済みなので、コメント通知のみ）
@@ -6199,19 +6236,12 @@
                 columnInput.setAttribute('required', '');
                 console.log(`🔧 [FORM] Restored required attribute to task-column-input`);
             }
-            
-            closeModal();
-            
+
+            // closeModal()はfinallyで実行されるためここでは不要
+
             } catch (error) {
                 console.error('🚨 [SAVE TASK ERROR]', error);
                 alert('タスクの保存中にエラーが発生しました: ' + error.message);
-
-                // エラー時もrequired属性を復活
-                const columnInput = document.getElementById('column-select');
-                const wasRequired = columnInput && columnInput.hasAttribute('required');
-                if (wasRequired && isColumnSelectionHidden) {
-                    columnInput.setAttribute('required', '');
-                }
             } finally {
                 // 二重クリック防止: 保存ボタンを再有効化
                 const saveButton = document.getElementById('save-task-button');
@@ -6219,6 +6249,8 @@
                     saveButton.disabled = false;
                     console.log('🔓 [SAVE] 保存ボタンを再有効化');
                 }
+                // モーダルは成功・失敗に関わらず閉じる（タスクは楽観的UIで既に保存済み）
+                closeModal();
             }
         }
         
@@ -6638,7 +6670,8 @@
                             isPublic: project.visibility === 'public',
                             createdAt: project.createdAt || new Date().toISOString(),
                             createdBy: project.createdBy || 'Unknown',
-                            columns: project.columns || DEFAULT_PROJECT_COLUMNS
+                            columns: project.columns || DEFAULT_PROJECT_COLUMNS,
+                            color: project.color || '#0097A7'
                         }));
                     }
                 } catch (error) {
@@ -6715,8 +6748,9 @@
             projects.forEach(project => {
                 const taskCount = projectTaskCounts[project.id] || 0;
                 const isSelected = selectedProjectFilters.includes(project.id);
+                const projectColor = project.color || '#0097A7';
                 projectsHTML += `
-                    <div class="project-card ${isSelected ? 'active' : ''}" onclick="selectProject('${project.id}')">
+                    <div class="project-card ${isSelected ? 'active' : ''}" onclick="selectProject('${project.id}')" style="border-left: 4px solid ${projectColor};">
                         <div class="project-card-name">${project.name}</div>
                         <div class="project-card-meta">
                             <span class="project-card-count">${taskCount}タスク</span>
@@ -7374,7 +7408,7 @@
                             <span>カラム: ${column?.title || '-'}</span>
                             <span style="color: #e53e3e;">期限: ${deadlineDate.toLocaleDateString('ja-JP')} (${daysPast}日超過)</span>
                         </div>
-                        <button onclick="editTask('${task.id}')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                        <button onclick="document.getElementById('overdue-tasks-modal')?.remove(); editTask('${task.id}')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
                             確認・編集
                         </button>
                     </div>
@@ -7432,7 +7466,7 @@
                             <span>カラム: ${column?.title || '-'}</span>
                             <span style="color: #f59e0b;">本日期限</span>
                         </div>
-                        <button onclick="editTask('${task.id}')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
+                        <button onclick="document.getElementById('today-tasks-modal')?.remove(); editTask('${task.id}')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
                             確認・編集
                         </button>
                     </div>
@@ -8476,7 +8510,6 @@
                         ${canDelete ? `<button onclick="deleteColumn(${index})" style="padding: 0.25rem 0.5rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">削除</button>` : ''}
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                        <span style="font-size: 0.75rem; color: #6b7280;">色:</span>
                         <button onclick="updateColumnColor(${index}, '#0097A7')" style="width: 24px; height: 24px; background: #0097A7; border: ${column.color === '#0097A7' ? '3px solid #005f6b' : '2px solid transparent'}; cursor: pointer;" title="TERRA"></button>
                         <button onclick="updateColumnColor(${index}, '#3b82f6')" style="width: 24px; height: 24px; background: #3b82f6; border: ${column.color === '#3b82f6' ? '3px solid #1d4ed8' : '2px solid transparent'}; cursor: pointer;" title="Blue"></button>
                         <button onclick="updateColumnColor(${index}, '#10b981')" style="width: 24px; height: 24px; background: #10b981; border: ${column.color === '#10b981' ? '3px solid #047857' : '2px solid transparent'}; cursor: pointer;" title="Green"></button>

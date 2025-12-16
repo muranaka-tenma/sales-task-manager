@@ -461,8 +461,8 @@ window.FirebaseDB = {
     async saveProject(project) {
         try {
             const user = window.getCurrentUser();
-            if (!user) {
-                return { success: false, error: '認証が必要です' };
+            if (!user || !user.id) {
+                return { success: false, error: '認証が必要です（ログインしてください）' };
             }
 
             if (project.id) {
