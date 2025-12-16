@@ -1755,7 +1755,7 @@
                 <!-- 右側: コメントスレッド -->
                 <div class="modal-right">
                     <div class="comments-header">
-                        <h4 style="margin: 0; font-size: 1rem; color: #172b4d;">💬 コメント・進捗報告</h4>
+                        <h4 style="margin: 0; font-size: 1rem; color: #172b4d;">コメント・進捗報告</h4>
                     </div>
                     
                     <div class="comments-section" id="comments-section">
@@ -2141,16 +2141,9 @@
 
     <!-- マイページモーダル -->
     <div id="myProfileModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px;">
-        <div style="background: white; border-radius: 12px; width: 100%; max-width: 1400px; height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
-            <div class="modal-header" style="padding: 1.5rem 2rem; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; align-items: center;">
-                <h3 class="modal-title" style="color: white; font-size: 1.5rem; font-weight: 700; margin: 0;">
-                    マイページ
-                </h3>
-                <button class="close-btn" onclick="closeMyProfileModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1.2rem;">&times;</button>
-            </div>
-            <div style="flex: 1; overflow: hidden;">
-                <iframe id="myProfileFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
-            </div>
+        <div style="background: white; border-radius: 12px; width: 100%; max-width: 1400px; height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); position: relative; overflow: hidden;">
+            <button class="close-btn" onclick="closeMyProfileModal()" style="position: absolute; top: 12px; right: 12px; z-index: 10; background: rgba(255,255,255,0.9); border: none; color: #333; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 1.4rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">&times;</button>
+            <iframe id="myProfileFrame" src="" style="width: 100%; height: 100%; border: none; border-radius: 12px;"></iframe>
         </div>
     </div>
 
@@ -3281,6 +3274,19 @@
             console.log('[COLUMNS] type属性マイグレーション完了');
         }
 
+        // アーカイブカラムの重複削除（グレー色の古いカラムを削除）
+        const archiveColumns = columns.filter(c => c.type === 'archive' || c.id === 'trash' || /アーカイブ|archive/i.test(c.title));
+        if (archiveColumns.length > 1) {
+            console.log('[ARCHIVE] 重複アーカイブカラムを検出:', archiveColumns.length);
+            // グレー色(#6c757d)のカラムを削除対象にする
+            const grayArchive = archiveColumns.find(c => c.color === '#6c757d');
+            if (grayArchive && archiveColumns.length > 1) {
+                columns = columns.filter(c => c !== grayArchive);
+                localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+                console.log('[ARCHIVE] グレー色の重複アーカイブカラムを削除しました');
+            }
+        }
+
         // アーカイブカラムが存在しない場合は強制追加
         const trashColumn = columns.find(c => c.type === 'archive' || c.id === 'trash');
         console.log('[ARCHIVE] 現在のカラム:', columns.map(c => `${c.id}(${c.type})`));
@@ -3477,7 +3483,7 @@
             
             dropdown.innerHTML = `
                 <div style="padding: 0.5rem;">
-                    <div style="font-weight: 600; color: #2d3748; margin-bottom: 0.5rem; padding: 0.25rem;">👤 担当者</div>
+                    <div style="font-weight: 600; color: #2d3748; margin-bottom: 0.5rem; padding: 0.25rem;">担当者</div>
                     <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
                         <input type="radio" name="filter-type" value="" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.length === 0 && selectedProjectFilters.length === 0 ? 'checked' : ''}>
                         <span>全員</span>
@@ -3530,12 +3536,12 @@
                 const projectName = project ? project.name : 'プロジェクト';
                 
                 if (selectedAssigneeFilters.length > 0) {
-                    textElement.textContent = `👥 ${projectName} - 👤 ${selectedAssigneeFilters[0]}`;
+                    textElement.textContent = `${projectName} - ${selectedAssigneeFilters[0]}`;
                 } else {
-                    textElement.textContent = `👥 ${projectName} - 全員`;
+                    textElement.textContent = `${projectName} - 全員`;
                 }
             } else if (selectedAssigneeFilters.length > 0) {
-                textElement.textContent = `👤 ${selectedAssigneeFilters[0]}`;
+                textElement.textContent = `${selectedAssigneeFilters[0]}`;
             } else {
                 textElement.textContent = '全員';
             }
@@ -3730,7 +3736,7 @@
                     
                     <div style="padding: 1.5rem; overflow-y: auto; max-height: 60vh;">
                         <div style="margin-bottom: 2rem;">
-                            <h4 style="color: #2d3748; margin: 0 0 1rem 0;">📊 現在の状況</h4>
+                            <h4 style="color: #2d3748; margin: 0 0 1rem 0;">現在の状況</h4>
                             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
                                 <div style="background: #f7fafc; padding: 1rem; border-radius: 8px; border-left: 4px solid #805ad5;">
                                     <div style="font-size: 1.5rem; font-weight: 600; color: #805ad5;">${activeTemplates.length}</div>
@@ -3757,7 +3763,7 @@
                         
                         ${activeTemplates.length > 0 ? `
                             <div>
-                                <h4 style="color: #2d3748; margin: 0 0 1rem 0;">📋 テンプレート一覧</h4>
+                                <h4 style="color: #2d3748; margin: 0 0 1rem 0;">テンプレート一覧</h4>
                                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                                     ${activeTemplates.map(template => {
                                         const nextGen = template.generationConfig?.nextGeneration ? 
@@ -3774,9 +3780,9 @@
                                                     </div>
                                                 </div>
                                                 <div style="font-size: 0.85rem; color: #4a5568; line-height: 1.4;">
-                                                    <div>📅 頻度: ${typeText}</div>
-                                                    <div>⏰ 次回生成: ${nextGen}</div>
-                                                    <div>👥 担当者: ${template.taskTemplate?.assignees ? template.taskTemplate.assignees.join(', ') : '未設定'}</div>
+                                                    <div>頻度: ${typeText}</div>
+                                                    <div>次回生成: ${nextGen}</div>
+                                                    <div>担当者: ${template.taskTemplate?.assignees ? template.taskTemplate.assignees.join(', ') : '未設定'}</div>
                                                 </div>
                                             </div>
                                         `;
@@ -3785,7 +3791,7 @@
                             </div>
                         ` : `
                             <div style="text-align: center; padding: 2rem; color: #718096;">
-                                <div style="font-size: 3rem; margin-bottom: 1rem;">📅</div>
+                                <div style="font-size: 3rem; margin-bottom: 1rem;"></div>
                                 <div style="font-size: 1.1rem; margin-bottom: 0.5rem;">定期テンプレートがありません</div>
                                 <div style="font-size: 0.9rem;">新しいテンプレートを作成して、繰り返しタスクを自動化しましょう</div>
                             </div>
@@ -4644,7 +4650,7 @@
             const isPJTask = editingTask.projectId && editingTask.projectId !== null;
             if (isPJTask) {
                 // 管理IDは非表示（ユーザーには不要な情報）
-                document.getElementById('modal-title').textContent = `👥 プロジェクトタスク編集`;
+                document.getElementById('modal-title').textContent = `プロジェクトタスク編集`;
                 console.log(`🎯 [EDIT] Editing project task: ${editingTask.projectId} - ${editingTask.projectName}`);
             } else {
                 console.log(`👤 [EDIT] Editing personal task: ${editingTask.title}`);
@@ -6110,7 +6116,7 @@
                 fileInput.value = '';
             }
             if (dropZone) {
-                dropZone.innerHTML = '📁 ここにファイルをドラッグ&ドロップ または 上記ボタンで選択';
+                dropZone.innerHTML = 'ここにファイルをドラッグ&ドロップ または 上記ボタンで選択';
             }
             if (commentInput) {
                 commentInput.value = '';
@@ -7144,12 +7150,12 @@
                     <div style="padding: 1rem; border-bottom: 1px solid #e2e8f0;">
                         <div style="font-weight: 600; margin-bottom: 0.5rem;">${task.title}</div>
                         <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: #5e6c84;">
-                            <span>👤 ${assigneesText}</span>
-                            <span>📍 ${column?.title || 'ー'}</span>
+                            <span>${assigneesText}</span>
+                            <span>${column?.title || 'ー'}</span>
                             <span>${elapsedText}</span>
-                            ${task.deadline ? `<span>📅 期限: ${new Date(task.deadline).toLocaleDateString('ja-JP')}</span>` : ''}
+                            ${task.deadline ? `<span>期限: ${new Date(task.deadline).toLocaleDateString('ja-JP')}</span>` : ''}
                         </div>
-                        ${task.memo ? `<div style="margin-top: 0.5rem; font-size: 0.85rem; color: #6b7280;">📝 ${task.memo.substring(0, 50)}...</div>` : ''}
+                        ${task.memo ? `<div style="margin-top: 0.5rem; font-size: 0.85rem; color: #6b7280;">${task.memo.substring(0, 50)}...</div>` : ''}
                         <button onclick="editTask('${task.id}')" style="margin-top: 0.5rem; padding: 0.25rem 0.75rem; background: #0052cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">
                             確認・編集
                         </button>
@@ -7492,7 +7498,7 @@
             modalOverlay.innerHTML = `
                 <div style="background: white; border-radius: 8px; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                     <div style="padding: 1.5rem; border-bottom: 1px solid #e2e8f0;">
-                        <h2 style="margin: 0; font-size: 1.25rem;">👥 負荷調整が必要な担当者（${window.overloadedAssignees.length}名）</h2>
+                        <h2 style="margin: 0; font-size: 1.25rem;">負荷調整が必要な担当者（${window.overloadedAssignees.length}名）</h2>
                         <p style="margin: 0.5rem 0 0; color: #5e6c84; font-size: 0.9rem;">
                             チーム平均: ${avgTasks}件 / 人　｜　要調整基準: ${threshold}件以上
                         </p>
@@ -7598,7 +7604,7 @@
                         margin: 1rem;
                     " onclick="event.stopPropagation()">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.75rem;">
-                            <h3 style="margin: 0; color: #111827;">📋 ${column.title} (${statusTasks.length}件)</h3>
+                            <h3 style="margin: 0; color: #111827;">${column.title} (${statusTasks.length}件)</h3>
                             <button onclick="closeStatusModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6b7280;">×</button>
                         </div>
                         <div style="background: #f9fafb; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem;">
@@ -9308,7 +9314,7 @@
                     fileInput.files = dt.files;
                     
                     // ファイル数を表示
-                    dropZone.innerHTML = `📁 ${dt.files.length}個のファイルが選択されています`;
+                    dropZone.innerHTML = `${dt.files.length}個のファイルが選択されています`;
                     
                     }
             });
@@ -9316,9 +9322,9 @@
             // ファイル選択時の表示更新
             fileInput.addEventListener('change', () => {
                 if (fileInput.files.length > 0) {
-                    dropZone.innerHTML = `📁 ${fileInput.files.length}個のファイルが選択されています`;
+                    dropZone.innerHTML = `${fileInput.files.length}個のファイルが選択されています`;
                 } else {
-                    dropZone.innerHTML = '📁 ここにファイルをドラッグ&ドロップ または 上記ボタンで選択';
+                    dropZone.innerHTML = 'ここにファイルをドラッグ&ドロップ または 上記ボタンで選択';
                 }
             });
         }
@@ -10071,7 +10077,7 @@
                 <div id="${modalId}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center;" onclick="if(event.target === this) document.getElementById('${modalId}').remove()">
                     <div style="background: white; border-radius: 12px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 1rem;">
-                            <h3 style="margin: 0; color: #2d3748;">📊 ${periodName}のレポート</h3>
+                            <h3 style="margin: 0; color: #2d3748;">${periodName}のレポート</h3>
                             <button onclick="document.getElementById('${modalId}').remove()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #a0aec0; padding: 0.5rem; z-index: 2001; position: relative;">&times;</button>
                         </div>
                         
@@ -10157,7 +10163,7 @@
             checkboxes.forEach(cb => cb.checked = false);
             
             // 編集モードをリセット
-            document.getElementById('template-modal-title').textContent = '📋 テンプレート作成';
+            document.getElementById('template-modal-title').textContent = 'テンプレート作成';
             document.getElementById('save-template-btn').textContent = '保存';
             editingTemplateId = null;
         }
@@ -10304,17 +10310,17 @@
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
                             <h6 style="margin: 0; font-size: 1rem; font-weight: 600; color: #172b4d; line-height: 1.2;">${template.name}</h6>
                             <div style="display: flex; gap: 0.25rem;">
-                                <button onclick="editTemplate(${template.id})" style="background: none; border: none; color: #6c757d; cursor: pointer; font-size: 0.9rem; padding: 0.2rem;" title="編集">✏️</button>
-                                <button onclick="deleteTemplate(${template.id})" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; padding: 0.2rem;" title="削除">🗑️</button>
+                                <button onclick="editTemplate(${template.id})" style="background: none; border: none; color: #6c757d; cursor: pointer; font-size: 0.9rem; padding: 0.2rem;" title="編集">編集</button>
+                                <button onclick="deleteTemplate(${template.id})" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; padding: 0.2rem;" title="削除">削除</button>
                             </div>
                         </div>
                         <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.75rem; line-height: 1.3;">${template.taskTitle}</div>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.75rem;">
-                            <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; white-space: nowrap;">${template.priority === 'high' ? '🔴 最重要' : template.priority === 'medium' ? '🟡 重要' : '🟢 通常'}</span>
+                            <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; white-space: nowrap;">${template.priority === 'high' ? '[最重要]' : template.priority === 'medium' ? '[重要]' : '[通常]'}</span>
                             <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; white-space: nowrap;">${columns.find(c => c.id === template.columnId)?.title || template.columnId}</span>
                         </div>
                         <button onclick="applyTemplate(${template.id})" style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
-                            ⚡ 適用
+                            適用
                         </button>
                     </div>
                 `;
@@ -10420,7 +10426,7 @@
             
             // フォームをクリア
             document.getElementById('template-management-form').reset();
-            document.getElementById('mgmt-save-template-btn').textContent = '💾 保存';
+            document.getElementById('mgmt-save-template-btn').textContent = '保存';
             document.getElementById('mgmt-delete-template-btn').style.display = 'none';
             currentEditingTemplateId = null;
             
@@ -10508,7 +10514,7 @@
             document.getElementById('mgmt-template-memo').value = template.memo || '';
             
             // ボタンを更新
-            document.getElementById('mgmt-save-template-btn').textContent = '💾 更新';
+            document.getElementById('mgmt-save-template-btn').textContent = '更新';
             document.getElementById('mgmt-delete-template-btn').style.display = 'block';
             
             // 担当者チェックボックスを更新

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👤 マイページ - Kanban Work</title>
+    <title>マイページ - Kanban Work</title>
     <style>
         * {
             margin: 0;
@@ -204,7 +204,7 @@
 </head>
 <body>
     <div class="header">
-        <h1 class="header-title">👤 マイページ</h1>
+        <h1 class="header-title">マイページ</h1>
     </div>
     
     <div class="container">
@@ -225,7 +225,7 @@
 
         <div class="action-grid">
             <div class="action-card" onclick="changePassword()">
-                <div class="action-icon">🔐</div>
+                <div class="action-icon">[PW]</div>
                 <div class="action-title">パスワード変更</div>
                 <div class="action-desc">現在のパスワードを変更します</div>
             </div>
@@ -233,7 +233,7 @@
         
         <!-- 個人詳細統計 -->
         <div class="stats-section">
-            <div class="section-title">📊 個人詳細統計</div>
+            <div class="section-title">個人詳細統計</div>
             
             <!-- 期間選択 -->
             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: #f7fafc; border-radius: 8px;">
@@ -272,10 +272,10 @@
         
         <!-- 開発者専用機能 -->
         <div class="admin-section" id="developer-section" style="display: none;">
-            <div class="section-title">⚙️ 開発者機能</div>
+            <div class="section-title">開発者機能</div>
             <div class="action-grid">
                 <div class="action-card" onclick="showSystemInfo()">
-                    <div class="action-icon">🔧</div>
+                    <div class="action-icon">[SYS]</div>
                     <div class="action-title">システム情報</div>
                     <div class="action-desc">バージョン・デプロイ状況・技術情報</div>
                 </div>
@@ -391,7 +391,7 @@
         window.addEventListener('message', (event) => {
             if (event.data && event.data.type === 'TASKS_DATA') {
                 receivedTasks = event.data.tasks;
-                console.log('📨 [MY-PROFILE] 親ウィンドウからタスクデータ受信:', receivedTasks.length, '件');
+                console.log('[MY-PROFILE] 親ウィンドウからタスクデータ受信:', receivedTasks.length, '件');
                 // データ受信後に統計を再計算
                 const currentUser = getCurrentUser();
                 if (currentUser && currentUser.isLoggedIn) {
@@ -506,7 +506,7 @@
                 // 詳細情報を表示
                 const detailsDiv = document.getElementById('personal-performance-details');
                 detailsDiv.innerHTML = `
-                    <h4 style="margin: 0 0 1rem 0; color: #172b4d;">📈 パフォーマンス詳細</h4>
+                    <h4 style="margin: 0 0 1rem 0; color: #172b4d;">パフォーマンス詳細</h4>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                         <div>
                             <div style="font-weight: 600; color: #666; margin-bottom: 0.5rem;">タスク状況</div>
@@ -557,12 +557,12 @@
             // Firebase認証のパスワード更新を試行
             try {
                 if (window.FirebaseAuth && window.FirebaseAuth.updatePassword) {
-                    console.log('🔐 Firebase パスワード更新を開始...');
+                    console.log('Firebase パスワード更新を開始...');
                     const result = await window.FirebaseAuth.updatePassword(currentPassword, newPassword);
 
                     if (result.success) {
                         // Firebaseパスワード更新成功 → LocalStorageも同期
-                        console.log('✅ Firebase パスワード更新成功');
+                        console.log('Firebase パスワード更新成功');
 
                         // LocalStorageのsystemUsersも同期更新
                         const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
@@ -570,23 +570,23 @@
                         if (user) {
                             user.password = newPassword;
                             localStorage.setItem('systemUsers', JSON.stringify(users));
-                            console.log('✅ LocalStorage パスワードも同期更新');
+                            console.log('LocalStorage パスワードも同期更新');
                         }
 
-                        alert('✅ パスワードが正常に変更されました');
+                        alert('パスワードが正常に変更されました');
                     } else {
                         // Firebase更新失敗 → エラー表示
-                        console.error('❌ Firebase パスワード更新失敗:', result.error);
+                        console.error('Firebase パスワード更新失敗:', result.error);
 
                         if (result.error.includes('wrong-password') || result.error.includes('invalid-credential')) {
-                            alert('❌ 現在のパスワードが正しくありません');
+                            alert('現在のパスワードが正しくありません');
                         } else {
-                            alert('❌ パスワード変更に失敗しました: ' + result.error);
+                            alert('パスワード変更に失敗しました: ' + result.error);
                         }
                     }
                 } else {
                     // Firebaseが利用できない場合はLocalStorageのみ更新（フォールバック）
-                    console.warn('⚠️ Firebase未初期化、LocalStorageのみ更新します');
+                    console.warn('Firebase未初期化、LocalStorageのみ更新します');
 
                     const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
                     const user = users.find(u => u.email === currentUser.email);
@@ -598,11 +598,11 @@
 
                     user.password = newPassword;
                     localStorage.setItem('systemUsers', JSON.stringify(users));
-                    alert('⚠️ パスワードが変更されました（LocalStorageのみ）\n次回ログイン時はFirebaseパスワードをご使用ください');
+                    alert('パスワードが変更されました（LocalStorageのみ）\n次回ログイン時はFirebaseパスワードをご使用ください');
                 }
             } catch (error) {
-                console.error('❌ パスワード変更エラー:', error);
-                alert('❌ パスワード変更中にエラーが発生しました');
+                console.error('パスワード変更エラー:', error);
+                alert('パスワード変更中にエラーが発生しました');
             }
         }
         
@@ -626,13 +626,13 @@
             logModal.innerHTML = `
                 <div style="background: white; border-radius: 12px; width: 100%; max-width: 800px; max-height: 80vh; overflow-y: auto;">
                     <div style="padding: 2rem; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
-                        <h2 style="margin: 0; color: #172b4d;">📝 機能改善書</h2>
+                        <h2 style="margin: 0; color: #172b4d;">機能改善書</h2>
                         <button onclick="closeDevelopmentLog()" 
                                 style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666; padding: 0.5rem;">×</button>
                     </div>
                     <div style="padding: 2rem;">
                         <div style="margin-bottom: 1.5rem;">
-                            <h4 style="color: #666; margin-bottom: 0.5rem;">💡 使用方法</h4>
+                            <h4 style="color: #666; margin-bottom: 0.5rem;">使用方法</h4>
                             <p style="color: #888; font-size: 0.9rem; line-height: 1.5;">
                                 • 要件や改善内容を記録<br>
                                 • セッション停止時の状況メモ<br>
@@ -644,35 +644,35 @@
                                   style="width: 100%; height: 300px; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; 
                                          font-family: monospace; font-size: 0.9rem; resize: vertical;">${existingLog}</textarea>
                         <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <button onclick="saveDevelopmentLog()" 
-                                    style="padding: 0.75rem 1.2rem; background: #026aa7; color: white; border: none; 
+                            <button onclick="saveDevelopmentLog()"
+                                    style="padding: 0.75rem 1.2rem; background: #026aa7; color: white; border: none;
                                            border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
-                                💾 保存
+                                保存
                             </button>
-                            <button onclick="addManualDeployRecord()" 
-                                    style="padding: 0.75rem 1.2rem; background: #17a2b8; color: white; border: none; 
+                            <button onclick="addManualDeployRecord()"
+                                    style="padding: 0.75rem 1.2rem; background: #17a2b8; color: white; border: none;
                                            border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
-                                🚀 デプロイ記録
+                                デプロイ記録
                             </button>
-                            <button onclick="autoUpdateDeployHistory()" 
-                                    style="padding: 0.75rem 1.2rem; background: #20c997; color: white; border: none; 
+                            <button onclick="autoUpdateDeployHistory()"
+                                    style="padding: 0.75rem 1.2rem; background: #20c997; color: white; border: none;
                                            border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
-                                🔄 自動更新
+                                自動更新
                             </button>
-                            <button onclick="generateHandoverSummary()" 
-                                    style="padding: 0.75rem 1.2rem; background: #fd7e14; color: white; border: none; 
+                            <button onclick="generateHandoverSummary()"
+                                    style="padding: 0.75rem 1.2rem; background: #fd7e14; color: white; border: none;
                                            border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
-                                📋 引き継ぎ
+                                引き継ぎ
                             </button>
-                            <button onclick="exportDevelopmentLog()" 
-                                    style="padding: 0.75rem 1.2rem; background: #28a745; color: white; border: none; 
+                            <button onclick="exportDevelopmentLog()"
+                                    style="padding: 0.75rem 1.2rem; background: #28a745; color: white; border: none;
                                            border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
-                                📄 エクスポート
+                                エクスポート
                             </button>
-                            <button onclick="clearDevelopmentLog()" 
-                                    style="padding: 0.75rem 1.2rem; background: #dc3545; color: white; border: none; 
+                            <button onclick="clearDevelopmentLog()"
+                                    style="padding: 0.75rem 1.2rem; background: #dc3545; color: white; border: none;
                                            border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
-                                🗑️ クリア
+                                クリア
                             </button>
                         </div>
                     </div>
@@ -701,14 +701,14 @@
                 (localStorage.getItem('developmentLogHistory') || '') + logEntry
             );
             
-            alert('📝 機能改善書を保存しました');
+            alert('機能改善書を保存しました');
         }
         
         // デプロイ記録の自動追加
         function addDeploymentRecord(commitMsg, remainingTasks) {
             const timestamp = new Date().toLocaleString('ja-JP');
             const deployRecord = `
-=== 🚀 デプロイ記録 [${timestamp}] ===
+=== デプロイ記録 [${timestamp}] ===
 コミット内容: ${commitMsg}
 
 残りタスク:
@@ -741,7 +741,7 @@ ${remainingTasks}
             const formattedTasks = remainingTasks.replace(/\\n/g, '\n- ');
             addDeploymentRecord(commitMsg, '- ' + formattedTasks);
             
-            alert('📝 デプロイ記録を追加しました');
+            alert('デプロイ記録を追加しました');
             
             // 機能改善書が開いている場合は更新
             const logContent = document.getElementById('devLogContent');
@@ -757,11 +757,11 @@ ${remainingTasks}
             
             // 具体的な最新デプロイ内容（実際の作業を反映）
             const recentDeployments = [
-                '🎨 設定モーダルUI大幅改善 - セクション区切りとハンバーガーメニュー詳細化',
-                '🔧 マイページJavaScript構文エラー修正',
-                '🔧 認証連携とOCR日付計算を根本修正',
-                '⏰ OCR期限設定改善 - 今日+3時間＆時間入力対応',
-                '🧹 機能重複整理 - 設定モーダルから分析レポート削除'
+                '設定モーダルUI大幅改善 - セクション区切りとハンバーガーメニュー詳細化',
+                'マイページJavaScript構文エラー修正',
+                '認証連携とOCR日付計算を根本修正',
+                'OCR期限設定改善 - 今日+3時間と時間入力対応',
+                '機能重複整理 - 設定モーダルから分析レポート削除'
             ];
             
             // 具体的な残り要件リスト
@@ -786,26 +786,26 @@ ${remainingTasks}
             
             // 機能改善書の内容を自動更新
             const autoUpdateContent = `
-=== 🔄 自動更新 ${timestamp} ===
+=== 自動更新 ${timestamp} ===
 
-🚀 最新デプロイ一覧:
-${recentDeployments.map(deploy => `✅ ${deploy}`).join('\n')}
+[最新デプロイ一覧]
+${recentDeployments.map(deploy => `[完了] ${deploy}`).join('\n')}
 
-📊 現在の完成機能:
-✅ タスク管理（Kanbanボード）- カラム自由設定
-✅ PJタスク管理（承認フロー付き）
-✅ ユーザー権限管理（developer > admin > user）
-✅ 詳細統計・分析機能（個人・全体）
-✅ OCR文字認識（日時自動設定）
-✅ ハンバーガーメニュー（機能整理済み）
-✅ マイページ（統計・パスワード変更）
-✅ 機能改善書（開発者用）
-✅ 設定モーダル（見やすく区切り済み）
+[現在の完成機能]
+[完了] タスク管理（Kanbanボード）- カラム自由設定
+[完了] PJタスク管理（承認フロー付き）
+[完了] ユーザー権限管理（developer > admin > user）
+[完了] 詳細統計・分析機能（個人・全体）
+[完了] OCR文字認識（日時自動設定）
+[完了] ハンバーガーメニュー（機能整理済み）
+[完了] マイページ（統計・パスワード変更）
+[完了] 機能改善書（開発者用）
+[完了] 設定モーダル（見やすく区切り済み）
 
-📋 具体的な残り要件（優先度順）:
+[具体的な残り要件（優先度順）]
 ${remainingItems}
 
-💡 次回セッション推奨対応順序:
+[次回セッション推奨対応順序]
 1. レスポンシブデザイン（モバイル対応）
 2. タスク一括操作機能
 3. 検索・フィルタリング機能強化
@@ -825,7 +825,7 @@ ${remainingItems}
                 logContent.value = updatedLog;
             }
             
-            alert('🔄 デプロイ履歴と要件を自動更新しました！\n\n新しい要件や改善事項があれば追記してください。');
+            alert('デプロイ履歴と要件を自動更新しました。\n\n新しい要件や改善事項があれば追記してください。');
         }
         
         // 引き継ぎ用サマリー生成
@@ -837,40 +837,40 @@ ${remainingItems}
             const summary = `# Kanban Work - 開発引き継ぎサマリー
 生成日時: ${timestamp}
 
-## 🏗️ プロジェクト概要
-- URL: https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/index-kanban.html  
+## プロジェクト概要
+- URL: https://stellar-biscochitos-e19cb4.netlify.app/sales-task-core/index-kanban.html
 - 技術: HTML/CSS/JavaScript (Vanilla), Netlify, LocalStorage
 - 権限: developer(全権限) > admin(管理) > user(基本)
 
-## 📦 主要機能（実装済み）
-✅ タスク管理 (Kanbanボード方式)
-✅ PJタスク管理 (承認フロー付き)
-✅ ユーザー権限管理 (3段階)
-✅ 詳細統計・分析機能
-✅ OCR文字認識 (Tesseract.js)
-✅ デスクトップ通知
-✅ ハンバーガーメニュー
-✅ マイページ (個人統計・パスワード変更)
-✅ 機能改善書 (開発者専用)
+## 主要機能（実装済み）
+[完了] タスク管理 (Kanbanボード方式)
+[完了] PJタスク管理 (承認フロー付き)
+[完了] ユーザー権限管理 (3段階)
+[完了] 詳細統計・分析機能
+[完了] OCR文字認識 (Tesseract.js)
+[完了] デスクトップ通知
+[完了] ハンバーガーメニュー
+[完了] マイページ (個人統計・パスワード変更)
+[完了] 機能改善書 (開発者専用)
 
-## 🔧 最近の実装内容
+## 最近の実装内容
 ${history ? history.split('===').slice(0, 3).join('===') : '記録なし'}
 
-## 📝 現在の開発メモ
+## 現在の開発メモ
 ${currentLog || '記録なし'}
 
-## 🚀 次回開発者への指示
+## 次回開発者への指示
 1. この内容をコピーして機能改善書に貼り付け
 2. 新しい要件や修正が必要な箇所があれば追記
-3. デプロイ時は「🚀 デプロイ記録」ボタンで履歴を更新
+3. デプロイ時は「デプロイ記録」ボタンで履歴を更新
 
-## 🔑 重要なデータ構造
+## 重要なデータ構造
 - salesTasksKanban: メインタスクデータ
 - systemUsers: ユーザー情報
-- currentSession: ログインセッション  
+- currentSession: ログインセッション
 - developmentLog: 開発メモ
 
-## 🎯 推奨開発フロー
+## 推奨開発フロー
 1. 機能改善書で現状確認
 2. 要件・改善点をメモに記録
 3. 実装・テスト
@@ -879,7 +879,7 @@ ${currentLog || '記録なし'}
 
             // クリップボードにコピー
             navigator.clipboard.writeText(summary).then(() => {
-                alert('📋 引き継ぎサマリーをクリップボードにコピーしました！\\n\\n次の開発者がスムーズに継続できます。');
+                alert('引き継ぎサマリーをクリップボードにコピーしました。\n\n次の開発者がスムーズに継続できます。');
             }).catch(() => {
                 // クリップボードが使えない場合はダウンロード
                 const blob = new Blob([summary], { type: 'text/plain;charset=utf-8' });
