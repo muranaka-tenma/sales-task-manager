@@ -88,15 +88,14 @@ onAuthStateChanged(auth, async (user) => {
 
         localStorage.setItem('currentSession', JSON.stringify(sessionData));
 
-        // ハンバーガーメニューを更新
+        // メニューを更新
         setTimeout(() => {
             if (window.updateHamburgerMenu) {
                 window.updateHamburgerMenu();
             }
-            // ヘッダーのユーザー名を更新
-            const headerUserName = document.getElementById('header-user-name');
-            if (headerUserName) {
-                headerUserName.textContent = displayName;
+            // 開発用ユーザー切り替えリストを再読み込み（ユーザー名表示更新のため）
+            if (window.loadDevUserList) {
+                window.loadDevUserList();
             }
         }, 100);
     } else {
@@ -633,18 +632,26 @@ window.FirebaseDB = {
     async getColumns(userId) {
         try {
             const targetUserId = userId || window.currentFirebaseUser?.uid;
+            console.log(`[COLUMNS] getColumns呼び出し - 引数userId: ${userId}, currentFirebaseUser.uid: ${window.currentFirebaseUser?.uid}, 使用ID: ${targetUserId}`);
+
             if (!targetUserId) {
+                console.warn('[COLUMNS] 認証なし - カラム取得スキップ');
                 return { success: false, error: '認証が必要です', columns: null };
             }
+
+            const path = `users/${targetUserId}/settings/columns`;
+            console.log(`[COLUMNS] 読み込みパス: ${path}`);
 
             const columnsDocRef = doc(db, 'users', targetUserId, 'settings', 'columns');
             const columnsDoc = await getDoc(columnsDocRef);
 
             if (columnsDoc.exists()) {
                 const data = columnsDoc.data();
+                console.log(`[COLUMNS] Firestoreから取得成功 - ${data.columns?.length || 0}件, 更新日時: ${data.updatedAt}`);
                 return { success: true, columns: data.columns || null, updatedAt: data.updatedAt };
             }
 
+            console.log(`[COLUMNS] Firestoreにデータなし - パス: ${path}`);
             return { success: true, columns: null };
         } catch (error) {
             console.error('❌ [COLUMNS] 取得エラー:', error);
@@ -657,9 +664,15 @@ window.FirebaseDB = {
         try {
             const user = window.getCurrentUser();
             const targetUserId = userId || user?.id;
+            console.log(`[COLUMNS] saveColumns呼び出し - 引数userId: ${userId}, getCurrentUser().id: ${user?.id}, 使用ID: ${targetUserId}`);
+
             if (!targetUserId) {
+                console.warn('[COLUMNS] 保存先IDなし - スキップ');
                 return { success: false, error: '認証が必要です' };
             }
+
+            const path = `users/${targetUserId}/settings/columns`;
+            console.log(`[COLUMNS] 保存パス: ${path}`);
 
             const columnsDocRef = doc(db, 'users', targetUserId, 'settings', 'columns');
             await setDoc(columnsDocRef, {
@@ -668,7 +681,7 @@ window.FirebaseDB = {
                 updatedBy: user?.email || 'unknown'
             });
 
-            console.log('[COLUMNS] Firestore保存完了:', columns.length + '件');
+            console.log(`[COLUMNS] Firestore保存完了: ${columns.length}件 → ${path}`);
             return { success: true };
         } catch (error) {
             console.error('❌ [COLUMNS] 保存エラー:', error);

@@ -119,12 +119,12 @@
             padding: 1rem;
             background: #f8f9fa;
             border-radius: 6px;
-            border-left: 4px solid #026aa7;
+            /* border-left color is set dynamically via inline style using project.color */
         }
         
         .project-info h3 {
             margin: 0 0 0.5rem 0;
-            color: #026aa7;
+            /* color is set dynamically via inline style using project.color */
         }
         
         .project-meta {
@@ -350,6 +350,16 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">プロジェクトステータス</label>
+                    <select id="project-status" class="form-input" style="padding: 0.5rem;">
+                        <option value="active">🔄 進行中</option>
+                        <option value="completed">✅ 完了</option>
+                        <option value="archived">📦 アーカイブ</option>
+                    </select>
+                    <small style="color: #666; font-size: 0.8rem;">進行中: アクティブなPJ / 完了: 完了済みPJ / アーカイブ: 非表示化</small>
+                </div>
+
+                <div class="form-group">
                     <label class="form-label">カラム設定</label>
                     <div id="columns-container" class="columns-container">
                         <!-- カラムが動的に挿入される -->
@@ -362,6 +372,9 @@
                 <div class="form-actions">
                     <button type="submit" class="btn btn-success" id="save-project-btn">
                         💾 保存
+                    </button>
+                    <button type="button" class="btn btn-primary" id="save-and-new-btn" onclick="saveAndCreateNew()" style="background: #3b82f6;">
+                        💾 保存して続けて作成
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">
                         キャンセル
@@ -389,8 +402,11 @@
 
         // カラムが必須カラムかどうかを判定
         function isRequiredColumn(columnName) {
-            return REQUIRED_COLUMNS.done.pattern.test(columnName) ||
-                   REQUIRED_COLUMNS.trash.pattern.test(columnName);
+            // オブジェクトの場合はtitleを取得
+            const name = typeof columnName === 'object' ? (columnName.title || columnName.name || String(columnName)) : String(columnName);
+            const result = REQUIRED_COLUMNS.done.pattern.test(name) || REQUIRED_COLUMNS.trash.pattern.test(name);
+            console.log(`🔍 [REQUIRED-CHECK] "${name}" => ${result}`);
+            return result;
         }
 
         // プロジェクトカラー選択（視覚的フィードバック付き）
@@ -501,12 +517,21 @@
 
                 console.log(`🔍 [DELETE BUTTON] Project ${project.id}: canDelete=${canDelete}`);
 
+                // メンバー表示（担当者名を表示）
+                const memberNames = (project.members || []).map(email => {
+                    // emailからユーザー名を取得（systemUsersから検索）
+                    const user = systemUsers.find(u => u.email === email);
+                    return user ? user.name : email.split('@')[0];
+                }).join(', ') || '未設定';
+
+                const projectColor = project.color || '#0097A7';
                 const projectHTML = `
-                    <div class="project-item">
+                    <div class="project-item" style="border-left: 4px solid ${projectColor};">
                         <div class="project-info">
-                            <h3>${project.name}</h3>
+                            <h3 style="color: ${projectColor};">${project.name}</h3>
                             <div class="project-meta">
-                                📅 作成日: ${createdDate} | 👤 作成者: ${project.createdBy} | 📊 タスク数: ${projectTasks.length}件
+                                📅 作成日: ${createdDate} | 👤 作成者: ${project.createdBy} | 📊 ${projectTasks.length}
+                                <br>👥 メンバー: ${memberNames}
                                 <br>📝 ${project.description || '説明なし'}
                             </div>
                         </div>
@@ -570,6 +595,8 @@
             loadColumns(project.columns);
             // 既存のカラーを読み込む（なければデフォルト）
             selectProjectColor(project.color || '#0097A7');
+            // 既存のステータスを読み込む（なければ進行中）
+            document.getElementById('project-status').value = project.status || 'active';
             document.getElementById('project-modal').classList.add('active');
         }
         
@@ -589,12 +616,14 @@
             console.log('🎨 [LOAD-COLUMNS] カラム読み込み開始:', columns);
             const container = document.getElementById('columns-container');
             container.innerHTML = columns.map((column, index) => {
-                const isRequired = isRequiredColumn(column);
-                console.log(`🎨 [LOAD-COLUMNS] カラム ${index}: "${column}" - 必須=${isRequired}`);
+                // オブジェクトの場合はtitleを取得
+                const columnName = typeof column === 'object' ? (column.title || column.name || '') : String(column);
+                const isRequired = isRequiredColumn(columnName);
+                console.log(`🎨 [LOAD-COLUMNS] カラム ${index}: "${columnName}" - 必須=${isRequired}`);
                 return `
                     <div class="column-item" data-index="${index}">
                         <span class="column-drag-handle">⋮⋮</span>
-                        <input type="text" class="column-input" value="${column}" onchange="updateColumn(${index}, this.value)" ${isRequired ? 'readonly' : ''}>
+                        <input type="text" class="column-input" value="${columnName}" onchange="updateColumn(${index}, this.value)" ${isRequired ? 'readonly' : ''}>
                         ${isRequired ?
                             `<span style="color: #666; font-size: 0.8rem; padding: 0.25rem;">🔒 必須</span>` :
                             `<button type="button" class="btn btn-danger" onclick="removeColumn(${index})" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">✕</button>`
@@ -643,10 +672,31 @@
             return Array.from(inputs).map(input => input.value.trim()).filter(val => val);
         }
         
+        // 「保存して続けて作成」ボタン用
+        async function saveAndCreateNew() {
+            const saved = await saveProjectCore(false); // モーダルを閉じない
+            if (saved) {
+                // フォームをリセットして新規作成モードに
+                currentEditingProjectId = null;
+                document.getElementById('modal-title').textContent = '新規PJ作成';
+                document.getElementById('project-name').value = '';
+                document.getElementById('project-description').value = '';
+                document.getElementById('project-status').value = 'active';
+                loadDefaultColumns();
+                selectProjectColor('#0097A7');
+            }
+        }
+
         // プロジェクト保存（Firebase対応）
         async function saveProject(event) {
             console.log('🔍 [PJ SAVE] Function called');
-            event.preventDefault();
+            if (event) event.preventDefault();
+            await saveProjectCore(true); // モーダルを閉じる
+        }
+
+        // プロジェクト保存コア処理
+        async function saveProjectCore(shouldCloseModal) {
+            console.log('🔍 [PJ SAVE CORE] Function called, shouldCloseModal:', shouldCloseModal);
             try {
 
             // 🔥 プロジェクトIDは自動生成（編集時は既存ID、新規時はタイムスタンプ）
@@ -660,13 +710,13 @@
             if (!name) {
                 console.error('❌ [PJ SAVE] Project name is empty');
                 alert('プロジェクト名を入力してください');
-                return;
+                return false;
             }
 
             if (columns.length === 0) {
                 console.error('❌ [PJ SAVE] No columns provided');
                 alert('最低1つのカラムを設定してください');
-                return;
+                return false;
             }
 
             // 🔒 重複カラムの除去（必須カラムは種類ごとに1つだけ残す）
@@ -726,34 +776,60 @@
 
             // 🔥 Firebase保存に変更
             const projectColor = document.getElementById('project-color').value || '#0097A7';
-            // emailがない場合は空配列を渡す（Firebaseで補完される）
+
+            // メンバー設定: 編集時は既存メンバーを保持、新規作成時は作成者のみ
+            let projectMembers = [];
+            if (currentEditingProjectId) {
+                // 編集時: 既存プロジェクトのメンバーを取得して保持
+                const existingResult = await window.FirebaseDB.getProjects();
+                if (existingResult.success && existingResult.projects) {
+                    const existingProject = existingResult.projects.find(p => p.id === currentEditingProjectId);
+                    if (existingProject && existingProject.members) {
+                        projectMembers = existingProject.members;
+                        console.log('📋 [PJ SAVE] 既存メンバーを保持:', projectMembers);
+                    }
+                }
+            }
+
+            // 新規作成時または既存メンバーがない場合は作成者を追加
             const memberEmail = currentUser.email || currentUser.name;
+            if (projectMembers.length === 0 && memberEmail) {
+                projectMembers = [memberEmail];
+            }
+
+            const projectStatus = document.getElementById('project-status')?.value || 'active';
+
             const result = await window.FirebaseDB.saveProject({
                 id: projectId,
                 name: name,
                 description: description,
-                visibility: document.getElementById('project-visibility')?.value || 'public',
-                members: memberEmail ? [memberEmail] : [],
+                status: projectStatus,
+                visibility: 'public', // visibilityは常にpublic（statusで管理）
+                members: projectMembers,
                 columns: finalColumns,
                 color: projectColor
             });
             console.log('🎨 [PJ SAVE] プロジェクトカラー:', projectColor);
+            console.log('👥 [PJ SAVE] プロジェクトメンバー:', projectMembers);
 
             if (result.success) {
                 console.log('✅ [PJ SAVE] Firebase保存完了');
                 await loadProjects(); // Firebase再読み込み
                 const action = currentEditingProjectId ? '更新' : '作成';
                 alert(`プロジェクト「${name}」を${action}しました`);
+                if (shouldCloseModal) {
+                    closeModal();
+                }
+                return true;
             } else {
                 console.error('❌ [PJ SAVE] Firebase保存失敗:', result.error);
                 alert('保存に失敗しました: ' + result.error);
+                return false;
             }
             } catch (error) {
                 console.error('❌ [PJ SAVE] 予期せぬエラー:', error);
                 alert('保存中にエラーが発生しました: ' + error.message);
-            } finally {
-                // 成功・失敗に関わらずモーダルを閉じる
-                closeModal();
+                return false;
             }
         }
 
@@ -882,9 +958,10 @@
         }
         
         // フォームサブミット処理
-        document.getElementById('project-form').addEventListener('submit', function(e) {
+        document.getElementById('project-form').addEventListener('submit', async function(e) {
             console.log('🔍 [PJ SAVE] Form submit event triggered');
-            saveProject(e);
+            e.preventDefault(); // デフォルト動作を防止
+            await saveProject(e);
         });
         
         // モーダル外クリックで閉じる

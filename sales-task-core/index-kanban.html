@@ -68,6 +68,12 @@
     <script src="slack-notification-config.js?v=20250903-1013-DIRECT-FIX"></script>
     <!-- Slack通知プロキシサービス -->
     <script src="slack-proxy.js?v=20250903-0530-WEBHOOK-FIXED"></script>
+    <!-- E2Eテスト（開発環境のみ） -->
+    <script>
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            document.write('<script src="e2e-column-test.js?v=' + Date.now() + '"><\/script>');
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -570,7 +576,32 @@
             text-align: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
         }
-        
+
+        /* 表示設定: タスク数非表示 */
+        .hide-task-count .column-count {
+            display: none !important;
+        }
+
+        /* 表示設定: コンパクトモード */
+        .compact-mode .task-card {
+            padding: 0.25rem 0.4rem;
+            font-size: 0.85rem;
+        }
+        .compact-mode .task-card-title {
+            font-size: 0.85rem;
+            margin-bottom: 0.15rem;
+        }
+        .compact-mode .task-meta {
+            font-size: 0.7rem;
+            gap: 0.3rem;
+        }
+        .compact-mode .column-header {
+            padding: 0.4rem 0.6rem;
+        }
+        .compact-mode .column-title {
+            font-size: 0.85rem;
+        }
+
         .column-content {
             flex: 1;
             padding: 0.25rem 0;
@@ -1005,10 +1036,12 @@
             margin: 0;
         }
         
-        .assignee-checkbox label {
-            cursor: pointer; /* 🔧 追加: ラベルもクリック可能に */
-            flex: 1; /* 🔧 追加: ラベルを最大幅に */
-            margin: 0; /* 🔧 追加: デフォルトマージンを削除 */
+        .assignee-checkbox label,
+        .assignee-checkbox .assignee-name {
+            cursor: pointer;
+            flex: 1;
+            margin: 0;
+            user-select: none;
         }
         
         .assignee-checkbox.checked {
@@ -1509,7 +1542,12 @@
             <div class="header-title">Kanban Work</div>
         </div>
         <div class="header-controls" style="display: flex; align-items: center; gap: 1rem;">
-            <span id="header-user-name" style="color: white; font-size: 0.9rem;"></span>
+            <!-- 開発用ユーザー切り替え（localhost時のみ表示、現在のユーザー名も表示） -->
+            <div id="dev-user-switcher" style="display: none;">
+                <select id="dev-user-select" onchange="devSwitchUser(this.value)" style="min-width: 180px; padding: 0.5rem 0.75rem; border-radius: 6px; border: 2px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.25); color: white; font-size: 0.9rem; font-weight: 500; cursor: pointer;">
+                    <option value="">-- ユーザー切替 --</option>
+                </select>
+            </div>
             <button onclick="openHelpModal()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1rem;" title="ヘルプ">?</button>
             <button onclick="logout()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">ログアウト</button>
         </div>
@@ -1618,6 +1656,8 @@
                 <div class="right-panel-section-title">個人設定</div>
                 <button class="right-panel-btn right-panel-btn-outline" onclick="openMyProfileModal()">マイページ</button>
                 <button class="right-panel-btn right-panel-btn-outline" onclick="openSettingsModal()">設定</button>
+                <!-- 開発用：カラムリセットボタン -->
+                <button class="right-panel-btn" onclick="resetColumnsToDefault()" style="background: #6b7280; color: white; margin-top: 0.5rem;">カラムをリセット</button>
             </div>
 
             <div class="right-panel-section">
@@ -1748,6 +1788,7 @@
                         
                         <div class="modal-actions">
                             <button type="button" class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+                            <button type="button" class="btn btn-primary" id="save-and-new-task-button" onclick="saveTaskAndCreateNew()" style="background: #3b82f6;">保存して続けて作成</button>
                             <button type="submit" class="btn btn-primary" id="save-task-button">保存</button>
                         </div>
                     </form>
@@ -1806,9 +1847,19 @@
                             <input type="text" id="new-column-name" placeholder="新しいカラム名（例：レビュー中、承認待ち）" style="flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
                             <button onclick="addColumn()" style="padding: 0.5rem 1rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer;">追加</button>
                         </div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+                            <button onclick="resetColumnsToDefault()" style="padding: 0.5rem 1rem; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">カラムを初期化（デフォルトに戻す）</button>
+                            <p style="font-size: 0.8rem; color: #6b7280; margin-top: 0.5rem;">デフォルト: TODO → Phase1 → Phase2 → Phase3 → Done → Archive</p>
+                        </div>
+                        <!-- 管理者専用：全ユーザー初期化 -->
+                        <div id="admin-reset-all-columns" style="margin-top: 1rem; padding: 1rem; background: #fef2f2; border-radius: 8px; border: 1px solid #fecaca; display: none;">
+                            <p style="font-size: 0.8rem; color: #dc2626; margin-bottom: 0.5rem; font-weight: 600;">【管理者専用】全ユーザーのカラムを初期化</p>
+                            <button onclick="resetAllUsersColumnsToDefault()" style="padding: 0.5rem 1rem; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer;">全ユーザーを初期化</button>
+                            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">※全ユーザーのカラム設定がデフォルトに戻ります（タスクは維持）</p>
+                        </div>
                     </div>
                 </div>
-                
+
                 <!-- アラート設定 -->
                 <div class="setting-section" style="margin-top: 2rem; background: #fef5e7; padding: 2rem; border-radius: 12px; border: 1px solid #fed7aa;">
                     <h3 style="margin-bottom: 1.5rem; color: #1a202c; font-size: 1.4rem; font-weight: 700; padding-bottom: 0.75rem; border-bottom: 3px solid #f59e0b;">期限アラート設定</h3>
@@ -1864,6 +1915,10 @@
                             <input type="checkbox" id="compact-mode">
                             <span>コンパクト表示モード</span>
                         </label>
+                    </div>
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #bbf7d0;">
+                        <button onclick="applyDisplaySettings()" style="padding: 0.5rem 1.5rem; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">適用</button>
+                        <span id="display-settings-status" style="margin-left: 1rem; font-size: 0.85rem; color: #16a34a; display: none;">設定を適用しました</span>
                     </div>
                 </div>
 
@@ -3253,10 +3308,19 @@
         // マイグレーション実行
         migrateSampleDataToRealUser();
         
-        // カラム定義（LocalStorageから初期読み込み、後でFirestoreから上書き）
-        // カラム定義（type属性で完了/アーカイブを固定化）
+        // 🔧 デフォルトカラム定義（全ユーザー共通の初期値）
         // type: 'normal'=通常, 'done'=完了, 'archive'=アーカイブ
-        let columns = JSON.parse(localStorage.getItem('kanbanColumns') || '[{"id":"todo","title":"TODO","color":"#667eea","type":"normal"},{"id":"phase1","title":"Phase1","color":"#f59e0b","type":"normal"},{"id":"phase2","title":"Phase2","color":"#f97316","type":"normal"},{"id":"phase3","title":"Phase3","color":"#8b5cf6","type":"normal"},{"id":"done","title":"Done","color":"#10b981","type":"done"},{"id":"trash","title":"Archive","color":"#6c757d","type":"archive"}]');
+        const DEFAULT_COLUMNS = [
+            {"id":"todo","title":"TODO","color":"#667eea","type":"normal"},
+            {"id":"phase1","title":"Phase1","color":"#f59e0b","type":"normal"},
+            {"id":"phase2","title":"Phase2","color":"#f97316","type":"normal"},
+            {"id":"phase3","title":"Phase3","color":"#8b5cf6","type":"normal"},
+            {"id":"done","title":"Done","color":"#10b981","type":"done"},
+            {"id":"trash","title":"Archive","color":"#6c757d","type":"archive"}
+        ];
+
+        // カラム定義（LocalStorageから初期読み込み、後でFirestoreから上書き）
+        let columns = JSON.parse(localStorage.getItem('kanbanColumns') || JSON.stringify(DEFAULT_COLUMNS));
 
         // 既存カラムにtype属性がない場合は付与（マイグレーション）
         let typeUpdated = false;
@@ -3588,8 +3652,12 @@
             return false;
         }
 
+        // E2Eテスト用にグローバル公開
+        window.isDoneColumn = isDoneColumn;
+        window.isTrashColumn = isTrashColumn;
+        window.columns = columns;
+        window.getColumnNameById = getColumnNameById;
 
-        
         // 統合フィルター機能（担当者 + プロジェクト）
         function toggleAssigneeFilterDropdown() {
             const dropdown = document.getElementById('assignee-filter-dropdown');
@@ -4020,7 +4088,10 @@
             const deadlineDate = new Date(deadline);
             return today.toDateString() === deadlineDate.toDateString();
         }
-        
+
+        // E2Eテスト用にisOverdueをグローバル公開
+        window.isOverdue = isOverdue;
+
         function getTodayString() {
             return new Date().toISOString().split('T')[0];
         }
@@ -4280,8 +4351,20 @@
 
                 checkboxWrapper.innerHTML = `
                     <input type="checkbox" id="assignee-${safeId}" value="${email}" data-name="${name}" onchange="updateSelectedAssignees()">
-                    <label for="assignee-${safeId}">${name}</label>
+                    <span class="assignee-name">${name}</span>
                 `;
+
+                // wrapper全体をクリック可能に（名前クリックでもチェック）
+                checkboxWrapper.addEventListener('click', function(e) {
+                    // チェックボックス自体のクリックは処理しない（onchangeで処理）
+                    if (e.target.tagName === 'INPUT') return;
+                    const checkbox = this.querySelector('input[type="checkbox"]');
+                    if (checkbox && !checkbox.disabled) {
+                        checkbox.checked = !checkbox.checked;
+                        updateSelectedAssignees();
+                    }
+                });
+
                 container.appendChild(checkboxWrapper);
             });
             
@@ -4778,19 +4861,23 @@
             console.log('🔍 [MODAL DEBUG] Split time part:', editingTask.deadline.split('T')[1]);
             console.log('🔍 [MODAL DEBUG] Time substring:', editingTask.deadline.split('T')[1].substring(0, 5));
             
-            // ★★★ タイムゾーン問題の修正：JSTで正しく表示 ★★★
+            // ★★★ タイムゾーン問題の修正：ローカルタイムゾーンで正しく表示 ★★★
             const deadlineDate = new Date(editingTask.deadline);
-            const jstOffset = 9 * 60; // JST = UTC+9
-            const localDate = new Date(deadlineDate.getTime() + (jstOffset * 60 * 1000));
-            
-            const dateStr = localDate.toISOString().split('T')[0];
-            const timeStr = localDate.toISOString().split('T')[1].substring(0, 5);
+
+            // ローカルタイムゾーン（ブラウザ設定）で日付・時刻を取得
+            const year = deadlineDate.getFullYear();
+            const month = String(deadlineDate.getMonth() + 1).padStart(2, '0');
+            const day = String(deadlineDate.getDate()).padStart(2, '0');
+            const hours = String(deadlineDate.getHours()).padStart(2, '0');
+            const minutes = String(deadlineDate.getMinutes()).padStart(2, '0');
+
+            const dateStr = `${year}-${month}-${day}`;
+            const timeStr = `${hours}:${minutes}`;
             
             console.log('🔍 [TIMEZONE FIX] Original deadline:', editingTask.deadline);
             console.log('🔍 [TIMEZONE FIX] Deadline as Date object:', deadlineDate);
-            console.log('🔍 [TIMEZONE FIX] Adjusted for JST:', localDate.toISOString()); 
-            console.log('🔍 [TIMEZONE FIX] Date string for form:', dateStr);
-            console.log('🔍 [TIMEZONE FIX] Time string for form:', timeStr);
+            console.log('🔍 [TIMEZONE FIX] Local date string:', dateStr);
+            console.log('🔍 [TIMEZONE FIX] Local time string:', timeStr);
             
             document.getElementById('task-date-input').value = dateStr;
             document.getElementById('task-time-input').value = timeStr;
@@ -5291,9 +5378,8 @@
                 return;
             }
             
-            // 担当者リストを取得
+            // 担当者リストを取得（※承認者approversは廃止）
             const assignees = task.assignees || [];
-            const approvers = task.approvers || [];
             
             // 現在のログインユーザーを取得
             const currentUser = getCurrentUser();
@@ -5349,21 +5435,14 @@
                     }
                 });
             } else {
-                // メンションがない場合は、担当者・承認者に通知（自分は除外）
-                console.log(`📧 [COMMENT-FILTER] 通常コメント通知モード`);
+                // メンションがない場合は、担当者のみに通知（自分は除外）
+                // ※承認者(approvers)は廃止
+                console.log(`📧 [COMMENT-FILTER] 通常コメント通知モード（担当者のみ）`);
                 assignees.forEach(assignee => {
                     const isNotCurrentUser = !currentUserIdentifiers.includes(assignee);
                     console.log(`🔍 [COMMENT-FILTER] 担当者 ${assignee}: 現在ユーザーでない=${isNotCurrentUser}, 含める=${isNotCurrentUser}`);
                     if (isNotCurrentUser) {
                         allNotifyTargets.add(assignee);
-                    }
-                });
-                
-                approvers.forEach(approver => {
-                    const isNotCurrentUser = !currentUserIdentifiers.includes(approver);
-                    console.log(`🔍 [COMMENT-FILTER] 承認者 ${approver}: 現在ユーザーでない=${isNotCurrentUser}, 含める=${isNotCurrentUser}`);
-                    if (isNotCurrentUser) {
-                        allNotifyTargets.add(approver);
                     }
                 });
             }
@@ -5435,34 +5514,25 @@
             let notificationMessage;
             
             if (hasMentions) {
-                // メンション解析
-                const mentionPairs = extractMentionMessages(commentText);
-                
-                // 担当者全員への概要通知
-                const assigneeMentions = assignees.map(name => {
+                // メンションあり: メンション相手のみに通知
+                // コメント内のメンションをSlackユーザー名に変換
+                let convertedComment = commentText;
+                const mentionPattern = /@([^\s@]+)/g;
+                convertedComment = commentText.replace(mentionPattern, (match, name) => {
                     const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(name) : `@${name}`;
                     return slackUsername;
-                }).join(' ');
-                
-                notificationMessage = `${assigneeMentions}\n`;
-                notificationMessage += `タスク「${task.title}」に${author}さんからコメントがありました\n\n`;
-                
-                // 個別メンション部分を追加
-                mentionPairs.forEach(pair => {
-                    const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(pair.user) : `@${pair.user}`;
-                    notificationMessage += `${slackUsername}\n${pair.message}\n\n`;
                 });
-                
-                // 余分な改行を削除
-                notificationMessage = notificationMessage.trim();
-                
+
+                notificationMessage = `タスク「${task.title}」に${author}さんからコメントがありました\n\n`;
+                notificationMessage += convertedComment;
+
             } else {
-                // 通常のコメント（メンションなし）
+                // メンションなし: 担当者に通知
                 const assigneeMentions = assignees.map(name => {
                     const slackUsername = window.SlackConfig ? window.SlackConfig.getSlackUsername(name) : `@${name}`;
                     return slackUsername;
                 }).join(' ');
-                
+
                 notificationMessage = `${assigneeMentions}\n`;
                 notificationMessage += `タスク「${task.title}」に${author}さんからコメントがありました\n\n`;
                 notificationMessage += `${commentText}`;
@@ -5774,7 +5844,10 @@
                 day: 'numeric'
             });
         }
-        
+
+        // 続けて作成フラグ
+        let continueCreatingTask = false;
+
         async function saveTask(event) {
             try {
                 console.log('🚀 [SAVE TASK] Starting saveTask function...');
@@ -6253,11 +6326,40 @@
                     saveButton.disabled = false;
                     console.log('🔓 [SAVE] 保存ボタンを再有効化');
                 }
-                // モーダルは成功・失敗に関わらず閉じる（タスクは楽観的UIで既に保存済み）
-                closeModal();
+
+                // 「続けて作成」フラグをチェック
+                if (continueCreatingTask) {
+                    // フラグをリセット
+                    continueCreatingTask = false;
+                    // フォームをリセットして新規作成モードに
+                    editingTask = null;
+                    document.getElementById('modal-title').textContent = '新しいタスク';
+                    document.getElementById('task-title-input').value = '';
+                    document.getElementById('task-date-input').value = getDefaultDeadlineString();
+                    document.getElementById('task-time-input').value = getDefaultTimeString();
+                    document.getElementById('task-memo-input').value = '';
+                    document.getElementById('task-files-input').value = '';
+                    document.getElementById('attached-files-list').innerHTML = '';
+                    document.getElementById('task-hidden-input').checked = false;
+                    // プロジェクト選択はそのまま維持（連続作成時は同じプロジェクトに作ることが多い）
+                    // カラム選択を表示
+                    document.getElementById('column-selection-group').style.display = '';
+                    console.log('🔄 [SAVE] 続けてタスク作成モードに切り替え');
+                } else {
+                    // モーダルを閉じる
+                    closeModal();
+                }
             }
         }
-        
+
+        // 「保存して続けて作成」ボタン用
+        async function saveTaskAndCreateNew() {
+            // フラグを設定してフォームを送信
+            continueCreatingTask = true;
+            const form = document.getElementById('task-modal').querySelector('form');
+            form.requestSubmit(); // フォームの送信をトリガー
+        }
+
         function closeModal() {
             document.getElementById('task-modal').classList.remove('show');
             editingTask = null;
@@ -6700,7 +6802,9 @@
             
             // 各プロジェクトのタスク数を計算（メンバーフィルター考慮）
             const projectTaskCounts = {};
-            const currentUser = getCurrentUser();
+            const currentUser = getCurrentUser() || {};
+            const currentUserEmail = currentUser.email || '';
+            const currentUserName = currentUser.name || '';
             const filteredByMember = selectedAssigneeFilters.length > 0 ?
                 tasks.filter(t => {
                     if (t.assignees && Array.isArray(t.assignees)) {
@@ -6711,8 +6815,8 @@
 
             filteredByMember.forEach(task => {
                 // 非表示タスクは作成者+担当者以外はカウントしない
-                if (task.isHidden && task.createdBy !== currentUser.email) {
-                    const isAssignee = task.assignees?.includes(currentUser.name) || task.assignee === currentUser.name;
+                if (task.isHidden && task.createdBy !== currentUserEmail) {
+                    const isAssignee = task.assignees?.includes(currentUserName) || task.assignee === currentUserName;
                     if (!isAssignee) {
                         return;
                     }
@@ -6725,13 +6829,13 @@
             // プロジェクト一覧のHTML生成
             let projectsHTML = '';
 
-            // 通常タスク表示ボタン
+            // 通常タスク表示ボタン（常に表示）
             const isNormalTasksSelected = selectedProjectFilters.length === 0;
             const normalTasksCount = filteredByMember.filter(t => {
                 if (t.projectId) return false;
                 // 非表示タスクは作成者+担当者以外はカウントしない
-                if (t.isHidden && t.createdBy !== currentUser.email) {
-                    const isAssignee = t.assignees?.includes(currentUser.name) || t.assignee === currentUser.name;
+                if (t.isHidden && t.createdBy !== currentUserEmail) {
+                    const isAssignee = t.assignees?.includes(currentUserName) || t.assignee === currentUserName;
                     if (!isAssignee) {
                         return false;
                     }
@@ -6753,9 +6857,25 @@
                 const taskCount = projectTaskCounts[project.id] || 0;
                 const isSelected = selectedProjectFilters.includes(project.id);
                 const projectColor = project.color || '#0097A7';
+                const projectStatus = project.status || 'active';
+
+                // ステータスに応じた表示
+                let statusIcon = '';
+                let statusClass = '';
+                if (projectStatus === 'completed') {
+                    statusIcon = '✅';
+                    statusClass = 'status-completed';
+                } else if (projectStatus === 'archived') {
+                    statusIcon = '📦';
+                    statusClass = 'status-archived';
+                }
+
+                // アーカイブされたプロジェクトは薄く表示
+                const archivedStyle = projectStatus === 'archived' ? 'opacity: 0.6;' : '';
+
                 projectsHTML += `
-                    <div class="project-card ${isSelected ? 'active' : ''}" onclick="selectProject('${project.id}')" style="border-left: 4px solid ${projectColor};">
-                        <div class="project-card-name">${project.name}</div>
+                    <div class="project-card ${isSelected ? 'active' : ''} ${statusClass}" onclick="selectProject('${project.id}')" style="border-left: 4px solid ${projectColor}; ${archivedStyle}">
+                        <div class="project-card-name">${statusIcon} ${project.name}</div>
                         <div class="project-card-meta">
                             <span class="project-card-count">${taskCount}タスク</span>
                         </div>
@@ -6819,7 +6939,7 @@
                 tasks = [];
                 window.tasks = [];
             }
-            
+
             console.log('🎨 [RENDER] Starting render, total tasks:', tasks.length);
             const board = document.getElementById('kanban-board');
             if (!board) {
@@ -6828,6 +6948,18 @@
             }
             board.innerHTML = '';
             console.log('🎨 [RENDER] Board cleared successfully');
+
+            // 表示設定のCSS適用（LocalStorageから読み込み）
+            if (typeof applyDisplaySettingsCSS === 'function') {
+                // LocalStorageから設定を読み込み
+                const saved = localStorage.getItem('displaySettings');
+                if (saved) {
+                    try {
+                        displaySettings = JSON.parse(saved);
+                    } catch (e) {}
+                }
+                applyDisplaySettingsCSS();
+            }
             
             // 統合フィルターを適用
             let filteredTasks = tasks;
@@ -8371,6 +8503,18 @@
             loadColumnManager();
             loadImportDefaults();
             loadDefaultDeadlineSettings();
+            loadDisplaySettings(); // 表示設定を読み込み
+
+            // 管理者専用ボタンの表示制御
+            const adminResetAllBtn = document.getElementById('admin-reset-all-columns');
+            if (adminResetAllBtn) {
+                const currentUser = getCurrentUser();
+                if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'developer')) {
+                    adminResetAllBtn.style.display = 'block';
+                } else {
+                    adminResetAllBtn.style.display = 'none';
+                }
+            }
         }
 
         // デフォルト期限設定の読み込み
@@ -8409,7 +8553,85 @@
             deadline.setHours(parseInt(hours), parseInt(minutes), 0, 0);
             return deadline;
         }
-        
+
+        // 表示設定の変数
+        let displaySettings = {
+            showTaskCount: true,
+            compactMode: false
+        };
+
+        // 表示設定の読み込み
+        function loadDisplaySettings() {
+            const saved = localStorage.getItem('displaySettings');
+            if (saved) {
+                try {
+                    displaySettings = JSON.parse(saved);
+                } catch (e) {
+                    console.error('[DISPLAY] 設定読み込みエラー:', e);
+                }
+            }
+
+            // チェックボックスに反映
+            const showTaskCountEl = document.getElementById('show-task-count');
+            const compactModeEl = document.getElementById('compact-mode');
+            if (showTaskCountEl) showTaskCountEl.checked = displaySettings.showTaskCount;
+            if (compactModeEl) compactModeEl.checked = displaySettings.compactMode;
+
+            // CSSクラスを適用
+            applyDisplaySettingsCSS();
+        }
+
+        // 表示設定の適用
+        function applyDisplaySettings() {
+            const showTaskCount = document.getElementById('show-task-count').checked;
+            const compactMode = document.getElementById('compact-mode').checked;
+
+            displaySettings = {
+                showTaskCount: showTaskCount,
+                compactMode: compactMode
+            };
+
+            // LocalStorageに保存
+            localStorage.setItem('displaySettings', JSON.stringify(displaySettings));
+
+            // CSSクラスを適用
+            applyDisplaySettingsCSS();
+
+            // 再描画
+            render();
+
+            // 適用完了メッセージ表示
+            const statusEl = document.getElementById('display-settings-status');
+            if (statusEl) {
+                statusEl.style.display = 'inline';
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 2000);
+            }
+
+            console.log('[DISPLAY] 表示設定適用:', displaySettings);
+        }
+
+        // 表示設定のCSS適用
+        function applyDisplaySettingsCSS() {
+            const kanbanBoard = document.getElementById('kanban-board');
+            if (!kanbanBoard) return;
+
+            // タスク数表示
+            if (displaySettings.showTaskCount) {
+                kanbanBoard.classList.remove('hide-task-count');
+            } else {
+                kanbanBoard.classList.add('hide-task-count');
+            }
+
+            // コンパクトモード
+            if (displaySettings.compactMode) {
+                kanbanBoard.classList.add('compact-mode');
+            } else {
+                kanbanBoard.classList.remove('compact-mode');
+            }
+        }
+
         // インポート設定の初期化
         function loadImportDefaults() {
             // 担当者選択肢を更新
@@ -8478,21 +8700,11 @@
             document.documentElement.style.setProperty('--theme-color', savedColor);
         }
 
-        // カラム管理機能
+        // カラム管理機能（全ユーザーがアクセス可能 - 各自のカラムを自由にカスタマイズ）
         function loadColumnManager() {
-            // 🔒 権限チェック：developer権限がない場合は非表示
-            const currentUser = getCurrentUser();
             const columnManagerSection = document.querySelector('.setting-section:has(#column-manager)');
 
-            if (currentUser.role !== 'developer') {
-                if (columnManagerSection) {
-                    columnManagerSection.style.display = 'none';
-                }
-                console.log('🔒 [PERMISSION] カラム管理はdeveloper権限のみアクセス可能');
-                return;
-            }
-
-            // developer権限がある場合は表示
+            // 全ユーザーにカラム管理を開放
             if (columnManagerSection) {
                 columnManagerSection.style.display = 'block';
             }
@@ -8542,21 +8754,16 @@
                 return;
             }
 
-            // 🔒 権限チェック（個人用カラムもdeveloper権限必要）
+            // 🔒 権限チェック（プロジェクトカラムはadmin必要、個人用は全ユーザー可）
             const currentUser = getCurrentUser();
             if (selectedProjectFilters.length > 0) {
                 // プロジェクトカラムの場合：admin権限必要
-                if (currentUser.role !== 'admin') {
+                if (currentUser.role !== 'admin' && currentUser.role !== 'developer') {
                     alert('⚠️ プロジェクトのカラム編集は管理者のみ可能です');
                     return;
                 }
-            } else {
-                // 個人用カラムの場合：developer権限必要
-                if (currentUser.role !== 'developer') {
-                    alert('⚠️ 個人用カラムの編集はdeveloper権限が必要です');
-                    return;
-                }
             }
+            // 個人用カラムは全ユーザーが追加可能
 
             const newColumn = {
                 id: 'custom_' + Date.now(),
@@ -8573,13 +8780,7 @@
         }
 
         function editColumnName(index) {
-            // 🔒 権限チェック（developer権限必要）
-            const currentUser = getCurrentUser();
-            if (currentUser.role !== 'developer') {
-                alert('⚠️ 個人用カラムの編集はdeveloper権限が必要です');
-                return;
-            }
-
+            // 全ユーザーが自分のカラム名を編集可能
             const newName = prompt('新しいカラム名を入力してください:', columns[index].title);
             if (newName && newName.trim()) {
                 columns[index].title = newName.trim();
@@ -8591,13 +8792,7 @@
         }
 
         function updateColumnColor(index, color) {
-            // 🔒 権限チェック（developer権限必要）
-            const currentUser = getCurrentUser();
-            if (currentUser.role !== 'developer') {
-                alert('⚠️ 個人用カラムの編集はdeveloper権限が必要です');
-                return;
-            }
-
+            // 全ユーザーが自分のカラム色を変更可能
             columns[index].color = color;
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
             saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
@@ -8804,21 +8999,16 @@
                 return;
             }
 
-            // 🔒 権限チェック（admin/developerのみ削除可能）
+            // 🔒 権限チェック（プロジェクトカラムはadmin必要、個人用は全ユーザー可）
             const currentUser = getCurrentUser();
             if (selectedProjectFilters.length > 0) {
                 // プロジェクトカラムの場合：admin権限必要
                 if (currentUser.role !== 'admin' && currentUser.role !== 'developer') {
-                    alert('プロジェクトのカラム削除は管理者のみ可能です');
-                    return;
-                }
-            } else {
-                // 個人用カラムの場合：admin/developer権限必要
-                if (currentUser.role !== 'admin' && currentUser.role !== 'developer') {
-                    alert('カラムの削除は管理者権限が必要です');
+                    alert('⚠️ プロジェクトのカラム削除は管理者のみ可能です');
                     return;
                 }
             }
+            // 個人用カラムは全ユーザーが削除可能（DONE/ARCHIVEカラムは下で別途チェック）
 
             const columnToDelete = columns[index];
 
@@ -8860,6 +9050,163 @@
             saveTasks();
             loadColumnManager();
             render();
+        }
+
+        // カラム初期化機能（デフォルトに戻す）
+        async function resetColumnsToDefault() {
+            // 確認ダイアログ
+            if (!confirm('カラムをデフォルトに戻しますか？\n\n【デフォルト構成】\nTODO → Phase1 → Phase2 → Phase3 → Done → Archive\n\n※既存のタスクは維持されますが、カラムIDが変わるため「TODO」カラムに移動します。')) {
+                return;
+            }
+
+            // 権限チェック
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                alert('ユーザー情報を取得できません。ログインし直してください。');
+                return;
+            }
+
+            console.log('[COLUMNS] カラム初期化開始（ユーザー: ' + currentUser.displayName + '）');
+
+            // 既存タスクのカラムIDを「todo」に移行（存在しないカラムに残らないように）
+            const oldColumnIds = columns.map(c => c.id);
+            const newColumnIds = DEFAULT_COLUMNS.map(c => c.id);
+
+            let movedTaskCount = 0;
+            tasks = tasks.map(task => {
+                // プロジェクトタスクは対象外
+                if (task.projectId) return task;
+
+                // 新しいカラムに存在しないカラムIDのタスクは「todo」に移動
+                if (!newColumnIds.includes(task.columnId)) {
+                    movedTaskCount++;
+                    return { ...task, columnId: 'todo' };
+                }
+                return task;
+            });
+
+            // カラムをデフォルトに設定
+            columns = JSON.parse(JSON.stringify(DEFAULT_COLUMNS)); // ディープコピー
+
+            // LocalStorageに保存
+            localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+            console.log('[COLUMNS] LocalStorage保存完了');
+
+            // Firestoreに保存
+            try {
+                await saveColumnsToFirestore();
+                console.log('[COLUMNS] Firestore保存完了');
+            } catch (error) {
+                console.error('[COLUMNS] Firestore保存エラー:', error);
+            }
+
+            // タスクも保存（カラムID移行分）
+            if (movedTaskCount > 0) {
+                saveTasks();
+                console.log('[COLUMNS] ' + movedTaskCount + '件のタスクを「TODO」カラムに移動');
+            }
+
+            // 設定画面を更新
+            loadColumnManager();
+
+            // カンバンを再描画
+            render();
+
+            // 完了メッセージ
+            let message = 'カラムをデフォルトに戻しました';
+            if (movedTaskCount > 0) {
+                message += '\n（' + movedTaskCount + '件のタスクを「TODO」カラムに移動しました）';
+            }
+            alert(message);
+
+            console.log('[COLUMNS] カラム初期化完了');
+        }
+
+        // 管理者専用：全ユーザーのカラムを初期化
+        async function resetAllUsersColumnsToDefault() {
+            // 権限チェック
+            const currentUser = getCurrentUser();
+            if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'developer')) {
+                alert('この機能は管理者のみ使用できます');
+                return;
+            }
+
+            // 二重確認
+            if (!confirm('【警告】全ユーザーのカラム設定をデフォルトに戻します。\n\nこの操作は取り消せません。\n本当に実行しますか？')) {
+                return;
+            }
+
+            if (!confirm('最終確認：全ユーザーのカラムを初期化します。\n\n「OK」を押すと実行されます。')) {
+                return;
+            }
+
+            console.log('[ADMIN] 全ユーザーカラム初期化開始');
+
+            try {
+                // Firebase接続確認
+                if (!window.FirebaseDB || !window.firebaseAuth?.currentUser) {
+                    alert('Firebase未接続です。ログインし直してください。');
+                    return;
+                }
+
+                // 全ユーザー取得
+                const usersResult = await window.FirebaseDB.getUsers();
+                if (!usersResult.success) {
+                    alert('ユーザー一覧の取得に失敗しました: ' + usersResult.error);
+                    return;
+                }
+
+                const users = usersResult.users;
+                const totalUsers = users.length;
+                let successCount = 0;
+                let errorCount = 0;
+
+                console.log('[ADMIN] 対象ユーザー数: ' + totalUsers);
+
+                // 各ユーザーのカラムを初期化
+                // FirestoreドキュメントIDとuidフィールドの両方に保存（不一致対策）
+                for (const user of users) {
+                    console.log(`[ADMIN] ユーザー処理: ${user.email}`);
+                    console.log(`  - Firestore doc.id: ${user.id}`);
+                    console.log(`  - uidフィールド: ${user.uid}`);
+                    console.log(`  - 一致: ${user.id === user.uid}`);
+
+                    // 保存先のIDリストを作成（重複排除）
+                    const saveTargets = new Set();
+                    if (user.id) saveTargets.add(user.id);
+                    if (user.uid && user.uid !== user.id) saveTargets.add(user.uid);
+
+                    for (const targetId of saveTargets) {
+                        try {
+                            const result = await window.FirebaseDB.saveColumns(DEFAULT_COLUMNS, targetId);
+                            if (result.success) {
+                                successCount++;
+                                console.log(`[ADMIN] カラム初期化成功: ${targetId} (${user.email})`);
+                            } else {
+                                errorCount++;
+                                console.error(`[ADMIN] カラム初期化失敗: ${targetId} (${user.email})`, result.error);
+                            }
+                        } catch (error) {
+                            errorCount++;
+                            console.error(`[ADMIN] カラム初期化失敗: ${targetId} (${user.email})`, error);
+                        }
+                    }
+                }
+
+                // 自分のカラムも更新（UI反映）
+                columns = JSON.parse(JSON.stringify(DEFAULT_COLUMNS));
+                localStorage.setItem('kanbanColumns', JSON.stringify(columns));
+                loadColumnManager();
+                render();
+
+                // 結果表示
+                alert('全ユーザーのカラム初期化が完了しました\n\n成功: ' + successCount + '件\nエラー: ' + errorCount + '件');
+                console.log('[ADMIN] 全ユーザーカラム初期化完了 - 成功:' + successCount + ', エラー:' + errorCount);
+
+            } catch (error) {
+                console.error('[ADMIN] 全ユーザーカラム初期化エラー:', error);
+                alert('エラーが発生しました: ' + error.message);
+            }
         }
 
         // カラム追加ボタンの状態を更新
@@ -9417,19 +9764,7 @@
                     console.log(`👥 [RENDER] 有効な担当者更新: ${assignees.join(', ')}`);
                 }
                 
-                // 画面上部のユーザー表示更新（権限表示なし）
-                const currentSession = JSON.parse(localStorage.getItem('currentSession') || 'null');
-                if (currentSession?.user) {
-                    const headerTitle = document.querySelector('.header-title');
-                    if (headerTitle) {
-                        headerTitle.innerHTML = `
-                            Kanban Work
-                            <span style="font-size: 0.8rem; font-weight: normal; margin-left: 1rem; background: rgba(255,255,255,0.2); padding: 0.25rem 0.5rem; border-radius: 4px;">
-                                ${currentSession.user.name}
-                            </span>
-                        `;
-                    }
-                }
+                // 画面上部のユーザー表示はドロップダウンに統一（重複表示を削除）
             }, 200);
             
             // 🚫 初期化時の期限チェックを無効化（ユーザー要望）
@@ -9510,7 +9845,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             // アプリバージョンチェック - 古いキャッシュを強制クリア
-            const APP_VERSION = '2025-12-16-v13-admin-gap-fix';
+            const APP_VERSION = '2025-12-16-v19-project-status';
             const storedVersion = localStorage.getItem('appVersion');
             if (storedVersion !== APP_VERSION) {
                 console.log('🧹 [VERSION] 古いバージョン検出 - LocalStorage完全クリア');
@@ -9545,6 +9880,40 @@
                 localStorage.removeItem('projectSettings');
                 localStorage.setItem('projectsMigratedToFirebase', 'true');
                 console.log('✅ [INIT] LocalStorageプロジェクトデータをクリア完了');
+            }
+
+            // 🚀 【即座実行】セッションデータから権限を取得して管理機能を即表示
+            try {
+                const cachedSession = localStorage.getItem('currentSession');
+                if (cachedSession) {
+                    const session = JSON.parse(cachedSession);
+                    const cachedRole = session?.user?.role;
+                    console.log(`🚀 [FAST-INIT] キャッシュから権限取得: ${cachedRole}`);
+
+                    if (cachedRole === 'admin' || cachedRole === 'developer') {
+                        // 右パネルの管理機能を即表示
+                        const rightPanelAdmin = document.getElementById('right-panel-admin-section');
+                        if (rightPanelAdmin) {
+                            rightPanelAdmin.style.display = 'flex';
+                            console.log('✅ [FAST-INIT] 右パネル管理機能: 即座に表示');
+                        }
+                        // ハンバーガーメニューの管理セクションも即表示
+                        const adminMenuSection = document.getElementById('admin-menu-section');
+                        if (adminMenuSection) {
+                            adminMenuSection.style.display = 'block';
+                        }
+                    }
+                    // developer専用機能も即表示
+                    if (cachedRole === 'developer') {
+                        const developerSection = document.getElementById('developer-menu-section');
+                        if (developerSection) {
+                            developerSection.style.display = 'block';
+                            console.log('✅ [FAST-INIT] 開発者機能: 即座に表示');
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ [FAST-INIT] キャッシュ権限チェックエラー:', e);
             }
 
             // 🔧 【最優先】ユーザーデータベース初期化
@@ -9657,6 +10026,9 @@
 
                             // 2025-12-16復旧: Firestoreからカラム設定を初期化
                             await initColumnsFromFirestore();
+
+                            // 開発用ユーザー切り替え機能を初期化
+                            initDevUserSwitcher();
 
                             resolve();
                         }
@@ -12094,6 +12466,170 @@
             }
         }
 
+        // 開発用ユーザー切り替え機能（localhost時のみ有効）
+        const DEV_DEFAULT_PASSWORD = 'aikakumei';
+
+        function initDevUserSwitcher() {
+            // localhost/127.0.0.1でのみ表示
+            const isDevEnv = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const switcher = document.getElementById('dev-user-switcher');
+
+            if (!isDevEnv || !switcher) {
+                console.log('[DEV] 開発環境ではないため、ユーザー切り替え非表示');
+                return;
+            }
+
+            // 開発中は全ユーザーでユーザー切り替えを有効化（本番では developer 限定に戻す）
+            // const currentUser = getCurrentUser();
+            // if (!currentUser || currentUser.role !== 'developer') {
+            //     console.log('[DEV] 開発者権限がないため、ユーザー切り替え非表示');
+            //     return;
+            // }
+
+            switcher.style.display = 'block';
+            console.log('[DEV] 開発用ユーザー切り替え有効化（開発中は全ユーザー対象）');
+
+            // ユーザーリストを取得して設定
+            loadDevUserList();
+        }
+
+        // メールアドレス→日本語名のマッピング（Firestoreデータのフォールバック用）
+        const EMAIL_TO_NAME_MAP = {
+            'muranaka-tenma@terracom.co.jp': '邨中天真',
+            'kato-jun@terracom.co.jp': '加藤純',
+            'asahi-keiichi@terracom.co.jp': '朝日圭一',
+            'hanzawa-yuka@terracom.co.jp': '半澤侑果',
+            'tamura-wataru@terracom.co.jp': '田村渉',
+            'hashimoto-yumi@terracom.co.jp': '橋本友美',
+            'fukushima-ami@terracom.co.jp': '福島亜未'
+        };
+
+        // メールから日本語名を取得するヘルパー関数
+        function getJapaneseName(email, firestoreName) {
+            // Firestoreの名前がメールプレフィックスと同じ場合はマッピングを使用
+            const emailPrefix = email?.split('@')[0] || '';
+            if (!firestoreName || firestoreName === emailPrefix || firestoreName.includes('-')) {
+                return EMAIL_TO_NAME_MAP[email] || firestoreName || emailPrefix || '不明';
+            }
+            return firestoreName;
+        }
+
+        async function loadDevUserList() {
+            const select = document.getElementById('dev-user-select');
+            if (!select) return;
+
+            try {
+                // Firestoreから全ユーザー取得
+                const result = await window.FirebaseDB.getUsers();
+                if (!result.success || !result.users) {
+                    console.error('[DEV] ユーザー取得失敗');
+                    return;
+                }
+
+                // 現在のユーザー
+                const currentUser = getCurrentUser();
+                const currentEmail = currentUser?.email || '';
+
+                // 無効化・非表示ユーザーを除外し、メールアドレスがあるユーザーのみ
+                const activeUsers = result.users.filter(u =>
+                    !u.isHidden && !u.isDisabled && u.email && u.email.trim()
+                );
+
+                // 現在のユーザーの正しい日本語名を取得（マッピング優先）
+                const currentUserData = activeUsers.find(u => u.email === currentEmail);
+                const currentName = getJapaneseName(currentEmail, currentUserData?.name || currentUser?.name);
+
+                // セレクトボックスをクリアして再構築（現在のユーザーを表示）
+                select.innerHTML = `<option value="">📍 ${currentName}</option>`;
+
+                // terracom.co.jpユーザーを優先表示（現在のユーザーを除外）
+                const terracomUsers = activeUsers.filter(u =>
+                    u.email.includes('@terracom.co.jp') && u.email !== currentEmail
+                );
+                const otherUsers = activeUsers.filter(u =>
+                    !u.email.includes('@terracom.co.jp') && u.email !== currentEmail
+                );
+
+                // terracomユーザー（現在のユーザーは既に除外済み）
+                if (terracomUsers.length > 0) {
+                    const optgroup1 = document.createElement('optgroup');
+                    optgroup1.label = '── TERRA社員 ──';
+                    terracomUsers.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.email;
+                        const displayName = getJapaneseName(user.email, user.name);
+                        const roleLabel = user.role === 'developer' ? '開発者' :
+                                         user.role === 'admin' ? '管理者' : 'ユーザー';
+                        option.textContent = `${displayName}（${roleLabel}）`;
+                        optgroup1.appendChild(option);
+                    });
+                    select.appendChild(optgroup1);
+                }
+
+                // その他ユーザー
+                if (otherUsers.length > 0) {
+                    const optgroup2 = document.createElement('optgroup');
+                    optgroup2.label = '── テスト ──';
+                    otherUsers.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.email;
+                        const displayName = getJapaneseName(user.email, user.name);
+                        const roleLabel = user.role === 'developer' ? '開発者' :
+                                         user.role === 'admin' ? '管理者' : 'ユーザー';
+                        option.textContent = `${displayName}（${roleLabel}）`;
+                        optgroup2.appendChild(option);
+                    });
+                    select.appendChild(optgroup2);
+                }
+
+                console.log('[DEV] ユーザーリスト読み込み完了:', result.users.length + '人');
+            } catch (error) {
+                console.error('[DEV] ユーザーリスト読み込みエラー:', error);
+            }
+        }
+
+        async function devSwitchUser(email) {
+            if (!email) return;
+
+            const select = document.getElementById('dev-user-select');
+
+            // 確認ダイアログ
+            if (!confirm(`【開発用】${email} に切り替えますか？\n\nパスワード: ${DEV_DEFAULT_PASSWORD}`)) {
+                if (select) select.value = '';
+                return;
+            }
+
+            console.log('[DEV] ユーザー切り替え開始:', email);
+
+            try {
+                // Firebase認証でログイン
+                if (!window.FirebaseAuth || !window.FirebaseAuth.signIn) {
+                    alert('Firebase認証が利用できません');
+                    if (select) select.value = '';
+                    return;
+                }
+
+                const result = await window.FirebaseAuth.signIn(email, DEV_DEFAULT_PASSWORD);
+
+                if (result.success) {
+                    console.log('[DEV] ユーザー切り替え成功:', email);
+                    alert(`${email} に切り替えました。\nページをリロードします。`);
+                    window.location.reload();
+                } else {
+                    console.error('[DEV] ユーザー切り替え失敗:', result.message);
+                    alert(`ログイン失敗: ${result.message}\n\nパスワードが異なる可能性があります。`);
+                    if (select) select.value = '';
+                }
+            } catch (error) {
+                console.error('[DEV] ユーザー切り替えエラー:', error);
+                alert(`エラー: ${error.message}`);
+                if (select) select.value = '';
+            }
+        }
+
+        // グローバルに公開
+        window.devSwitchUser = devSwitchUser;
+
         // ヘルプモーダル
         function openHelpModal() {
             const modal = document.createElement('div');
@@ -13673,6 +14209,7 @@
         window.deleteTask = deleteTask;
         window.toggleHamburgerMenu = toggleHamburgerMenu;
         window.updateHamburgerMenu = updateHamburgerMenu;
+        window.loadDevUserList = loadDevUserList;
         window.logout = logout;
         window.openHelpModal = openHelpModal;
         window.handleFileImport = handleFileImport;

@@ -14,7 +14,8 @@
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "live-server": "^1.2.2",
-    "netlify-cli": "^23.9.1"
+    "netlify-cli": "^23.9.1",
+    "puppeteer": "^24.33.0"
   },
   "main": "playwright.config.js",
   "directories": {
