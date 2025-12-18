@@ -88,25 +88,14 @@ onAuthStateChanged(auth, async (user) => {
 
         localStorage.setItem('currentSession', JSON.stringify(sessionData));
 
-        // メニューを更新
+        // 開発用ユーザー切り替えリストを再読み込み（ユーザー名表示更新のため）
         setTimeout(() => {
-            if (window.updateHamburgerMenu) {
-                window.updateHamburgerMenu();
-            }
-            // 開発用ユーザー切り替えリストを再読み込み（ユーザー名表示更新のため）
             if (window.loadDevUserList) {
                 window.loadDevUserList();
             }
         }, 100);
     } else {
         window.currentFirebaseUser = null;
-
-        // ログアウト時もメニューを更新
-        setTimeout(() => {
-            if (window.updateHamburgerMenu) {
-                window.updateHamburgerMenu();
-            }
-        }, 100);
     }
 });
 

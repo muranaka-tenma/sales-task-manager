@@ -105,125 +105,7 @@
             font-size: 1.5rem;
             font-weight: 600;
         }
-        
 
-        /* ハンバーガーメニュー */
-        .hamburger-menu {
-            position: fixed;
-            top: 0;
-            left: -300px;
-            width: 280px;
-            height: 100vh;
-            background: white;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-            transition: left 0.3s ease;
-            z-index: 999;
-            overflow-y: auto;
-        }
-        
-        .hamburger-menu.active {
-            left: 0;
-        }
-        
-        .menu-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            z-index: 998;
-        }
-        
-        .menu-overlay.active {
-            display: block;
-        }
-        
-        .menu-section {
-            padding: 1rem;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .menu-section-title {
-            font-size: 0.8rem;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-        
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #333;
-            text-decoration: none;
-            margin-bottom: 0.25rem;
-        }
-        
-        .menu-item:hover {
-            background: #f5f5f5;
-            transform: translateX(4px);
-        }
-        
-        .menu-item.active {
-            background: #e0f7f6;
-            color: #0097A7;
-            font-weight: 600;
-        }
-        
-        .user-menu-info {
-            padding: 1.5rem;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .user-menu-avatar {
-            width: 48px;
-            height: 48px;
-            background: var(--theme-color, #0097A7);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-        }
-        
-        .user-menu-name {
-            font-weight: 600;
-            font-size: 1rem;
-            margin-bottom: 0.25rem;
-        }
-        
-        .user-menu-role {
-            font-size: 0.85rem;
-            color: #666;
-        }
-        
-        .settings-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: all 0.2s;
-        }
-        
-        .settings-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.1);
-        }
-        
         /* 統計表示 - カードスタイル */
         .stats-bar {
             background: linear-gradient(135deg, #f8f9fb 0%, #ebecf0 100%);
@@ -2867,12 +2749,6 @@
                 } else {
                     console.log(`✅ [Phase 3] ${currentUser.role}権限: ユーザー管理ボタン表示維持`);
                 }
-                
-                // ハンバーガーメニューの更新
-                setTimeout(() => {
-                    updateHamburgerMenu();
-                    console.log('🍔 [Phase 3] ハンバーガーメニュー更新完了');
-                }, 200);
                 
             } catch (error) {
                 console.error('❌ [Phase 3] ユーザー管理ボタン制御エラー:', error);
@@ -9753,8 +9629,6 @@
             
             // UI更新
             setTimeout(() => {
-                updateHamburgerMenu();
-                
                 // 担当者リストをsystemUsersから自動更新（有効ユーザーのみ）
                 const activeUsers = getActiveUsers();
                 if (activeUsers.length > 0) {
@@ -9992,11 +9866,6 @@
                     timestamp: new Date().toISOString()
                 });
             }, 1000);
-            
-            // ハンバーガーメニューを初期化（少し遅延させて確実に実行）
-            setTimeout(() => {
-                updateHamburgerMenu();
-            }, 100);
 
             // テーマカラーを初期化
             initThemeColor();
@@ -12371,93 +12240,6 @@
             }
         }
         
-        // ハンバーガーメニューの切り替え
-        function toggleHamburgerMenu() {
-            const hamburgerMenu = document.getElementById('hamburger-menu');
-            const menuOverlay = document.getElementById('menu-overlay');
-
-            if (!hamburgerMenu || !menuOverlay) return;
-
-            const isActive = hamburgerMenu.classList.contains('active');
-
-            if (isActive) {
-                hamburgerMenu.classList.remove('active');
-                menuOverlay.classList.remove('active');
-            } else {
-                hamburgerMenu.classList.add('active');
-                menuOverlay.classList.add('active');
-            }
-        }
-
-        // ハンバーガーメニューの更新
-        function updateHamburgerMenu() {
-            const currentUser = getCurrentUser();
-            
-            // ユーザー情報を表示
-            const avatar = document.getElementById('user-menu-avatar');
-            const name = document.getElementById('user-menu-name');
-            const role = document.getElementById('user-menu-role');
-            
-            if (avatar) avatar.textContent = currentUser.name ? currentUser.name.charAt(0) : '-';
-            if (name) name.textContent = currentUser.name || 'ゲスト';
-            
-            let roleText = 'ユーザー';
-            if (currentUser.role === 'developer') roleText = '開発者';
-            else if (currentUser.role === 'admin') roleText = '管理者';
-            else if (currentUser.role === 'guest') roleText = '未ログイン';
-            if (role) role.textContent = roleText;
-            
-            // 開発者機能の表示制御
-            const developerSection = document.getElementById('developer-menu-section');
-            if (developerSection) {
-                if (currentUser.role === 'developer') {
-                    developerSection.style.display = 'block';
-                } else {
-                    developerSection.style.display = 'none';
-                }
-            }
-            
-            // 診断ボタンの表示制御（完全無効化）
-            const diagnosisBtn = document.getElementById('emergency-diagnosis-btn');
-            if (diagnosisBtn) {
-                diagnosisBtn.style.display = 'none';
-                console.log('🔧 [MENU] 診断ボタンを完全非表示');
-            }
-            
-            // 管理機能の表示制御（ログイン状態に関係なく）
-            const adminSection = document.getElementById('admin-menu-section');
-            console.log('🍔 [DEBUG] adminSection found:', !!adminSection);
-            if (adminSection) {
-                // ユーザー管理と管理ダッシュボードはadmin以上のみ（IDで取得）
-                const userManagementLink = document.getElementById('user-management-link');
-                const adminDashboardLink = document.getElementById('admin-dashboard-link');
-
-                console.log('🍔 [DEBUG] Links found:', {
-                    userManagement: !!userManagementLink,
-                    adminDashboard: !!adminDashboardLink,
-                    userRole: currentUser.role
-                });
-
-                if (currentUser.role === 'developer' || currentUser.role === 'admin') {
-                    adminSection.style.display = 'block';
-                    if (userManagementLink) userManagementLink.style.display = 'block';
-                    if (adminDashboardLink) adminDashboardLink.style.display = 'block';
-                    console.log('🍔 管理機能を表示:', currentUser.role);
-                } else {
-                    adminSection.style.display = 'none';
-                    console.log('🍔 管理機能を非表示:', currentUser.role);
-                }
-            } else {
-                console.error('🍔 [ERROR] admin-menu-section not found in DOM');
-            }
-        }
-        
-        // ハンバーガーメニュー更新関数をグローバルに公開
-        window.updateHamburgerMenu = updateHamburgerMenu;
-        
-        
-        
-        
         // ログアウト関数
         function logout() {
             if (confirm('ログアウトしますか？')) {
@@ -14207,8 +13989,6 @@
 
 
         window.deleteTask = deleteTask;
-        window.toggleHamburgerMenu = toggleHamburgerMenu;
-        window.updateHamburgerMenu = updateHamburgerMenu;
         window.loadDevUserList = loadDevUserList;
         window.logout = logout;
         window.openHelpModal = openHelpModal;
@@ -14221,78 +14001,7 @@
         window.selectExistingProjectInModal = selectExistingProjectInModal;
         window.migrateProjectTaskColumnIds = migrateProjectTaskColumnIds; // デバッグ用に公開
     </script>
-    
-    <!-- ハンバーガーメニュー -->
-    <div class="hamburger-menu" id="hamburger-menu">
-        <div class="user-menu-info">
-            <div class="user-menu-avatar" id="user-menu-avatar">-</div>
-            <div class="user-menu-name" id="user-menu-name">ゲスト</div>
-            <div class="user-menu-role" id="user-menu-role">未ログイン</div>
-        </div>
-        
-        <div class="menu-section">
-            <div class="menu-section-title">個人設定</div>
-            <a href="javascript:void(0);" class="menu-item" onclick="toggleHamburgerMenu(); openMyProfileModal();">
-                <span>👤</span>
-                <span>マイページ</span>
-            </a>
-            <a href="#" class="menu-item" onclick="openSettingsModal(); toggleHamburgerMenu(); return false;">
-                <span>⚙️</span>
-                <span>基本設定</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">カラム・通知・テーマ設定</div>
-            </a>
-        </div>
-        
-        <div class="menu-section">
-            <div class="menu-section-title">タスク管理</div>
-            <a href="#" class="menu-item" onclick="openTemplateManagementModal(); toggleHamburgerMenu(); return false;">
-                <span>📋</span>
-                <span>テンプレート管理</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テンプレート表示・作成・編集・削除</div>
-            </a>
-            <a href="#" class="menu-item" onclick="openTaskImportModal(); toggleHamburgerMenu(); return false;">
-                <span>[+]</span>
-                <span>テキストインポート</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">テキスト・CSVからタスク一括作成</div>
-            </a>
-        </div>
-        
-        <!-- 機能改善書は削除済み -->
-        
-        <!-- プロジェクト設定は全ユーザーアクセス可能 -->
-        <div class="menu-section">
-            <div class="menu-section-title">プロジェクト</div>
-            <a href="javascript:void(0);" class="menu-item" onclick="toggleHamburgerMenu(); openProjectManagementModal();">
-                <span>🏗️</span>
-                <span>プロジェクト設定・管理</span>
-                <div style="font-size: 0.7rem; color: #888; margin-top: 0.2rem;">プロジェクト作成・カラム設定・メンバー管理</div>
-            </a>
-        </div>
 
-        <div class="menu-section" id="admin-menu-section" style="display: none;">
-            <div class="menu-section-title">管理機能</div>
-            <a href="javascript:void(0);" id="user-management-link" class="menu-item" onclick="toggleHamburgerMenu(); openUserManagementModal();">
-                <span></span>
-                <span>ユーザー管理</span>
-            </a>
-            <a href="javascript:void(0);" id="admin-dashboard-link" class="menu-item" onclick="toggleHamburgerMenu(); openAdminDashboardModal();">
-                <span>📊</span>
-                <span>管理者ダッシュボード</span>
-            </a>
-        </div>
-        
-        <div class="menu-section">
-            <div class="menu-section-title">その他</div>
-            <a href="#" class="menu-item" onclick="logout(); toggleHamburgerMenu(); return false;">
-                <span>🚪</span>
-                <span>ログアウト</span>
-            </a>
-        </div>
-    </div>
-    
-    <!-- メニューオーバーレイ -->
-    <div class="menu-overlay" id="menu-overlay" onclick="toggleHamburgerMenu()"></div>
-    
     <!-- 隠しファイル入力 -->
     <input type="file" id="file-import" accept=".csv,.xlsx,.xls,.txt,.png,.jpg,.jpeg" multiple style="display: none;" onchange="handleFileImport(event)">
 
