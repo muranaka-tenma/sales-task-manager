@@ -2379,7 +2379,82 @@
         function getActiveUserNames() {
             return getActiveUsers().map(u => u.name);
         }
-        
+
+        // 🔧 ユーザー名からUIDを取得（表示対象切り替え用）
+        function getUserIdByName(userName) {
+            const user = cachedActiveUsers.find(u => u.name === userName);
+            return user?.id || null;
+        }
+
+        // 🔧 他ユーザーのカラム設定を取得（キャッシュ付き）
+        async function getUserColumns(userId) {
+            // 現在のユーザーの場合は自分のカラムを返す
+            const currentUser = getCurrentUser();
+            if (currentUser && userId === currentUser.id) {
+                return columns;
+            }
+
+            // キャッシュがあればそれを返す
+            if (userColumnsCache[userId]) {
+                console.log(`📋 [USER-COLUMNS] キャッシュヒット: ${userId}`);
+                return userColumnsCache[userId];
+            }
+
+            // Firestoreから取得
+            if (window.FirebaseDB && window.FirebaseDB.getColumns) {
+                try {
+                    const result = await window.FirebaseDB.getColumns(userId);
+                    if (result.success && result.columns) {
+                        userColumnsCache[userId] = result.columns;
+                        console.log(`📋 [USER-COLUMNS] Firestoreから取得: ${userId} → ${result.columns.length}カラム`);
+                        return result.columns;
+                    }
+                } catch (error) {
+                    console.error(`❌ [USER-COLUMNS] 取得エラー: ${userId}`, error);
+                }
+            }
+
+            // 取得できなかった場合はDEFAULT_COLUMNSを返す
+            console.log(`⚠️ [USER-COLUMNS] カラム取得失敗 - デフォルト使用: ${userId}`);
+            return DEFAULT_COLUMNS;
+        }
+
+        // 🔧 タスクを全員表示用カラムに分類
+        async function classifyTaskForAllUsersView(task) {
+            // タスクの担当者を特定
+            const assigneeName = task.assignee || (task.assignees && task.assignees[0]);
+            if (!assigneeName) {
+                return 'all_incomplete';
+            }
+
+            // 担当者のユーザーIDを取得
+            const userId = getUserIdByName(assigneeName);
+            if (!userId) {
+                return 'all_incomplete';
+            }
+
+            // そのユーザーのカラム設定を取得
+            const userColumns = await getUserColumns(userId);
+            if (!userColumns || userColumns.length === 0) {
+                return 'all_incomplete';
+            }
+
+            // タスクのcolumnIdがどのカラムに属するか判定
+            const taskColumn = userColumns.find(c => c.id === task.columnId);
+            if (!taskColumn) {
+                return 'all_incomplete';
+            }
+
+            // カラムのtypeで分類
+            if (taskColumn.type === 'done') {
+                return 'all_done';
+            }
+            if (taskColumn.type === 'archive') {
+                return 'all_archive';
+            }
+            return 'all_incomplete';
+        }
+
         // 権限の完全性を保証する関数（権限リセット防止）
         function ensureUserPermissionsIntegrity() {
             // 重複実行防止: 3秒以内の連続実行をブロック
@@ -3195,6 +3270,19 @@
             {"id":"trash","title":"Archive","color":"#6c757d","type":"archive"}
         ];
 
+        // 🔧 全員表示用の統一カラム定義（表示対象=全員のとき使用）
+        const ALL_USERS_COLUMNS = [
+            {"id":"all_incomplete","title":"未完了","color":"#3b82f6","type":"normal"},
+            {"id":"all_done","title":"完了","color":"#22c55e","type":"done"},
+            {"id":"all_archive","title":"アーカイブ","color":"#6b7280","type":"archive"}
+        ];
+
+        // 🔧 ユーザーカラムキャッシュ（他ユーザーのカラム設定を一時保存）
+        let userColumnsCache = {};
+
+        // 🔧 他ユーザー閲覧モードフラグ
+        let isViewingOtherUser = false;
+
         // カラム定義（LocalStorageから初期読み込み、後でFirestoreから上書き）
         let columns = JSON.parse(localStorage.getItem('kanbanColumns') || JSON.stringify(DEFAULT_COLUMNS));
 
@@ -3532,6 +3620,7 @@
         window.isDoneColumn = isDoneColumn;
         window.isTrashColumn = isTrashColumn;
         window.columns = columns;
+        window.isViewingOtherUser = isViewingOtherUser; // E2Eテスト用
         window.getColumnNameById = getColumnNameById;
 
         // 統合フィルター機能（担当者 + プロジェクト）
@@ -4712,6 +4801,26 @@
             }
         }
         
+        // 🔧 閲覧モード用: タスク詳細を読み取り専用で表示
+        function viewTaskReadOnly(taskId) {
+            const task = tasks.find(t => t.id == taskId || t.id === String(taskId) || t.id === Number(taskId));
+            if (!task) return;
+
+            // シンプルなアラートで詳細表示
+            const deadline = new Date(task.deadline);
+            const deadlineStr = `${deadline.toLocaleDateString('ja-JP')} ${deadline.toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}`;
+            const assigneeStr = task.assignees ? task.assignees.join(', ') : (task.assignee || '未設定');
+
+            alert(
+                `【閲覧モード - 編集不可】\n\n` +
+                `タイトル: ${task.title}\n` +
+                `期限: ${deadlineStr}\n` +
+                `担当者: ${assigneeStr}\n` +
+                `メモ: ${task.memo || 'なし'}\n\n` +
+                `※ 他ユーザーまたは全員表示モードのため編集できません`
+            );
+        }
+
         async function editTask(taskId) {
             // 🔧 型変換：文字列/数値どちらでも検索できるようにする
             editingTask = tasks.find(t => t.id == taskId || t.id === String(taskId) || t.id === Number(taskId));
@@ -6808,7 +6917,10 @@
         }
 
         // レンダリング
-        function render() {
+        async function render() {
+            // 🔧 他ユーザー閲覧モードをリセット
+            isViewingOtherUser = false;
+
             // 🔧 修正: タスクが未定義の場合は空配列で初期化
             if (!tasks || tasks === undefined) {
                 console.log('⚠️ [RENDER] タスクデータ未定義 - 空配列で初期化して描画続行');
@@ -6894,6 +7006,20 @@
                 currentColumns = getProjectColumns(selectedProjectFilters[0]);
                 console.log('🎨 [RENDER] プロジェクトカラム取得:', selectedProjectFilters[0], '→', currentColumns.length, '個');
             } else if (selectedAssigneeFilters.length > 0) {
+                // 🔧 他ユーザー表示モード: そのユーザーのカラム設定を取得
+                const targetUserName = selectedAssigneeFilters[0];
+                const targetUserId = getUserIdByName(targetUserName);
+
+                if (targetUserId && targetUserId !== currentUser?.id) {
+                    // 他ユーザー表示時: そのユーザーのカラムを取得
+                    const targetUserColumns = await getUserColumns(targetUserId);
+                    if (targetUserColumns && targetUserColumns.length > 0) {
+                        currentColumns = targetUserColumns;
+                        isViewingOtherUser = true;
+                        console.log(`👁️ [RENDER] 他ユーザー閲覧モード: ${targetUserName} のカラムを使用 (${currentColumns.length}カラム)`);
+                    }
+                }
+
                 // 個人・共通タスクの担当者フィルター（プロジェクトタスクは除外）
                 filteredTasks = tasks.filter(t => {
                     // 非表示タスクは作成者+担当者のみ表示
@@ -6931,6 +7057,10 @@
                 });
                 console.log(`👤 [RENDER] Assignee filter (normal tasks only): showing ${filteredTasks.length} tasks for ${selectedAssigneeFilters[0]}`);
             } else {
+                // 🔧 全員表示モード: 統一カラムを使用
+                currentColumns = ALL_USERS_COLUMNS;
+                console.log('👥 [RENDER] 全員表示モード: 統一カラムを使用');
+
                 // 個人・共通タスクのみ表示（プロジェクトタスクは除外）
                 filteredTasks = tasks.filter(t => {
                     // 非表示タスクは作成者+担当者のみ表示
@@ -6959,7 +7089,22 @@
                     }
                     return !t.projectId;
                 });
-                console.log('📋 [RENDER] 個人・共通タスクのみ表示:', filteredTasks.length, '件');
+
+                // 🔧 全員表示時: タスクを統一カラムに再分類
+                // 各タスクの担当者のカラム設定を確認し、type属性で分類
+                const classifiedTasks = [];
+                for (const task of filteredTasks) {
+                    const newColumnId = await classifyTaskForAllUsersView(task);
+                    classifiedTasks.push({
+                        ...task,
+                        _originalColumnId: task.columnId, // 元のcolumnIdを保持
+                        columnId: newColumnId // 表示用に統一カラムIDに変換
+                    });
+                }
+                filteredTasks = classifiedTasks;
+
+                console.log('📋 [RENDER] 全員表示モード:', filteredTasks.length, '件');
+                isViewingOtherUser = true; // 全員表示時もドラッグ&ドロップを無効化
             }
             
             // フィルタ適用後: ${filteredTasks.length}件
@@ -7013,28 +7158,42 @@
                 const columnEl = document.createElement('div');
                 columnEl.className = 'column';
                 columnEl.setAttribute('data-column-id', column.id); // アーカイブスタイル用
+
+                // 🔧 閲覧モード時はドラッグ&ドロップを無効化
+                const dragHandlers = isViewingOtherUser
+                    ? '' // 閲覧モード: ドロップイベントなし
+                    : `ondragover="handleDragOver(event)"
+                       ondrop="handleDrop(event, '${column.id}')"
+                       ondragenter="handleDragEnter(event)"
+                       ondragleave="handleDragLeave(event)"`;
+
+                // 🔧 閲覧モード時はカラムヘッダーの右クリックメニューも無効化
+                const headerContextMenu = isViewingOtherUser
+                    ? '' // 閲覧モード: 右クリックメニューなし
+                    : `oncontextmenu="showColumnContextMenu(event, '${column.id}')"`;
+
                 columnEl.innerHTML = `
-                    <div class="column-header" style="background: ${column.color}; color: white; cursor: context-menu;" oncontextmenu="showColumnContextMenu(event, '${column.id}')">
+                    <div class="column-header" style="background: ${column.color}; color: white; cursor: ${isViewingOtherUser ? 'default' : 'context-menu'};" ${headerContextMenu}>
                         <div class="column-title">${column.title}</div>
                         <div class="column-count">${columnTasks.length}</div>
                     </div>
-                    <div class="column-content" 
-                         ondragover="handleDragOver(event)"
-                         ondrop="handleDrop(event, '${column.id}')"
-                         ondragenter="handleDragEnter(event)"
-                         ondragleave="handleDragLeave(event)">
-                        ${columnTasks.map(task => createTaskCard(task)).join('')}
+                    <div class="column-content" ${dragHandlers}>
+                        ${columnTasks.map(task => createTaskCard(task, false, isViewingOtherUser)).join('')}
                     </div>
                 `;
-                
+
                 board.appendChild(columnEl);
             });
-            
+
+            // 🔧 E2Eテスト用にグローバル更新
+            window.isViewingOtherUser = isViewingOtherUser;
+
             updateStats();
         }
         
-        function createTaskCard(task, isFromOverdueColumn = false) {
+        function createTaskCard(task, isFromOverdueColumn = false, isViewOnly = false) {
             // タスクカード作成（詳細ログ削減）
+            // 🔧 isViewOnly: 閲覧モード時はドラッグ&編集を無効化
             const deadline = new Date(task.deadline);
             const isOverdueTask = isOverdue(task.deadline, task.columnId);
             const isTodayTask = isToday(task.deadline, task.columnId);
@@ -7088,13 +7247,20 @@
                 </div>
             ` : '';
             
+            // 🔧 閲覧モード時はドラッグを無効化
+            const canDrag = !isBulkMode && !isViewOnly;
+            const cursorStyle = isViewOnly ? 'default' : (isBulkMode ? 'pointer' : 'move');
+            const clickAction = isViewOnly
+                ? `viewTaskReadOnly('${task.id}')` // 閲覧モード: 読み取り専用表示
+                : (isBulkMode ? `toggleTaskSelection('${task.id}')` : `editTask('${task.id}')`);
+
             return `
                 <div class="${cardClass}"
-                     draggable="${!isBulkMode}"
-                     ${!isBulkMode ? `ondragstart="handleDragStart(event, '${task.id}')" ondragend="handleDragEnd(event)"` : ''}
-                     onclick="${isBulkMode ? `toggleTaskSelection('${task.id}')` : `editTask('${task.id}')`}"
-                     style="position: relative; cursor: ${isBulkMode ? 'pointer' : 'move'}; ${isOverdueTask ? 'border-left: 4px solid #dc2626 !important; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3) !important;' : ''}${isStale && !isOverdueTask ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
-                     title="${isOverdueTask ? '期限切れ' : ''}">
+                     draggable="${canDrag}"
+                     ${canDrag ? `ondragstart="handleDragStart(event, '${task.id}')" ondragend="handleDragEnd(event)"` : ''}
+                     onclick="${clickAction}"
+                     style="position: relative; cursor: ${cursorStyle}; ${isOverdueTask ? 'border-left: 4px solid #dc2626 !important; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3) !important;' : ''}${isStale && !isOverdueTask ? 'border: 2px solid #e53e3e; box-shadow: 0 0 8px rgba(229, 62, 62, 0.3);' : ''}"
+                     title="${isOverdueTask ? '期限切れ' : ''}${isViewOnly ? ' (閲覧モード)' : ''}">
                     ${checkboxHtml}
                     <div class="task-title">
                         <span>
