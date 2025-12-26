@@ -1461,30 +1461,130 @@
         </div>
     </div>
     
-    <!-- フィルター・管理バー -->
-    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; gap: 1rem; align-items: center;">
-            <span style="font-weight: 600; color: #2d3748;">表示対象:</span>
-            <!-- 統合担当者・プロジェクトフィルター -->
-            <div style="position: relative;" id="assignee-filter-container">
-                <button onclick="toggleAssigneeFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; min-width: 150px;">
-                    <span id="assignee-filter-text">全員</span>
-                    <span>▼</span>
-                </button>
-                <div id="assignee-filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 1000; min-width: 250px;">
-                    <!-- 担当者・プロジェクト選択肢がここに動的追加される -->
+    <!-- フィルター・管理バー（2行構成） -->
+    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0;">
+        <!-- 1行目: プロジェクト/個人タスク選択 + 日付フィルター + リセット -->
+        <div style="display: flex; align-items: center; margin-bottom: 0.5rem; gap: 2rem;">
+            <div style="display: flex; align-items: center;">
+                <span style="font-weight: 600; color: #2d3748; width: 50px;">対象:</span>
+                <div style="position: relative;" id="project-filter-container">
+                    <button onclick="toggleProjectFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; width: 160px;">
+                        <span id="project-filter-text">個人タスク</span>
+                        <span>▼</span>
+                    </button>
+                    <div id="project-filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 1000; min-width: 250px; max-height: 300px; overflow-y: auto;">
+                        <!-- プロジェクト選択肢がここに動的追加される -->
+                    </div>
+                </div>
+            </div>
+            <!-- 日付フィルター -->
+            <div style="display: flex; align-items: center;">
+                <span style="font-weight: 600; color: #2d3748; width: 50px;">日付:</span>
+                <div style="position: relative;" id="date-filter-container">
+                    <button onclick="toggleDateFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; width: 160px;">
+                        <span id="date-filter-text">すべて</span>
+                        <span>▼</span>
+                    </button>
+                    <div id="date-filter-dropdown" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 1000; min-width: 280px; padding: 0.5rem 0;">
+                        <!-- 日付フィルター選択肢 -->
+                        <div style="padding: 0.5rem 1rem;">
+                            <label style="display: flex; align-items: center; padding: 0.4rem 0; cursor: pointer;">
+                                <input type="radio" name="date-filter" value="all" onchange="selectDateFilter('all')" checked style="margin-right: 0.5rem;">
+                                <span>すべて</span>
+                            </label>
+                        </div>
+                        <div style="border-top: 1px solid #e5e7eb; padding: 0.5rem 1rem;">
+                            <div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.5rem;">基準:</div>
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <label style="display: flex; align-items: center; cursor: pointer; padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8rem;">
+                                    <input type="radio" name="date-basis" value="deadline" checked style="margin-right: 0.3rem;">
+                                    <span>期限日</span>
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer; padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8rem;">
+                                    <input type="radio" name="date-basis" value="created" style="margin-right: 0.3rem;">
+                                    <span>作成日</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div style="border-top: 1px solid #e5e7eb; padding: 0.5rem 1rem;">
+                            <label style="display: flex; align-items: center; padding: 0.4rem 0; cursor: pointer;">
+                                <input type="radio" name="date-filter" value="today" onchange="selectDateFilter('today')" style="margin-right: 0.5rem;">
+                                <span>今日</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 0.4rem 0; cursor: pointer;">
+                                <input type="radio" name="date-filter" value="3days" onchange="selectDateFilter('3days')" style="margin-right: 0.5rem;">
+                                <span>3日以内</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 0.4rem 0; cursor: pointer;">
+                                <input type="radio" name="date-filter" value="this-week" onchange="selectDateFilter('this-week')" style="margin-right: 0.5rem;">
+                                <span>今週</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 0.4rem 0; cursor: pointer;">
+                                <input type="radio" name="date-filter" value="next-week" onchange="selectDateFilter('next-week')" style="margin-right: 0.5rem;">
+                                <span>来週</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 0.4rem 0; cursor: pointer;">
+                                <input type="radio" name="date-filter" value="this-month" onchange="selectDateFilter('this-month')" style="margin-right: 0.5rem;">
+                                <span>今月</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 0.4rem 0; cursor: pointer;">
+                                <input type="radio" name="date-filter" value="next-month" onchange="selectDateFilter('next-month')" style="margin-right: 0.5rem;">
+                                <span>来月</span>
+                            </label>
+                            <label style="display: flex; align-items: center; padding: 0.4rem 0; cursor: pointer;">
+                                <input type="radio" name="date-filter" value="overdue" onchange="selectDateFilter('overdue')" style="margin-right: 0.5rem;">
+                                <span style="color: #dc2626;">期限切れ</span>
+                            </label>
+                        </div>
+                        <div style="border-top: 1px solid #e5e7eb; padding: 0.5rem 1rem;">
+                            <label style="display: flex; align-items: center; padding: 0.4rem 0; cursor: pointer;">
+                                <input type="radio" name="date-filter" value="custom" onchange="selectDateFilter('custom')" style="margin-right: 0.5rem;">
+                                <span>カスタム範囲</span>
+                            </label>
+                            <div id="custom-date-range" style="display: none; margin-top: 0.5rem; padding-left: 1.5rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="date" id="date-filter-start" style="padding: 0.3rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8rem;">
+                                    <span>〜</span>
+                                    <input type="date" id="date-filter-end" style="padding: 0.3rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.8rem;">
+                                </div>
+                                <button onclick="applyCustomDateFilter()" style="margin-top: 0.5rem; padding: 0.3rem 0.75rem; background: #0097A7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">適用</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div style="display: flex; gap: 1rem; align-items: center;">
-            <!-- プロジェクトタスク作成ボタン廃止: 通常のタスク作成モーダルで統合 -->
-            <!-- ユーザー管理ボタンをマイページに移植のため非表示 -->
-            <button onclick="window.location.href='user-management.html'" style="display: none; padding: 0.5rem 0.75rem; background: #38a169; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;" title="ユーザー管理">
-                ユーザー管理
-            </button>
-            <button onclick="showFilterHelp()" style="background: none; border: none; color: #4a5568; cursor: pointer; font-size: 1rem;" title="フィルターの説明">
-                ?
-            </button>
+        <!-- 2行目: ユーザー選択 + 検索 -->
+        <div style="display: flex; align-items: center; gap: 2rem;">
+            <div style="display: flex; align-items: center;">
+                <span style="font-weight: 600; color: #2d3748; width: 50px;">担当:</span>
+                <div style="position: relative;" id="user-filter-container">
+                    <button onclick="toggleUserFilterDropdown()" style="padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; width: 160px;">
+                        <span id="user-filter-text">自分</span>
+                        <span>▼</span>
+                    </button>
+                    <div id="user-filter-dropdown" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid #d1d5db; border-radius: 6px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); z-index: 1000; min-width: 250px; max-height: 500px; overflow-y: auto;">
+                        <!-- ユーザー選択肢がここに動的追加される（初期値は読み込み中表示） -->
+                        <div style="padding: 0.5rem;">
+                            <div style="color: #666; padding: 0.5rem;">読み込み中...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- タスク名検索 -->
+            <div style="display: flex; align-items: center;">
+                <span style="font-weight: 600; color: #2d3748; width: 50px;">検索:</span>
+                <div style="position: relative;">
+                    <input type="text" id="task-search-input" placeholder="タスク名で検索..."
+                        oninput="onTaskSearchInput()"
+                        style="padding: 0.5rem 0.75rem; padding-right: 2rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.85rem; width: 160px; box-sizing: border-box;">
+                    <button onclick="clearTaskSearch()" id="task-search-clear"
+                        style="display: none; position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 1rem; padding: 0;"
+                        title="検索をクリア">&times;</button>
+                </div>
+            </div>
+            <!-- 全リセットボタン -->
+            <button onclick="resetAllFilters()" style="margin-left: 1.5rem; padding: 0.5rem 1rem; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" title="すべての検索条件をリセット">検索条件をリセット</button>
         </div>
     </div>
     
@@ -1577,6 +1677,20 @@
         <div class="context-menu-item" onclick="editColumnFromContext()">名前を変更</div>
     </div>
 
+    <!-- プロジェクト右クリックメニュー -->
+    <div id="projectContextMenu" class="column-context-menu">
+        <div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; color: #6b7280; border-bottom: 1px solid #e5e7eb;">ステータス変更</div>
+        <div class="context-menu-item" id="projectStatusActive" onclick="setProjectStatusFromContext('active')">
+            <span style="color: #059669;">●</span> 進行中
+        </div>
+        <div class="context-menu-item" id="projectStatusCompleted" onclick="setProjectStatusFromContext('completed')">
+            <span style="color: #2563eb;">●</span> 完了
+        </div>
+        <div class="context-menu-item" id="projectStatusArchived" onclick="setProjectStatusFromContext('archived')">
+            <span style="color: #6b7280;">●</span> アーカイブ
+        </div>
+    </div>
+
     <!-- タスク編集モーダル -->
     <div class="modal" id="task-modal">
         <div class="modal-content">
@@ -1614,7 +1728,13 @@
                                 <input type="time" class="form-input" id="task-time-input" value="17:00">
                             </div>
                         </div>
-                        
+
+                        <!-- 作成日表示（編集時のみ表示・読み取り専用） -->
+                        <div class="form-group" id="task-created-at-group" style="display: none; background: #f8fafc; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <label class="form-label" style="color: #64748b; font-size: 0.85rem;">作成日時</label>
+                            <div id="task-created-at-display" style="font-size: 0.95rem; color: #334155; font-weight: 500;"></div>
+                        </div>
+
                         <div class="form-group" id="column-selection-group" style="display: none;">
                             <label class="form-label">配置先ステータス *</label>
                             <select class="form-select" id="task-column-input" required>
@@ -1950,13 +2070,13 @@
                         <div style="display: flex; flex-direction: column; gap: 0.5rem; flex: 1; min-width: 200px;">
                             <label style="font-size: 0.9rem; color: #6b7280;">プロジェクトカラー:</label>
                             <div id="newProjectColorPicker" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                <button type="button" onclick="selectProjectColor('#0097A7')" data-color="#0097A7" style="width: 32px; height: 32px; border-radius: 50%; border: 3px solid #0097A7; background: #0097A7; cursor: pointer;" title="TERRA"></button>
-                                <button type="button" onclick="selectProjectColor('#3b82f6')" data-color="#3b82f6" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #3b82f6; cursor: pointer;" title="Blue"></button>
-                                <button type="button" onclick="selectProjectColor('#8b5cf6')" data-color="#8b5cf6" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #8b5cf6; cursor: pointer;" title="Purple"></button>
-                                <button type="button" onclick="selectProjectColor('#10b981')" data-color="#10b981" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #10b981; cursor: pointer;" title="Green"></button>
-                                <button type="button" onclick="selectProjectColor('#f59e0b')" data-color="#f59e0b" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #f59e0b; cursor: pointer;" title="Orange"></button>
-                                <button type="button" onclick="selectProjectColor('#ef4444')" data-color="#ef4444" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #ef4444; cursor: pointer;" title="Red"></button>
-                                <button type="button" onclick="selectProjectColor('#6b7280')" data-color="#6b7280" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; background: #6b7280; cursor: pointer;" title="Gray"></button>
+                                <button type="button" onclick="selectProjectColor('#0097A7')" data-color="#0097A7" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #0097A7; cursor: pointer; box-shadow: 0 0 0 2px white, 0 0 0 4px #333; transform: scale(1.1);" title="TERRA"></button>
+                                <button type="button" onclick="selectProjectColor('#3b82f6')" data-color="#3b82f6" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #3b82f6; cursor: pointer;" title="Blue"></button>
+                                <button type="button" onclick="selectProjectColor('#8b5cf6')" data-color="#8b5cf6" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #8b5cf6; cursor: pointer;" title="Purple"></button>
+                                <button type="button" onclick="selectProjectColor('#10b981')" data-color="#10b981" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #10b981; cursor: pointer;" title="Green"></button>
+                                <button type="button" onclick="selectProjectColor('#f59e0b')" data-color="#f59e0b" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #f59e0b; cursor: pointer;" title="Orange"></button>
+                                <button type="button" onclick="selectProjectColor('#ef4444')" data-color="#ef4444" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #ef4444; cursor: pointer;" title="Red"></button>
+                                <button type="button" onclick="selectProjectColor('#6b7280')" data-color="#6b7280" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #6b7280; cursor: pointer;" title="Gray"></button>
                             </div>
                             <input type="hidden" id="newProjectColor" value="#0097A7">
 
@@ -1968,9 +2088,14 @@
                                 カラム追加
                             </button>
 
-                            <button onclick="createNewProject()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">
-                                作成
-                            </button>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button onclick="createNewProject(false)" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">
+                                    作成
+                                </button>
+                                <button onclick="createNewProject(true)" style="background: #10b981; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 0.9rem; cursor: pointer; font-weight: 500;">
+                                    保存して続けて作成
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2134,21 +2259,11 @@
                                 <input type="text" id="mgmt-template-task-title" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;" placeholder="例: 月次営業レポート作成" required>
                             </div>
                             
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                                <div>
-                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">優先度</label>
-                                    <select id="mgmt-template-priority" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
-                                        <option value="high">[高] 最重要</option>
-                                        <option value="medium" selected>[中] 重要</option>
-                                        <option value="low">[低] 通常</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">デフォルトカラム</label>
-                                    <select id="mgmt-template-column" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
-                                        <!-- カラム選択肢がここに動的追加される -->
-                                    </select>
-                                </div>
+                            <div style="margin-bottom: 1.5rem;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">デフォルトカラム</label>
+                                <select id="mgmt-template-column" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem;">
+                                    <!-- カラム選択肢がここに動的追加される -->
+                                </select>
                             </div>
                             
                             <div style="margin-bottom: 1.5rem;">
@@ -2381,9 +2496,15 @@
         }
 
         // 🔧 ユーザー名からUIDを取得（表示対象切り替え用）
+        // 2025-12-19: 名前、メールプレフィックス、メール全体で検索するよう改善
         function getUserIdByName(userName) {
-            const user = cachedActiveUsers.find(u => u.name === userName);
-            return user?.id || null;
+            if (!userName) return null;
+            const user = cachedActiveUsers.find(u =>
+                u.name === userName ||
+                u.email === userName ||
+                u.email?.split('@')[0] === userName
+            );
+            return user?.uid || null;
         }
 
         // 🔧 他ユーザーのカラム設定を取得（キャッシュ付き）
@@ -2637,66 +2758,60 @@
         }
         
         // Phase 1: 権限取得機能のみ（表示制御なし）
+        // 2025-12-19: cachedActiveUsers（Firestore）から漢字名を取得するよう修正
         function getCurrentUser() {
+            // まずFirebase認証からメールアドレスを取得
+            const firebaseUser = window.currentFirebaseUser;
+            const userEmail = firebaseUser?.email;
+
+            if (userEmail) {
+                // cachedActiveUsers（Firestoreから取得済み）から漢字名を検索
+                const matchedUser = cachedActiveUsers.find(u => u.email === userEmail);
+
+                if (matchedUser) {
+                    console.log(`👤 [GET-USER] Firestoreから取得: ${matchedUser.name} (${userEmail})`);
+                    return {
+                        name: matchedUser.name,
+                        email: matchedUser.email,
+                        role: matchedUser.role || 'user',
+                        uid: matchedUser.uid,
+                        isLoggedIn: true
+                    };
+                }
+
+                // cachedActiveUsersに見つからない場合（キャッシュ未ロード等）
+                // LocalStorageのセッションにフォールバック
+                console.log(`⚠️ [GET-USER] cachedActiveUsersに未登録: ${userEmail}`);
+            }
+
+            // フォールバック: LocalStorageのセッションを参照
             try {
                 const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
                 if (session && session.user) {
-                    // systemUsersから日本語名を取得
-                    let displayName = session.user.name;
-                    console.log(`🔍 [GET-USER-DEBUG] session.user.name: "${session.user.name}", email: "${session.user.email}"`);
+                    // cachedActiveUsersから漢字名を検索
+                    const matchedUser = cachedActiveUsers.find(u => u.email === session.user.email);
+                    const displayName = matchedUser?.name || session.user.name;
+                    const role = matchedUser?.role || session.user.role;
+                    const uid = matchedUser?.uid;
 
-                    // systemUsersから正しい日本語名を検索
-                    const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-                    console.log(`🔍 [GET-USER-DEBUG] systemUsers count: ${systemUsers.length}`);
-                    const matchedUser = systemUsers.find(u => u.email === session.user.email);
-                    console.log(`🔍 [GET-USER-DEBUG] matchedUser:`, matchedUser);
-
-                    if (matchedUser && matchedUser.name) {
-                        displayName = matchedUser.name;
-                        console.log(`👤 [GET-USER] systemUsersから日本語名取得: ${displayName} (${session.user.email})`);
-                    } else {
-                        // フォールバック: 邨中天真の特別処理
-                        if (session.user.email === 'muranaka-tenma@terracom.co.jp') {
-                            displayName = '邨中天真';
-                        }
-                        console.log(`⚠️ [GET-USER] systemUsersに見つからず、フォールバック名を使用: ${displayName}`);
-                    }
-
-                    console.log(`✅ [GET-USER-DEBUG] 最終的なdisplayName: "${displayName}"`);
+                    console.log(`👤 [GET-USER] セッションから取得: ${displayName} (${session.user.email})`);
                     return {
                         name: displayName,
                         email: session.user.email,
-                        role: session.user.role,
+                        role: role,
+                        uid: uid,
                         isLoggedIn: true
                     };
                 }
             } catch (error) {
                 console.error('❌ [GET-USER] セッション取得エラー:', error);
-                localStorage.removeItem('currentSession');
             }
-            
-            // フォールバック処理
-            try {
-                const user = localStorage.getItem('currentUser');
-                if (user) {
-                    const userName = typeof user === 'string' ? user : JSON.parse(user).name;
-                    if (userName && (userName.includes('邨中天真') || userName.includes('muranaka'))) {
-                        return {
-                            name: '邨中天真',
-                            email: 'muranaka-tenma@terracom.co.jp',
-                            role: 'developer',
-                            isLoggedIn: true
-                        };
-                    }
-                }
-            } catch (error) {
-                console.error('ユーザーデータエラー:', error);
-            }
-            
+
             return {
                 name: null,
                 email: null,
                 role: null,
+                uid: null,
                 isLoggedIn: false
             };
         }
@@ -2945,24 +3060,38 @@
         // Firebase統合テンプレートデータ読み込み関数
         async function loadTemplates() {
             try {
+                let templates = [];
+
                 if (window.FirebaseAuth?.getCurrentUser() && window.FirebaseDB) {
                     try {
                         const result = await window.FirebaseDB.getTemplates();
                         if (result.success) {
-                            localStorage.setItem('taskTemplates', JSON.stringify(result.templates));
+                            templates = result.templates || [];
                             window.templatesUnsubscribe = result.unsubscribe;
-                            return result.templates;
                         }
                     } catch (firebaseError) {
                         // LocalStorageフォールバック
+                        templates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
                     }
+                } else {
+                    templates = JSON.parse(localStorage.getItem('taskTemplates') || '[]');
                 }
-                
-                return JSON.parse(localStorage.getItem('taskTemplates') || '[]');
-                
+
+                // 不正なテンプレートをフィルタリング（id, name, taskTitleが必須）
+                const validTemplates = templates.filter(t =>
+                    t && t.id && t.name && t.taskTitle
+                );
+
+                if (validTemplates.length !== templates.length) {
+                    console.warn(`⚠️ [TEMPLATES] ${templates.length - validTemplates.length}件の不正テンプレートを除外`);
+                    localStorage.setItem('taskTemplates', JSON.stringify(validTemplates));
+                }
+
+                return validTemplates;
+
             } catch (error) {
                 console.error('❌ テンプレート読み込みエラー:', error);
-                return JSON.parse(localStorage.getItem('taskTemplates') || '[]');
+                return [];
             }
         }
         
@@ -3623,100 +3752,656 @@
         window.isViewingOtherUser = isViewingOtherUser; // E2Eテスト用
         window.getColumnNameById = getColumnNameById;
 
-        // 統合フィルター機能（担当者 + プロジェクト）
-        function toggleAssigneeFilterDropdown() {
-            const dropdown = document.getElementById('assignee-filter-dropdown');
+        // 🔧 2025-12-23: 2行フィルター関数を公開
+        window.toggleProjectFilterDropdown = toggleProjectFilterDropdown;
+        window.toggleUserFilterDropdown = toggleUserFilterDropdown;
+        window.selectProjectFilter = selectProjectFilter;
+        window.selectUserFilter = selectUserFilter;
+        window.updateProjectFilterText = updateProjectFilterText;
+        window.updateUserFilterText = updateUserFilterText;
+
+        // 🔧 2025-12-23: 2行フィルター機能（1行目:プロジェクト/個人、2行目:ユーザー）
+
+        // 1行目: プロジェクト/個人タスク選択ドロップダウン
+        function toggleProjectFilterDropdown() {
+            const dropdown = document.getElementById('project-filter-dropdown');
+            const userDropdown = document.getElementById('user-filter-dropdown');
+
+            // 他のドロップダウンを閉じる
+            if (userDropdown) userDropdown.style.display = 'none';
+
             const isVisible = dropdown.style.display === 'block';
-            
             if (isVisible) {
                 dropdown.style.display = 'none';
             } else {
-                populateAssigneeFilterOptions();
+                populateProjectFilterOptions();
                 dropdown.style.display = 'block';
             }
         }
-        
-        function populateAssigneeFilterOptions() {
-            const dropdown = document.getElementById('assignee-filter-dropdown');
-            
-            // アクティブユーザーのみを取得（無効化・非表示ユーザーを除外）
-            const activeUserNames = getActiveUserNames();
-            
-            // 全プロジェクトを取得（重複除去）
-            const projectMap = new Map();
-            tasks.filter(t => t.projectId && t.projectId !== null)
-                 .forEach(t => {
-                     if (!projectMap.has(t.projectId)) {
-                         projectMap.set(t.projectId, {id: t.projectId, name: t.projectName});
-                     }
-                 });
-            const allProjects = Array.from(projectMap.values());
-            
-            dropdown.innerHTML = `
-                <div style="padding: 0.5rem;">
-                    <div style="font-weight: 600; color: #2d3748; margin-bottom: 0.5rem; padding: 0.25rem;">担当者</div>
-                    <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
-                        <input type="radio" name="filter-type" value="" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.length === 0 && selectedProjectFilters.length === 0 ? 'checked' : ''}>
-                        <span>全員</span>
+
+        function populateProjectFilterOptions() {
+            const dropdown = document.getElementById('project-filter-dropdown');
+
+            // キャッシュからプロジェクト一覧を取得
+            const projects = cachedProjectsData ? Object.entries(cachedProjectsData).map(([id, p]) => ({
+                id: id,
+                name: p.name,
+                status: p.status || 'active',
+                color: p.color || '#0097A7'
+            })) : [];
+
+            // ステータス別に分類
+            const activeProjects = projects.filter(p => p.status === 'active');
+            const completedProjects = projects.filter(p => p.status === 'completed');
+            const archivedProjects = projects.filter(p => p.status === 'archived');
+
+            const isPersonalSelected = selectedProjectFilters.length === 0;
+
+            // プロジェクトカードを生成するヘルパー
+            const renderProjectOption = (project, opacity = 1) => {
+                const isSelected = selectedProjectFilters.includes(project.id);
+                return `
+                    <label style="display: flex; align-items: center; padding: 0.5rem; cursor: pointer; border-radius: 4px; opacity: ${opacity}; background: ${isSelected ? '#e6f2ff' : ''};" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor='${isSelected ? '#e6f2ff' : ''}'">
+                        <input type="radio" name="project-filter" value="${project.id}" onchange="selectProjectFilter('${project.id}')" style="margin-right: 0.5rem;" ${isSelected ? 'checked' : ''}>
+                        <span style="width: 10px; height: 10px; background: ${project.color}; border-radius: 50%; margin-right: 0.5rem;"></span>
+                        <span>${project.name}</span>
                     </label>
-                    ${activeUserNames.map(assignee => `
-                        <label style="display: flex; align-items: center; padding: 0.25rem; cursor: pointer; border-radius: 3px;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
-                            <input type="radio" name="filter-type" value="assignee:${assignee}" onchange="updateAssigneeFilterSelection()" style="margin-right: 0.5rem;" ${selectedAssigneeFilters.includes(assignee) && selectedProjectFilters.length === 0 ? 'checked' : ''}>
-                            <span>${assignee}</span>
-                        </label>
-                    `).join('')}
-                </div>
-            `;
-        }
-        
-        function updateAssigneeFilterSelection() {
-            const selectedRadio = document.querySelector('#assignee-filter-dropdown input[name="filter-type"]:checked');
-            
-            // メンバーフィルターのみリセット（プロジェクトフィルターは維持）
-            selectedAssigneeFilters = [];
-            
-            if (selectedRadio && selectedRadio.value) {
-                const [type, value] = selectedRadio.value.split(':');
-                
-                if (type === 'assignee') {
-                    selectedAssigneeFilters = [value];
-                    console.log(`👤 [FILTER] Switched to assignee: ${value}`);
-                }
-            } else {
-                console.log(`👥 [FILTER] Showing all tasks`);
+                `;
+            };
+
+            let html = `<div style="padding: 0.5rem;">
+                <label style="display: flex; align-items: center; padding: 0.5rem; cursor: pointer; border-radius: 4px; background: ${isPersonalSelected ? '#e6f2ff' : ''};" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor='${isPersonalSelected ? '#e6f2ff' : ''}'">
+                    <input type="radio" name="project-filter" value="" onchange="selectProjectFilter('')" style="margin-right: 0.5rem;" ${isPersonalSelected ? 'checked' : ''}>
+                    <span style="font-weight: 500;">個人タスク</span>
+                </label>`;
+
+            // 進行中プロジェクト
+            if (activeProjects.length > 0) {
+                html += `
+                    <div style="border-top: 1px solid #e2e8f0; margin: 0.5rem 0;"></div>
+                    <div style="font-size: 0.7rem; color: #059669; padding: 0.25rem 0.5rem; font-weight: 600;">進行中</div>
+                `;
+                activeProjects.forEach(p => { html += renderProjectOption(p); });
             }
-            
-            updateAssigneeFilterText();
+
+            // 完了プロジェクト
+            if (completedProjects.length > 0) {
+                html += `
+                    <div style="border-top: 1px solid #e2e8f0; margin: 0.5rem 0;"></div>
+                    <div style="font-size: 0.7rem; color: #2563eb; padding: 0.25rem 0.5rem; font-weight: 600;">完了</div>
+                `;
+                completedProjects.forEach(p => { html += renderProjectOption(p, 0.7); });
+            }
+
+            // アーカイブプロジェクト
+            if (archivedProjects.length > 0) {
+                html += `
+                    <div style="border-top: 1px solid #e2e8f0; margin: 0.5rem 0;"></div>
+                    <div style="font-size: 0.7rem; color: #6b7280; padding: 0.25rem 0.5rem; font-weight: 600;">アーカイブ</div>
+                `;
+                archivedProjects.forEach(p => { html += renderProjectOption(p, 0.5); });
+            }
+
+            html += `</div>`;
+            dropdown.innerHTML = html;
+        }
+
+        function selectProjectFilter(projectId) {
+            if (projectId) {
+                selectedProjectFilters = [projectId];
+                console.log(`📋 [FILTER] プロジェクト選択: ${projectId}`);
+            } else {
+                selectedProjectFilters = [];
+                console.log(`📋 [FILTER] 個人タスク表示`);
+            }
+
+            updateProjectFilterText();
+            updateUserFilterText();
             render();
             updateStats();
-            
-            // ドロップダウンを自動で閉じる
-            const dropdown = document.getElementById('assignee-filter-dropdown');
-            if (dropdown) {
+            updateColumnAddButtonState();
+
+            // ドロップダウンを閉じる
+            const dropdown = document.getElementById('project-filter-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+        }
+
+        // 2行目: ユーザー選択ドロップダウン
+        function toggleUserFilterDropdown() {
+            const dropdown = document.getElementById('user-filter-dropdown');
+            const projectDropdown = document.getElementById('project-filter-dropdown');
+
+            // 他のドロップダウンを閉じる
+            if (projectDropdown) projectDropdown.style.display = 'none';
+
+            const isVisible = dropdown.style.display === 'block';
+            if (isVisible) {
                 dropdown.style.display = 'none';
+            } else {
+                populateUserFilterOptions();
+                dropdown.style.display = 'block';
             }
         }
-        
-        function updateAssigneeFilterText() {
-            const textElement = document.getElementById('assignee-filter-text');
-            if (!textElement) return; // 要素が存在しない場合は何もしない
+
+        function populateUserFilterOptions() {
+            const dropdown = document.getElementById('user-filter-dropdown');
+            if (!dropdown) {
+                console.error('❌ [USER-FILTER] dropdown要素が見つかりません');
+                return;
+            }
+
+            try {
+                const currentUser = getCurrentUser();
+                const currentUserName = currentUser?.name || '';
+
+                // プロジェクト選択時は「全員」を先頭に
+                const isProjectSelected = selectedProjectFilters.length > 0;
+
+                // アクティブユーザーを取得（自分を除外）
+                let activeUserNames = [];
+                try {
+                    activeUserNames = getActiveUserNames().filter(name => name && name !== currentUserName);
+                } catch (e) {
+                    console.warn('⚠️ [USER-FILTER] getActiveUserNames()でエラー:', e);
+                }
+
+                // 現在の選択状態
+                const isAllSelected = selectedAssigneeFilters.length === 0;
+                const isSelfSelected = currentUserName && selectedAssigneeFilters.includes(currentUserName);
+
+                // HTML構築
+                let html = '<div style="padding: 0.5rem;">';
+
+                // 「全員」オプション
+                html += `
+                <label style="display: flex; align-items: center; padding: 0.5rem; cursor: pointer; border-radius: 4px; background: ${isAllSelected ? '#e6f2ff' : ''};" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor='${isAllSelected ? '#e6f2ff' : ''}'">
+                    <input type="radio" name="user-filter" value="" onchange="selectUserFilter('')" style="margin-right: 0.5rem;" ${isAllSelected ? 'checked' : ''}>
+                    <span style="font-weight: 500;">全員</span>
+                </label>
+                <div style="border-top: 1px solid #e2e8f0; margin: 0.5rem 0;"></div>`;
+
+                // 「自分」オプション
+                if (currentUserName) {
+                    html += `
+                    <label style="display: flex; align-items: center; padding: 0.5rem; cursor: pointer; border-radius: 4px; background: ${isSelfSelected ? '#e6f2ff' : ''};" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor='${isSelfSelected ? '#e6f2ff' : ''}'">
+                        <input type="radio" name="user-filter" value="${currentUserName}" onchange="selectUserFilter('${currentUserName}')" style="margin-right: 0.5rem;" ${isSelfSelected ? 'checked' : ''}>
+                        <span>自分（${currentUserName}）</span>
+                    </label>`;
+                }
+
+                // 他のユーザーリスト
+                if (activeUserNames.length > 0) {
+                    html += '<div style="border-top: 1px solid #e2e8f0; margin: 0.5rem 0;"></div>';
+                    activeUserNames.forEach(userName => {
+                        const isSelected = selectedAssigneeFilters.includes(userName);
+                        html += `
+                        <label style="display: flex; align-items: center; padding: 0.5rem; cursor: pointer; border-radius: 4px; background: ${isSelected ? '#e6f2ff' : ''};" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor='${isSelected ? '#e6f2ff' : ''}'">
+                            <input type="radio" name="user-filter" value="${userName}" onchange="selectUserFilter('${userName}')" style="margin-right: 0.5rem;" ${isSelected ? 'checked' : ''}>
+                            <span>${userName}</span>
+                        </label>`;
+                    });
+                }
+
+                html += '</div>';
+                dropdown.innerHTML = html;
+
+                console.log(`✅ [USER-FILTER] ドロップダウン生成完了: ${activeUserNames.length}ユーザー`);
+            } catch (error) {
+                console.error('❌ [USER-FILTER] populateUserFilterOptions エラー:', error);
+                // エラー時も最低限の選択肢を表示
+                dropdown.innerHTML = `
+                    <div style="padding: 0.5rem;">
+                        <div style="color: #666; padding: 0.5rem;">読み込み中にエラーが発生しました</div>
+                    </div>
+                `;
+            }
+        }
+
+        function selectUserFilter(userName) {
+            if (userName) {
+                selectedAssigneeFilters = [userName];
+                console.log(`👤 [FILTER] ユーザー選択: ${userName}`);
+            } else {
+                selectedAssigneeFilters = [];
+                console.log(`👥 [FILTER] 全員表示`);
+            }
+
+            updateUserFilterText();
+            render();
+            updateStats();
+
+            // ドロップダウンを閉じる
+            const dropdown = document.getElementById('user-filter-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+        }
+
+        // フィルターテキスト更新
+        function updateProjectFilterText() {
+            const textElement = document.getElementById('project-filter-text');
+            if (!textElement) return;
 
             if (selectedProjectFilters.length > 0) {
-                // プロジェクト名を取得
-                const projectSettings = JSON.parse(localStorage.getItem('projectSettings') || '{}');
-                const project = projectSettings[selectedProjectFilters[0]];
-                const projectName = project ? project.name : 'プロジェクト';
+                const projectId = selectedProjectFilters[0];
+                let projectName = 'プロジェクト';
 
-                if (selectedAssigneeFilters.length > 0) {
-                    textElement.textContent = `${projectName} - ${selectedAssigneeFilters[0]}`;
-                } else {
-                    textElement.textContent = `${projectName} - 全員`;
+                if (cachedProjectsData && cachedProjectsData[projectId]) {
+                    projectName = cachedProjectsData[projectId].name || projectName;
                 }
-            } else if (selectedAssigneeFilters.length > 0) {
-                textElement.textContent = `${selectedAssigneeFilters[0]}`;
+                textElement.textContent = projectName;
             } else {
-                textElement.textContent = '全員';
+                textElement.textContent = '個人タスク';
             }
+        }
+
+        function updateUserFilterText() {
+            const textElement = document.getElementById('user-filter-text');
+            if (!textElement) return;
+
+            textElement.style.color = '';
+
+            if (selectedAssigneeFilters.length === 0) {
+                textElement.textContent = '全員';
+            } else {
+                const currentUser = getCurrentUser();
+                if (selectedAssigneeFilters[0] === currentUser?.name) {
+                    textElement.textContent = '自分';
+                } else {
+                    textElement.textContent = selectedAssigneeFilters[0];
+                }
+            }
+        }
+
+        // ========================================
+        // 日付フィルター機能
+        // ========================================
+
+        // 日付フィルター状態
+        let dateFilterType = 'all'; // 'all', 'today', 'this-week', 'next-week', 'this-month', 'overdue', 'custom'
+        let dateFilterBasis = 'deadline'; // 'deadline' or 'created'
+        let dateFilterStart = null;
+        let dateFilterEnd = null;
+
+        const dateFilterLabels = {
+            'all': 'すべて',
+            'today': '今日',
+            '3days': '3日以内',
+            'this-week': '今週',
+            'next-week': '来週',
+            'this-month': '今月',
+            'next-month': '来月',
+            'overdue': '期限切れ',
+            'custom': 'カスタム'
+        };
+
+        function toggleDateFilterDropdown() {
+            const dropdown = document.getElementById('date-filter-dropdown');
+            const otherDropdowns = ['project-filter-dropdown', 'user-filter-dropdown'];
+
+            // 他のドロップダウンを閉じる
+            otherDropdowns.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+
+            const isVisible = dropdown.style.display === 'block';
+            dropdown.style.display = isVisible ? 'none' : 'block';
+        }
+
+        function selectDateFilter(filterType) {
+            dateFilterType = filterType;
+
+            // カスタム範囲の表示切り替え
+            const customRange = document.getElementById('custom-date-range');
+            if (customRange) {
+                customRange.style.display = filterType === 'custom' ? 'block' : 'none';
+            }
+
+            // カスタム以外はすぐに適用
+            if (filterType !== 'custom') {
+                dateFilterStart = null;
+                dateFilterEnd = null;
+                applyDateFilterAndClose();
+            }
+        }
+
+        function applyCustomDateFilter() {
+            const startInput = document.getElementById('date-filter-start');
+            const endInput = document.getElementById('date-filter-end');
+
+            dateFilterStart = startInput?.value || null;
+            dateFilterEnd = endInput?.value || null;
+
+            if (!dateFilterStart && !dateFilterEnd) {
+                alert('開始日または終了日を指定してください');
+                return;
+            }
+
+            applyDateFilterAndClose();
+        }
+
+        function applyDateFilterAndClose() {
+            // 基準（期限日/作成日）を取得
+            const basisRadio = document.querySelector('input[name="date-basis"]:checked');
+            dateFilterBasis = basisRadio?.value || 'deadline';
+
+            // テキスト更新
+            updateDateFilterText();
+
+            // ドロップダウンを閉じる
+            const dropdown = document.getElementById('date-filter-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+
+            console.log(`📅 [DATE-FILTER] 適用: ${dateFilterType}, 基準: ${dateFilterBasis}`);
+
+            // ユーザー設定に保存
+            saveDateFilterPreference();
+
+            // 再描画
+            render();
+            updateStats();
+        }
+
+        function updateDateFilterText() {
+            const textElement = document.getElementById('date-filter-text');
+            if (!textElement) return;
+
+            if (dateFilterType === 'custom' && (dateFilterStart || dateFilterEnd)) {
+                const start = dateFilterStart ? dateFilterStart.slice(5).replace('-', '/') : '';
+                const end = dateFilterEnd ? dateFilterEnd.slice(5).replace('-', '/') : '';
+                textElement.textContent = `${start}〜${end}`;
+            } else {
+                textElement.textContent = dateFilterLabels[dateFilterType] || 'すべて';
+            }
+        }
+
+        // 日付フィルターをタスクに適用
+        function applyDateFilter(taskList) {
+            if (dateFilterType === 'all') {
+                return taskList;
+            }
+
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            return taskList.filter(task => {
+                // 基準となる日付を取得（deadline/dateの両方に対応）
+                let targetDate;
+                if (dateFilterBasis === 'deadline') {
+                    // 期限日: task.deadline または task.date を確認
+                    const deadlineValue = task.deadline || task.date;
+                    targetDate = deadlineValue ? new Date(deadlineValue) : null;
+                } else {
+                    // 作成日: task.createdAt を確認
+                    targetDate = task.createdAt ? new Date(task.createdAt) : null;
+                }
+
+                if (!targetDate || isNaN(targetDate.getTime())) {
+                    // 日付がないか無効なタスクは「すべて」以外では除外
+                    return false;
+                }
+
+                // 時間成分を除去して日付のみで比較
+                const targetDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+                const targetDayTime = targetDay.getTime();
+                const todayTime = today.getTime();
+
+                switch (dateFilterType) {
+                    case 'today':
+                        return targetDayTime === todayTime;
+
+                    case '3days': {
+                        // 今日から3日以内（今日、明日、明後日）
+                        const threeDaysLater = new Date(today);
+                        threeDaysLater.setDate(today.getDate() + 2); // 今日含めて3日
+                        return targetDayTime >= todayTime && targetDayTime <= threeDaysLater.getTime();
+                    }
+
+                    case 'this-week': {
+                        // 月曜始まり: 今週の月曜〜日曜
+                        const weekStart = new Date(today);
+                        const dayOfWeek = today.getDay(); // 0=日, 1=月, ..., 6=土
+                        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // 日曜は6日前が月曜
+                        weekStart.setDate(today.getDate() - daysFromMonday);
+                        const weekEnd = new Date(weekStart);
+                        weekEnd.setDate(weekStart.getDate() + 6); // 日曜まで
+                        return targetDayTime >= weekStart.getTime() && targetDayTime <= weekEnd.getTime();
+                    }
+
+                    case 'next-week': {
+                        // 月曜始まり: 来週の月曜〜日曜
+                        const dayOfWeek = today.getDay();
+                        const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                        const nextWeekStart = new Date(today);
+                        nextWeekStart.setDate(today.getDate() - daysFromMonday + 7); // 来週の月曜
+                        const nextWeekEnd = new Date(nextWeekStart);
+                        nextWeekEnd.setDate(nextWeekStart.getDate() + 6); // 来週の日曜
+                        return targetDayTime >= nextWeekStart.getTime() && targetDayTime <= nextWeekEnd.getTime();
+                    }
+
+                    case 'this-month': {
+                        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                        const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                        return targetDayTime >= monthStart.getTime() && targetDayTime <= monthEnd.getTime();
+                    }
+
+                    case 'next-month': {
+                        // 来月: 来月の1日〜末日
+                        const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+                        const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+                        return targetDayTime >= nextMonthStart.getTime() && targetDayTime <= nextMonthEnd.getTime();
+                    }
+
+                    case 'overdue':
+                        // 期限切れは期限日のみ対象（作成日では意味がない）
+                        if (dateFilterBasis === 'created') return false;
+                        return targetDayTime < todayTime;
+
+                    case 'custom': {
+                        if (dateFilterStart) {
+                            const startDate = new Date(dateFilterStart);
+                            const startDayTime = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
+                            if (targetDayTime < startDayTime) return false;
+                        }
+                        if (dateFilterEnd) {
+                            const endDate = new Date(dateFilterEnd);
+                            const endDayTime = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()).getTime();
+                            if (targetDayTime > endDayTime) return false;
+                        }
+                        return true;
+                    }
+
+                    default:
+                        return true;
+                }
+            });
+        }
+
+        // 日付フィルター設定をFirebaseに保存
+        async function saveDateFilterPreference() {
+            const currentUser = getCurrentUser();
+            if (!currentUser?.id || !window.FirebaseDB) return;
+
+            try {
+                const filterSettings = {
+                    dateFilterType,
+                    dateFilterBasis,
+                    dateFilterStart,
+                    dateFilterEnd,
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (window.FirebaseDB.saveUserSettings) {
+                    await window.FirebaseDB.saveUserSettings(currentUser.id, filterSettings);
+                    console.log('✅ [DATE-FILTER] ユーザー設定保存');
+                }
+            } catch (error) {
+                console.error('❌ [DATE-FILTER] 設定保存エラー:', error);
+            }
+        }
+
+        // 日付フィルター設定をFirebaseから読み込み
+        async function loadDateFilterPreference() {
+            const currentUser = getCurrentUser();
+            if (!currentUser?.id || !window.FirebaseDB) return;
+
+            try {
+                if (window.FirebaseDB.getUserSettings) {
+                    const result = await window.FirebaseDB.getUserSettings(currentUser.id);
+                    if (result.success && result.settings) {
+                        const s = result.settings;
+                        if (s.dateFilterType) dateFilterType = s.dateFilterType;
+                        if (s.dateFilterBasis) dateFilterBasis = s.dateFilterBasis;
+                        if (s.dateFilterStart) dateFilterStart = s.dateFilterStart;
+                        if (s.dateFilterEnd) dateFilterEnd = s.dateFilterEnd;
+
+                        // UI更新
+                        updateDateFilterText();
+
+                        // ラジオボタン更新
+                        const filterRadio = document.querySelector(`input[name="date-filter"][value="${dateFilterType}"]`);
+                        if (filterRadio) filterRadio.checked = true;
+
+                        const basisRadio = document.querySelector(`input[name="date-basis"][value="${dateFilterBasis}"]`);
+                        if (basisRadio) basisRadio.checked = true;
+
+                        // カスタム範囲の入力欄更新
+                        if (dateFilterType === 'custom') {
+                            const customRange = document.getElementById('custom-date-range');
+                            if (customRange) customRange.style.display = 'block';
+                            const startInput = document.getElementById('date-filter-start');
+                            const endInput = document.getElementById('date-filter-end');
+                            if (startInput && dateFilterStart) startInput.value = dateFilterStart;
+                            if (endInput && dateFilterEnd) endInput.value = dateFilterEnd;
+                        }
+
+                        console.log(`✅ [DATE-FILTER] ユーザー設定読み込み: ${dateFilterType}`);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ [DATE-FILTER] 設定読み込みエラー:', error);
+            }
+        }
+
+        // 全フィルターをリセット
+        function resetAllFilters() {
+            // プロジェクトフィルター：個人タスク
+            selectedProjectFilters = [];
+            updateProjectFilterText();
+
+            // ユーザーフィルター：自分
+            const currentUser = getCurrentUser();
+            if (currentUser?.name) {
+                selectedAssigneeFilters = [currentUser.name];
+            } else {
+                selectedAssigneeFilters = [];
+            }
+            updateUserFilterText();
+
+            // 日付フィルター：すべて
+            dateFilterType = 'all';
+            dateFilterBasis = 'deadline';
+            dateFilterStart = null;
+            dateFilterEnd = null;
+            updateDateFilterText();
+
+            // ラジオボタンリセット
+            const allRadio = document.querySelector('input[name="date-filter"][value="all"]');
+            if (allRadio) allRadio.checked = true;
+            const deadlineRadio = document.querySelector('input[name="date-basis"][value="deadline"]');
+            if (deadlineRadio) deadlineRadio.checked = true;
+            const customRange = document.getElementById('custom-date-range');
+            if (customRange) customRange.style.display = 'none';
+
+            // タスク名検索をクリア
+            taskSearchQuery = '';
+            const searchInput = document.getElementById('task-search-input');
+            const searchClear = document.getElementById('task-search-clear');
+            if (searchInput) searchInput.value = '';
+            if (searchClear) searchClear.style.display = 'none';
+
+            console.log('🔄 [FILTER] 全フィルターリセット');
+
+            // 設定保存
+            saveDateFilterPreference();
+
+            // 再描画
+            render();
+            updateStats();
+            renderProjectsList();
+        }
+
+        // グローバル公開
+        window.toggleDateFilterDropdown = toggleDateFilterDropdown;
+        window.selectDateFilter = selectDateFilter;
+        window.applyCustomDateFilter = applyCustomDateFilter;
+        window.resetAllFilters = resetAllFilters;
+
+        // ========================================
+        // タスク名検索機能
+        // ========================================
+        let taskSearchQuery = '';
+        let taskSearchTimeout = null;
+
+        function onTaskSearchInput() {
+            // デバウンス処理（入力が止まってから300ms後に検索実行）
+            if (taskSearchTimeout) {
+                clearTimeout(taskSearchTimeout);
+            }
+            taskSearchTimeout = setTimeout(() => {
+                const input = document.getElementById('task-search-input');
+                const clearBtn = document.getElementById('task-search-clear');
+                taskSearchQuery = input?.value?.trim() || '';
+
+                // クリアボタンの表示/非表示
+                if (clearBtn) {
+                    clearBtn.style.display = taskSearchQuery ? 'block' : 'none';
+                }
+
+                console.log(`🔍 [SEARCH] 検索クエリ: "${taskSearchQuery}"`);
+                render();
+                updateStats();
+            }, 300);
+        }
+
+        function clearTaskSearch() {
+            const input = document.getElementById('task-search-input');
+            const clearBtn = document.getElementById('task-search-clear');
+            if (input) input.value = '';
+            if (clearBtn) clearBtn.style.display = 'none';
+            taskSearchQuery = '';
+            console.log('🔍 [SEARCH] 検索クリア');
+            render();
+            updateStats();
+        }
+
+        // タスク名検索フィルターを適用
+        function applyTaskSearchFilter(taskList) {
+            if (!taskSearchQuery) {
+                return taskList;
+            }
+
+            const query = taskSearchQuery.toLowerCase();
+            return taskList.filter(task => {
+                // タスク名で検索
+                const titleMatch = task.title?.toLowerCase().includes(query);
+                // メモでも検索（オプション）
+                const memoMatch = task.memo?.toLowerCase().includes(query);
+                return titleMatch || memoMatch;
+            });
+        }
+
+        // グローバル公開
+        window.onTaskSearchInput = onTaskSearchInput;
+        window.clearTaskSearch = clearTaskSearch;
+
+        // 後方互換性のため古い関数名も維持
+        function updateAssigneeFilterText() {
+            updateProjectFilterText();
+            updateUserFilterText();
+        }
+
+        function toggleAssigneeFilterDropdown() {
+            toggleProjectFilterDropdown();
         }
         
         function showFilterHelp() {
@@ -4145,14 +4830,20 @@
             // プロジェクト選択肢を更新
             await updateProjectOptions();
 
+            // 作成日表示を非表示（新規タスクの場合）
+            const createdAtGroup = document.getElementById('task-created-at-group');
+            if (createdAtGroup) {
+                createdAtGroup.style.display = 'none';
+            }
+
             // コメント表示をクリア
             displayComments([]);
-            
+
             // コメント入力を無効化（新規タスクの場合）
             // コメント入力を常に有効化
             document.getElementById('comment-input').disabled = false;
             document.getElementById('comments-section').innerHTML = '<div style="text-align: center; color: #5e6c84; padding: 2rem;">新しいタスクです。保存後にコメントを追加できます。</div>';
-            
+
             // PJタスク設定は別ページに移動したため、この処理は不要
             
             // 統一作成モードを設定
@@ -4221,16 +4912,22 @@
             // カラム選択フィールドを非表示
             document.getElementById('column-selection-group').style.display = 'none';
             document.getElementById('task-column-input').removeAttribute('required');
-            
+
+            // 作成日表示を非表示（新規タスクの場合）
+            const createdAtGroup = document.getElementById('task-created-at-group');
+            if (createdAtGroup) {
+                createdAtGroup.style.display = 'none';
+            }
+
             // PJタスク設定は別ページに移動したため、この処理は不要
-            
+
             // 担当者選択肢を更新
             updateAssigneeOptions();
             clearSelectedAssignees();
-            
+
             // コメント表示をクリア
             displayComments([]);
-            
+
             // コメント入力を無効化（新規タスクの場合）
             // コメント入力を常に有効化
             document.getElementById('comment-input').disabled = false;
@@ -4477,11 +5174,12 @@
                     projectColumns = DEFAULT_PROJECT_COLUMNS;
                 }
 
-                // プロジェクト固有のカラムIDを生成
-                projectColumns.forEach((columnTitle, index) => {
+                // プロジェクト固有のカラムIDを生成（文字列・オブジェクト両対応）
+                projectColumns.forEach((col, index) => {
                     const option = document.createElement('option');
                     option.value = `pj_${projectId}_${index}`;
-                    option.textContent = columnTitle;
+                    // 文字列形式とオブジェクト形式の両方に対応
+                    option.textContent = typeof col === 'string' ? col : (col.name || col.title || 'カラム');
                     columnSelect.appendChild(option);
                 });
 
@@ -4873,7 +5571,28 @@
             // 優先度機能削除
             document.getElementById('task-memo-input').value = editingTask.memo || '';
             document.getElementById('task-hidden-input').checked = editingTask.isHidden || false;
-            
+
+            // 作成日時を表示（編集時のみ）
+            const createdAtGroup = document.getElementById('task-created-at-group');
+            const createdAtDisplay = document.getElementById('task-created-at-display');
+            if (createdAtGroup && createdAtDisplay) {
+                if (editingTask.createdAt) {
+                    const createdDate = new Date(editingTask.createdAt);
+                    const createdStr = createdDate.toLocaleString('ja-JP', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    createdAtDisplay.textContent = createdStr;
+                    createdAtGroup.style.display = 'block';
+                    console.log(`📅 [EDIT] 作成日時表示: ${createdStr}`);
+                } else {
+                    createdAtGroup.style.display = 'none';
+                }
+            }
+
             // カラム選択フィールドを非表示（編集時は不要）
             document.getElementById('column-selection-group').style.display = 'none';
             document.getElementById('task-column-input').removeAttribute('required');
@@ -5917,9 +6636,8 @@
             }
             
             if (selectedAssignees.length === 0) {
-                if (!confirm('担当者が選択されていません。続行しますか？')) {
-                    return;
-                }
+                alert('担当者は必須です。少なくとも1名選択してください。');
+                return;
             }
 
             // 非表示タスクのバリデーション
@@ -6299,7 +7017,38 @@
                 console.log(`🔧 [FORM] Restored required attribute to task-column-input`);
             }
 
-            // closeModal()はfinallyで実行されるためここでは不要
+            // 保存成功 - モーダル処理
+            // 「続けて作成」フラグをチェック
+            if (continueCreatingTask) {
+                // フラグをリセット
+                continueCreatingTask = false;
+                // フォームをリセットして新規作成モードに
+                editingTask = null;
+                document.getElementById('modal-title').textContent = '新しいタスク';
+                document.getElementById('task-title-input').value = '';
+                document.getElementById('task-date-input').value = getDefaultDeadlineString();
+                document.getElementById('task-time-input').value = getDefaultTimeString();
+                document.getElementById('task-memo-input').value = '';
+                document.getElementById('task-files-input').value = '';
+                document.getElementById('attached-files-list').innerHTML = '';
+                document.getElementById('task-hidden-input').checked = false;
+                // 担当者チェックボックスをリセット
+                document.querySelectorAll('#assignees-container input[type="checkbox"]').forEach(cb => {
+                    cb.checked = false;
+                    const wrapper = cb.closest('.assignee-checkbox');
+                    if (wrapper) wrapper.classList.remove('checked');
+                });
+                // テンプレート選択をリセット
+                const templateSelect = document.getElementById('template-select');
+                if (templateSelect) templateSelect.value = '';
+                // プロジェクト選択はそのまま維持（連続作成時は同じプロジェクトに作ることが多い）
+                // カラム選択を表示
+                document.getElementById('column-selection-group').style.display = '';
+                console.log('🔄 [SAVE] 続けてタスク作成モードに切り替え');
+            } else {
+                // モーダルを閉じる
+                closeModal();
+            }
 
             } catch (error) {
                 console.error('🚨 [SAVE TASK ERROR]', error);
@@ -6311,29 +7060,8 @@
                     saveButton.disabled = false;
                     console.log('🔓 [SAVE] 保存ボタンを再有効化');
                 }
-
-                // 「続けて作成」フラグをチェック
-                if (continueCreatingTask) {
-                    // フラグをリセット
-                    continueCreatingTask = false;
-                    // フォームをリセットして新規作成モードに
-                    editingTask = null;
-                    document.getElementById('modal-title').textContent = '新しいタスク';
-                    document.getElementById('task-title-input').value = '';
-                    document.getElementById('task-date-input').value = getDefaultDeadlineString();
-                    document.getElementById('task-time-input').value = getDefaultTimeString();
-                    document.getElementById('task-memo-input').value = '';
-                    document.getElementById('task-files-input').value = '';
-                    document.getElementById('attached-files-list').innerHTML = '';
-                    document.getElementById('task-hidden-input').checked = false;
-                    // プロジェクト選択はそのまま維持（連続作成時は同じプロジェクトに作ることが多い）
-                    // カラム選択を表示
-                    document.getElementById('column-selection-group').style.display = '';
-                    console.log('🔄 [SAVE] 続けてタスク作成モードに切り替え');
-                } else {
-                    // モーダルを閉じる
-                    closeModal();
-                }
+                // continueCreatingTaskフラグをリセット（エラー時にも）
+                continueCreatingTask = false;
             }
         }
 
@@ -6362,9 +7090,10 @@
             }
 
             // 担当者選択をクリア
-            const assigneeCheckboxes = document.querySelectorAll('.assignee-checkbox');
-            assigneeCheckboxes.forEach(checkbox => {
-                checkbox.checked = false;
+            document.querySelectorAll('#assignees-container input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+                const wrapper = cb.closest('.assignee-checkbox');
+                if (wrapper) wrapper.classList.remove('checked');
             });
 
             // ファイル入力をクリア
@@ -6708,11 +7437,25 @@
                 const project = cachedProjectsData[projectId];
                 if (project && project.columns && project.columns.length > 0) {
                     console.log('✅ [GET-COLUMNS] キャッシュからプロジェクトカラム取得:', projectId, '→', project.columns);
-                    return project.columns.map((columnTitle, index) => ({
-                        id: `pj_${projectId}_${index}`,
-                        title: columnTitle,
-                        color: ['#667eea', '#f59e0b', '#8b5cf6', '#10b981', '#6c757d'][index % 5]
-                    }));
+
+                    // 🔧 文字列形式とオブジェクト形式の両方に対応
+                    return project.columns.map((col, index) => {
+                        // 文字列の場合（旧形式）
+                        if (typeof col === 'string') {
+                            return {
+                                id: `pj_${projectId}_${index}`,
+                                title: col,
+                                color: ['#667eea', '#f59e0b', '#8b5cf6', '#10b981', '#6c757d'][index % 5]
+                            };
+                        }
+                        // オブジェクトの場合（新形式: {name, color}）
+                        return {
+                            id: `pj_${projectId}_${index}`,
+                            title: col.name || col.title || 'Unknown',
+                            color: col.color || ['#667eea', '#f59e0b', '#8b5cf6', '#10b981', '#6c757d'][index % 5],
+                            type: col.type || null
+                        };
+                    });
                 } else {
                     console.warn('⚠️ [GET-COLUMNS] プロジェクトデータが不完全:', projectId, project);
                 }
@@ -6739,7 +7482,11 @@
                     cachedProjectsData[project.id] = {
                         name: project.name,
                         description: project.description || '',
-                        columns: project.columns || DEFAULT_PROJECT_COLUMNS
+                        columns: project.columns || DEFAULT_PROJECT_COLUMNS,
+                        status: project.status || 'active',
+                        color: project.color || '#0097A7',
+                        visibility: project.visibility || 'private',
+                        members: project.members || []
                     };
                 });
                 cacheTimestamp = Date.now();
@@ -6762,7 +7509,10 @@
                             createdAt: project.createdAt || new Date().toISOString(),
                             createdBy: project.createdBy || 'Unknown',
                             columns: project.columns || DEFAULT_PROJECT_COLUMNS,
-                            color: project.color || '#0097A7'
+                            color: project.color || '#0097A7',
+                            status: project.status || 'active',
+                            visibility: project.visibility || 'private',
+                            members: project.members || []
                         }));
                     }
                 } catch (error) {
@@ -6837,39 +7587,70 @@
                 </div>
             `;
             
-            // 各プロジェクトをカードとして追加
-            projects.forEach(project => {
+            // プロジェクトをステータス別に分類
+            const activeProjects = projects.filter(p => (p.status || 'active') === 'active');
+            const completedProjects = projects.filter(p => p.status === 'completed');
+            const archivedProjects = projects.filter(p => p.status === 'archived');
+
+            // プロジェクトカードを生成するヘルパー関数
+            const renderProjectCard = (project) => {
                 const taskCount = projectTaskCounts[project.id] || 0;
                 const isSelected = selectedProjectFilters.includes(project.id);
                 const projectColor = project.color || '#0097A7';
                 const projectStatus = project.status || 'active';
-
-                // ステータスに応じた表示
-                let statusIcon = '';
-                let statusClass = '';
-                if (projectStatus === 'completed') {
-                    statusIcon = '✅';
-                    statusClass = 'status-completed';
-                } else if (projectStatus === 'archived') {
-                    statusIcon = '📦';
-                    statusClass = 'status-archived';
-                }
-
-                // アーカイブされたプロジェクトは薄く表示
                 const archivedStyle = projectStatus === 'archived' ? 'opacity: 0.6;' : '';
 
-                projectsHTML += `
-                    <div class="project-card ${isSelected ? 'active' : ''} ${statusClass}" onclick="selectProject('${project.id}')" style="border-left: 4px solid ${projectColor}; ${archivedStyle}">
-                        <div class="project-card-name">${statusIcon} ${project.name}</div>
+                return `
+                    <div class="project-card ${isSelected ? 'active' : ''}"
+                         onclick="selectProject('${project.id}')"
+                         oncontextmenu="showProjectContextMenu(event, '${project.id}')"
+                         style="border-left: 4px solid ${projectColor}; ${archivedStyle}">
+                        <div class="project-card-name">${project.name}</div>
                         <div class="project-card-meta">
                             <span class="project-card-count">${taskCount}タスク</span>
                         </div>
                     </div>
                 `;
-            });
-            
+            };
+
+            // 進行中プロジェクト
+            if (activeProjects.length > 0) {
+                projectsHTML += `
+                    <div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #059669; background: #ecfdf5; border-radius: 4px; margin-bottom: 0.5rem;">
+                        進行中 (${activeProjects.length})
+                    </div>
+                `;
+                activeProjects.forEach(project => {
+                    projectsHTML += renderProjectCard(project);
+                });
+            }
+
+            // 完了プロジェクト
+            if (completedProjects.length > 0) {
+                projectsHTML += `
+                    <div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #2563eb; background: #eff6ff; border-radius: 4px; margin: 0.75rem 0 0.5rem 0;">
+                        完了 (${completedProjects.length})
+                    </div>
+                `;
+                completedProjects.forEach(project => {
+                    projectsHTML += renderProjectCard(project);
+                });
+            }
+
+            // アーカイブプロジェクト
+            if (archivedProjects.length > 0) {
+                projectsHTML += `
+                    <div style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 600; color: #6b7280; background: #f3f4f6; border-radius: 4px; margin: 0.75rem 0 0.5rem 0;">
+                        アーカイブ (${archivedProjects.length})
+                    </div>
+                `;
+                archivedProjects.forEach(project => {
+                    projectsHTML += renderProjectCard(project);
+                });
+            }
+
             if (projects.length === 0) {
-                projectsHTML = `
+                projectsHTML += `
                     <div style="text-align: center; color: #6b778c; padding: 2rem 1rem;">
                         <div>プロジェクトがありません</div>
                         <div style="font-size: 0.8rem; margin-top: 0.5rem;">設定からプロジェクトを作成してください</div>
@@ -6885,13 +7666,16 @@
         async function selectProject(projectId) {
             // プロジェクトIDでフィルタリング
             selectedProjectFilters = [projectId];
+            // 🔧 2025-12-23: プロジェクト選択時はユーザーフィルターをリセット（全員表示）
+            selectedAssigneeFilters = [];
             console.log('📋 [FILTER] プロジェクトフィルター適用:', projectId);
 
             // プロジェクトキャッシュを更新してから再描画
             await updateProjectsCache();
 
             // 表示対象テキストを更新
-            updateAssigneeFilterText();
+            updateProjectFilterText();
+            updateUserFilterText();
 
             // 再描画してフィルタを適用
             render();
@@ -6899,15 +7683,21 @@
             // 🔒 カラム追加ボタンの状態を更新
             updateColumnAddButtonState();
         }
-        
-        // 通常タスク表示機能
+
+        // 通常タスク表示機能（個人タスク表示）
         function showNormalTasks() {
             // プロジェクトフィルターをクリア
             selectedProjectFilters = [];
-            console.log('📋 [FILTER] 通常タスク表示に切り替え');
+            // 🔧 2025-12-23: 個人タスク時は自分のタスクを表示
+            const currentUser = getCurrentUser();
+            if (currentUser?.name) {
+                selectedAssigneeFilters = [currentUser.name];
+            }
+            console.log('📋 [FILTER] 個人タスク表示に切り替え');
 
             // 表示対象テキストを更新
-            updateAssigneeFilterText();
+            updateProjectFilterText();
+            updateUserFilterText();
 
             // 再描画
             render();
@@ -6920,6 +7710,10 @@
         async function render() {
             // 🔧 他ユーザー閲覧モードをリセット
             isViewingOtherUser = false;
+
+            // 🔧 2025-12-19: 自動自分表示ロジックを削除
+            // init()で初期化時に自分表示を設定済み
+            // 全員表示を選択した場合はそのまま維持
 
             // 🔧 修正: タスクが未定義の場合は空配列で初期化
             if (!tasks || tasks === undefined) {
@@ -7009,15 +7803,29 @@
                 // 🔧 他ユーザー表示モード: そのユーザーのカラム設定を取得
                 const targetUserName = selectedAssigneeFilters[0];
                 const targetUserId = getUserIdByName(targetUserName);
+                console.log(`🔍 [RENDER] 表示対象: ${targetUserName}, ID: ${targetUserId}, 自分ID: ${currentUser?.id}`);
 
-                if (targetUserId && targetUserId !== currentUser?.id) {
+                // 2025-12-19: 自分以外のユーザーを選択した場合は閲覧モード
+                const isSelf = targetUserId === currentUser?.id ||
+                               targetUserName === currentUser?.name ||
+                               targetUserName === currentUser?.email?.split('@')[0];
+
+                if (!isSelf && targetUserId) {
                     // 他ユーザー表示時: そのユーザーのカラムを取得
                     const targetUserColumns = await getUserColumns(targetUserId);
                     if (targetUserColumns && targetUserColumns.length > 0) {
                         currentColumns = targetUserColumns;
                         isViewingOtherUser = true;
                         console.log(`👁️ [RENDER] 他ユーザー閲覧モード: ${targetUserName} のカラムを使用 (${currentColumns.length}カラム)`);
+                    } else {
+                        // カラム取得失敗時もデフォルトカラムで閲覧モード
+                        isViewingOtherUser = true;
+                        console.log(`⚠️ [RENDER] 他ユーザー閲覧モード: ${targetUserName} のカラム取得失敗、デフォルト使用`);
                     }
+                } else if (!isSelf) {
+                    // targetUserIdがnullでも自分以外なら閲覧モード
+                    isViewingOtherUser = true;
+                    console.log(`⚠️ [RENDER] 他ユーザー閲覧モード: ${targetUserName} (ID不明、デフォルトカラム使用)`);
                 }
 
                 // 個人・共通タスクの担当者フィルター（プロジェクトタスクは除外）
@@ -7049,7 +7857,7 @@
                     // プロジェクトタスクは除外
                     if (t.projectId) return false;
 
-                    // メンバーフィルター適用
+                    // メンバーフィルター適用（複数選択対応）
                     if (t.assignees && Array.isArray(t.assignees)) {
                         return t.assignees.some(a => selectedAssigneeFilters.includes(a));
                     }
@@ -7108,6 +7916,16 @@
             }
             
             // フィルタ適用後: ${filteredTasks.length}件
+
+            // 日付フィルターを適用
+            filteredTasks = applyDateFilter(filteredTasks);
+            console.log(`📅 [RENDER] 日付フィルター適用後: ${filteredTasks.length}件`);
+
+            // タスク名検索フィルターを適用
+            filteredTasks = applyTaskSearchFilter(filteredTasks);
+            if (taskSearchQuery) {
+                console.log(`🔍 [RENDER] 検索フィルター適用後: ${filteredTasks.length}件 (検索: "${taskSearchQuery}")`);
+            }
 
             // プロジェクト一覧サイドバーを描画（非同期）
             renderProjectsList().catch(err => console.error('❌ [RENDER] プロジェクト一覧描画エラー:', err));
@@ -8024,8 +8842,9 @@
             }
         }
         
-        // ユーザー名からユーザーIDを取得する関数
-        async function getUserIdByName(userName) {
+        // ユーザー名からユーザーIDを取得する関数（非同期版 - 通常は同期版を使用）
+        // 注意: この関数は重複定義のため getUserIdByNameAsync にリネーム (2025-12-19)
+        async function getUserIdByNameAsync(userName) {
             try {
                 // Firebaseからユーザー情報を取得
                 if (window.FirebaseDB && window.FirebaseDB.getUsers) {
@@ -8774,14 +9593,14 @@
                         ${canDelete ? `<button onclick="deleteColumn(${index})" style="padding: 0.25rem 0.5rem; background: #e53e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">削除</button>` : ''}
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                        <button onclick="updateColumnColor(${index}, '#0097A7')" style="width: 24px; height: 24px; background: #0097A7; border: ${column.color === '#0097A7' ? '3px solid #005f6b' : '2px solid transparent'}; cursor: pointer;" title="TERRA"></button>
-                        <button onclick="updateColumnColor(${index}, '#3b82f6')" style="width: 24px; height: 24px; background: #3b82f6; border: ${column.color === '#3b82f6' ? '3px solid #1d4ed8' : '2px solid transparent'}; cursor: pointer;" title="Blue"></button>
-                        <button onclick="updateColumnColor(${index}, '#10b981')" style="width: 24px; height: 24px; background: #10b981; border: ${column.color === '#10b981' ? '3px solid #047857' : '2px solid transparent'}; cursor: pointer;" title="Green"></button>
-                        <button onclick="updateColumnColor(${index}, '#f59e0b')" style="width: 24px; height: 24px; background: #f59e0b; border: ${column.color === '#f59e0b' ? '3px solid #d97706' : '2px solid transparent'}; cursor: pointer;" title="Orange"></button>
-                        <button onclick="updateColumnColor(${index}, '#ef4444')" style="width: 24px; height: 24px; background: #ef4444; border: ${column.color === '#ef4444' ? '3px solid #dc2626' : '2px solid transparent'}; cursor: pointer;" title="Red"></button>
-                        <button onclick="updateColumnColor(${index}, '#8b5cf6')" style="width: 24px; height: 24px; background: #8b5cf6; border: ${column.color === '#8b5cf6' ? '3px solid #6d28d9' : '2px solid transparent'}; cursor: pointer;" title="Purple"></button>
-                        <button onclick="updateColumnColor(${index}, '#6b7280')" style="width: 24px; height: 24px; background: #6b7280; border: ${column.color === '#6b7280' ? '3px solid #4b5563' : '2px solid transparent'}; cursor: pointer;" title="Gray"></button>
-                        <input type="color" value="${column.color}" onchange="updateColumnColor(${index}, this.value)" style="width: 24px; height: 24px; border: none; cursor: pointer; padding: 0;" title="カスタム色">
+                        <button onclick="updateColumnColor(${index}, '#0097A7')" style="width: 24px; height: 24px; background: #0097A7; border: none; border-radius: 4px; cursor: pointer; ${column.color === '#0097A7' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333;' : ''}" title="TERRA"></button>
+                        <button onclick="updateColumnColor(${index}, '#3b82f6')" style="width: 24px; height: 24px; background: #3b82f6; border: none; border-radius: 4px; cursor: pointer; ${column.color === '#3b82f6' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333;' : ''}" title="Blue"></button>
+                        <button onclick="updateColumnColor(${index}, '#10b981')" style="width: 24px; height: 24px; background: #10b981; border: none; border-radius: 4px; cursor: pointer; ${column.color === '#10b981' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333;' : ''}" title="Green"></button>
+                        <button onclick="updateColumnColor(${index}, '#f59e0b')" style="width: 24px; height: 24px; background: #f59e0b; border: none; border-radius: 4px; cursor: pointer; ${column.color === '#f59e0b' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333;' : ''}" title="Orange"></button>
+                        <button onclick="updateColumnColor(${index}, '#ef4444')" style="width: 24px; height: 24px; background: #ef4444; border: none; border-radius: 4px; cursor: pointer; ${column.color === '#ef4444' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333;' : ''}" title="Red"></button>
+                        <button onclick="updateColumnColor(${index}, '#8b5cf6')" style="width: 24px; height: 24px; background: #8b5cf6; border: none; border-radius: 4px; cursor: pointer; ${column.color === '#8b5cf6' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333;' : ''}" title="Purple"></button>
+                        <button onclick="updateColumnColor(${index}, '#6b7280')" style="width: 24px; height: 24px; background: #6b7280; border: none; border-radius: 4px; cursor: pointer; ${column.color === '#6b7280' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333;' : ''}" title="Gray"></button>
+                        <input type="color" value="${column.color}" onchange="updateColumnColor(${index}, this.value)" style="width: 24px; height: 24px; border: none; border-radius: 4px; cursor: pointer; padding: 0;" title="カスタム色">
                     </div>
                 </div>
                 `;
@@ -8796,16 +9615,9 @@
                 return;
             }
 
-            // 🔒 権限チェック（プロジェクトカラムはadmin必要、個人用は全ユーザー可）
-            const currentUser = getCurrentUser();
-            if (selectedProjectFilters.length > 0) {
-                // プロジェクトカラムの場合：admin権限必要
-                if (currentUser.role !== 'admin' && currentUser.role !== 'developer') {
-                    alert('⚠️ プロジェクトのカラム編集は管理者のみ可能です');
-                    return;
-                }
-            }
-            // 個人用カラムは全ユーザーが追加可能
+            // 🔧 この関数は設定画面から呼ばれる個人カラム専用
+            // プロジェクトカラムは quickAddColumn() で処理される
+            // 全ユーザーが自分の個人カラムを追加可能
 
             const newColumn = {
                 id: 'custom_' + Date.now(),
@@ -8838,6 +9650,7 @@
             columns[index].color = color;
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
             saveColumnsToFirestore(); // 2025-12-16復旧: Firestore同期
+            loadColumnManager(); // 設定画面の色選択状態を更新
             render(); // 即座に反映
         }
 
@@ -8845,12 +9658,7 @@
         function applyTerraColorToAllColumns() {
             const terraColor = '#0097A7';
 
-            // 🔒 権限チェック（developer権限必要）
-            const currentUser = getCurrentUser();
-            if (currentUser.role !== 'developer') {
-                alert('⚠️ カラム色の一括変更はdeveloper権限が必要です');
-                return;
-            }
+            // 2025-12-19: v016でカラム設定全ユーザー開放済み、権限チェック削除
 
             // 全カラムにTERRAカラーを適用
             columns.forEach((column, index) => {
@@ -8966,14 +9774,118 @@
             }
         });
 
+        // 🔧 2025-12-23: フィルタードロップダウン外クリックで閉じる
+        document.addEventListener('click', (e) => {
+            // プロジェクトフィルタードロップダウン
+            if (!e.target.closest('#project-filter-container')) {
+                const projectDropdown = document.getElementById('project-filter-dropdown');
+                if (projectDropdown) projectDropdown.style.display = 'none';
+            }
+            // ユーザーフィルタードロップダウン
+            if (!e.target.closest('#user-filter-container')) {
+                const userDropdown = document.getElementById('user-filter-dropdown');
+                if (userDropdown) userDropdown.style.display = 'none';
+            }
+            // 日付フィルタードロップダウン
+            if (!e.target.closest('#date-filter-container')) {
+                const dateDropdown = document.getElementById('date-filter-dropdown');
+                if (dateDropdown) dateDropdown.style.display = 'none';
+            }
+            // プロジェクトコンテキストメニュー
+            if (!e.target.closest('#projectContextMenu')) {
+                hideProjectContextMenu();
+            }
+        });
+
+        // ===== プロジェクト右クリックメニュー機能 =====
+        let contextMenuProjectId = null;
+
+        function showProjectContextMenu(event, projectId) {
+            event.preventDefault();
+            event.stopPropagation(); // 左クリックイベントを防止
+
+            contextMenuProjectId = projectId;
+            const menu = document.getElementById('projectContextMenu');
+
+            // 現在のステータスをハイライト
+            const project = cachedProjectsData ? cachedProjectsData[projectId] : null;
+            const currentStatus = project?.status || 'active';
+
+            document.getElementById('projectStatusActive').style.background = currentStatus === 'active' ? '#ecfdf5' : '';
+            document.getElementById('projectStatusCompleted').style.background = currentStatus === 'completed' ? '#eff6ff' : '';
+            document.getElementById('projectStatusArchived').style.background = currentStatus === 'archived' ? '#f3f4f6' : '';
+
+            // メニュー位置を設定
+            menu.style.left = event.clientX + 'px';
+            menu.style.top = event.clientY + 'px';
+            menu.classList.add('show');
+
+            // 画面外に出ないよう調整
+            const rect = menu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) {
+                menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
+            }
+            if (rect.bottom > window.innerHeight) {
+                menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+            }
+        }
+
+        function hideProjectContextMenu() {
+            const menu = document.getElementById('projectContextMenu');
+            if (menu) {
+                menu.classList.remove('show');
+            }
+            contextMenuProjectId = null;
+        }
+
+        async function setProjectStatusFromContext(newStatus) {
+            if (!contextMenuProjectId) return;
+
+            const projectId = contextMenuProjectId;
+            hideProjectContextMenu();
+
+            try {
+                // Firebaseでプロジェクトを更新
+                if (window.FirebaseDB && window.FirebaseDB.updateProject) {
+                    const result = await window.FirebaseDB.updateProject(projectId, {
+                        status: newStatus,
+                        updatedAt: new Date().toISOString()
+                    });
+
+                    if (result.success) {
+                        console.log(`✅ [PROJECT] ステータス変更: ${projectId} → ${newStatus}`);
+
+                        // キャッシュを更新（即時反映用）
+                        if (cachedProjectsData && cachedProjectsData[projectId]) {
+                            cachedProjectsData[projectId].status = newStatus;
+                        }
+
+                        // Firebaseキャッシュも強制更新してサイドバーを再描画
+                        await updateProjectsCache();
+                        renderProjectsList();
+
+                        // フィルターテキストも更新
+                        updateProjectFilterText();
+                    } else {
+                        console.error('❌ [PROJECT] ステータス変更失敗:', result.error);
+                        alert('ステータスの変更に失敗しました');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ [PROJECT] ステータス変更エラー:', error);
+                alert('ステータスの変更中にエラーが発生しました');
+            }
+        }
+
+        // グローバルに公開
+        window.showProjectContextMenu = showProjectContextMenu;
+        window.hideProjectContextMenu = hideProjectContextMenu;
+        window.setProjectStatusFromContext = setProjectStatusFromContext;
+
         function setColumnColorFromContext(color) {
             if (contextMenuColumnIndex === -1) return;
 
-            const currentUser = getCurrentUser();
-            if (currentUser.role !== 'developer') {
-                alert('⚠️ カラム色の変更はdeveloper権限が必要です');
-                return;
-            }
+            // 2025-12-19: v016でカラム設定全ユーザー開放済み、権限チェック削除
 
             columns[contextMenuColumnIndex].color = color;
             localStorage.setItem('kanbanColumns', JSON.stringify(columns));
@@ -8985,11 +9897,7 @@
         function moveColumnLeft() {
             if (contextMenuColumnIndex <= 0) return;
 
-            const currentUser = getCurrentUser();
-            if (currentUser.role !== 'developer') {
-                alert('⚠️ カラムの並び替えはdeveloper権限が必要です');
-                return;
-            }
+            // 2025-12-19: v016でカラム設定全ユーザー開放済み、権限チェック削除
 
             // 左のカラムと入れ替え
             const temp = columns[contextMenuColumnIndex];
@@ -9005,11 +9913,7 @@
         function moveColumnRight() {
             if (contextMenuColumnIndex === -1 || contextMenuColumnIndex >= columns.length - 1) return;
 
-            const currentUser = getCurrentUser();
-            if (currentUser.role !== 'developer') {
-                alert('⚠️ カラムの並び替えはdeveloper権限が必要です');
-                return;
-            }
+            // 2025-12-19: v016でカラム設定全ユーザー開放済み、権限チェック削除
 
             // 右のカラムと入れ替え
             const temp = columns[contextMenuColumnIndex];
@@ -9041,16 +9945,9 @@
                 return;
             }
 
-            // 🔒 権限チェック（プロジェクトカラムはadmin必要、個人用は全ユーザー可）
-            const currentUser = getCurrentUser();
-            if (selectedProjectFilters.length > 0) {
-                // プロジェクトカラムの場合：admin権限必要
-                if (currentUser.role !== 'admin' && currentUser.role !== 'developer') {
-                    alert('⚠️ プロジェクトのカラム削除は管理者のみ可能です');
-                    return;
-                }
-            }
-            // 個人用カラムは全ユーザーが削除可能（DONE/ARCHIVEカラムは下で別途チェック）
+            // 🔧 この関数は個人カラム専用（設定画面から呼ばれる）
+            // プロジェクトカラムは deleteColumnInline() で処理される
+            // 全ユーザーが自分の個人カラムを削除可能
 
             const columnToDelete = columns[index];
 
@@ -9069,7 +9966,48 @@
                 return;
             }
 
-            const tasksInColumn = tasks.filter(task => task.columnId === columnToDelete.id);
+            // 🔧 個人タスクのみカウント（プロジェクトタスクは含めない）
+            // 自分のタスク = userId一致 OR createdBy一致（古いタスク対応）
+            const currentUser = getCurrentUser();
+            const currentUid = currentUser?.uid;
+            const currentEmail = currentUser?.email;
+            const currentName = currentUser?.name;
+
+            console.log('🔍 [DELETE-COLUMN] ユーザー情報:', { uid: currentUid, email: currentEmail, name: currentName });
+            console.log('🔍 [DELETE-COLUMN] 削除対象カラム:', columnToDelete.id, columnToDelete.title);
+            console.log('🔍 [DELETE-COLUMN] 全タスク数:', tasks.length);
+
+            // 同じカラムIDのタスクを確認（デバッグ用）
+            const allTasksInColumn = tasks.filter(t => t.columnId === columnToDelete.id && !t.projectId);
+            console.log('🔍 [DELETE-COLUMN] 同じカラムIDの個人タスク総数:', allTasksInColumn.length);
+            allTasksInColumn.forEach((t, i) => {
+                console.log(`  [${i}] userId: ${t.userId}, createdBy: ${t.createdBy}, title: ${t.title?.substring(0, 20)}`);
+            });
+
+            const tasksInColumn = tasks.filter(task => {
+                if (task.columnId !== columnToDelete.id) return false;
+                if (task.projectId) return false; // プロジェクトタスクは除外
+
+                // 自分のタスクかどうかチェック（複数の条件で判定）
+                // 1. userId一致
+                if (task.userId && currentUid && task.userId === currentUid) {
+                    console.log('  ✅ userId一致:', task.title?.substring(0, 20));
+                    return true;
+                }
+                // 2. createdByがメールアドレスで一致
+                if (task.createdBy && currentEmail && task.createdBy === currentEmail) {
+                    console.log('  ✅ createdBy(email)一致:', task.title?.substring(0, 20));
+                    return true;
+                }
+                // 3. createdByがユーザー名で一致（古いタスク対応）
+                if (task.createdBy && currentName && task.createdBy === currentName) {
+                    console.log('  ✅ createdBy(name)一致:', task.title?.substring(0, 20));
+                    return true;
+                }
+                return false;
+            });
+
+            console.log('🔍 [DELETE-COLUMN] 自分のタスク数:', tasksInColumn.length);
 
             if (tasksInColumn.length > 0) {
                 const moveToColumn = prompt(`このカラムには${tasksInColumn.length}個のタスクがあります。\n移動先のカラムIDを入力してください (${columns.filter((_, i) => i !== index).map(c => c.id).join(', ')}):`);
@@ -9256,21 +10194,13 @@
             const btn = document.getElementById('quick-add-column-btn');
             if (!btn) return;
 
-            const currentUser = getCurrentUser();
-
+            // 🔧 2025-12-22: 全ユーザーがプロジェクトカラムを編集可能に
             if (selectedProjectFilters.length > 0) {
                 // プロジェクト選択時
-                if (currentUser.role === 'admin') {
-                    btn.disabled = false;
-                    btn.title = '管理者権限でカラムを追加';
-                    btn.style.opacity = '1';
-                    btn.style.cursor = 'pointer';
-                } else {
-                    btn.disabled = false; // クリックは可能（警告を表示するため）
-                    btn.title = '⚠️ プロジェクトのカラム追加は管理者のみ可能です';
-                    btn.style.opacity = '0.5';
-                    btn.style.cursor = 'not-allowed';
-                }
+                btn.disabled = false;
+                btn.title = 'プロジェクトカラムを追加';
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
             } else {
                 // 個人タスクビュー
                 btn.disabled = false;
@@ -9290,12 +10220,7 @@
 
             // プロジェクト表示中かチェック
             if (selectedProjectFilters.length > 0) {
-                // 🔒 プロジェクト選択時の権限チェック
-                const currentUser = getCurrentUser();
-                if (currentUser.role !== 'admin') {
-                    alert('⚠️ プロジェクトのカラム追加は管理者のみ可能です\n\n個人タスクビュー（プロジェクト未選択）では自由にカラムを追加できます。');
-                    return;
-                }
+                // 🔧 2025-12-22: 全ユーザーがプロジェクトカラムを編集可能に
                 // プロジェクトカラムに追加
                 const projectId = selectedProjectFilters[0];
 
@@ -9355,12 +10280,7 @@
         async function editColumnNameInline(columnId) {
             // プロジェクト表示中かチェック
             if (selectedProjectFilters.length > 0) {
-                // 🔒 プロジェクト選択時の権限チェック
-                const currentUser = getCurrentUser();
-                if (currentUser.role !== 'admin') {
-                    alert('⚠️ プロジェクトのカラム編集は管理者のみ可能です');
-                    return;
-                }
+                // 🔧 2025-12-22: 全ユーザーがプロジェクトカラムを編集可能に
 
                 // プロジェクトカラムの編集
                 const projectId = selectedProjectFilters[0];
@@ -9524,7 +10444,7 @@
                     console.error('❌ [COLUMN-DELETE] 無効なカラムインデックス:', columnIndex);
                 }
             } else {
-                // デフォルトカラムの削除
+                // デフォルトカラムの削除（インラインUI）
                 if (columns.length <= 2) {
                     alert('最低2つのカラムが必要です');
                     return;
@@ -9532,7 +10452,25 @@
 
                 const columnIndex = columns.findIndex(c => c.id === columnId);
                 const columnToDelete = columns[columnIndex];
-                const tasksInColumn = tasks.filter(task => task.columnId === columnId);
+
+                // 🔧 2025-12-23: 自分のタスクのみカウント（deleteColumn関数と同じロジック）
+                const currentUser = getCurrentUser();
+                const currentUid = currentUser?.uid;
+                const currentEmail = currentUser?.email;
+                const currentName = currentUser?.name;
+
+                const tasksInColumn = tasks.filter(task => {
+                    if (task.columnId !== columnId) return false;
+                    if (task.projectId) return false; // プロジェクトタスクは除外
+
+                    // 自分のタスクかどうかチェック（複数の条件で判定）
+                    if (task.userId && currentUid && task.userId === currentUid) return true;
+                    if (task.createdBy && currentEmail && task.createdBy === currentEmail) return true;
+                    if (task.createdBy && currentName && task.createdBy === currentName) return true;
+                    return false;
+                });
+
+                console.log('🔍 [DELETE-COLUMN-INLINE] ユーザー:', currentName, '自分のタスク数:', tasksInColumn.length);
 
                 if (tasksInColumn.length > 0) {
                     const availableColumns = columns.filter(c => c.id !== columnId);
@@ -9660,12 +10598,12 @@
             
             // メンションシステムを初期化
             setupMentionSystem();
-            
+
             // 🆘 起動時に重複チェックと自動削除
             setTimeout(async () => {
                 await checkAndRemoveDuplicates();
             }, 5000); // 起動5秒後に実行
-            
+
             // Firebase統合 - 認証を待ってからタスクデータを読み込み
             try {
                 console.log('🔥 [INIT] Firebase統合準備中...');
@@ -9716,7 +10654,13 @@
                         console.warn('⚠️ [INIT] ローカルセッションなし');
                         // セッションなしでもタスク読み込みは試行する
                     }
-                    
+
+                    // 🔧 2025-12-19: ユーザー読み込みをタスク読み込み前に実行（getCurrentUser()が漢字名を返すため）
+                    console.log('👥 [INIT] ユーザー読み込み開始...');
+                    await loadActiveUsersFromFirebase();
+                    window.activeUsers = cachedActiveUsers;
+                    console.log(`✅ [INIT] ユーザー読み込み完了: ${cachedActiveUsers.length}人`);
+
                     // ログイン状態に関わらずタスク読み込みを実行
                     console.log('📋 [INIT] タスク読み込み開始...');
                     await loadTasks();
@@ -9726,6 +10670,18 @@
 
                     // 🔧 修正: 読み込み後に確実に描画実行
                     console.log('📋 [INIT] タスク読み込み完了:', tasks.length, '件');
+
+                    // 🔧 2025-12-19: ログイン時は「自分表示」をデフォルトに設定
+                    const currentUser = getCurrentUser();
+                    if (currentUser && currentUser.name) {
+                        selectedAssigneeFilters = [currentUser.name];
+                        updateAssigneeFilterText(); // フィルターボタンの表示を更新
+                        console.log('👤 [INIT] 自分表示をデフォルトに設定:', currentUser.name);
+                    }
+
+                    // 日付フィルター設定を読み込み
+                    await loadDateFilterPreference();
+
                     console.log('🎨 [INIT] 即座に描画実行...');
                     render();
                     updateStats();
@@ -9884,6 +10840,21 @@
         // Firebase完全移行: データはFirestoreから読み込まれる
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // 🚀 楽観的UI: 最初に自分表示を即座に設定（Firebase待機前）
+            try {
+                const session = JSON.parse(localStorage.getItem('currentSession') || 'null');
+                if (session && session.user && session.user.name) {
+                    selectedAssigneeFilters = [session.user.name];
+                    const filterText = document.getElementById('assignee-filter-text');
+                    if (filterText) {
+                        filterText.textContent = session.user.name;
+                    }
+                    console.log('🚀 [OPTIMISTIC] DOM読み込み直後に自分表示設定:', session.user.name);
+                }
+            } catch (e) {
+                console.warn('⚠️ [OPTIMISTIC] 楽観的UI設定エラー:', e);
+            }
+
             // アプリバージョンチェック - 古いキャッシュを強制クリア
             const APP_VERSION = '2025-12-16-v19-project-status';
             const storedVersion = localStorage.getItem('appVersion');
@@ -9961,14 +10932,18 @@
                 // 🔍 最優先: LocalStorage監視システム開始（データ変更を全て記録）
                 setupLocalStorageMonitoring();
 
-                // 🔥 Firebase統合: Firebaseからユーザーを読み込み
-                console.log('🔥 [INIT] Firebaseからユーザー読み込み開始...');
-                await loadActiveUsersFromFirebase();
-                console.log('✅ [INIT] ユーザーデータ読み込み完了');
+                // 🔥 Firebase統合: ユーザー読み込み（まだ読み込まれていない場合のみ）
+                if (!usersCacheLoaded) {
+                    console.log('🔥 [INIT] Firebaseからユーザー読み込み開始...');
+                    await loadActiveUsersFromFirebase();
+                    console.log('✅ [INIT] ユーザーデータ読み込み完了');
 
-                // 🔧 グローバル変数にactiveUsersを設定（Slack通知のメールアドレス検索用）
-                window.activeUsers = cachedActiveUsers;
-                console.log(`✅ [INIT] window.activeUsers設定完了: ${window.activeUsers.length}人`);
+                    // 🔧 グローバル変数にactiveUsersを設定（Slack通知のメールアドレス検索用）
+                    window.activeUsers = cachedActiveUsers;
+                    console.log(`✅ [INIT] window.activeUsers設定完了: ${window.activeUsers.length}人`);
+                } else {
+                    console.log('✅ [INIT] ユーザーデータは既に読み込み済み');
+                }
 
                 // フォールバック: localStorage初期化（Firebaseエラー時のみ実行）
                 if (!usersCacheLoaded) {
@@ -10744,7 +11719,7 @@
             document.getElementById('template-task-title').value = '';
             document.getElementById('template-memo').value = '';
             document.getElementById('template-category').value = '営業';
-            document.getElementById('template-priority').value = 'medium';
+            // 優先度機能削除
             
             // 担当者チェックボックスをリセット
             const checkboxes = document.querySelectorAll('#template-assignees input[type="checkbox"]');
@@ -10762,7 +11737,7 @@
             const name = document.getElementById('template-name').value.trim();
             // カテゴリ機能削除
             const taskTitle = document.getElementById('template-task-title').value.trim();
-            const priority = document.getElementById('template-priority').value;
+            const priority = 'medium'; // 優先度機能削除（デフォルト値）
             const columnId = document.getElementById('template-column').value;
             const memo = document.getElementById('template-memo').value.trim();
 
@@ -10796,7 +11771,7 @@
                             console.log('✅ [FIREBASE] テンプレート更新成功:', editingTemplateId);
                             
                             // ローカル配列も更新
-                            const templateIndex = taskTemplates.findIndex(t => t.id === editingTemplateId);
+                            const templateIndex = taskTemplates.findIndex(t => String(t.id) === String(editingTemplateId));
                             if (templateIndex !== -1) {
                                 taskTemplates[templateIndex] = {
                                     ...taskTemplates[templateIndex],
@@ -10812,7 +11787,7 @@
                         }
                     } else {
                         // LocalStorageフォールバック
-                        const templateIndex = taskTemplates.findIndex(t => t.id === editingTemplateId);
+                        const templateIndex = taskTemplates.findIndex(t => String(t.id) === String(editingTemplateId));
                         if (templateIndex !== -1) {
                             taskTemplates[templateIndex] = {
                                 ...taskTemplates[templateIndex],
@@ -10898,16 +11873,16 @@
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
                             <h6 style="margin: 0; font-size: 1rem; font-weight: 600; color: #172b4d; line-height: 1.2;">${template.name}</h6>
                             <div style="display: flex; gap: 0.25rem;">
-                                <button onclick="editTemplate(${template.id})" style="background: none; border: none; color: #6c757d; cursor: pointer; font-size: 0.9rem; padding: 0.2rem;" title="編集">編集</button>
-                                <button onclick="deleteTemplate(${template.id})" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; padding: 0.2rem;" title="削除">削除</button>
+                                <button onclick="editTemplate('${template.id}')" style="background: none; border: none; color: #6c757d; cursor: pointer; font-size: 0.9rem; padding: 0.2rem;" title="編集">編集</button>
+                                <button onclick="deleteTemplate('${template.id}')" style="background: none; border: none; color: #dc3545; cursor: pointer; font-size: 1rem; padding: 0.2rem;" title="削除">削除</button>
                             </div>
                         </div>
                         <div style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.75rem; line-height: 1.3;">${template.taskTitle}</div>
                         <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.75rem;">
-                            <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; white-space: nowrap;">${template.priority === 'high' ? '[最重要]' : template.priority === 'medium' ? '[重要]' : '[通常]'}</span>
                             <span style="background: #e9ecef; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; white-space: nowrap;">${columns.find(c => c.id === template.columnId)?.title || template.columnId}</span>
                         </div>
-                        <button onclick="applyTemplate(${template.id})" style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                        ${template.memo ? `<div style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.75rem; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; max-height: 2.8em;">${template.memo}</div>` : ''}
+                        <button onclick="applyTemplate('${template.id}')" style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
                             適用
                         </button>
                     </div>
@@ -10919,29 +11894,30 @@
         }
         
         function editTemplate(templateId) {
-            const template = taskTemplates.find(t => t.id === templateId);
+            // 文字列・数値両対応の検索
+            const template = taskTemplates.find(t => String(t.id) === String(templateId));
             if (!template) {
                 alert('テンプレートが見つかりません');
+                console.warn('⚠️ [TEMPLATE-EDIT] ID不一致:', templateId);
                 return;
             }
-            
+
             // 編集モードを設定
             editingTemplateId = templateId;
             document.getElementById('template-modal-title').textContent = '✏️ テンプレート編集';
             document.getElementById('save-template-btn').textContent = '更新';
-            
+
             // テンプレート作成モーダルを表示
             showCreateTemplateModal();
-            
+
             // フォームにテンプレートの値を設定
             setTimeout(() => {
-                document.getElementById('template-name').value = template.name;
-                document.getElementById('template-category').value = template.category;
-                document.getElementById('template-task-title').value = template.taskTitle;
-                document.getElementById('template-priority').value = template.priority;
-                document.getElementById('template-column').value = template.columnId;
+                document.getElementById('template-name').value = template.name || '';
+                document.getElementById('template-category').value = template.category || '営業';
+                document.getElementById('template-task-title').value = template.taskTitle || '';
+                document.getElementById('template-column').value = template.columnId || '';
                 document.getElementById('template-memo').value = template.memo || '';
-                
+
                 // 担当者チェックボックスを設定
                 const checkboxes = document.querySelectorAll('#template-assignees input[type="checkbox"]');
                 checkboxes.forEach(cb => {
@@ -10949,40 +11925,67 @@
                 });
             }, 100);
         }
-        
+
         function deleteTemplate(templateId) {
             if (!confirm('このテンプレートを削除しますか？')) {
                 return;
             }
-            
-            taskTemplates = taskTemplates.filter(t => t.id !== templateId);
+
+            // 文字列・数値両対応のフィルタリング
+            taskTemplates = taskTemplates.filter(t => String(t.id) !== String(templateId));
             localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
             loadTemplateList();
         }
         
         function applyTemplate(templateId) {
-            const template = taskTemplates.find(t => t.id === templateId);
+            // 文字列・数値両対応の検索
+            const template = taskTemplates.find(t => String(t.id) === String(templateId));
             if (!template) {
                 alert('テンプレートが見つかりません');
+                console.warn('⚠️ [TEMPLATE] ID不一致:', templateId, 'taskTemplates:', taskTemplates.map(t => t.id));
                 return;
             }
-            
+
+            console.log('📋 [TEMPLATE-APPLY] テンプレート適用:', template.name);
+
             // 新規タスク作成モーダルを開いてテンプレートの値を適用
             createTaskUnified();
-            
-            // テンプレートの値を設定
+
+            // テンプレートの値を設定（モーダル表示後）
             setTimeout(() => {
-                document.getElementById('task-title-input').value = template.taskTitle;
-                // 優先度機能削除
-                document.getElementById('task-column-input').value = template.columnId;
+                document.getElementById('task-title-input').value = template.taskTitle || '';
                 document.getElementById('task-memo-input').value = template.memo || '';
-                
+
+                // カラム設定（存在確認付き - プロジェクトカラム対応）
+                const columnSelect = document.getElementById('task-column-input');
+                const projectSelect = document.getElementById('task-project-select');
+                const selectedProjectId = projectSelect?.value || '';
+
+                if (template.columnId) {
+                    // プロジェクト選択時はプロジェクトカラムを使用、それ以外は個人カラム
+                    let availableColumns = columns;
+                    if (selectedProjectId) {
+                        availableColumns = getProjectColumns(selectedProjectId);
+                    }
+
+                    const columnExists = availableColumns.some(c => c.id === template.columnId);
+                    if (columnExists) {
+                        columnSelect.value = template.columnId;
+                        console.log('✅ [TEMPLATE-APPLY] カラム設定:', template.columnId);
+                    } else {
+                        console.warn('⚠️ [TEMPLATE-APPLY] カラムID不存在、デフォルト使用:', template.columnId, '→', availableColumns[0]?.id);
+                        if (availableColumns.length > 0) {
+                            columnSelect.value = availableColumns[0].id;
+                        }
+                    }
+                }
+
                 // 担当者を設定
                 if (template.assignees && template.assignees.length > 0) {
                     setSelectedAssignees(template.assignees);
                 }
             }, 100);
-            
+
             // 設定モーダルを閉じる
             closeSettingsModal();
         }
@@ -11056,7 +12059,7 @@
                 groupedTemplates[category].forEach(template => {
                     const isSelected = currentEditingTemplateId === template.id;
                     html += `
-                        <div onclick="selectTemplateInManagement(${template.id})" 
+                        <div onclick="selectTemplateInManagement('${template.id}')"
                              style="background: ${isSelected ? '#eff6ff' : 'white'}; 
                                     border: 1px solid ${isSelected ? '#3b82f6' : '#e5e7eb'}; 
                                     border-radius: 8px; 
@@ -11068,11 +12071,7 @@
                              onmouseout="if(!${isSelected}) { this.style.background='white'; this.style.borderColor='#e5e7eb'; }">
                             <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">${template.name}</div>
                             <div style="font-size: 0.8rem; color: #6b7280; margin-bottom: 0.5rem;">${template.taskTitle}</div>
-                            <div style="display: flex; gap: 0.25rem;">
-                                <span style="background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 12px; font-size: 0.7rem; color: #374151;">
-                                    ${template.priority === 'high' ? '🔴' : template.priority === 'medium' ? '🟡' : '🟢'} ${template.priority === 'high' ? '最重要' : template.priority === 'medium' ? '重要' : '通常'}
-                                </span>
-                            </div>
+                            ${template.memo ? `<div style="font-size: 0.7rem; color: #6b7280; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; max-height: 2.6em;">${template.memo}</div>` : ''}
                         </div>
                     `;
                 });
@@ -11084,21 +12083,23 @@
         }
         
         function selectTemplateInManagement(templateId) {
-            const template = taskTemplates.find(t => t.id === templateId);
-            if (!template) return;
-            
+            // 文字列・数値両対応の検索
+            const template = taskTemplates.find(t => String(t.id) === String(templateId));
+            if (!template) {
+                console.warn('⚠️ [TEMPLATE-MGMT] ID不一致:', templateId);
+                return;
+            }
+
             currentEditingTemplateId = templateId;
-            
+
             // フォームを表示
             document.getElementById('template-welcome-screen').style.display = 'none';
             document.getElementById('template-form-container').style.display = 'flex';
-            
+
             // フォームに値を設定
-            document.getElementById('mgmt-template-name').value = template.name;
-            // カテゴリ機能削除
-            document.getElementById('mgmt-template-task-title').value = template.taskTitle;
-            document.getElementById('mgmt-template-priority').value = template.priority;
-            document.getElementById('mgmt-template-column').value = template.columnId;
+            document.getElementById('mgmt-template-name').value = template.name || '';
+            document.getElementById('mgmt-template-task-title').value = template.taskTitle || '';
+            document.getElementById('mgmt-template-column').value = template.columnId || '';
             document.getElementById('mgmt-template-memo').value = template.memo || '';
             
             // ボタンを更新
@@ -11162,9 +12163,9 @@
             event.preventDefault();
 
             const name = document.getElementById('mgmt-template-name').value.trim();
-            // カテゴリ機能削除
+            // カテゴリ機能削除、優先度機能削除
             const taskTitle = document.getElementById('mgmt-template-task-title').value.trim();
-            const priority = document.getElementById('mgmt-template-priority').value;
+            const priority = 'medium'; // デフォルト値（優先度フィールド削除済み）
             const columnId = document.getElementById('mgmt-template-column').value;
             const memo = document.getElementById('mgmt-template-memo').value.trim();
 
@@ -11198,7 +12199,7 @@
                             console.log('✅ [FIREBASE] テンプレート更新成功:', currentEditingTemplateId);
                             
                             // ローカル配列も更新
-                            const index = taskTemplates.findIndex(t => t.id === currentEditingTemplateId);
+                            const index = taskTemplates.findIndex(t => String(t.id) === String(currentEditingTemplateId));
                             if (index !== -1) {
                                 taskTemplates[index] = {
                                     ...taskTemplates[index],
@@ -11214,7 +12215,7 @@
                         }
                     } else {
                         // LocalStorageフォールバック
-                        const index = taskTemplates.findIndex(t => t.id === currentEditingTemplateId);
+                        const index = taskTemplates.findIndex(t => String(t.id) === String(currentEditingTemplateId));
                         if (index !== -1) {
                             taskTemplates[index] = {
                                 ...taskTemplates[index],
@@ -11287,15 +12288,16 @@
         
         function deleteCurrentTemplate() {
             if (!currentEditingTemplateId) return;
-            
-            const template = taskTemplates.find(t => t.id === currentEditingTemplateId);
+
+            // 文字列・数値両対応の検索
+            const template = taskTemplates.find(t => String(t.id) === String(currentEditingTemplateId));
             if (!template) return;
-            
+
             if (!confirm(`テンプレート「${template.name}」を削除しますか？`)) {
                 return;
             }
-            
-            taskTemplates = taskTemplates.filter(t => t.id !== currentEditingTemplateId);
+
+            taskTemplates = taskTemplates.filter(t => String(t.id) !== String(currentEditingTemplateId));
             localStorage.setItem('taskTemplates', JSON.stringify(taskTemplates));
             
             // 一覧を更新
@@ -11772,27 +12774,31 @@
                 return;
             }
             
-            // カテゴリ別にグループ化
+            // カテゴリ別にグループ化（undefinedは「その他」に）
             const groupedTemplates = {};
             taskTemplates.forEach(template => {
-                if (!groupedTemplates[template.category]) {
-                    groupedTemplates[template.category] = [];
+                // 無効なテンプレートはスキップ
+                if (!template || !template.name) return;
+
+                const category = template.category || 'その他';
+                if (!groupedTemplates[category]) {
+                    groupedTemplates[category] = [];
                 }
-                groupedTemplates[template.category].push(template);
+                groupedTemplates[category].push(template);
             });
-            
+
             // カテゴリ別にオプションを追加
             Object.keys(groupedTemplates).forEach(category => {
                 const optgroup = document.createElement('optgroup');
                 optgroup.label = category;
-                
+
                 groupedTemplates[category].forEach(template => {
                     const option = document.createElement('option');
                     option.value = template.id;
-                    option.textContent = template.name;
+                    option.textContent = template.name || 'テンプレート';
                     optgroup.appendChild(option);
                 });
-                
+
                 templateSelect.appendChild(optgroup);
             });
         }
@@ -11801,24 +12807,52 @@
             if (!templateId) {
                 return;
             }
-            
-            const template = taskTemplates.find(t => t.id == templateId);
+
+            // 文字列・数値両対応の検索
+            const template = taskTemplates.find(t => String(t.id) === String(templateId));
             if (!template) {
+                console.warn('⚠️ [TEMPLATE] テンプレートが見つかりません:', templateId);
                 return;
             }
-            
+
+            console.log('📋 [TEMPLATE] テンプレート適用:', template.name, template);
+
             // テンプレートの値を設定
-            document.getElementById('task-title-input').value = template.taskTitle;
-            // 優先度機能削除
-            document.getElementById('task-column-input').value = template.columnId;
+            document.getElementById('task-title-input').value = template.taskTitle || '';
             document.getElementById('task-memo-input').value = template.memo || '';
-            
+
+            // カラム設定（存在確認付き - プロジェクトカラム対応）
+            const columnSelect = document.getElementById('task-column-input');
+            const projectSelect = document.getElementById('task-project-select');
+            const selectedProjectId = projectSelect?.value || '';
+
+            if (template.columnId) {
+                // プロジェクト選択時はプロジェクトカラムを使用、それ以外は個人カラム
+                let availableColumns = columns;
+                if (selectedProjectId) {
+                    availableColumns = getProjectColumns(selectedProjectId);
+                }
+
+                // テンプレートのカラムIDが現在のカラムに存在するか確認
+                const columnExists = availableColumns.some(c => c.id === template.columnId);
+                if (columnExists) {
+                    columnSelect.value = template.columnId;
+                    console.log('✅ [TEMPLATE] カラム設定:', template.columnId);
+                } else {
+                    // 存在しない場合は最初のカラムを使用
+                    console.warn('⚠️ [TEMPLATE] カラムID不存在、デフォルト使用:', template.columnId, '→', availableColumns[0]?.id);
+                    if (availableColumns.length > 0) {
+                        columnSelect.value = availableColumns[0].id;
+                    }
+                }
+            }
+
             // 担当者を設定
             if (template.assignees && template.assignees.length > 0) {
                 setSelectedAssignees(template.assignees);
             }
-            
-            // テンプレート選択をリセット
+
+            // テンプレート選択をリセット（選択状態を維持しない）
             document.getElementById('template-select').value = '';
         }
         
@@ -12790,36 +13824,61 @@
         }
 
         // ダッシュボードデータを読み込み
+        // 🔧 2025-12-23: 最適化 - キャッシュ活用、1回ループで全統計計算
         async function loadDashboardData() {
             try {
-                // タスクを取得
-                let tasks = [];
-                if (window.FirebaseDB?.getTasks) {
+                console.time('📊 [DASHBOARD] データ読み込み');
+
+                // 🔧 最適化: グローバルのtasks配列を優先使用（既にキャッシュ済み）
+                let taskList = window.tasks || [];
+                if (taskList.length === 0 && window.FirebaseDB?.getTasks) {
                     const result = await window.FirebaseDB.getTasks();
                     if (result.success) {
-                        tasks = result.tasks;
+                        taskList = result.tasks;
                     }
                 }
 
                 // ユーザーを取得
                 const users = JSON.parse(localStorage.getItem('systemUsers') || '[]');
 
-                // 期限切れタスク（完了・アーカイブ済みを除く）
+                // 🔧 最適化: 1回のループで全統計を計算
                 const now = new Date();
-                const overdueTasks = tasks.filter(task =>
-                    task.deadline && new Date(task.deadline) < now && !isDoneColumn(task.columnId) && !isTrashColumn(task.columnId)
-                );
-
-                // 停滞タスク（3日以上同じステータス、完了・アーカイブ済みを除く）
                 const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-                const staleTasks = tasks.filter(task =>
-                    task.lastMovedAt && new Date(task.lastMovedAt) < threeDaysAgo && !isDoneColumn(task.columnId) && !isTrashColumn(task.columnId)
-                );
+                let overdueCount = 0;
+                let staleCount = 0;
+                const userStats = {};
 
-                // UI更新
-                document.getElementById('dashboard-overdue-count').textContent = overdueTasks.length;
-                document.getElementById('dashboard-stale-count').textContent = staleTasks.length;
-                document.getElementById('dashboard-total-tasks').textContent = tasks.length;
+                taskList.forEach(task => {
+                    const isDone = isDoneColumn(task.columnId);
+                    const isArchive = isTrashColumn(task.columnId);
+                    const isActive = !isDone && !isArchive;
+
+                    // 期限切れタスク
+                    if (isActive && task.deadline && new Date(task.deadline) < now) {
+                        overdueCount++;
+                    }
+
+                    // 停滞タスク
+                    if (isActive && task.lastMovedAt && new Date(task.lastMovedAt) < threeDaysAgo) {
+                        staleCount++;
+                    }
+
+                    // メンバー別統計
+                    if (task.assignee && task.assignee !== '未設定') {
+                        if (!userStats[task.assignee]) {
+                            userStats[task.assignee] = { total: 0, completed: 0 };
+                        }
+                        userStats[task.assignee].total++;
+                        if (isDone) {
+                            userStats[task.assignee].completed++;
+                        }
+                    }
+                });
+
+                // UI更新（一括）
+                document.getElementById('dashboard-overdue-count').textContent = overdueCount;
+                document.getElementById('dashboard-stale-count').textContent = staleCount;
+                document.getElementById('dashboard-total-tasks').textContent = taskList.length;
                 document.getElementById('dashboard-active-users').textContent = users.length;
 
                 // Firebase状態確認
@@ -12828,19 +13887,6 @@
 
                 // メンバー別パフォーマンス
                 const performanceContent = document.getElementById('dashboard-performance-content');
-                const userStats = {};
-
-                tasks.forEach(task => {
-                    if (task.assignee && task.assignee !== '未設定') {
-                        if (!userStats[task.assignee]) {
-                            userStats[task.assignee] = { total: 0, completed: 0 };
-                        }
-                        userStats[task.assignee].total++;
-                        if (isDoneColumn(task.columnId)) {
-                            userStats[task.assignee].completed++;
-                        }
-                    }
-                });
 
                 performanceContent.innerHTML = Object.entries(userStats)
                     .map(([user, stats]) => {
@@ -12853,8 +13899,10 @@
                         `;
                     }).join('');
 
+                console.timeEnd('📊 [DASHBOARD] データ読み込み');
             } catch (error) {
                 console.error('ダッシュボードデータ読み込みエラー:', error);
+                console.timeEnd('📊 [DASHBOARD] データ読み込み');
             }
         }
 
@@ -12956,11 +14004,42 @@
                     return;
                 }
                 
+                // 🔧 プロジェクトタスクの担当者を収集
+                const projectTaskAssignees = {};
+                if (window.tasks && window.tasks.length > 0) {
+                    window.tasks.forEach(task => {
+                        if (task.projectId) {
+                            if (!projectTaskAssignees[task.projectId]) {
+                                projectTaskAssignees[task.projectId] = new Set();
+                            }
+                            // 担当者を追加
+                            if (task.assignees && Array.isArray(task.assignees)) {
+                                task.assignees.forEach(a => projectTaskAssignees[task.projectId].add(a));
+                            }
+                            // 作成者も追加
+                            if (task.createdBy) {
+                                projectTaskAssignees[task.projectId].add(task.createdBy);
+                            }
+                        }
+                    });
+                }
+
                 // プロジェクト一覧を表示
                 projectsList.innerHTML = projects.map(project => {
                     const isOwner = project.createdBy === currentUser.email;
                     // 🔥 membersが文字列の場合は配列に変換
-                    const membersArray = Array.isArray(project.members) ? project.members : [project.members];
+                    let membersArray = Array.isArray(project.members) ? [...project.members] : [project.members];
+
+                    // 🔧 タスク担当者もメンバーとして追加
+                    const taskAssignees = projectTaskAssignees[project.id];
+                    if (taskAssignees) {
+                        taskAssignees.forEach(email => {
+                            if (email && !membersArray.includes(email)) {
+                                membersArray.push(email);
+                            }
+                        });
+                    }
+
                     const isMember = membersArray.includes(currentUser.email);
                     const canView = project.visibility === 'public' || isMember || isOwner;
                     
@@ -13031,16 +14110,18 @@
                 colorInput.value = color;
             }
 
-            // ボタンの選択状態を更新
+            // ボタンの選択状態を更新（白枠スタイル）
             const container = document.getElementById('newProjectColorPicker');
             if (container) {
                 container.querySelectorAll('button').forEach(btn => {
                     const btnColor = btn.getAttribute('data-color');
                     if (btnColor === color) {
-                        btn.style.border = `3px solid ${color}`;
+                        btn.style.border = 'none';
+                        btn.style.boxShadow = '0 0 0 2px white, 0 0 0 4px #333';
                         btn.style.transform = 'scale(1.1)';
                     } else {
-                        btn.style.border = '2px solid transparent';
+                        btn.style.border = 'none';
+                        btn.style.boxShadow = 'none';
                         btn.style.transform = 'scale(1)';
                     }
                 });
@@ -13058,10 +14139,12 @@
                 container.querySelectorAll('button').forEach(btn => {
                     const btnColor = btn.getAttribute('data-color');
                     if (btnColor === color) {
-                        btn.style.border = `3px solid ${color}`;
+                        btn.style.border = 'none';
+                        btn.style.boxShadow = '0 0 0 2px white, 0 0 0 4px #333';
                         btn.style.transform = 'scale(1.1)';
                     } else {
-                        btn.style.border = '2px solid transparent';
+                        btn.style.border = 'none';
+                        btn.style.boxShadow = 'none';
                         btn.style.transform = 'scale(1)';
                     }
                 });
@@ -13074,8 +14157,7 @@
         // 🔒 【必須カラム判定】完了とアーカイブは削除不可
         function isRequiredColumn(columnName) {
             if (!columnName) return false;
-            const lower = columnName.toLowerCase();
-            return /完了|done|完成/i.test(columnName) || /アーカイブ|ゴミ箱|trash|削除/i.test(columnName);
+            return /完了|done|完成/i.test(columnName) || /アーカイブ|archive|ゴミ箱|trash|削除/i.test(columnName);
         }
 
         // 🔧 新規プロジェクトのカラム管理関数
@@ -13320,11 +14402,11 @@
         }
 
         // 新しいプロジェクトを作成
-        async function createNewProject() {
+        async function createNewProject(continueCreating = false) {
             try {
                 const name = document.getElementById('newProjectName').value.trim();
                 const description = document.getElementById('newProjectDescription').value.trim();
-                const columns = getNewProjectColumns();
+                const columnsWithColors = getNewProjectColumnsWithColors(); // 色情報を含むオブジェクト配列
                 const currentUser = getCurrentUser();
 
                 if (!name) {
@@ -13332,7 +14414,7 @@
                     return;
                 }
 
-                if (columns.length === 0) {
+                if (columnsWithColors.length === 0) {
                     alert('最低1つのカラムを設定してください');
                     return;
                 }
@@ -13367,19 +14449,21 @@
                 console.log('✅ [PROJECT CREATE] 重複チェック完了: 問題なし');
 
                 // 🔒 【必須カラム自動追加】完了・アーカイブカラムがなければ追加
-                const hasDone = columns.some(col => /完了|done|完成/i.test(col));
-                const hasTrash = columns.some(col => /アーカイブ|ゴミ箱|trash|削除/i.test(col));
+                console.log('🔍 [PROJECT CREATE] カラムチェック開始:', columnsWithColors.map(c => c.name));
+                const hasDone = columnsWithColors.some(col => /完了|done|完成/i.test(col.name));
+                const hasTrash = columnsWithColors.some(col => /アーカイブ|archive|ゴミ箱|trash|削除/i.test(col.name));
+                console.log(`🔍 [PROJECT CREATE] hasDone=${hasDone}, hasTrash=${hasTrash}`);
 
                 if (!hasDone) {
-                    columns.push("Done");
+                    columnsWithColors.push({ name: "Done", color: "#10b981", type: "done" });
                     console.log('🔧 [PROJECT CREATE] 完了カラムを自動追加');
                 }
                 if (!hasTrash) {
-                    columns.push("Archive");
+                    columnsWithColors.push({ name: "Archive", color: "#6b7280", type: "archive" });
                     console.log('🔧 [PROJECT CREATE] アーカイブカラムを自動追加');
                 }
 
-                console.log('✅ [PROJECT CREATE] カラム確定:', columns);
+                console.log('✅ [PROJECT CREATE] カラム確定:', columnsWithColors.map(c => `${c.name}(${c.type || 'no-type'})`));
 
                 const projectColor = document.getElementById('newProjectColor')?.value || '#0097A7';
 
@@ -13389,7 +14473,7 @@
                     description: description,
                     visibility: 'public', // 常に公開（全員アクセス可）
                     color: projectColor,
-                    columns: columns,
+                    columns: columnsWithColors, // 色情報を含むオブジェクト配列で保存
                     members: [currentUser.email], // 作成者は自動的にメンバーになる
                     createdBy: currentUser.email,
                     createdAt: new Date().toISOString(),
@@ -13430,7 +14514,16 @@
                 render();
                 console.log('✅ [PROJECT CREATE] サイドバー再レンダリング完了');
 
-                alert(`✅ プロジェクト「${name}」を作成しました！`);
+                if (continueCreating) {
+                    // トースト通知を表示して続けて作成
+                    showToastNotification('✅ プロジェクト作成', `「${name}」を作成しました`);
+                    // 名前入力にフォーカス
+                    document.getElementById('newProjectName').focus();
+                } else {
+                    // 🔧 2025-12-23: 保存後にモーダルを閉じて看板に戻る
+                    closeProjectManagementModal();
+                    showToastNotification('✅ プロジェクト作成', `「${name}」を作成しました`);
+                }
 
             } catch (error) {
                 console.error('❌ プロジェクト作成エラー:', error);
@@ -13591,13 +14684,13 @@
                         <div style="margin-bottom: 1rem;">
                             <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">プロジェクトカラー</label>
                             <div id="editProjectColorPicker" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                <button type="button" onclick="selectEditProjectColor('#0097A7')" data-color="#0097A7" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#0097A7' ? '3px solid #005f6b' : '2px solid transparent'}; background: #0097A7; cursor: pointer;"></button>
-                                <button type="button" onclick="selectEditProjectColor('#3b82f6')" data-color="#3b82f6" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#3b82f6' ? '3px solid #1d4ed8' : '2px solid transparent'}; background: #3b82f6; cursor: pointer;"></button>
-                                <button type="button" onclick="selectEditProjectColor('#8b5cf6')" data-color="#8b5cf6" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#8b5cf6' ? '3px solid #6d28d9' : '2px solid transparent'}; background: #8b5cf6; cursor: pointer;"></button>
-                                <button type="button" onclick="selectEditProjectColor('#10b981')" data-color="#10b981" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#10b981' ? '3px solid #047857' : '2px solid transparent'}; background: #10b981; cursor: pointer;"></button>
-                                <button type="button" onclick="selectEditProjectColor('#f59e0b')" data-color="#f59e0b" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#f59e0b' ? '3px solid #d97706' : '2px solid transparent'}; background: #f59e0b; cursor: pointer;"></button>
-                                <button type="button" onclick="selectEditProjectColor('#ef4444')" data-color="#ef4444" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#ef4444' ? '3px solid #dc2626' : '2px solid transparent'}; background: #ef4444; cursor: pointer;"></button>
-                                <button type="button" onclick="selectEditProjectColor('#6b7280')" data-color="#6b7280" style="width: 32px; height: 32px; border-radius: 50%; border: ${project.color === '#6b7280' ? '3px solid #4b5563' : '2px solid transparent'}; background: #6b7280; cursor: pointer;"></button>
+                                <button type="button" onclick="selectEditProjectColor('#0097A7')" data-color="#0097A7" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #0097A7; cursor: pointer; ${project.color === '#0097A7' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333; transform: scale(1.1);' : ''}"></button>
+                                <button type="button" onclick="selectEditProjectColor('#3b82f6')" data-color="#3b82f6" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #3b82f6; cursor: pointer; ${project.color === '#3b82f6' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333; transform: scale(1.1);' : ''}"></button>
+                                <button type="button" onclick="selectEditProjectColor('#8b5cf6')" data-color="#8b5cf6" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #8b5cf6; cursor: pointer; ${project.color === '#8b5cf6' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333; transform: scale(1.1);' : ''}"></button>
+                                <button type="button" onclick="selectEditProjectColor('#10b981')" data-color="#10b981" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #10b981; cursor: pointer; ${project.color === '#10b981' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333; transform: scale(1.1);' : ''}"></button>
+                                <button type="button" onclick="selectEditProjectColor('#f59e0b')" data-color="#f59e0b" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #f59e0b; cursor: pointer; ${project.color === '#f59e0b' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333; transform: scale(1.1);' : ''}"></button>
+                                <button type="button" onclick="selectEditProjectColor('#ef4444')" data-color="#ef4444" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #ef4444; cursor: pointer; ${project.color === '#ef4444' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333; transform: scale(1.1);' : ''}"></button>
+                                <button type="button" onclick="selectEditProjectColor('#6b7280')" data-color="#6b7280" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: #6b7280; cursor: pointer; ${project.color === '#6b7280' ? 'box-shadow: 0 0 0 2px white, 0 0 0 4px #333; transform: scale(1.1);' : ''}"></button>
                             </div>
                             <input type="hidden" id="editProjectColor" value="${project.color || '#0097A7'}">
                         </div>
@@ -13616,7 +14709,7 @@
                             <button onclick="document.getElementById('projectEditModal').remove()" style="background: #6b7280; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer;">
                                 キャンセル
                             </button>
-                            <button onclick="saveProjectChanges('${project.id}', this.closest('div'))" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">
+                            <button onclick="saveProjectChanges('${project.id}', document.getElementById('projectEditModal'))" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600;">
                                 保存
                             </button>
                         </div>
@@ -13638,16 +14731,31 @@
                 const description = document.getElementById('editProjectDescription').value.trim();
                 const status = document.getElementById('editProjectStatus').value;
                 const color = document.getElementById('editProjectColor')?.value || '#0097A7';
-                const columns = getEditProjectColumns();
+                const columnsWithColors = getEditProjectColumnsWithColors(); // 色情報を含むオブジェクト配列
 
                 if (!name) {
                     alert('プロジェクト名を入力してください');
                     return;
                 }
 
-                if (columns.length === 0) {
+                if (columnsWithColors.length === 0) {
                     alert('最低1つのカラムを設定してください');
                     return;
+                }
+
+                // 🔒 アーカイブカラム重複チェック（保存前に重複を除去）
+                const archiveIndices = [];
+                columnsWithColors.forEach((col, idx) => {
+                    if (/アーカイブ|archive|ゴミ箱|trash/i.test(col.name)) {
+                        archiveIndices.push(idx);
+                    }
+                });
+                if (archiveIndices.length > 1) {
+                    // 最初のアーカイブカラム以外を削除
+                    console.log('⚠️ [PROJECT SAVE] 重複アーカイブカラム検出:', archiveIndices.length, '→ 最初の1つのみ保持');
+                    for (let i = archiveIndices.length - 1; i > 0; i--) {
+                        columnsWithColors.splice(archiveIndices[i], 1);
+                    }
                 }
 
                 // 🔥 Firebaseからプロジェクト情報を取得
@@ -13672,7 +14780,7 @@
                     visibility: 'public', // 常に公開（全員アクセス可）
                     status: status,
                     color: color,
-                    columns: columns,
+                    columns: columnsWithColors, // 色情報を含むオブジェクト配列で保存
                     updatedAt: new Date().toISOString()
                 };
 
@@ -13682,8 +14790,17 @@
                     const result = await window.FirebaseDB.saveProject(updatedProject);
                     if (result.success) {
                         console.log('✅ [PROJECT UPDATE] Firebase更新成功:', result.id);
-                        modalElement.remove();
+                        // 🔧 モーダルを確実に閉じる（IDで直接取得）
+                        const modal = document.getElementById('projectEditModal');
+                        if (modal) {
+                            modal.remove();
+                            console.log('✅ [PROJECT UPDATE] モーダル削除完了');
+                        }
+                        // 🔧 2025-12-23: キャッシュ更新と再描画を追加（即時反映）
+                        await updateProjectsCache();
                         await loadProjectsList();
+                        render();
+                        console.log('✅ [PROJECT UPDATE] キャッシュ・画面更新完了');
                         alert(`✅ プロジェクト「${name}」を更新しました！`);
                     } else {
                         console.error('❌ [PROJECT UPDATE] Firebase更新エラー:', result.error);

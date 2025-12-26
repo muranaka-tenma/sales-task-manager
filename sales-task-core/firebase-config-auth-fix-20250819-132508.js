@@ -100,53 +100,90 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // セッション管理 - Firebase専用
+// 2025-12-19: Firestoreからのユーザー情報（window.activeUsers）を優先使用するよう修正
+// 2025-12-25: emailToNameMapを追加してローマ字表示問題を修正
 window.getCurrentUser = function() {
     if (window.currentFirebaseUser) {
-        // 正しい権限マッピング
-        const roleMap = {
-            'muranaka-tenma@terracom.co.jp': 'developer',
-            'kato-jun@terracom.co.jp': 'admin',
-            'asahi-keiichi@terracom.co.jp': 'admin',
-            'hanzawa-yuka@terracom.co.jp': 'user',
-            'tamura-wataru@terracom.co.jp': 'user',
-            'hashimoto-yumi@terracom.co.jp': 'user',
-            'fukushima-ami@terracom.co.jp': 'user'
+        const userEmail = window.currentFirebaseUser.email;
+        const targetEmail = userEmail.trim().toLowerCase();
+
+        // メールアドレスから日本語名へのマッピング
+        const emailToNameMap = {
+            'muranaka-tenma@terracom.co.jp': '邨中天真',
+            'hashimoto-yumi@terracom.co.jp': '橋本友美',
+            'kato-jun@terracom.co.jp': '加藤純',
+            'asahi-keiichi@terracom.co.jp': '朝日圭一',
+            'hanzawa-yuka@terracom.co.jp': '半澤侑果',
+            'tamura-wataru@terracom.co.jp': '田村渉',
+            'fukushima-ami@terracom.co.jp': '福島阿美'
         };
 
-        const userRole = roleMap[window.currentFirebaseUser.email] || 'user';
+        // 🔧 優先1: Firestoreから取得したユーザー情報（漢字名を含む）
+        let displayName = null;
+        let userRole = null;
 
-        // systemUsersから日本語名を取得（非表示タスクの担当者自動選択で必要）
-        let displayName;
-        try {
-            const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
-            const targetEmail = window.currentFirebaseUser.email.trim().toLowerCase();
-
-            // 大文字小文字無視・空白トリムで比較
-            const matchedUser = systemUsers.find(u =>
+        if (window.activeUsers && window.activeUsers.length > 0) {
+            const matchedUser = window.activeUsers.find(u =>
                 u.email && u.email.trim().toLowerCase() === targetEmail
             );
-
-            if (matchedUser && matchedUser.name) {
+            if (matchedUser) {
                 displayName = matchedUser.name;
-            } else {
-                // フォールバック: FirebaseのdisplayNameまたはemail prefixを使用
-                displayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
+                userRole = matchedUser.role;
             }
-        } catch (error) {
-            // エラー時はFirebaseのdisplayNameまたはemail prefixを使用
-            displayName = window.currentFirebaseUser.displayName || window.currentFirebaseUser.email.split('@')[0];
+        }
+
+        // 🔧 フォールバック2: LocalStorage（systemUsers）
+        if (!displayName) {
+            try {
+                const systemUsers = JSON.parse(localStorage.getItem('systemUsers') || '[]');
+                const matchedUser = systemUsers.find(u =>
+                    u.email && u.email.trim().toLowerCase() === targetEmail
+                );
+                if (matchedUser && matchedUser.name) {
+                    displayName = matchedUser.name;
+                    if (!userRole) userRole = matchedUser.role;
+                }
+            } catch (error) {
+                // エラー時は無視
+            }
+        }
+
+        // 🔧 フォールバック3: emailToNameMap（ハードコード）
+        if (!displayName) {
+            displayName = emailToNameMap[targetEmail];
+        }
+
+        // 🔧 フォールバック4: Firebaseユーザー情報
+        if (!displayName) {
+            displayName = window.currentFirebaseUser.displayName || userEmail.split('@')[0];
+        }
+
+        // 権限のフォールバック（ハードコード）
+        if (!userRole) {
+            const roleMap = {
+                'muranaka-tenma@terracom.co.jp': 'developer',
+                'kato-jun@terracom.co.jp': 'admin',
+                'asahi-keiichi@terracom.co.jp': 'admin',
+                'hanzawa-yuka@terracom.co.jp': 'user',
+                'tamura-wataru@terracom.co.jp': 'user',
+                'hashimoto-yumi@terracom.co.jp': 'user',
+                'fukushima-ami@terracom.co.jp': 'user'
+            };
+            userRole = roleMap[userEmail] || 'user';
         }
 
         return {
             id: window.currentFirebaseUser.uid,
+            uid: window.currentFirebaseUser.uid,
             name: displayName,
-            email: window.currentFirebaseUser.email,
+            email: userEmail,
             role: userRole,
             isLoggedIn: true
         };
     }
     return {
         id: null,
+        uid: null,
         name: 'ゲスト',
         email: null,
         role: 'guest',
@@ -495,6 +532,34 @@ window.FirebaseDB = {
         }
     },
 
+    // 🔧 2025-12-23: プロジェクト部分更新関数を追加
+    async updateProject(projectId, updates) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user || !user.id) {
+                return { success: false, error: '認証が必要です' };
+            }
+
+            const projectRef = doc(db, 'projects', projectId);
+            const existingDoc = await getDoc(projectRef);
+
+            if (!existingDoc.exists()) {
+                return { success: false, error: 'プロジェクトが見つかりません' };
+            }
+
+            await updateDoc(projectRef, {
+                ...updates,
+                updatedAt: new Date().toISOString()
+            });
+
+            console.log(`✅ [FIREBASE] プロジェクト更新: ${projectId}`);
+            return { success: true, id: projectId };
+        } catch (error) {
+            console.error('❌ プロジェクト更新エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
     async deleteProject(projectId) {
         try {
             const user = window.getCurrentUser();
@@ -518,13 +583,32 @@ window.FirebaseDB = {
                 return { success: true, users: [] };
             }
 
+            // メールアドレスから日本語名へのマッピング
+            const emailToNameMap = {
+                'muranaka-tenma@terracom.co.jp': '邨中天真',
+                'hashimoto-yumi@terracom.co.jp': '橋本友美',
+                'kato-jun@terracom.co.jp': '加藤純',
+                'asahi-keiichi@terracom.co.jp': '朝日圭一',
+                'hanzawa-yuka@terracom.co.jp': '半澤侑果',
+                'tamura-wataru@terracom.co.jp': '田村渉',
+                'fukushima-ami@terracom.co.jp': '福島阿美'
+            };
+
             const usersRef = collection(db, 'users');
             const q = query(usersRef, orderBy('createdAt', 'desc'));
             const snapshot = await getDocs(q);
-            
+
             const users = [];
             snapshot.forEach((doc) => {
-                users.push({ id: doc.id, ...doc.data() });
+                const data = doc.data();
+                // 日本語名を設定: displayName > name > emailToNameMap > emailプレフィックス
+                const japaneseName = data.displayName || data.name || emailToNameMap[data.email] || data.email?.split('@')[0] || 'Unknown';
+                users.push({
+                    id: doc.id,
+                    ...data,
+                    name: japaneseName,
+                    displayName: japaneseName
+                });
             });
 
             return { success: true, users: users };
@@ -537,6 +621,17 @@ window.FirebaseDB = {
     // 有効なユーザーのみ取得
     async getActiveUsers() {
         try {
+            // メールアドレスから日本語名へのマッピング（FirestoreにdisplayNameがない場合のフォールバック）
+            const emailToNameMap = {
+                'muranaka-tenma@terracom.co.jp': '邨中天真',
+                'hashimoto-yumi@terracom.co.jp': '橋本友美',
+                'kato-jun@terracom.co.jp': '加藤純',
+                'asahi-keiichi@terracom.co.jp': '朝日圭一',
+                'hanzawa-yuka@terracom.co.jp': '半澤侑果',
+                'tamura-wataru@terracom.co.jp': '田村渉',
+                'fukushima-ami@terracom.co.jp': '福島阿美'
+            };
+
             const result = await window.FirebaseDB.getUsers();
             if (!result.success) {
                 return { success: false, users: [], error: result.error };
@@ -544,20 +639,26 @@ window.FirebaseDB = {
 
             const activeUsers = result.users
                 .filter(user => !user.isHidden && !user.isDisabled)
-                .map(user => ({
-                    uid: user.id || user.uid,
-                    name: user.displayName || user.name || user.email?.split('@')[0] || 'Unknown',
-                    email: user.email,
-                    role: user.role || 'user',
-                    isActive: user.isActive !== false,
-                    isHidden: user.isHidden || false,
-                    isDisabled: user.isDisabled || false,
-                    createdAt: user.createdAt,
-                    displayName: user.displayName || user.name
-                }));
+                .map(user => {
+                    // 日本語名の優先順位: displayName > name > emailToNameMap > emailプレフィックス
+                    const japaneseName = user.displayName || user.name || emailToNameMap[user.email] || user.email?.split('@')[0] || 'Unknown';
+                    return {
+                        uid: user.id || user.uid,
+                        name: japaneseName,
+                        email: user.email,
+                        role: user.role || 'user',
+                        isActive: user.isActive !== false,
+                        isHidden: user.isHidden || false,
+                        isDisabled: user.isDisabled || false,
+                        createdAt: user.createdAt,
+                        displayName: japaneseName
+                    };
+                });
 
+            console.log(`✅ [ACTIVE-USERS] ${activeUsers.length}人の有効ユーザー取得完了`);
             return { success: true, users: activeUsers };
         } catch (error) {
+            console.error('❌ [ACTIVE-USERS] エラー:', error.message);
             return { success: false, users: [], error: error.message };
         }
     },
@@ -595,6 +696,49 @@ window.FirebaseDB = {
         } catch (error) {
             console.error('❌ ユーザー保存エラー:', error);
             return { success: false, error: error.message };
+        }
+    },
+
+    // 🔧 2025-12-23: ユーザー個別設定の保存・読み込み
+    async saveUserSettings(userId, settings) {
+        try {
+            const settingsRef = doc(db, 'userSettings', userId);
+            const existingDoc = await getDoc(settingsRef);
+
+            if (existingDoc.exists()) {
+                // 既存の設定にマージ
+                await updateDoc(settingsRef, {
+                    ...settings,
+                    updatedAt: new Date().toISOString()
+                });
+            } else {
+                // 新規作成
+                await setDoc(settingsRef, {
+                    ...settings,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                });
+            }
+            return { success: true };
+        } catch (error) {
+            console.error('❌ ユーザー設定保存エラー:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async getUserSettings(userId) {
+        try {
+            const settingsRef = doc(db, 'userSettings', userId);
+            const settingsDoc = await getDoc(settingsRef);
+
+            if (settingsDoc.exists()) {
+                return { success: true, settings: settingsDoc.data() };
+            } else {
+                return { success: true, settings: {} };
+            }
+        } catch (error) {
+            console.error('❌ ユーザー設定読み込みエラー:', error);
+            return { success: false, error: error.message, settings: {} };
         }
     },
 
@@ -721,6 +865,115 @@ window.FirebaseDB = {
         } catch (error) {
             console.error('❌ [COLUMNS] マイグレーションエラー:', error);
             return { success: false, error: error.message };
+        }
+    },
+
+    // タスクテンプレート作成
+    async createTemplate(templateData) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user || !user.id) throw new Error('認証が必要です');
+
+            const templateToCreate = {
+                ...templateData,
+                userId: user.id,
+                createdBy: user.email,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            console.log('🆕 [CREATE-TEMPLATE] テンプレート作成開始:', {
+                name: templateData.name?.substring(0, 30) + '...',
+                userId: user.id
+            });
+
+            const docRef = await addDoc(collection(db, 'templates'), templateToCreate);
+
+            console.log('✅ [CREATE-TEMPLATE] Firestore保存成功:', docRef.id);
+            return { success: true, id: docRef.id };
+        } catch (error) {
+            console.error('❌ [CREATE-TEMPLATE] エラー:', error.message);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // テンプレート更新（存在しない場合は作成）
+    async updateTemplate(templateId, updates) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user || !user.id) throw new Error('認証が必要です');
+
+            const templateRef = doc(db, 'templates', String(templateId));
+            const templateDoc = await getDoc(templateRef);
+
+            if (templateDoc.exists()) {
+                // 既存ドキュメントを更新
+                await updateDoc(templateRef, {
+                    ...updates,
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: user.email
+                });
+                console.log('✅ テンプレート更新成功:', templateId);
+                return { success: true };
+            } else {
+                // ドキュメントが存在しない場合は新規作成
+                console.log('⚠️ [TEMPLATE] ドキュメント不存在、新規作成に切り替え:', templateId);
+                const newTemplateData = {
+                    ...updates,
+                    userId: user.id,
+                    createdBy: user.email,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                const docRef = await addDoc(collection(db, 'templates'), newTemplateData);
+                console.log('✅ テンプレート新規作成成功:', docRef.id);
+                return { success: true, id: docRef.id, wasCreated: true };
+            }
+        } catch (error) {
+            console.error('❌ テンプレート更新エラー:', error.message);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // テンプレート削除
+    async deleteTemplate(templateId) {
+        try {
+            const user = window.getCurrentUser();
+            if (!user || !user.id) throw new Error('認証が必要です');
+
+            await deleteDoc(doc(db, 'templates', templateId));
+            console.log('✅ テンプレート削除成功:', templateId);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ テンプレート削除エラー:', error.message);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // 全テンプレート取得
+    async getTemplates() {
+        try {
+            const user = window.getCurrentUser();
+            if (!user || !user.id) {
+                return { success: true, templates: [] };
+            }
+
+            console.log('🔍 [GET-TEMPLATES] テンプレート取得開始');
+
+            const templatesRef = collection(db, 'templates');
+            const q = query(templatesRef, orderBy('createdAt', 'desc'));
+            const snapshot = await getDocs(q);
+
+            const templates = [];
+            snapshot.forEach((doc) => {
+                templates.push({ id: doc.id, ...doc.data() });
+            });
+
+            console.log(`✅ [GET-TEMPLATES] ${templates.length}件取得`);
+            return { success: true, templates: templates };
+        } catch (error) {
+            console.error('❌ テンプレート取得エラー:', error.message);
+            return { success: false, error: error.message, templates: [] };
         }
     }
 };

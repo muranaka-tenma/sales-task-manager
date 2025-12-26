@@ -349,6 +349,17 @@ window.FirebaseDB = {
   // 有効なユーザーのみ取得（無効化・非表示ユーザーを除外）
   getActiveUsers: async () => {
     try {
+      // メールアドレスから日本語名へのマッピング
+      const emailToNameMap = {
+        'muranaka-tenma@terracom.co.jp': '邨中天真',
+        'hashimoto-yumi@terracom.co.jp': '橋本友美',
+        'kato-jun@terracom.co.jp': '加藤純',
+        'asahi-keiichi@terracom.co.jp': '朝日圭一',
+        'hanzawa-yuka@terracom.co.jp': '半澤侑果',
+        'tamura-wataru@terracom.co.jp': '田村渉',
+        'fukushima-ami@terracom.co.jp': '福島阿美'
+      };
+
       const result = await window.FirebaseDB.getAllUsers();
       if (!result.success) {
         console.error('❌ [ACTIVE-USERS] ユーザー取得失敗:', result.error);
@@ -358,17 +369,21 @@ window.FirebaseDB = {
       // displayName → name へのマッピングとフィルタリング
       const activeUsers = result.users
         .filter(user => !user.isHidden && !user.isDisabled)
-        .map(user => ({
-          uid: user.uid,
-          name: user.displayName || user.email?.split('@')[0] || 'Unknown',
-          email: user.email,
-          role: user.role || 'user',
-          isActive: user.isActive !== false,
-          isHidden: user.isHidden || false,
-          isDisabled: user.isDisabled || false,
-          createdAt: user.createdAt,
-          displayName: user.displayName // 互換性のため残す
-        }));
+        .map(user => {
+          // 日本語名の優先順位: displayName > emailToNameMap > emailプレフィックス
+          const japaneseName = user.displayName || emailToNameMap[user.email] || user.email?.split('@')[0] || 'Unknown';
+          return {
+            uid: user.uid,
+            name: japaneseName,
+            email: user.email,
+            role: user.role || 'user',
+            isActive: user.isActive !== false,
+            isHidden: user.isHidden || false,
+            isDisabled: user.isDisabled || false,
+            createdAt: user.createdAt,
+            displayName: user.displayName || japaneseName // 互換性のため残す
+          };
+        });
 
       console.log(`✅ [ACTIVE-USERS] ${result.users.length}人中 ${activeUsers.length}人が有効`);
       return { success: true, users: activeUsers };
