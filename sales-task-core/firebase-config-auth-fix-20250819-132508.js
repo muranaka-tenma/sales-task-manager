@@ -99,24 +99,28 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
+// =============================================================================
+// グローバル定数: メールアドレス → 日本語名マッピング
+// 2025-12-25: ローマ字表示問題を修正
+// 2025-12-26: 3箇所の重複定義を統合
+// =============================================================================
+const EMAIL_TO_NAME_MAP = {
+    'muranaka-tenma@terracom.co.jp': '邨中天真',
+    'hashimoto-yumi@terracom.co.jp': '橋本友美',
+    'kato-jun@terracom.co.jp': '加藤純',
+    'asahi-keiichi@terracom.co.jp': '朝日圭一',
+    'hanzawa-yuka@terracom.co.jp': '半澤侑果',
+    'tamura-wataru@terracom.co.jp': '田村渉',
+    'fukushima-ami@terracom.co.jp': '福島阿美'
+};
+
 // セッション管理 - Firebase専用
 // 2025-12-19: Firestoreからのユーザー情報（window.activeUsers）を優先使用するよう修正
-// 2025-12-25: emailToNameMapを追加してローマ字表示問題を修正
+// 2025-12-25: EMAIL_TO_NAME_MAP（グローバル定数）を使用
 window.getCurrentUser = function() {
     if (window.currentFirebaseUser) {
         const userEmail = window.currentFirebaseUser.email;
         const targetEmail = userEmail.trim().toLowerCase();
-
-        // メールアドレスから日本語名へのマッピング
-        const emailToNameMap = {
-            'muranaka-tenma@terracom.co.jp': '邨中天真',
-            'hashimoto-yumi@terracom.co.jp': '橋本友美',
-            'kato-jun@terracom.co.jp': '加藤純',
-            'asahi-keiichi@terracom.co.jp': '朝日圭一',
-            'hanzawa-yuka@terracom.co.jp': '半澤侑果',
-            'tamura-wataru@terracom.co.jp': '田村渉',
-            'fukushima-ami@terracom.co.jp': '福島阿美'
-        };
 
         // 🔧 優先1: Firestoreから取得したユーザー情報（漢字名を含む）
         let displayName = null;
@@ -148,9 +152,9 @@ window.getCurrentUser = function() {
             }
         }
 
-        // 🔧 フォールバック3: emailToNameMap（ハードコード）
+        // 🔧 フォールバック3: EMAIL_TO_NAME_MAP（グローバル定数）
         if (!displayName) {
-            displayName = emailToNameMap[targetEmail];
+            displayName = EMAIL_TO_NAME_MAP[targetEmail];
         }
 
         // 🔧 フォールバック4: Firebaseユーザー情報
@@ -583,17 +587,6 @@ window.FirebaseDB = {
                 return { success: true, users: [] };
             }
 
-            // メールアドレスから日本語名へのマッピング
-            const emailToNameMap = {
-                'muranaka-tenma@terracom.co.jp': '邨中天真',
-                'hashimoto-yumi@terracom.co.jp': '橋本友美',
-                'kato-jun@terracom.co.jp': '加藤純',
-                'asahi-keiichi@terracom.co.jp': '朝日圭一',
-                'hanzawa-yuka@terracom.co.jp': '半澤侑果',
-                'tamura-wataru@terracom.co.jp': '田村渉',
-                'fukushima-ami@terracom.co.jp': '福島阿美'
-            };
-
             const usersRef = collection(db, 'users');
             const q = query(usersRef, orderBy('createdAt', 'desc'));
             const snapshot = await getDocs(q);
@@ -601,8 +594,8 @@ window.FirebaseDB = {
             const users = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                // 日本語名を設定: displayName > name > emailToNameMap > emailプレフィックス
-                const japaneseName = data.displayName || data.name || emailToNameMap[data.email] || data.email?.split('@')[0] || 'Unknown';
+                // 日本語名を設定: displayName > name > EMAIL_TO_NAME_MAP > emailプレフィックス
+                const japaneseName = data.displayName || data.name || EMAIL_TO_NAME_MAP[data.email] || data.email?.split('@')[0] || 'Unknown';
                 users.push({
                     id: doc.id,
                     ...data,
@@ -621,17 +614,6 @@ window.FirebaseDB = {
     // 有効なユーザーのみ取得
     async getActiveUsers() {
         try {
-            // メールアドレスから日本語名へのマッピング（FirestoreにdisplayNameがない場合のフォールバック）
-            const emailToNameMap = {
-                'muranaka-tenma@terracom.co.jp': '邨中天真',
-                'hashimoto-yumi@terracom.co.jp': '橋本友美',
-                'kato-jun@terracom.co.jp': '加藤純',
-                'asahi-keiichi@terracom.co.jp': '朝日圭一',
-                'hanzawa-yuka@terracom.co.jp': '半澤侑果',
-                'tamura-wataru@terracom.co.jp': '田村渉',
-                'fukushima-ami@terracom.co.jp': '福島阿美'
-            };
-
             const result = await window.FirebaseDB.getUsers();
             if (!result.success) {
                 return { success: false, users: [], error: result.error };
@@ -640,8 +622,8 @@ window.FirebaseDB = {
             const activeUsers = result.users
                 .filter(user => !user.isHidden && !user.isDisabled)
                 .map(user => {
-                    // 日本語名の優先順位: displayName > name > emailToNameMap > emailプレフィックス
-                    const japaneseName = user.displayName || user.name || emailToNameMap[user.email] || user.email?.split('@')[0] || 'Unknown';
+                    // 日本語名の優先順位: displayName > name > EMAIL_TO_NAME_MAP > emailプレフィックス
+                    const japaneseName = user.displayName || user.name || EMAIL_TO_NAME_MAP[user.email] || user.email?.split('@')[0] || 'Unknown';
                     return {
                         uid: user.id || user.uid,
                         name: japaneseName,
