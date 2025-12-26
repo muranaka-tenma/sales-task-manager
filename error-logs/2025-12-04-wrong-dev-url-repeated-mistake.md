@@ -10,14 +10,16 @@
 
 開発環境のURLを何度も間違えて伝えてしまう。
 
-### 正しいURL
+### 正しいURL（2025-12-26更新）
 ```
-http://localhost:3000/index-kanban.html
+http://localhost:8080/index-kanban.html
 ```
+※ Python http.server で起動（`python3 -m http.server 8080`）
 
-### 間違ったURL（使ってはいけない）
+### 過去の間違い
 ```
-http://localhost:3000/sales-task-core/index-kanban.html  ← ❌ 余計なパスが入っている
+http://localhost:3000/index-kanban.html  ← package.jsonのlive-server設定だが現在未使用
+http://localhost:3000/sales-task-core/index-kanban.html  ← ❌ パスが余計
 ```
 
 ---

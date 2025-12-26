@@ -86,18 +86,20 @@ grep "APP_VERSION" sales-task-core/index-kanban.html
 const APP_VERSION = 'YYYY-MM-DD-vX-変更内容';
 ```
 
-### 3. 開発開始時のルーティン
+### 3. 開発開始時のルーティン（2025-12-26更新）
 ```bash
 # 1. 現在のサーバー状態確認
-lsof -i :3000
+lsof -i :8080
 
 # 2. 古いサーバーがあれば停止
-pkill -f live-server
+pkill -f "http.server 8080"
 
 # 3. 新しいサーバー起動
-cd /home/muranaka-tenma/sales-task-manager
-npx live-server sales-task-core --port=3000
+cd /home/muranaka-tenma/sales-task-manager/sales-task-core
+python3 -m http.server 8080
 ```
+
+**開発環境URL**: `http://localhost:8080/index-kanban.html`
 
 ---
 
